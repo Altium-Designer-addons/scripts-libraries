@@ -1,0 +1,78 @@
+/*
+ *  This EAGLE User Language Program prints the netlist of a board 
+ *  in standard Protel format (1.0) (very similar to Tango netlist format)
+ *  to import it to Protel PCB software.  
+ *
+ *  It is also possible to print the netlist of a schematic,  
+ *  but this will not adhere to the correct Protel format:  
+ *  package names are missing,  pin names instead of pad names. 
+ *
+ *  If you have only the schematic,  just generate the board and run this 
+ *  ULP in the EAGLE board editor.  
+ *
+ *  19.09.2001  Hans Lederer,  Ingenieurbüro Lederer,  Emmendingen 
+ *  Hans.Lederer@ib-lederer.de
+ */
+
+if (board) board(B) {
+   output(filesetext(B.name, ".NET")) {
+
+   B.elements(E) {
+     printf("%s\n","[");
+     printf("%s\n",E.name);
+     printf("%s\n",E.package.name);
+     printf("%s\n",E.value);
+     printf("\n\n\n%s\n","]");
+     }
+
+   B.signals(S) {
+     numeric string Part[], Pad[];
+     int cnt = 0, index[];
+
+     S.contactrefs(C) {
+       Part[cnt] = C.element.name;
+       Pad[cnt] = C.contact.name;
+       cnt++;
+       }
+     if (cnt) {
+        sort(cnt, index, Part, Pad);
+        printf("%s\n","(");
+        printf("%s\n",S.name);
+        for (int i = 0; i < cnt; i++)
+            printf("%s%s%s\n",Part[index[i]],"-",Pad[index[i]]);
+        printf("%s\n",")");
+        }
+     }
+   }
+ }
+
+if (schematic) schematic(SCH) {
+   output(filesetext(SCH.name, ".NET")) {
+
+   SCH.parts(P) {
+     printf("%s\n","[");
+     printf("%s\n",P.name);
+     printf("%s\n",P.value);
+     printf("\n\n\n%s\n","]");
+     }
+
+   SCH.nets(N) {
+     numeric string Part[], Pin[];
+     int cnt = 0, index[];
+
+     N.pinrefs(P) {
+       Part[cnt] = P.part.name;
+       Pin[cnt] = P.pin.name;
+       cnt++;
+       }
+     if (cnt) {
+        sort(cnt, index, Part, Pin);
+        printf("%s\n","(");
+        printf("%s\n",N.name);
+        for (int i = 0; i < cnt; i++)
+            printf("%s%s%s\n",Part[index[i]],"-",Pin[index[i]]);
+        printf("%s\n",")");
+        }
+     }
+   }
+ }

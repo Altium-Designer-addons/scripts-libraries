@@ -1,0 +1,908 @@
+#usage "<b>Eagle schematic exporting tool </b>\n"
+       "<p>"
+       "This ULP can convert an Eagle schematic into an ALTIUM schematic."
+       "<p>"
+       "Load any schematic and execute the ULP in the eagle."
+
+
+/* ==========================================================================
+ * This script is based on the eagle2kicad_sch.ULP from Juergen Messerer which
+ *    was released under the license of the GNU Public license Version 2.
+ * 	Adaption was made by Christian Keller (retrochris (at) web.de)
+ * ==========================================================================*/
+
+/*
+ * CHANGELOG================================================
+ *
+ * 08.12.2009: Version 1.1: 
+ *             minor issue fixed preventing V5.x creating correct results
+ *             file naming scheme corrected
+ * 18.11.2009: printf was causing an error if a value contains the char '%' (e.g. 10k/1%), heiko.schedletzky (at) grossfunk.de
+ * 05.11.2009: Initial Version 1
+ *
+ */
+
+/* ==========================================================================
+ * License: This file is released under the license of the GNU Public license
+ *          Version 2.
+ * ==========================================================================*/
+
+
+
+	string sch_name = "";
+
+//------------------------------------------------------
+//Records
+//------------------------------------------------------
+
+string HeaderRecord (int val)
+{
+	string s;
+	sprintf (s, "|HEADER=Protel for Windows - Schematic Capture Ascii File Version 5.0|WEIGHT=%d\n" , val);
+	return s;
+}
+
+//------------------------------------------------------
+// Optimize Text for output with printf
+// 18.11.2009 - heiko.schedletzky (at) grossfunk.de
+//------------------------------------------------------
+
+string FixText(string src)
+{
+	// problem  : printf is causing an error if a value contains the char '%' (e.g. 10k/1%)
+	// solution : '%' is substituted with '_'
+
+	string tarray[];
+	strsplit(tarray,src,'%');
+	return strjoin(tarray,'_');
+}
+
+//------------------------------------------------------
+//convert string
+//------------------------------------------------------
+string ConvString(string text)
+{
+	int i;
+	int Felder;
+	string helper;
+
+	helper="";
+
+
+	for (i=0;i<strlen(text);i++){
+		if (text[i]=='%')
+			helper=helper+"%%";
+		else
+			helper=helper+text[i];
+	}
+
+return helper;
+}
+
+
+//------------------------------------------------------
+//convert colours
+//------------------------------------------------------
+
+int Colour (int number)
+  {
+
+int farbe;
+
+switch (number){
+case 1: farbe=16777215;
+	break;
+case 2: farbe=16711680;
+	break;
+case 3: farbe=32768;
+	break;
+case 4: farbe=8421376;
+	break;
+case 5: farbe=128;
+	break;
+case 6: farbe=8388736;
+	break;
+case 7: farbe=32896;
+	break;
+case 8: farbe=8421504;
+	break;
+case 9: farbe=12632256;
+	break;
+case 10: farbe=11796480;
+	break;
+case 11: farbe=65280;
+	break;
+case 12: farbe=16776960;
+	break;
+case 13: farbe=255;
+	break;
+case 14: farbe=16711935;
+	break;
+case 15: farbe=65535;
+	break;
+case 16: farbe=0;
+	break;
+default: farbe=0;
+}
+
+    return farbe;
+  }
+
+
+
+//------------------------------------------------------
+
+string PartRecord (UL_INSTANCE I,UL_PART P,int part,int partcount,int Record)
+{
+	int x;
+	int y;
+	string mirrored="F";
+	int orientation;
+
+	if (I.mirror>0)
+		mirrored="T";
+
+
+	orientation=0;
+//    if (I.angle==90) orientation=1;
+//    if (I.angle==180) orientation=2;
+//    if (I.angle==270) orientation=3;
+	if (I.angle==90)
+		if(I.mirror==0) orientation=1;
+		else
+			orientation=3;
+	if (I.angle==180) orientation=2;
+	if (I.angle==270)
+		if(I.mirror==0) orientation=3;
+	else
+		orientation=1;
+
+	x=int(u2mil(I.x)/10);
+	y=int(u2mil(I.y)/10);
+
+	string s;
+	sprintf (s, "|RECORD=1|LIBREFERENCE=%s|PARTCOUNT=%d|DISPLAYMODECOUNT=1|ISMIRRORED=%s|INDEXINSHEET=%d|OWNERPARTID=-1|LOCATION.X=%d|LOCATION.Y=%d|ORIENTATION=%d|CURRENTPARTID=%d|LIBRARYPATH=*|SOURCELIBRARYNAME=%s|TARGETFILENAME=*|AREACOLOR=11599871|COLOR=128|PARTIDLOCKED=F|DESIGNITEMID=%s\n",P.device.name,partcount, mirrored,Record ,x,y,orientation,part,I.gate.symbol.library,P.device.name);
+	return s;
+}
+
+
+//------------------------------------------------------
+string PinRecord (UL_PIN P, int owner,int owner2,int ownerpartid)
+{
+
+	int PinLength;
+	int x;
+	int y;
+	int PinConglomerate;
+	string designator;
+	string pinsymbol;
+
+
+	pinsymbol="";
+	if (P.function==PIN_FUNCTION_FLAG_CLK)
+		pinsymbol="SYMBOL_INNEREDGE=3|";
+	if (P.function==PIN_FUNCTION_FLAG_DOT)
+		pinsymbol="SYMBOL_OUTEREDGE=1|";
+
+	x=int(u2mil(P.x)/10);
+	y=int(u2mil(P.y)/10);
+
+	if (P.length==PIN_LENGTH_POINT) PinLength=0;
+	if (P.length==PIN_LENGTH_SHORT) PinLength=10;
+	if (P.length==PIN_LENGTH_MIDDLE) PinLength=20;
+	if (P.length==PIN_LENGTH_LONG) PinLength=30;
+
+	PinConglomerate=32;
+
+
+	if (P.visible==PIN_VISIBLE_FLAG_OFF) PinConglomerate+=0;
+		else
+		if (P.visible==PIN_VISIBLE_FLAG_PIN) PinConglomerate+=8;
+			else
+			if (P.visible==PIN_VISIBLE_FLAG_PAD) PinConglomerate+=16;
+				else
+				PinConglomerate+=24;
+
+	if (P.angle==0) {
+    		PinConglomerate+=2;
+		x=x+PinLength;}
+	if (P.angle==90) {
+		PinConglomerate+=3;
+		y=y+PinLength;}
+	if (P.angle==180) {
+		PinConglomerate+=0;
+		x=x-PinLength;}
+	if (P.angle==270) {
+		PinConglomerate+=1;
+		y=y-PinLength;}
+
+	if (!P.contact)
+		designator="0";
+	else
+		designator=P.contact.name;
+
+	string s;
+	sprintf (s, "|RECORD=2|OWNERINDEX=%d|OWNERPARTID=%d|%sFORMALTYPE=1|ELECTRICAL=4|PINCONGLOMERATE=%d|PINLENGTH=%d|LOCATION.X=%d|LOCATION.Y=%d|NAME=%s|DESIGNATOR=%s|SWAPIDPART=1\n",owner,ownerpartid,pinsymbol,PinConglomerate,PinLength,x,y,P.name, designator);
+
+	return s;
+}
+
+
+
+
+//------------------------------------------------------
+string LabelRecord (UL_TEXT T,int Ownerindex, int Ownerpart){
+
+	string s;
+	int x;
+	int y;
+	int orientation;
+
+	orientation=0;
+	if (T.angle==90) orientation=1;
+	if (T.angle==180) orientation=2;
+	if (T.angle==270) orientation=3;
+
+
+	x=int(u2mil(T.x)/10);
+	y=int(u2mil(T.y)/10);
+
+	sprintf (s, "|RECORD=4|OWNERINDEX=%d|OWNERPARTID=%d|LOCATION.X=%d|LOCATION.Y=%d|ORIENTATION=%d|COLOR=8388608|FONTID=1|TEXT=%s\n",Ownerindex, Ownerpart, x,y,orientation,T.value);
+
+	return s;
+}
+
+
+//------------------------------------------------------
+
+string PolygonRecord (UL_POLYGON P,int Ownerindex, int Ownerpart)
+{
+	int x;
+	int y;
+	int count=1;
+	string helper="";
+	string helper2="";
+
+	string s;
+	sprintf (s, "|RECORD=7|OWNERINDEX=%d|OWNERPARTID=%d|COLOR=16711680|AREACOLOR=12632256|ISSOLID=T",Ownerindex,Ownerpart );
+
+	P.contours(C){
+		x=int(u2mil(C.x1)/10);
+		y=int(u2mil(C.y1)/10);
+
+		sprintf (helper, helper+ "|X%d=%d|Y%d=%d",count,x,count,y );
+		count+=1;
+
+	}
+
+	sprintf (helper2, "|LOCATIONCOUNT=%d",(count-1));
+	sprintf (s, s+helper2+helper+"\n");
+
+
+	return s;
+}
+
+
+//------------------------------------------------------
+string ArcRecord (UL_CIRCLE C, int Record, int Index, int Owner){
+
+	string s;
+	int x;
+	int y;
+	int r;
+
+	x=int(u2mil(C.x)/10);
+	y=int(u2mil(C.y)/10);
+	r=int(u2mil(C.radius)/10);
+
+	sprintf (s, "|RECORD=12|INDEXINSHEET=%d|OWNERINDEX=%d|OWNERPARTID=%d|LOCATION.X=%d|LOCATION.Y=%d|RADIUS=%d|RADIUS_FRAC=0|LINEWIDTH=1|STARTANGLE=0|ENDANGLE=0|COLOR=16711680\n",Record, Index,Owner,x,y,r );
+	return s;
+}
+
+
+//------------------------------------------------------
+string LineRecord (UL_WIRE W,int Records,int Owner, int ownerpartid)
+{
+	int x1;
+	int y1;
+	int x2;
+	int y2;
+	int r;
+
+	string s;
+
+	x1=int(u2mil(W.x1)/10);
+	y1=int(u2mil(W.y1)/10);
+	x2=int(u2mil(W.x2)/10);
+	y2=int(u2mil(W.y2)/10);
+
+	if (W.curve==0)
+		sprintf (s, "|RECORD=13|OWNERINDEX=%d|ISNOTACCESIBLE=T|INDEXINSHEET=%d|OWNERPARTID=%d|LOCATION.X=%d|LOCATION.Y=%d|CORNER.X=%d|CORNER.Y=%d|LINEWIDTH=1|COLOR=16711680\n",Owner,Records,ownerpartid, x1,y1,x2,y2);
+
+	else{
+		x1=int(u2mil(W.arc.xc)/10);
+		y1=int(u2mil(W.arc.yc)/10);
+		r=int(u2mil(W.arc.radius)/10);
+
+		sprintf (s, "|RECORD=12|OWNERINDEX=%d|INDEXINSHEET=%d|OWNERPARTID=%d|LOCATION.X=%d|LOCATION.Y=%d|RADIUS=%d|RADIUS_FRAC=0|LINEWIDTH=1|STARTANGLE=%f|ENDANGLE=%f|COLOR=16711680\n",Owner,Records,ownerpartid,x1,y1,r, W.arc.angle1, W.arc.angle2 );
+	}
+
+	return s;
+}
+
+
+//------------------------------------------------------
+string RectangleRecord (UL_RECTANGLE R,int Records,int Owner)
+{
+
+	string s;
+	int x1;
+	int y1;
+	int x2;
+	int y2;
+	int xt1;
+	int yt1;
+	int xt2;
+	int yt2;
+	int x;
+	int y;
+	real winkel;
+
+	x1=int(u2mil(R.x1)/10);
+	y1=int(u2mil(R.y1)/10);
+	x2=int(u2mil(R.x2)/10);
+	y2=int(u2mil(R.y2)/10);
+
+	x=(x1+x2)/2;
+	y=(y1+y2)/2;
+
+
+	y1=y-y1+y;
+	y2=y-y2+y;
+
+	winkel=PI/180*R.angle;
+
+	xt1=(x1-x)*cos(winkel)+(y1-y)*sin(winkel+PI)+x;
+	yt1=(x1-x)*sin(winkel)+(y1-y)*cos(winkel)+y;
+	xt2=x-(xt1-x);
+	yt2=y-(yt1-y);
+
+
+	sprintf (s, "|RECORD=14|OWNERINDEX=%d|OWNERPARTID=%d|LOCATION.X=%d|LOCATION.Y=%d|CORNER.X=%d|CORNER.Y=%d|COLOR=8388608|AREACOLOR=8388608|ISSOLID=T\n",Records, Owner, xt1,yt1,xt2,yt2);
+	return s;
+
+}
+
+
+//------------------------------------------------------
+string PowerObjectRecord (int x,int y, int owner)
+{
+
+	string s;
+
+	x=int(u2mil(x)/10);
+	y=int(u2mil(y)/10);
+
+	sprintf (s, "|RECORD=17|OWNERPARTID=%d|LOCATION.X=%d|LOCATION.Y=%d|COLOR=128|TEXT=OffSheet|ISCROSSSHEETCONNECTOR=T",owner, x,y);
+	return s;
+
+}
+
+
+//------------------------------------------------------
+string NetLabelRecord (string name, int x, int y)
+{
+	x=int(u2mil(x)/10);
+	y=int(u2mil(y)/10);
+
+	string s;
+	sprintf (s, "|RECORD=25|OWNERPARTID=-1|LOCATION.X=%d|LOCATION.Y=%d|COLOR=128|FONTID=1|TEXT=%s\n", x,y,name);
+	return s;
+}
+
+
+//------------------------------------------------------
+
+string BusRecord (int x1,int y1,int x2,int y2)
+{
+
+	string s;
+	int cx1;
+	int cy1;
+	int cx2;
+	int cy2;
+
+	cx1=int(u2mil(x1)/10);
+	cy1=int(u2mil(y1)/10);
+	cx2=int(u2mil(x2)/10);
+	cy2=int(u2mil(y2)/10);
+
+	sprintf (s, "|RECORD=26|OWNERPARTID=-1|LINEWIDTH=1|COLOR=8388608|LOCATIONCOUNT=2|X1=%d|Y1=%d|X2=%d|Y2=%d\n",cx1,cy1,cx2,cy2);
+
+	return s;
+
+}
+
+
+//------------------------------------------------------
+string WireRecord (UL_WIRE W,int Records,int Owner)
+{
+	int x1;
+	int y1;
+	int x2;
+	int y2;
+	string s;
+
+	x1=int(u2mil(W.x1)/10);
+	y1=int(u2mil(W.y1)/10);
+	x2=int(u2mil(W.x2)/10);
+	y2=int(u2mil(W.y2)/10);
+
+	sprintf (s, "|RECORD=27|INDEXINSHEET=%d|OWNERPARTID=%d|LINEWIDTH=1|COLOR=8388608|LOCATIONCOUNT=2|X1=%d|Y1=%d|X2=%d|Y2=%d\n",Owner,Records, x1,y1,x2,y2);
+
+	return s;
+}
+
+
+//------------------------------------------------------
+string JunctionRecord (int x, int y)
+{
+
+	x=int(u2mil(x)/10);
+	y=int(u2mil(y)/10);
+
+	string s;
+	sprintf (s, "|RECORD=29|OWNERPARTID=-1|LOCATION.X=%d|LOCATION.Y=%d|COLOR=128|LOCKED=T\n",x ,y);
+	return s;
+}
+
+
+//------------------------------------------------------
+string ImplementationListRecord (int Owner)
+  {
+
+    string s;
+    sprintf (s, "|RECORD=44|OWNERINDEX=%d\n",Owner);
+    return s;
+  }
+
+
+//------------------------------------------------------
+string SheetRecord (UL_SHEET SCH)
+{
+
+	int x1;
+	int y1;
+	int x2;
+	int y2;
+
+	x1=int(u2mil(SCH.area.x1)/10);
+	y1=int(u2mil(SCH.area.y1)/10);
+	x2=int(u2mil(SCH.area.x2)/10);
+	y2=int(u2mil(SCH.area.y2)/10);
+
+	string s;
+	sprintf (s, "|RECORD=31|FONTIDCOUNT=1|SIZE1=10|FONTNAME1=Times New Roman|USEMBCS=T|ISBOC=T|HOTSPOTGRIDON=T|HOTSPOTGRIDON=T|HOTSPOTGRIDSIZE=4|SYSTEMFONT=1|SHEETNUMBERSPACESIZE=4|AREACOLOR=16317695|SNAPGRIDON=T|SNAPGRIDSIZE=10|VISIBLEGRIDON=T|VISIBLEGRIDSIZE=10|CUSTOMX=%d|CUSTOMY=%d|USECUSTOMSHEET=T|REFERENCEZONESON=T|CUSTOMXZONES=6|CUSTOMYZONES=4|CUSTOMMARGINWIDTH=20|DISPLAY_UNIT=4\n",x2-x1,y2-y1);
+	return s;
+
+}
+
+
+//------------------------------------------------------
+string DesignatorRecord (int Owner, string T, int x, int y, int angle, int ownerpartid, string ishidden)
+{
+
+	string s;
+
+	x=int(u2mil(x)/10);
+	y=int(u2mil(y)/10);
+
+	int orientation;
+
+	orientation=0;
+	if (angle==90) orientation=1;
+	if (angle==180) orientation=2;
+	if (angle==270) orientation=3;
+
+
+	sprintf (s, "|RECORD=34|OWNERINDEX=%d|OWNERPARTID=%d|LOCATION.X=%d|LOCATION.Y=%d|COLOR=8388608|FONTID=1|TEXT=%s|ORIENTATION=%d|ISHIDDEN=%s|NAME=Designator\n",Owner,ownerpartid,x,y,T,orientation,ishidden);
+	return s;
+}
+
+
+//------------------------------------------------------
+string ParameterRecord (int Owner,string name, string text,int x, int y, int ownerpart, string hidden)
+{
+
+	string s;
+
+	x=int(u2mil(x)/10);
+	y=int(u2mil(y)/10);
+
+	int orientation;
+
+	orientation=0;
+//	if (I.angle==90) orientation=1;
+//	if (I.angle==180) orientation=2;
+//	if (I.angle==270) orientation=3;
+
+	sprintf (s, "|RECORD=41|OWNERINDEX=%d|OWNERPARTID=%d|LOCATION.X=%d|LOCATION.Y=%d|COLOR=8388608|FONTID=1|TEXT=%s|ISHIDDEN=%s|NAME=%s\n",Owner, ownerpart,x,y,text,hidden,name);
+	return s;
+}
+
+
+//------------------------------------------------------
+string ImplementationRecord (int Owner, UL_PART P){
+
+	string s;
+
+	sprintf (s, "|RECORD=45|OWNERINDEX=%d|INDEXINSHEET=-1|DESCRIPTION=%s|USECOMPONENTLIBRARY=T|MODELNAME=%s|MODELTYPE=PCBLIB|DATAFILECOUNT=1|MODELDATAFILEENTITY0=%s|MODELDATAFILEKIND0=PCBLib|ISCURRENT=T|DATALINKSLOCKED=T|DATABASEDATALINKSLOCKED=T|INTEGRATEDMODEL=F|DATABASEMODEL=T\n",Owner, P.device.package.headline,P.device.package.name,P.device.package.name);
+
+	return s;
+}
+
+//------------------------------------------------------
+
+
+//------------------------------------------------------
+// Parts erzeugen
+//------------------------------------------------------
+
+int MakePart(UL_SYMBOL S, UL_PART P, int OwnerPart, int Records, int partcount){
+
+//	printf("*** Bauteil ***\n");
+
+	S.pins(Pi){
+		printf(PinRecord(Pi,OwnerPart-2,Records,partcount));
+		Records+=1;
+		if (Pi.direction==PIN_DIRECTION_SUP){
+                printf(NetLabelRecord(Pi.net, Pi.x, Pi.y));
+                Records+=1;
+
+		}
+
+	}
+
+
+	S.wires(W){
+		printf(LineRecord(W,Records,OwnerPart-2,partcount));
+		Records+=1;
+	}
+
+
+
+
+	S.texts(T){
+
+                if ((T.layer != LAYER_NAMES) && (T.layer != LAYER_VALUES)){
+			printf(LabelRecord(T,OwnerPart-2,partcount));
+			Records+=1;
+		}
+	}
+
+	S.rectangles(R){
+		printf(RectangleRecord(R,OwnerPart-2,partcount));
+		Records+=1;
+	}
+
+
+        S.polygons(Poly){
+            printf(PolygonRecord(Poly,OwnerPart-2,partcount));
+            Records+=1;
+        }
+
+
+
+return Records;
+
+}
+
+//------------------------------------------------------
+//write index of modules
+//------------------------------------------------------
+void write_sch( string fileName ){
+
+string CopyHelp[];
+string FileNameNumbered;
+int Records=1;
+int OwnerPart;
+int SchaltplanSeite=1;
+int i;
+int Technik;
+int Footprint;
+int partcount;
+int part;
+int CommentLayer=0;
+int DesignatorLayer=0;
+string name;
+string konstrukt;
+int designatorflag;
+int commentflag;
+
+	schematic(S){
+
+		S.sheets(SCH){
+
+			Records=1;
+			sprintf(FileNameNumbered,fileName+"_%d.SchDoc",SchaltplanSeite);
+			SchaltplanSeite+=1;
+
+			output(FileNameNumbered, "Fwt") {
+
+
+				printf(SheetRecord(SCH));
+				Records+=1;
+
+
+
+// **********************************************  Bauteile  **************************************
+        SCH.parts(P){
+            P.instances(I){
+
+
+
+		// wieviele parts hat die komponente ?
+
+		partcount=2;
+		part=1;
+		S.libraries(L) {
+  			L.devicesets(D) {
+				if (D.name==P.deviceset.name){
+					partcount=1;
+					part=1;
+					D.gates(G) {
+						if ((P.name+G.name)==I.name)
+							part=partcount;
+						partcount+=1;
+
+					}
+				}
+			}
+		}
+		printf(PartRecord(I,P,part,partcount,Records));
+		Records+=1;
+		OwnerPart=Records;
+
+		S.libraries(L) {
+			if (P.deviceset.library==L.name){
+
+  			L.devicesets(D) {
+
+
+				if (D.name==P.deviceset.name) {
+
+				D.devices(devi){
+
+
+					konstrukt="";
+					name=D.name;
+					Technik=0;
+					Footprint=0;
+
+
+
+						for (i=0;i<strlen(name);i++){
+							if (name[i]=='*'){
+								Technik=1;
+								if (P.device.technologies!="''")
+									konstrukt=konstrukt+P.device.technologies;
+							}
+
+							if (name[i]=='?'){
+								Footprint=1;
+								if (devi.name!="''")
+									konstrukt=konstrukt+devi.name;
+							}
+
+							if ((name[i]!='*') && (name[i]!='?'))
+								konstrukt=konstrukt+name[i];
+						}
+
+						if ((Technik==0) && (P.device.technologies!="''"))
+							konstrukt=konstrukt+P.device.technologies;
+						if ((Footprint==0) && (devi.name!="''"))
+							konstrukt=konstrukt+devi.name;
+
+
+
+
+					if ((konstrukt==P.device.name) || (D.name==P.device.name)){
+						partcount=1;
+
+						devi.gates(G) {
+							if (part!=partcount)
+								Records=MakePart(G.symbol, P, OwnerPart, Records, partcount);
+							else
+								Records=MakePart(I.gate.symbol,P, OwnerPart, Records, partcount);
+							partcount+=1;
+						}
+					}
+				}
+
+				}
+			}
+			}
+		}
+
+
+designatorflag=0;
+commentflag=0;
+
+I.gate.symbol.texts(T){
+               if ((T.layer == LAYER_NAMES) ){
+                    printf(DesignatorRecord(OwnerPart-2,P.name,T.x,T.y,T.angle,partcount,"F"));
+               Records+=1;
+		designatorflag=1;
+
+                }
+                else
+			if ((T.layer == LAYER_VALUES)){
+				printf(ConvString(ParameterRecord(OwnerPart-2,"Comment",T.value,T.x,T.y,partcount,"F")));
+				Records+=1;
+				commentflag=1;
+			}
+}
+
+
+            I.texts(T){
+                if (T.layer == LAYER_NAMES){
+
+                   printf(DesignatorRecord(OwnerPart-2,P.name,T.x,T.y,T.angle,part,"F"));
+                   		designatorflag=1;
+
+                }
+                else{
+                    if (T.layer == LAYER_VALUES){
+				printf(FixText(ParameterRecord(OwnerPart-2,"Comment",T.value,T.x,T.y,part,"F")));
+                      /* printf (tarray,ParameterRecord(OwnerPart-2,"Comment",T.value,T.x,T.y,part,"F")); */
+                      commentflag=1;
+			}
+
+                    else
+                        printf(LabelRecord(T,OwnerPart-2,part));
+                }
+                Records+=1;
+            }
+
+
+	if (designatorflag==0){
+
+                   printf(DesignatorRecord(OwnerPart-2,P.name,I.x,I.y,I.angle,part,"T"));
+                   		Records+=1;
+
+}
+
+
+            printf(ImplementationListRecord(OwnerPart-2));
+            Records+=1;
+
+if (P.device.package){
+           printf(ImplementationRecord (Records-2,P)); //footprint
+            Records+=1;
+}
+
+
+
+        }
+
+
+    }
+// **********************************************  netze  **************************************
+        SCH.nets(N){
+            N.segments(S){
+                S.wires(W){
+                    printf(WireRecord(W,Records,-1));
+                    Records+=1;
+                }
+                S.junctions(J){
+                    printf(JunctionRecord(J.x,J.y));
+                    Records+=1;
+
+
+                }
+
+                S.texts(T){
+                    printf(NetLabelRecord(T.value,T.x,T.y));
+                    Records+=1;
+
+                }
+            }
+        }
+
+// **********************************************  Busse  **************************************
+
+
+        SCH.busses(B){
+            B.segments(S){
+                S.wires(W){
+                    printf(BusRecord(W.x1,W.y1,W.x2,W.y2));
+                    Records+=1;
+
+                }
+                S.junctions(J){
+                    printf(JunctionRecord(J.x,J.y));
+                    Records+=1;
+
+                }
+                S.texts(T){
+                    printf(LabelRecord(T,-1,-1));
+                    Records+=1;
+
+                }
+            }
+        }
+
+	SCH.wires(W){
+		printf(LineRecord(W,Records,0,-1));
+		Records+=1;
+	}
+
+        SCH.circles(C){
+            printf(ArcRecord(C,Records,0,-1));
+            Records+=1;
+        }
+
+        SCH.polygons(Poly){
+            printf(PolygonRecord(Poly,0,-1));
+            Records+=1;
+        }
+
+        SCH.rectangles(R){
+            printf(RectangleRecord(R,0,-1));
+            Records+=1;
+
+        }
+        SCH.texts(T){
+		printf(FixText(LabelRecord(T,0,-1)));
+            /* printf(LabelRecord(T,0,-1)); */
+            Records+=1;
+
+        }
+
+
+
+
+        printf("|HEADER=Icon storage\n");
+        printf("|HEADER=Protel for Windows - Schematic Capture Ascii File Version 5.0\n");
+}
+	i=fileread (CopyHelp,FileNameNumbered);
+	output(FileNameNumbered, "Fwt"){
+		printf(ConvString(HeaderRecord(Records)));
+		for (int x=0;x<i;x+=1)
+			printf(ConvString(CopyHelp[x])+"\n");
+	}
+
+
+}
+
+   }
+}
+
+
+
+//------------------------------------------------------
+// main program
+//------------------------------------------------------
+	int result;
+	int space = 10;
+	string ref;
+	string help;
+
+	if (schematic){
+		schematic(S){
+			sch_name = S.name ;
+		}
+	}
+	else{
+		dlgMessageBox("Please run from schematic editor." );
+		exit(EXIT_FAILURE);
+	}
+
+	sch_name = dlgFileSave ("Export to Protel Schematic", filesetext (sch_name, ".SchDoc"), "*.SchDoc");
+	if (sch_name == "") exit (0);
+
+	write_sch(strsub(sch_name, 0, strlen(sch_name)-7));
+	dlgMessageBox (sch_name + " exported to Protel format");
+
+exit(EXIT_SUCCESS);
+
