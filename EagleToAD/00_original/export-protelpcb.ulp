@@ -1,0 +1,432 @@
+#usage	"<b>Export PCB project to Protel .PCBDOC (ASCII)</b>"
+        "<p>"
+        "This ULP script tries to export PCB file which can be opened by Protel. "
+        "It is probably not bug-free as well as it seems to be impossible to export "
+        "with 100% accuracy so use at your own risk and check the results carefully."
+        "<p>"
+        "<b>Bugs</b>"
+        "<p>"
+        "Units are always English for now.<br>"
+        "Polygons are not exported.<br>"
+        "Vias are always exported round. Protel does not have other via shapes.<br>"
+        "Board outline is lost and must be restored from Mechanical 1 (Protel DXP only).<br>"
+        "Not all layers exported correctly.<br>"
+        "<p>"
+        "<b>Important Notice</b>\n"
+        "<p>"
+        "This script is NOT designed to replace Protel. "
+        "As Protel file format is proprietary, "
+        "use of this script for purposes other than migrating from Eagle to Protel "
+        "may be illegal due to copyright laws. The author will not be liable for any illegal "
+        "use of this script."
+        "<p>"
+        "<version>Version: 0.1</version>"
+        "<p>"
+	"<author>Author: Alex Galakhov avg6f4@umkc.edu</author>"
+
+
+// Global variables
+
+string fileName;
+
+string netn [];
+string layer [];
+
+int x0, y0;
+
+// Units
+
+int usedunits;
+string units [] = { "mil", "mm" };
+
+// PCB record handling functions
+
+string record (string name) 
+  {
+    return "|RECORD=" + name;
+  }
+
+string endr ()
+  {
+    return "\r\n";
+  }
+
+string r_b (string name, int val)
+  {
+    return "|" + name + "=" + (val ? "TRUE" : "FALSE");
+  }
+
+string r_l (string name, int val, int v0)
+  {
+    real value;
+    value = (usedunits == 0 ? u2mil (val - v0) : u2mm (val - v0));
+    string s;
+    sprintf (s, "|%s=%g%s", name, value, units [usedunits]);
+    return s;
+  }
+
+string r_i (string name, int val)
+  {
+    string s;
+    sprintf (s, "|%s=%d", name, val);
+    return s;
+  }
+
+string r_f (string name, real val)
+  {
+    string s;
+    sprintf (s, "|%s=%g", name, val);
+    return s;
+  }
+
+string r_s (string name, string val)
+  {
+    return "|" + name + "=" + val;
+  }
+
+string r_layer (string name, int lay)
+  {
+    return "|" + name + "=" + layer [lay];
+  }
+
+string ra_net (int n)
+  {
+    if (n == -1) return "";
+    return r_i ("NET", n);
+  }
+
+string ra_comp (int c)
+  {
+    if (c == -1) return "";
+    return r_i ("COMPONENT", c);
+  }
+
+int fixwidth (int w)
+  {
+    return ((w == 0) ? 2540 : w);
+  }
+
+
+// PCB data storage
+
+string arcs = "";
+string comps = "";
+string fills = "";
+string header = "";
+string nets = "";
+string pads = "";
+string texts = "";
+string tracks = "";
+string vias = "";
+
+int arcs_c = 0;
+int comps_c = 0;
+int fills_c = 0;
+int nets_c = 0;
+int pads_c = 0;
+int texts_c = 0;
+int tracks_c = 0;
+int vias_c = 0;
+
+int netbyname (string netname)
+  {
+    int i;
+    for (i = 0; (i < nets_c) && (netname != netn [i]); i++) { }
+    if (netn [i] != netname) i = -1; // we should never get it unless there's a bug
+    return i;
+  }
+
+// PCB writing functions
+
+void out_arc (UL_ARC a, int n, int c)
+  {                
+    arcs += record ("Arc") + ra_net (n) + ra_comp (c)
+           + r_i ("INDEXFORSAVE", arcs_c) + r_b ("SELECTION", 0) + r_layer ("LAYER", a.layer)
+           + r_b ("LOCKED", 0) + r_b ("POLYGONOUTLINE", 0) + r_b ("USERROUTED", 1) 
+           + r_l ("LOCATION.X", a.xc, x0) + r_l ("LOCATION.Y", a.yc, y0) + r_l ("RADIUS", a.radius, 0)
+           + r_f ("STARTANGLE", a.angle1) + r_f ("ENDANGLE", a.angle2) + r_l ("WIDTH", fixwidth (a.width), 0)
+           + r_i ("SUBPOLYINDEX", 0)
+         + endr ();
+    arcs_c ++;
+  }
+
+void out_circle (UL_CIRCLE a, int c)
+  {
+    arcs += record ("Arc") + ra_comp (c)
+           + r_i ("INDEXFORSAVE", arcs_c) + r_b ("SELECTION", 0) + r_layer ("LAYER", a.layer)
+           + r_b ("LOCKED", 0) + r_b ("POLYGONOUTLINE", 0) + r_b ("USERROUTED", 1) 
+           + r_l ("LOCATION.X", a.x, x0) + r_l ("LOCATION.Y", a.y, y0) + r_l ("RADIUS", a.radius, 0)
+           + r_f ("STARTANGLE", 0) + r_f ("ENDANGLE", 360) + r_l ("WIDTH", fixwidth (a.width), 0)
+           + r_i ("SUBPOLYINDEX", 0)
+         + endr ();
+    arcs_c ++;
+  }
+
+void out_track (UL_WIRE w, int n, int c)
+  {
+    if (w.arc)
+      {
+        out_arc (w.arc, n, c);
+        return;
+      }
+    tracks += record ("Track") + ra_net (n) + ra_comp (c)
+             + r_i ("INDEXFORSAVE", tracks_c) + r_b ("SELECTION", 0) + r_layer ("LAYER", w.layer)
+             + r_b ("LOCKED", 0) + r_b ("POLYGONOUTLINE", 0) + r_b ("USERROUTED", 1)
+             + r_l ("X1", w.x1, x0) + r_l ("Y1", w.y1, y0) + r_l ("X2", w.x2, x0) + r_l ("Y2", w.y2, y0) 
+             + r_l ("WIDTH", fixwidth (w.width), 0) + r_i ("SUBPOLYINDEX", 0)
+           + endr ();
+    tracks_c ++;
+  }
+
+void out_via (UL_VIA v, int n, int c)
+  {
+    vias += record ("Via") + ra_net (n) + ra_comp (c)
+           + r_i ("INDEXFORSAVE", vias_c) + r_b ("SELECTION", 0) + r_s ("LAYER", "MULTILAYER")
+           + r_b ("LOCKED", 0) + r_b ("POLYGONOUTLINE", 0) + r_b ("USERROUTED", 1) + r_l ("X", v.x, x0) + r_l ("Y", v.y, y0)
+           + r_l ("DIAMETER", max (v.diameter [v.start], v.diameter [v.end]), 0)
+           + r_l ("HOLESIZE", v.drill, 0) + r_layer ("STARTLAYER", v.start) + r_layer ("ENDLAYER", v.end)
+        // + r_i ("CCSV", 1) + r_i ("CPLV", 1) + r_i ("CCWV", 1) + r_i ("CAGV", 1) + r_i ("CPEV", 0)
+        // + r_i ("CSEV", 0) + r_i ("CPCV", 1) + r_i ("CPRV", 1) + r_s ("CCS", "Relief") + r_s ("CPL", 0)
+        // + r_l ("CCW", 10mil) + r_i ("CEN", 4) + r_l ("CAG", 10mil) + r_l ("CSE", 4mil) 
+        // + r_l ("CPC", 20mil) + r_l ("CPR", 20mil)
+        // I don't know what it menas so I don't use them
+         + endr ();
+    vias_c ++;
+  }
+
+void out_pad (UL_PAD p, int n, int c)
+  {
+    string psh [];
+      psh [PAD_SHAPE_SQUARE]  = "RECTANGLE";
+      psh [PAD_SHAPE_ROUND]   = "ROUND";
+      psh [PAD_SHAPE_OCTAGON] = "OCTAGONAL";
+      psh [PAD_SHAPE_LONG]    = "OCTAGONAL";
+      psh [PAD_SHAPE_OFFSET]  = "bug"; //!
+      psh [PAD_SHAPE_ANNULUS] = "bug"; //!
+      psh [PAD_SHAPE_THERMAL] = "bug"; //!
+    pads += record ("Pad") + ra_net (n) + ra_comp (c)
+           + r_i ("INDEXFORSAVE", pads_c)
+           + r_s ("LAYER", "MULTILAYER") + r_b ("LOCKED", 0) + r_b ("USERROUTED", 1) + r_s ("NAME", p.name)
+           + r_l ("X", p.x, x0) + r_l ("Y", p.y, y0)
+           + r_l ("XSIZE", p.diameter [LAYER_BOTTOM] * (1 + p.elongation / 100), 0) + r_l ("YSIZE", p.diameter [LAYER_BOTTOM], 0)
+           + r_s ("SHAPE", psh [p.shape [LAYER_BOTTOM]]) + r_l ("HOLESIZE", p.drill, 0) + r_f ("ROTATION", p.angle)
+           + r_b ("PLATED", 1)
+        // + r_s ("DAISYCHAIN", "Load")
+        // + ... ... ...
+         + endr ();
+    pads_c ++;
+  }
+
+void out_smd (UL_SMD s, int n, int c)
+  {
+    pads += record ("Pad") + ra_net (n) + ra_comp (c)
+           + r_i ("INDEXFORSAVE", pads_c)
+           + r_layer ("LAYER", s.layer) + r_b ("LOCKED", 0) + r_b ("USERROUTED", 1) + r_s ("NAME", s.name)
+           + r_l ("X", s.x, x0) + r_l ("Y", s.y, y0)
+           + r_l ("XSIZE", s.dx, 0) + r_l ("YSIZE", s.dy, 0)
+           + r_s ("SHAPE", "RECTANGLE") + r_l ("HOLESIZE", 0, 0) + r_f ("ROTATION", s.angle)
+           + r_b ("PLATED", 0)
+        // + r_s ("DAISYCHAIN", "Load")
+        // + ... ... ...
+         + endr ();
+    pads_c ++;
+  }
+
+void out_text (UL_TEXT t, int c, int isDes, int isComm)
+  {
+    texts += record ("Text") + ra_comp (c)
+            + r_i ("INDEXFORSAVE", texts_c) + r_b ("SELECTION", 0) 
+            + r_layer ("LAYER", t.layer) + r_b ("LOCKED", 0) + r_b ("POLYGONOUTLINE", 0) + r_b ("USERROUTED", 1)
+         // + r_l ("X1", ???) ... ... what they mean ?
+            + r_l ("X", t.x, x0) + r_l ("Y", t.y, y0) + r_f ("ROTATION", t.angle) + r_l ("HEIGHT", t.size, 0)
+            + r_s ("TEXT", t.value) 
+            + (isDes ? r_s ("DESIGNATOR", "True") : "")
+            + (isComm ? r_s ("COMMENT", "True") : "")
+          + endr ();
+    texts_c ++;
+  }
+
+void out_fill (UL_RECTANGLE r, int c)
+  {    
+    fills += record ("Fill") + ra_comp (c)
+             + r_i ("INDEXFORSAVE", tracks_c) + r_b ("SELECTION", 0) + r_layer ("LAYER", r.layer)
+             + r_b ("LOCKED", 0) + r_b ("POLYGONOUTLINE", 0) + r_b ("USERROUTED", 1)
+             + r_l ("X1", r.x1, x0) + r_l ("Y1", r.y1, y0) + r_l ("X2", r.x2, x0) + r_l ("Y2", r.y2, y0) 
+             + r_f ("ROTATION", r.angle)
+          + endr ();
+    fills_c ++;
+  }
+
+void out_hole (UL_HOLE h, int c)
+  {
+    pads += record ("Pad") + ra_comp (c)
+           + r_i ("INDEXFORSAVE", pads_c)
+           + r_layer ("LAYER", LAYER_TOP /*incorrect*/) + r_b ("LOCKED", 0) + r_b ("USERROUTED", 0)
+           + r_s ("NAME", "") + r_l ("X", h.x, x0) + r_l ("Y", h.y, y0)
+           + r_l ("XSIZE", h.drill, 0) + r_l ("YSIZE", h.drill, 0)
+           + r_s ("SHAPE", "ROUND") + r_l ("HOLESIZE", h.drill, 0) + r_f ("ROTATION", 0)
+           + r_b ("PLATED", 0)
+        // + r_s ("DAISYCHAIN", "Load")
+        // + ... ... ...
+         + endr ();
+    pads_c ++;
+  }
+
+void out_net (UL_SIGNAL s)
+  {
+    netn [nets_c] = s.name;
+    nets += record ("Net")
+           + r_i ("ID", nets_c) + r_i ("INDEXFORSAVE", nets_c) + r_b ("SELECTION", 0) + r_layer ("LAYER", LAYER_BOTTOM /*incorrect*/)
+           + r_b ("LOCKED", 0) + r_b ("POLYGONOUTLINE", 0) + r_b ("USERROUTED", 1) + r_b ("PRIMITIVELOCK", 0)
+           + r_s ("NAME", s.name) + r_b ("VISIBLE", 0) + r_i ("COLOR", 770986 /*incorrect*/)
+         + endr ();
+    nets_c ++;
+  }
+
+void out_component (UL_ELEMENT e, int hasDes, int hasComm)
+  {
+    comps += record ("Component") 
+            + r_i ("ID", comps_c) + r_i ("INDEXFORSAVE", comps_c) + r_b ("SELECTION", 0) 
+            + r_layer ("LAYER", (e.mirror ? LAYER_BOTTOM : LAYER_TOP))
+            + r_b ("LOCKED", 0) + r_b ("POLYGONOUTLINE", 0) + r_b ("USERROUTED", 1) + r_b ("PRIMITIVELOCK", 1)
+            + r_l ("X", e.x, x0) + r_l ("Y", e.y, y0) + r_s ("PATTERN", e.package.name) + r_b ("NAMEON", hasDes)
+            + r_b ("COMMENTON", hasComm) + r_i ("GROUPNUM", 0) + r_i ("COUNT", 0) + r_f ("ROTATION", e.angle) 
+            + r_i ("COMMENTAUTOPOSITION", 0) + r_i ("CHANNELOFFSET", 0) + r_s ("SOURCEDESIGNATOR", e.name) 
+            + r_s ("SOURCEUNIQUEID", e.name) + r_s ("SOURCESEARCHPATH", ".") 
+          + endr ();
+    comps_c ++;
+  }
+
+// main
+
+board (B)
+  {
+    fileName = dlgFileSave ("Export to Protel PCB", filesetext (B.name, ".pcb"), "*.pcb");
+    if (fileName == "") exit (0);
+
+    usedunits = 0; // FIXME
+
+    // Protel doesn't like negative values.
+
+    x0 = B.area.x1;
+    y0 = B.area.y1;
+
+    // Layers Naming
+    B.layers (L) layer [L.number] = L.name;
+
+    layer [LAYER_TOP]       = "TOP";  
+    layer [LAYER_BOTTOM]    = "BOTTOM";
+    layer [LAYER_PADS]      = "MULTILAYER"; //?
+    layer [LAYER_VIAS]      = "MULTILAYER"; //?
+    layer [LAYER_UNROUTED]  = "bug"; //!
+    layer [LAYER_DIMENSION] = "KEEPOUT";
+    layer [LAYER_TPLACE]    = "TOPOVERLAY";
+    layer [LAYER_BPLACE]    = "BOTTOMOVERLAY";
+    layer [LAYER_TORIGINS]  = "TOPOVERLAY";
+    layer [LAYER_BORIGINS]  = "BOTTOMOVERLAY";
+    layer [LAYER_TNAMES]    = "TOPOVERLAY";
+    layer [LAYER_BNAMES]    = "BOTTOMOVERLAY";
+    layer [LAYER_TVALUES]   = "TOPOVERLAY";
+    layer [LAYER_BVALUES]   = "BOTTOMOVERLAY";
+    layer [LAYER_TSTOP]     = "";
+    layer [LAYER_BSTOP]     = "";
+    layer [LAYER_TCREAM]    = "";
+    layer [LAYER_BCREAM]    = "";
+    layer [LAYER_TFINISH]   = "";
+    layer [LAYER_BFINISH]   = "";
+    layer [LAYER_TGLUE]     = "";
+    layer [LAYER_BGLUE]     = ""; 
+    layer [LAYER_TTEST]     = "TOP";    //?
+    layer [LAYER_BTEST]     = "BOTTOM"; //?
+    layer [LAYER_TKEEPOUT]  = "";
+    layer [LAYER_BKEEPOUT]  = "";
+    layer [LAYER_TRESTRICT] = "";
+    layer [LAYER_BRESTRICT] = "";
+    layer [LAYER_VRESTRICT] = "";
+    layer [LAYER_DRILLS]    = "MULTILAYER";
+    layer [LAYER_HOLES]     = "MULTILAYER";
+    layer [LAYER_MILLING]   = "MECHANICAL1"; 
+    layer [LAYER_MEASURES]  = "MECHANICAL2"; //?
+    layer [LAYER_DOCUMENT]  = "MECHANICAL2"; //?
+    layer [LAYER_REFERENCE] = "MECHANICAL2"; //?
+    layer [LAYER_TDOCU]     = "TOPOVERLAY";
+    layer [LAYER_BDOCU]     = "BOTTOMOVERLAY";
+  
+    // Signals Loop
+
+    B.signals (S)
+      { 
+     // S.polygons (P) out_polygon (P, nets_c, -1);                     
+        S.wires (W) out_track (W, nets_c, -1);
+        S.vias (V) out_via (V, nets_c, -1);
+        out_net (S);
+      }
+
+    // Components Loop
+
+    B.elements (E)
+      {
+        UL_PACKAGE P = E.package;
+        P.contacts (C)
+          {
+            if (C.pad) out_pad (C.pad, netbyname (C.signal), comps_c);
+            if (C.smd) out_smd (C.smd, netbyname (C.signal), comps_c);
+          }
+        P.wires (W) out_track (W, -1, comps_c);
+        P.circles (C) out_circle (C, comps_c);
+        P.rectangles (R) out_fill (R, comps_c);
+     // P.polygons (PO) out_polygon (PO, -1, comps_c);  
+        P.holes (H) out_hole (H, comps_c);
+        
+        int hasDesignator = 0;
+        int hasComment = 0;
+        E.texts (T)
+          {
+            int isDes = 0; if ((T.value == E.name) && (! hasDesignator)) hasDesignator = isDes = 1;
+            int isComm = 0; if ((T.value == E.value) && (! hasComment)) hasComment = isComm = 1;
+            out_text (T, comps_c, isDes, isComm);
+          }        
+        P.texts (T)
+          {
+            int isDes = 0; if ((T.value == E.name) && (! hasDesignator)) hasDesignator = isDes = 1;
+            int isComm = 0; if ((T.value == E.value) && (! hasComment)) hasComment = isComm = 1;
+            out_text (T, comps_c, isDes, isComm);
+          }
+        out_component (E, hasDesignator, hasComment);
+      }
+
+    // Free elements
+
+    B.circles (C) out_circle (C, -1);
+    B.holes (H) out_hole (H, -1);
+ // B.polygons (P) out_polygon (P, -1, -1);
+    B.rectangles (R) out_fill (R, -1);
+    B.texts (T) out_text (T, -1, 0, 0);
+    B.wires (W) out_track (W, -1, -1);
+
+    // Header
+    header += record ("Board") 
+             + r_b ("SELECTION", 0) + r_s ("LAYER", "UNKNOWN") + r_b ("LOCKED", 0) + r_b ("POLYGONOUTLINE", 0)
+             + r_b ("USERROUTED", 1) 
+             + r_s ("FILENAME", filename (fileName)) + r_s ("KIND", "Protel_Advanced_PCB") + r_s ("VERSION", "5.0")
+          // + r_s ("DATE", ...) + r_s ("TIME", ...)
+             + r_l ("ORIGINX", 0, 0) + r_l ("ORIGINY", 0, 0)
+          // + ... ... ...
+           + endr ();
+
+    // Now, save to file
+
+    output (fileName)
+      {
+        printf (header);
+        printf (nets);
+        printf (comps);
+        printf (arcs);
+        printf (pads);
+        printf (vias);
+        printf (tracks);
+        printf (texts);
+        printf (fills);
+      }
+    dlgMessageBox (fileName + "exported.");
+  }
