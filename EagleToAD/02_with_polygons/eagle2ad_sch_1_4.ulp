@@ -14,6 +14,7 @@
 /*
  * CHANGELOG================================================
  *
+ * 10.11.2010: Version 1.4: changed lines (Record=13) to be accessable
  * 29.12.2009: Version 1.3: fixed another linefeed bug
  * 08.12.2009: Version 1.2: fixed further '%' issues
  * 08.12.2009: Version 1.1: 
@@ -298,13 +299,43 @@ string ArcRecord (UL_CIRCLE C, int Record, int Index, int Owner){
 	y=int(u2mil(C.y)/10);
 	r=int(u2mil(C.radius)/10);
 
-	sprintf (s, "|RECORD=12|INDEXINSHEET=%d|OWNERINDEX=%d|OWNERPARTID=%d|LOCATION.X=%d|LOCATION.Y=%d|RADIUS=%d|RADIUS_FRAC=0|LINEWIDTH=1|STARTANGLE=0|ENDANGLE=0|COLOR=16711680\n",Record, Index,Owner,x,y,r );
+	sprintf (s, "|RECORD=12|INDEXINSHEET=%d|ISNOTACCESIBLE=F|OWNERINDEX=%d|OWNERPARTID=%d|LOCATION.X=%d|LOCATION.Y=%d|RADIUS=%d|RADIUS_FRAC=0|LINEWIDTH=1|STARTANGLE=0|ENDANGLE=0|COLOR=16711680\n",Record, Index,Owner,x,y,r );
 	return s;
 }
 
 
 //------------------------------------------------------
 string LineRecord (UL_WIRE W,int Records,int Owner, int ownerpartid)
+{
+	int x1;
+	int y1;
+	int x2;
+	int y2;
+	int r;
+
+	string s;
+
+	x1=int(u2mil(W.x1)/10);
+	y1=int(u2mil(W.y1)/10);
+	x2=int(u2mil(W.x2)/10);
+	y2=int(u2mil(W.y2)/10);
+
+	if (W.curve==0)
+		sprintf (s, "|RECORD=13|OWNERINDEX=%d|ISNOTACCESIBLE=F|INDEXINSHEET=%d|OWNERPARTID=%d|LOCATION.X=%d|LOCATION.Y=%d|CORNER.X=%d|CORNER.Y=%d|LINEWIDTH=1|COLOR=128\n",Owner,Records,ownerpartid, x1,y1,x2,y2);
+
+	else{
+		x1=int(u2mil(W.arc.xc)/10);
+		y1=int(u2mil(W.arc.yc)/10);
+		r=int(u2mil(W.arc.radius)/10);
+
+		sprintf (s, "|RECORD=12|OWNERINDEX=%d|INDEXINSHEET=%d|OWNERPARTID=%d|LOCATION.X=%d|LOCATION.Y=%d|RADIUS=%d|RADIUS_FRAC=0|LINEWIDTH=1|STARTANGLE=%f|ENDANGLE=%f|COLOR=128\n",Owner,Records,ownerpartid,x1,y1,r, W.arc.angle1, W.arc.angle2 );
+	}
+
+	return s;
+}
+
+//------------------------------------------------------
+string PartLineRecord (UL_WIRE W,int Records,int Owner, int ownerpartid)
 {
 	int x1;
 	int y1;
@@ -332,7 +363,6 @@ string LineRecord (UL_WIRE W,int Records,int Owner, int ownerpartid)
 
 	return s;
 }
-
 
 //------------------------------------------------------
 string RectangleRecord (UL_RECTANGLE R,int Records,int Owner)
@@ -572,11 +602,9 @@ int MakePart(UL_SYMBOL S, UL_PART P, int OwnerPart, int Records, int partcount){
 
 
 	S.wires(W){
-		printf(LineRecord(W,Records,OwnerPart-2,partcount));
+		printf(PartLineRecord(W,Records,OwnerPart-2,partcount));
 		Records+=1;
 	}
-
-
 
 
 	S.texts(T){

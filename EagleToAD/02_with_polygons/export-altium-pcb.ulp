@@ -38,6 +38,33 @@ int x0, y0;
 int usedunits;
 string units [] = { "mil", "mm" };
 
+
+
+//------------------------------------------------------
+//convert string
+//------------------------------------------------------
+string ConvString(string text)
+{
+	int i;
+	int Felder;
+	string helper;
+
+	helper="";
+
+
+	for (i=0;i<strlen(text);i++){
+		if (text[i]=='%')
+			helper=helper+"%%";
+		else
+			helper=helper+text[i];
+	}
+
+return helper;
+}
+
+
+
+
 // PCB record handling functions
 
 string record (string name) 
@@ -483,14 +510,14 @@ board (B)
     layer [LAYER_BORIGINS]  = "";
     layer [LAYER_TNAMES]    = "TOPOVERLAY";
     layer [LAYER_BNAMES]    = "BOTTOMOVERLAY";
-    layer [LAYER_TVALUES]   = "MECHANICAL3";
-    layer [LAYER_BVALUES]   = "MECHANICAL4";
-    layer [LAYER_TSTOP]     = "";
-    layer [LAYER_BSTOP]     = "";
-    layer [LAYER_TCREAM]    = "TOPPASTE";
-    layer [LAYER_BCREAM]    = "BOTTOMPASTE";
-    layer [LAYER_TFINISH]   = "";
-    layer [LAYER_BFINISH]   = "";
+layer [LAYER_TVALUES]   = "TOPOVERLAY";
+    layer [LAYER_BVALUES]   = "BOTTOMOVERLAY";
+    layer [LAYER_TSTOP]     = "MECHANICAL3";
+    layer [LAYER_BSTOP]     = "MECHANICAL4";
+    layer [LAYER_TCREAM]    = "MECHANICAL5";
+    layer [LAYER_BCREAM]    = "MECHANICAL6";
+    layer [LAYER_TFINISH]   = "MECHANICAL7";
+    layer [LAYER_BFINISH]   = "MECHANICAL8";
     layer [LAYER_TGLUE]     = "MECHANICAL9";
     layer [LAYER_BGLUE]     = "MECHANICAL10"; 
     layer [LAYER_TTEST]     = "TOPOVERLAY";    //?
@@ -554,7 +581,7 @@ board (B)
 
     B.signals (S)	
       { 
-        S.polygons (P) out_polygon (P, nets_c, -1);  //
+        S.polygons (P) out_polygon (P, nets_c, -1);
         S.wires (W) out_track (W, nets_c, -1);
         S.vias (V) out_via (V, nets_c, -1);
         out_net (S);
@@ -590,6 +617,37 @@ board (B)
             int isComm = 0; if ((T.value == E.value) && (! hasComment)) hasComment = isComm = 1;
             out_text (T, comps_c, isDes, isComm);
           }
+
+
+
+
+//Ergänzung Chris
+	if (hasDesignator==0){
+
+//void out_text (UL_TEXT t, int c, int isDes, int isComm)
+
+
+    texts += record ("Text") + ra_comp (comps_c)
+            + r_i ("INDEXFORSAVE", texts_c) + r_b ("SELECTION", 0) 
+            + r_layer ("LAYER", LAYER_TDOCU) + r_b ("LOCKED", 0) + r_b ("POLYGONOUTLINE", 0) + r_b ("USERROUTED", 1)
+            + r_l ("X", E.x, x0) + r_l ("Y", E.y, y0) + r_f ("ROTATION", E.angle) + r_l ("HEIGHT", 10, 0)
+            + r_s ("TEXT", E.name) 
+            + r_s ("DESIGNATOR", "True") 
+            + endr ();
+    texts_c ++;
+
+
+}
+
+
+//		out_text (E.name, comps_c, 1, 0);
+
+
+
+
+
+
+
         out_component (E, hasDesignator, hasComment);
       }
 
@@ -623,7 +681,7 @@ board (B)
         printf (pads);
         printf (vias);
         printf (tracks);
-        printf (texts);
+        printf (ConvString(texts));
         printf (fills);
 		printf (polygons);
       }
