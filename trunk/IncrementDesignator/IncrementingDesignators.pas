@@ -32,7 +32,8 @@
 {..............................................................................}
 // Global Variables:
 Var
-CurrentDoc : ISch_Document;
+SchDoc   : ISch_Document;
+PCBBoard : IPCB_Board;
 {..............................................................................}
 
 
@@ -74,38 +75,46 @@ function IncrSpatialIterator;
 // This function was taken from the examples and modified for my convenience.
 //
 Var
-SpatialIterator : ISch_Iterator;
-Component       : ISch_Component;
-Pin             : ISch_Pin;
-PinClicked      : ISch_Pin;
-DesignatorOld   : String;
-DesignatorNew   : String;
-NameOld         : String;
-NameNew         : String;
-ALoc            : TLocation;;
-boolLoc         : boolean;
+   boolLoc         : boolean;
 
+   // SCH objects
+   SpatialIterator : ISch_Iterator;
+   Component       : ISch_Component;
+   Pin             : ISch_Pin;
+   PinClicked      : ISch_Pin;
+   DesignatorOld   : String;
+   DesignatorNew   : String;
+   NameOld         : String;
+   NameNew         : String;
+   ALoc            : TLocation;;
+
+
+   // PCB Objects
+   PCBIterator     : IPCB_BoardIterator;
+   PCBComp         : IPCB_Component;
+   x,y             : TCoord;
 
 Begin
+    boolLoc := 0;
 
     DesignatorOld := '';     // initialising as Strings
     DesignatorNew := '';
 
-    // Using the ChooseRectangleInteractively method to capture the
-    // Boundary coordinates clicked on the sheet by the user.
-    ALoc := TLocation;
-    boolLoc := CurrentDoc.ChooseLocationInteractively(ALoc,'Choose a location to click');
-
-    If Not boolLoc Then Exit;
-
-    If CurrentDoc.ObjectID <> eSchLib Then
+    if GetWorkspace.DM_FocusedDocument.DM_DocumentKind = 'SCH' then
     begin
+       // Using the ChooseRectangleInteractively method to capture the
+       // Boundary coordinates clicked on the sheet by the user.
+       ALoc := TLocation;
+       boolLoc := SchDoc.ChooseLocationInteractively(ALoc,'Choose a location to click');
+
+       If Not boolLoc Then Exit;
+
        // Initialising Robot:
-       SchServer.ProcessControl.PreProcess(CurrentDoc, '');
+       SchServer.ProcessControl.PreProcess(SchDoc, '');
 
        // Create a spatial iterator with the boundary coordinates
        // Spatial iterator looks for Junctions and Components only.
-       SpatialIterator := CurrentDoc.SchIterator_Create;
+       SpatialIterator := SchDoc.SchIterator_Create;
        If SpatialIterator = Nil Then Exit;
        Try
            SpatialIterator.AddFilter_ObjectSet(MkSet(eSchComponent));
@@ -126,22 +135,22 @@ Begin
            End;
 
        Finally
-           CurrentDoc.SchIterator_Destroy(SpatialIterator);
+           SchDoc.SchIterator_Destroy(SpatialIterator);
        end;
 
 
        // Post Process:
-       SchServer.ProcessControl.PostProcess(CurrentDoc, '');
+       SchServer.ProcessControl.PostProcess(SchDoc, '');
 
     end
-    else if CurrentDoc.ObjectID = eSchLib Then
+    else if GetWorkspace.DM_FocusedDocument.DM_DocumentKind = 'SCHLIB' Then
     begin
        // Initialising Robot:
-       SchServer.ProcessControl.PreProcess(CurrentDoc, '');
+       SchServer.ProcessControl.PreProcess(SchDoc, '');
 
        // Create a spatial iterator with the boundary coordinates
        // Spatial iterator looks for Junctions and Components only.
-       SpatialIterator := CurrentDoc.SchIterator_Create;
+       SpatialIterator := SchDoc.SchIterator_Create;
        If SpatialIterator = Nil Then Exit;
        Try
            SpatialIterator.AddFilter_ObjectSet(MkSet(ePin));
@@ -172,10 +181,11 @@ Begin
            End;
 
        Finally
-           CurrentDoc.SchIterator_Destroy(SpatialIterator);
+           SchDoc.SchIterator_Destroy(SpatialIterator);
        end;
 
-       SpatialIterator := CurrentDoc.SchIterator_Create;
+       // We need one more iterator here if we want to replace pins
+       SpatialIterator := SchDoc.SchIterator_Create;
        If SpatialIterator = Nil Then Exit;
        Try
            SpatialIterator.AddFilter_ObjectSet(MkSet(ePin));
@@ -201,18 +211,35 @@ Begin
               end;
               Pin := SpatialIterator.NextSchObject;
            end;
-           
+
        Finally
-           CurrentDoc.SchIterator_Destroy(SpatialIterator);
+           SchDoc.SchIterator_Destroy(SpatialIterator);
        end;
 
        // Post Process:
-       SchServer.ProcessControl.PostProcess(CurrentDoc, '');
+       SchServer.ProcessControl.PostProcess(SchDoc, '');
 
+       // Refresh:
+       SchDoc.GraphicallyInvalidate;
+    end
+    else if GetWorkspace.DM_FocusedDocument.DM_DocumentKind = 'PCB' then
+    begin
+
+        PCBComp := PCBBoard.GetObjectAtCursor(MkSet(eComponentObject),AllLayers,'Choose Component');                          
+        if Assigned(PCBComp) then
+        begin
+           boolLoc := True;
+           DesignatorOld := PCBComp.Name.Text;
+           DesignatorNew := IncrDesignator(DesignatorOld);
+
+           PCBComp.Name.Text  := DesignatorNew;
+
+           ResetParameters;
+           AddStringParameter('Action','Redraw');
+           RunProcess('PCB:Zoom');
+        end
+        else boolLoc := False;
     end;
-
-    // Refresh:
-    CurrentDoc.GraphicallyInvalidate;
 
     Result := boolLoc;   // False if choosing rectangle was aborted (e.g. via right mouse button)
 
@@ -268,12 +295,21 @@ End;
 procedure TForm1.Form1Create(Sender: TObject);
 begin
 
-   If SchServer = Nil Then Exit;
-   CurrentDoc := SchServer.GetCurrentSchDocument;
-   If CurrentDoc = Nil Then Exit;
+   If SchServer <> Nil Then
+   begin
+      SchDoc := SchServer.GetCurrentSchDocument;
+      If SchDoc = Nil Then Exit;
 
-   If CurrentDoc.ObjectID = eSchLib Then
-        CheckBoxPinName.Visible := True;
+      If SchDoc.ObjectID = eSchLib Then
+         CheckBoxPinName.Visible := True;
+   end
+   else if PCBServer <> nil then
+   begin
+      PCBBoard := PCBServer.GetCurrentPCBBoard;
+      If PCBBoard = Nil Then Exit;
+
+   end
+   else exit;
 
    // Form1.Visible := False;
 
