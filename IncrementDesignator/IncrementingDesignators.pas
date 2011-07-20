@@ -34,6 +34,7 @@
 Var
 SchDoc   : ISch_Document;
 PCBBoard : IPCB_Board;
+DocKind  : String;
 {..............................................................................}
 
 
@@ -61,9 +62,11 @@ Begin
     DesText := Designator;
     SetLength(DesText, TextLength);
 
-    NrNew := Edit_Nr.Text;
+
+    NrNew := Edit_inc.Text;
     intcount := StrToInt(NrNew);
-    Inc(IntCount);
+    NrNew := Edit_Nr.Text;
+    IntCount := IntCount + StrToInt(NrNew);
     Edit_Nr.Text := IntToStr(IntCount);
 
     Result := DesText + NrNew;
@@ -80,19 +83,27 @@ Var
    // SCH objects
    SpatialIterator : ISch_Iterator;
    Component       : ISch_Component;
+   OldComponent    : ISch_Component;
    Pin             : ISch_Pin;
    PinClicked      : ISch_Pin;
-   DesignatorOld   : String;
-   DesignatorNew   : String;
-   NameOld         : String;
-   NameNew         : String;
-   ALoc            : TLocation;;
+   ALoc            : TLocation;
 
 
    // PCB Objects
    PCBIterator     : IPCB_BoardIterator;
    PCBComp         : IPCB_Component;
-   x,y             : TCoord;
+   PCBComp2        : IPCB_Component;
+   Pad1            : IPCB_Pad2;
+   Pad2            : IPCB_Pad2;
+
+   // Global
+   DesignatorOld   : String;
+   DesignatorNew   : String;
+   NameOld         : String;
+   NameNew         : String;
+   Tekst           : String;
+   TextLength      : Integer;
+   AsciiCode       : Integer;
 
 Begin
     boolLoc := 0;
@@ -100,12 +111,16 @@ Begin
     DesignatorOld := '';     // initialising as Strings
     DesignatorNew := '';
 
-    if GetWorkspace.DM_FocusedDocument.DM_DocumentKind = 'SCH' then
+    if DocKind = 'SCH' then
     begin
        // Using the ChooseRectangleInteractively method to capture the
        // Boundary coordinates clicked on the sheet by the user.
        ALoc := TLocation;
-       boolLoc := SchDoc.ChooseLocationInteractively(ALoc,'Choose a location to click');
+
+       if CheckBoxSwap.Checked then Tekst := 'Choose First Component'
+       else                         Tekst := 'Choose Component';
+
+       boolLoc := SchDoc.ChooseLocationInteractively(ALoc, Tekst);
 
        If Not boolLoc Then Exit;
 
@@ -114,23 +129,30 @@ Begin
 
        // Create a spatial iterator with the boundary coordinates
        // Spatial iterator looks for Junctions and Components only.
+
+
        SpatialIterator := SchDoc.SchIterator_Create;
        If SpatialIterator = Nil Then Exit;
        Try
            SpatialIterator.AddFilter_ObjectSet(MkSet(eSchComponent));
            SpatialIterator.AddFilter_Area(ALoc.X, ALoc.Y, ALoc.X+1, ALoc.Y+1);
-           //SpatialIterator.addfilt
 
            Component := SpatialIterator.FirstSchObject;
            While Component <> Nil Do
            Begin
-               DesignatorOld := Component.Designator.Text;   // read old designator
-               DesignatorNew := IncrDesignator(DesignatorOld);  // compose new designator
+               if CheckBoxSwap.Checked = False then
+               begin
+                   DesignatorOld := Component.Designator.Text;   // read old designator
+                   DesignatorNew := IncrDesignator(DesignatorOld);  // compose new designator
 
-               SchServer.RobotManager.SendMessage(Component.I_ObjectAddress, c_BroadCast, SCHM_BeginModify, c_NoEventData);
-                   Component.Designator.Text := DesignatorNew;    // write new designator to the component
-               SchServer.RobotManager.SendMessage(Component.I_ObjectAddress, c_BroadCast, SCHM_EndModify  , c_NoEventData);
-
+                   SchServer.RobotManager.SendMessage(Component.I_ObjectAddress, c_BroadCast, SCHM_BeginModify, c_NoEventData);
+                       Component.Designator.Text := DesignatorNew;    // write new designator to the component
+                   SchServer.RobotManager.SendMessage(Component.I_ObjectAddress, c_BroadCast, SCHM_EndModify  , c_NoEventData);
+               end
+               else
+               begin
+                  OldComponent := Component;
+               end;
                Component := SpatialIterator.NextSchObject;
            End;
 
@@ -138,14 +160,81 @@ Begin
            SchDoc.SchIterator_Destroy(SpatialIterator);
        end;
 
+       if CheckBoxSwap.Checked then
+       begin
+           // This is where we swap designators
+           SpatialIterator := SchDoc.SchIterator_Create;
+
+           // Getting second component
+           boolLoc := SchDoc.ChooseLocationInteractively(ALoc,'Choose Second Component');
+           If Not boolLoc Then Exit;
+
+           If SpatialIterator = Nil Then Exit;
+           Try
+               SpatialIterator.AddFilter_ObjectSet(MkSet(eSchComponent));
+               SpatialIterator.AddFilter_Area(ALoc.X, ALoc.Y, ALoc.X+1, ALoc.Y+1);
+
+               Component := SpatialIterator.FirstSchObject;
+               While Component <> Nil Do
+               Begin
+                   NameOld := OldComponent.Designator.Text;   // read first designator
+                   DesignatorOld := NameOld;
+                   TextLength := 1;
+                   AsciiCode := ord(NameOld[1]);
+                   while AsciiCode > 64 do
+                   begin
+                      Inc(TextLength);
+                      AsciiCode := ord(NameOld[TextLength]);
+                   end;
+                   Dec(TextLength);
+                   SetLength(NameOld, TextLength);
+                   Delete(DesignatorOld, 1, TextLength);
+
+                   NameNew := Component.Designator.Text;  // read second designator
+                   DesignatorNew := NameNew;
+                   TextLength := 1;
+                   AsciiCode := ord(NameNew[1]);
+                   while AsciiCode > 64 do
+                   begin
+                      Inc(TextLength);
+                      AsciiCode := ord(NameNew[TextLength]);
+                   end;
+                   Dec(TextLength);
+                   SetLength(NameNew, TextLength);
+                   Delete(DesignatorNew, 1, TextLength);
+
+
+                   SchServer.RobotManager.SendMessage(Component.I_ObjectAddress, c_BroadCast, SCHM_BeginModify, c_NoEventData);
+                       Component.Designator.Text := NameNew + DesignatorOld;    // write new designator to the component
+                   SchServer.RobotManager.SendMessage(Component.I_ObjectAddress, c_BroadCast, SCHM_EndModify  , c_NoEventData);
+
+                   SchServer.RobotManager.SendMessage(OldComponent.I_ObjectAddress, c_BroadCast, SCHM_BeginModify, c_NoEventData);
+                       OldComponent.Designator.Text := NameOld + DesignatorNew;    // write new designator to the component
+                   SchServer.RobotManager.SendMessage(OldComponent.I_ObjectAddress, c_BroadCast, SCHM_EndModify  , c_NoEventData);
+
+                   Component := SpatialIterator.NextSchObject;
+               End;
+
+           Finally
+               SchDoc.SchIterator_Destroy(SpatialIterator);
+           end;
+       end;
 
        // Post Process:
        SchServer.ProcessControl.PostProcess(SchDoc, '');
 
     end
-    else if GetWorkspace.DM_FocusedDocument.DM_DocumentKind = 'SCHLIB' Then
+    else if DocKind = 'SCHLIB' Then
     begin
        // Initialising Robot:
+
+       if CheckBoxSwap.Checked then Tekst := 'Choose First Pin'
+       else                         Tekst := 'Choose Pin';
+
+       ALoc := TLocation;
+       boolLoc := SchDoc.ChooseLocationInteractively(ALoc, Tekst);
+       If Not boolLoc Then Exit;
+
        SchServer.ProcessControl.PreProcess(SchDoc, '');
 
        // Create a spatial iterator with the boundary coordinates
@@ -161,21 +250,23 @@ Begin
            Pin := SpatialIterator.FirstSchObject;
            While Pin <> Nil Do
            Begin
+               if CheckBoxSwap.Checked = False then
+               begin
+                   DesignatorOld := Pin.Designator;   // read old designator
+                   NameOld       := Pin.Name;
+                   DesignatorNew := IncrDesignator(DesignatorOld);  // compose new designator
+                   if (CheckBoxPinName.Checked) and (DesignatorOld <> DesignatorNew) then
+                      NameNew := ''
+                   else
+                      NameNew := NameOld;
+
+                   SchServer.RobotManager.SendMessage(Pin.I_ObjectAddress, c_BroadCast, SCHM_BeginModify, c_NoEventData);
+                       Pin.Designator := DesignatorNew;    // write new designator to the pin
+                       Pin.Name := NameNew;
+                   SchServer.RobotManager.SendMessage(Pin.I_ObjectAddress, c_BroadCast, SCHM_EndModify  , c_NoEventData);
+               end;
+
                PinClicked := Pin;
-               DesignatorOld := Pin.Designator;   // read old designator
-               NameOld       := Pin.Name;
-               DesignatorNew := IncrDesignator(DesignatorOld);  // compose new designator
-               if (CheckBoxPinName.Checked) and (DesignatorOld <> DesignatorNew) then
-                  NameNew := ''
-               else
-                  NameNew := NameOld;
-
-               SchServer.RobotManager.SendMessage(Pin.I_ObjectAddress, c_BroadCast, SCHM_BeginModify, c_NoEventData);
-                   Pin.Designator := DesignatorNew;    // write new designator to the pin
-                   Pin.Name := NameNew;
-               SchServer.RobotManager.SendMessage(Pin.I_ObjectAddress, c_BroadCast, SCHM_EndModify  , c_NoEventData);
-
-
 
                Pin := SpatialIterator.NextSchObject;
            End;
@@ -184,36 +275,84 @@ Begin
            SchDoc.SchIterator_Destroy(SpatialIterator);
        end;
 
-       // We need one more iterator here if we want to replace pins
-       SpatialIterator := SchDoc.SchIterator_Create;
-       If SpatialIterator = Nil Then Exit;
-       Try
-           SpatialIterator.AddFilter_ObjectSet(MkSet(ePin));
-           SpatialIterator.AddFilter_CurrentPartPrimitives;
-           SpatialIterator.AddFilter_CurrentDisplayModePrimitives;
-           // SpatialIterator.AddFilter_Area(ALoc.X, ALoc.Y, ALoc.X+1, ALoc.Y+1);
 
-           Pin := SpatialIterator.FirstSchObject;
-           While Pin <> Nil Do
-           Begin
-              if (Pin.Designator = DesignatorNew) and (CheckBoxPinName.Checked) and (Pin <> PinClicked) then
-              begin
+       if CheckBoxSwap.Checked = False then
+       begin
+           // We need one more iterator here if we want to replace pins
+           SpatialIterator := SchDoc.SchIterator_Create;
+           If SpatialIterator = Nil Then Exit;
+           Try
+               SpatialIterator.AddFilter_ObjectSet(MkSet(ePin));
+               SpatialIterator.AddFilter_CurrentPartPrimitives;
+               SpatialIterator.AddFilter_CurrentDisplayModePrimitives;
+               // SpatialIterator.AddFilter_Area(ALoc.X, ALoc.Y, ALoc.X+1, ALoc.Y+1);
 
-                 SchServer.RobotManager.SendMessage(PinClicked.I_ObjectAddress, c_BroadCast, SCHM_BeginModify, c_NoEventData);
-                    PinClicked.Name := Pin.Name;
-                 SchServer.RobotManager.SendMessage(PinClicked.I_ObjectAddress, c_BroadCast, SCHM_EndModify  , c_NoEventData);
+               Pin := SpatialIterator.FirstSchObject;
+               While Pin <> Nil Do
+               Begin
+                  if (Pin.Designator = DesignatorNew) and (CheckBoxPinName.Checked) and (Pin <> PinClicked) then
+                  begin
 
-                 SchServer.RobotManager.SendMessage(Pin.I_ObjectAddress, c_BroadCast, SCHM_BeginModify, c_NoEventData);
-                    Pin.Designator := DesignatorOld;
-                    Pin.Name       := NameOld;
-                 SchServer.RobotManager.SendMessage(Pin.I_ObjectAddress, c_BroadCast, SCHM_EndModify  , c_NoEventData);
+                     SchServer.RobotManager.SendMessage(PinClicked.I_ObjectAddress, c_BroadCast, SCHM_BeginModify, c_NoEventData);
+                        PinClicked.Name := Pin.Name;
+                     SchServer.RobotManager.SendMessage(PinClicked.I_ObjectAddress, c_BroadCast, SCHM_EndModify  , c_NoEventData);
 
-              end;
-              Pin := SpatialIterator.NextSchObject;
+                     SchServer.RobotManager.SendMessage(Pin.I_ObjectAddress, c_BroadCast, SCHM_BeginModify, c_NoEventData);
+                        Pin.Designator := DesignatorOld;
+                        Pin.Name       := NameOld;
+                     SchServer.RobotManager.SendMessage(Pin.I_ObjectAddress, c_BroadCast, SCHM_EndModify  , c_NoEventData);
+
+                  end;
+                  Pin := SpatialIterator.NextSchObject;
+               end;
+
+           Finally
+               SchDoc.SchIterator_Destroy(SpatialIterator);
            end;
 
-       Finally
-           SchDoc.SchIterator_Destroy(SpatialIterator);
+       end
+       else
+       begin
+           // This is where we swap pins
+           // This is where we swap designators
+           SpatialIterator := SchDoc.SchIterator_Create;
+
+           // Getting second component
+           boolLoc := SchDoc.ChooseLocationInteractively(ALoc,'Choose Second Pin');
+           If Not boolLoc Then Exit;
+
+           If SpatialIterator = Nil Then Exit;
+           Try
+               SpatialIterator.AddFilter_ObjectSet(MkSet(ePin));
+               SpatialIterator.AddFilter_CurrentPartPrimitives;
+               SpatialIterator.AddFilter_CurrentDisplayModePrimitives;
+               SpatialIterator.AddFilter_Area(ALoc.X, ALoc.Y, ALoc.X+1, ALoc.Y+1);
+
+               Pin := SpatialIterator.FirstSchObject;
+               While Pin <> Nil Do
+               Begin
+                   DesignatorOld := PinClicked.Designator;   // old designator
+                   DesignatorNew := Pin.Designator;          // new designator
+                   NameOld       := PinClicked.Name;         // Old Name
+                   NameNew       := Pin.Name;                // Old Name
+
+                   SchServer.RobotManager.SendMessage(PinClicked.I_ObjectAddress, c_BroadCast, SCHM_BeginModify, c_NoEventData);
+                       PinClicked.Designator := DesignatorNew;                       // write new designator
+                       if  CheckBoxPinName.Checked then PinClicked.Name := NameNew;  // write new name
+                   SchServer.RobotManager.SendMessage(PinClicked.I_ObjectAddress, c_BroadCast, SCHM_EndModify  , c_NoEventData);
+
+                   SchServer.RobotManager.SendMessage(PinClicked.I_ObjectAddress, c_BroadCast, SCHM_BeginModify, c_NoEventData);
+                       Pin.Designator := DesignatorOld;                              // write new designator
+                       if  CheckBoxPinName.Checked then Pin.Name := NameOld;         // write new name
+                   SchServer.RobotManager.SendMessage(PinClicked.I_ObjectAddress, c_BroadCast, SCHM_EndModify  , c_NoEventData);
+
+                   Pin := SpatialIterator.NextSchObject;
+               End;
+
+           Finally
+               SchDoc.SchIterator_Destroy(SpatialIterator);
+           end;
+
        end;
 
        // Post Process:
@@ -222,23 +361,128 @@ Begin
        // Refresh:
        SchDoc.GraphicallyInvalidate;
     end
-    else if GetWorkspace.DM_FocusedDocument.DM_DocumentKind = 'PCB' then
+    else if DocKind = 'PCB' then
     begin
+        PCBServer.PreProcess;
 
-        PCBComp := PCBBoard.GetObjectAtCursor(MkSet(eComponentObject),AllLayers,'Choose Component');                          
-        if Assigned(PCBComp) then
+
+        if CheckBoxSwap.Checked then Tekst := 'Choose First Component'
+        else                         Tekst := 'Choose Component';
+
+        PCBComp := PCBBoard.GetObjectAtCursor(MkSet(eComponentObject),AllLayers, Tekst);
+        if (CheckBoxSwap.Checked and Assigned(PCBComp))  then
+           PCBComp2 := PCBBoard.GetObjectAtCursor(MkSet(eComponentObject),AllLayers,'Choose Second Component');
+
+
+        if (Assigned(PCBComp) and (not (CheckBoxSwap.Checked))) then
         begin
            boolLoc := True;
            DesignatorOld := PCBComp.Name.Text;
            DesignatorNew := IncrDesignator(DesignatorOld);
 
-           PCBComp.Name.Text  := DesignatorNew;
+           PCBServer.SendMessageToRobots(PCBComp.I_ObjectAddress ,c_Broadcast, PCBM_BeginModify , c_NoEventData);
+           PCBComp.Name.Text := DesignatorNew;
+           PCBServer.SendMessageToRobots(PCBComp.I_ObjectAddress, c_Broadcast, PCBM_EndModify, c_NoEventData);
+           PCBServer.SendMessageToRobots(PCBBoard.I_ObjectAddress, c_Broadcast, PCBM_BoardRegisteration, PCBComp.I_ObjectAddress);
 
-           ResetParameters;
-           AddStringParameter('Action','Redraw');
-           RunProcess('PCB:Zoom');
         end
-        else boolLoc := False;
+        else if (Assigned(PCBComp) and Assigned(PCBComp2) and (CheckBoxSwap.Checked)) then
+        begin
+           boolLoc := True;
+
+           NameOld := PCBComp.Name.Text;   // read first designator
+           DesignatorOld := NameOld;
+           TextLength := 1;
+           AsciiCode := ord(NameOld[1]);
+           while AsciiCode > 64 do
+           begin
+              Inc(TextLength);
+              AsciiCode := ord(NameOld[TextLength]);
+           end;
+           Dec(TextLength);
+           SetLength(NameOld, TextLength);
+           Delete(DesignatorOld, 1, TextLength);
+
+           NameNew := PCBComp2.Name.Text;  // read second designator
+           DesignatorNew := NameNew;
+           TextLength := 1;
+           AsciiCode := ord(NameNew[1]);
+           while AsciiCode > 64 do
+           begin
+              Inc(TextLength);
+              AsciiCode := ord(NameNew[TextLength]);
+           end;
+           Dec(TextLength);
+           SetLength(NameNew, TextLength);
+           Delete(DesignatorNew, 1, TextLength);
+
+           PCBServer.SendMessageToRobots(PCBComp.I_ObjectAddress ,c_Broadcast, PCBM_BeginModify , c_NoEventData);
+           PCBComp.Name.Text := NameOld + DesignatorNew;
+           PCBServer.SendMessageToRobots(PCBComp.I_ObjectAddress, c_Broadcast, PCBM_EndModify, c_NoEventData);
+           PCBServer.SendMessageToRobots(PCBBoard.I_ObjectAddress, c_Broadcast, PCBM_BoardRegisteration, PCBComp.I_ObjectAddress);
+
+           PCBServer.SendMessageToRobots(PCBComp2.I_ObjectAddress ,c_Broadcast, PCBM_BeginModify , c_NoEventData);
+           PCBComp2.Name.Text := NameNew + DesignatorOld;
+           PCBServer.SendMessageToRobots(PCBComp2.I_ObjectAddress, c_Broadcast, PCBM_EndModify, c_NoEventData);
+           PCBServer.SendMessageToRobots(PCBBoard.I_ObjectAddress, c_Broadcast, PCBM_BoardRegisteration, PCBComp2.I_ObjectAddress);
+        end
+        else
+           boolLoc := False;
+
+        PCBServer.PostProcess;
+
+        ResetParameters;
+        AddStringParameter('Action','Redraw');
+        RunProcess('PCB:Zoom');
+    end
+    else if DocKind = 'PCBLIB' then
+    begin
+        PCBServer.PreProcess;
+
+        if CheckBoxSwap.Checked then Tekst := 'Choose First Pad'
+        else                         Tekst := 'Choose Pad';
+
+
+        Pad1 := PCBBoard.GetObjectAtCursor(MkSet(ePadObject),AllLayers, Tekst);
+        if (CheckBoxSwap.Checked and Assigned(Pad1)) then
+           Pad2 := PCBBoard.GetObjectAtCursor(MkSet(ePadObject),AllLayers,'Choose Second Pad');
+
+        if (Assigned(Pad1) and (not (CheckBoxSwap.Checked))) then
+        begin
+           boolLoc := True;
+           DesignatorOld := Pad1.Name;
+           DesignatorNew := IncrDesignator(DesignatorOld);
+
+           PCBServer.SendMessageToRobots(Pad1.I_ObjectAddress ,c_Broadcast, PCBM_BeginModify , c_NoEventData);
+           Pad1.Name := DesignatorNew;
+           PCBServer.SendMessageToRobots(Pad1.I_ObjectAddress, c_Broadcast, PCBM_EndModify, c_NoEventData);
+           PCBServer.SendMessageToRobots(PCBBoard.I_ObjectAddress, c_Broadcast, PCBM_BoardRegisteration, Pad1.I_ObjectAddress);
+
+        end
+        else if (Assigned(Pad1) and Assigned(Pad2) and (CheckBoxSwap.Checked)) then
+        begin
+           boolLoc := True;
+           DesignatorOld := Pad1.Name;
+           DesignatorNew := Pad2.Name;
+
+           PCBServer.SendMessageToRobots(Pad1.I_ObjectAddress ,c_Broadcast, PCBM_BeginModify , c_NoEventData);
+           Pad1.Name := DesignatorNew;
+           PCBServer.SendMessageToRobots(Pad1.I_ObjectAddress, c_Broadcast, PCBM_EndModify, c_NoEventData);
+           PCBServer.SendMessageToRobots(PCBBoard.I_ObjectAddress, c_Broadcast, PCBM_BoardRegisteration, Pad1.I_ObjectAddress);
+
+           PCBServer.SendMessageToRobots(Pad2.I_ObjectAddress ,c_Broadcast, PCBM_BeginModify , c_NoEventData);
+           Pad2.Name := DesignatorOld;
+           PCBServer.SendMessageToRobots(Pad2.I_ObjectAddress, c_Broadcast, PCBM_EndModify, c_NoEventData);
+           PCBServer.SendMessageToRobots(PCBBoard.I_ObjectAddress, c_Broadcast, PCBM_BoardRegisteration, Pad2.I_ObjectAddress);
+        end
+        else
+           boolLoc := False;
+
+        PCBServer.PostProcess;
+
+        ResetParameters;
+        AddStringParameter('Action','Redraw');
+        RunProcess('PCB:Zoom');
     end;
 
     Result := boolLoc;   // False if choosing rectangle was aborted (e.g. via right mouse button)
@@ -271,8 +515,12 @@ Begin
 
      Form1.Visible := True;
      Form1.SetFocus;        // Form ist brought up front again
-     Edit_Nr.SetFocus;
-     Edit_Nr.SelectAll;
+
+     if not CheckBoxSwap.Checked then
+     begin
+        Edit_Nr.SetFocus;
+        Edit_Nr.SelectAll;
+     end;
 End;
 {..............................................................................}
 
@@ -294,14 +542,18 @@ End;
 
 procedure TForm1.Form1Create(Sender: TObject);
 begin
+   // Get the type of document
+   DocKind := GetWorkspace.DM_FocusedDocument.DM_DocumentKind;
 
    If SchServer <> Nil Then
    begin
       SchDoc := SchServer.GetCurrentSchDocument;
       If SchDoc = Nil Then Exit;
 
-      If SchDoc.ObjectID = eSchLib Then
+      If DocKind = 'SCHLIB' Then
+      begin
          CheckBoxPinName.Visible := True;
+      end;
    end
    else if PCBServer <> nil then
    begin
@@ -315,3 +567,22 @@ begin
 
    Start_Incr;
 end;
+
+
+
+procedure TForm1.CheckBoxSwapClick(Sender: TObject);
+begin
+   if CheckboxSwap.Checked then
+   begin
+      Edit_inc.Enabled := False;
+      Edit_Nr.Enabled  := False;
+   end
+   else
+   begin
+      Edit_inc.Enabled := True;
+      Edit_Nr.Enabled  := True;
+      Edit_Nr.SetFocus;
+      Edit_Nr.SelectAll;
+   end;
+end;
+
