@@ -129,6 +129,9 @@ Begin
     If Board = Nil Then Exit;
 
     Doc := Client.GetDocumentByPath(GetWorkspace.DM_FocusedDocument.DM_FullPath);
+
+    if Doc = nil then exit;
+
     If (Doc <> Nil) And Doc.Modified Then
     begin
        ShowMessage('Please Save PCB Document First');
@@ -151,6 +154,11 @@ Begin
     // Second part - export regular altium's *.hyp file
     FileName := Board.FileName;
     Doc := Client.GetDocumentByPath(FileName);
+
+    ShowMessage('Wait for export to finish. (it might take a while)'#13#10 +
+                'Export is done when document temporarily closes and re-opens.'#13#10 +
+                'Until then your PCB file will have *.hyp extension in Altium'#13#10
+                'Click OK to continue.');
 
     if Doc <> nil then
     begin
@@ -212,10 +220,9 @@ Begin
        i := i + 2;
     Until LayerObj = Nil;
 
-    (*
     // Update - we need to put regions, fills, tracks and arcs that are on multi
     // layer to appropriate layers in layer stack.
-
+    (*
     BoardIterator := Board.BoardIterator_Create;
     BoardIterator.AddFilter_ObjectSet(MkSet(eRegionObject, eFillObject, eArcObject, eTrackObject));
     BoardIterator.AddFilter_LayerSet(AllLayers);
@@ -228,9 +235,18 @@ Begin
        begin
           LayerObj := TheLayerStack.FirstLayer;
           repeat
-             NewObject := PCBObject.Replicate;
-             NewObject.Layer := String2Layer(LayerObj.Name);
-             Board.AddPCBObject(NewObject);
+             if ((LayerObj.LayerID = eTopLayer) or (LayerObj.LayerID = eMidLayer1) or (LayerObj.LayerID = eMidLayer2) or (LayerObj.LayerID = eMidLayer3) or (LayerObj.LayerID = eMidLayer4) or
+                (LayerObj.LayerID = eMidLayer5) or (LayerObj.LayerID = eMidLayer6) or (LayerObj.LayerID = eMidLayer7) or (LayerObj.LayerID = eMidLayer8) or (LayerObj.LayerID = eMidLayer9) or
+                 (LayerObj.LayerID = eMidLayer10) or (LayerObj.LayerID = eMidLayer11) or (LayerObj.LayerID = eMidLayer12) or (LayerObj.LayerID = eMidLayer13) or (LayerObj.LayerID = eMidLayer14) or
+                 (LayerObj.LayerID = eMidLayer15) or (LayerObj.LayerID = eMidLayer16) or (LayerObj.LayerID = eMidLayer17) or (LayerObj.LayerID = eMidLayer18) or (LayerObj.LayerID = eMidLayer19) or
+                 (LayerObj.LayerID = eMidLayer20) or (LayerObj.LayerID = eMidLayer21) or (LayerObj.LayerID = eMidLayer22) or (LayerObj.LayerID = eMidLayer23) or (LayerObj.LayerID = eMidLayer24) or
+                 (LayerObj.LayerID = eMidLayer25) or (LayerObj.LayerID = eMidLayer26) or (LayerObj.LayerID = eMidLayer27) or (LayerObj.LayerID = eMidLayer28) or (LayerObj.LayerID = eMidLayer29) or
+                 (LayerObj.LayerID = eMidLayer30) or (LayerObj.LayerID = eBottomLayer)) then
+                  begin
+                     NewObject := PCBObject.Replicate;
+                     NewObject.Layer := String2Layer(LayerObj.Name);
+                     Board.AddPCBObject(NewObject);
+                  end;
              LayerObj  := TheLayerStack.NextLayer(LayerObj);
           until LayerObj = Nil;
        end;
@@ -242,7 +258,7 @@ Begin
     // Fourth part - the fun begins :) - read all regions on top-mid-bot layers:
     BoardIterator := Board.BoardIterator_Create;
     BoardIterator.AddFilter_ObjectSet(MkSet(eRegionObject));
-    BoardIterator.AddFilter_LayerSet(SignalLayers);
+    BoardIterator.AddFilter_LayerSet(AllLayers);
     BoardIterator.AddFilter_Method(eProcessAll);
 
     // Start iterating through regions
@@ -251,7 +267,14 @@ Begin
     While (Region <> Nil) Do
     begin
        // Ignore regions that are polygon cutout, keepout or board cutout.
-       if ((Region.Kind <> eRegionkind_Cutout) and (not(Region.IsKeepout)) and (Region.Kind <> eRegionkind_BoardCutout)) then
+       if ((Region.Kind <> eRegionkind_Cutout) and (not(Region.IsKeepout)) and (Region.Kind <> eRegionkind_BoardCutout)) and (
+       (Region.Layer = eTopLayer) or (Region.Layer = eMidLayer1) or (Region.Layer = eMidLayer2) or (Region.Layer = eMidLayer3) or (Region.Layer = eMidLayer4) or
+       (Region.Layer = eMidLayer5) or (Region.Layer = eMidLayer6) or (Region.Layer = eMidLayer7) or (Region.Layer = eMidLayer8) or (Region.Layer = eMidLayer9) or
+       (Region.Layer = eMidLayer10) or (Region.Layer = eMidLayer11) or (Region.Layer = eMidLayer12) or (Region.Layer = eMidLayer13) or (Region.Layer = eMidLayer14) or
+       (Region.Layer = eMidLayer15) or (Region.Layer = eMidLayer16) or (Region.Layer = eMidLayer17) or (Region.Layer = eMidLayer18) or (Region.Layer = eMidLayer19) or
+       (Region.Layer = eMidLayer20) or (Region.Layer = eMidLayer21) or (Region.Layer = eMidLayer22) or (Region.Layer = eMidLayer23) or (Region.Layer = eMidLayer24) or
+       (Region.Layer = eMidLayer25) or (Region.Layer = eMidLayer26) or (Region.Layer = eMidLayer27) or (Region.Layer = eMidLayer28) or (Region.Layer = eMidLayer29) or
+       (Region.Layer = eMidLayer30) or (Region.Layer = eBottomLayer)) then
        Begin
           // This is where we got regions on copper layers. For each region we need to
           // fiogure out it's net to put it in appropriate position in *.hyp file
@@ -416,14 +439,22 @@ Begin
     // Right now we will transfer all hatched and outlines only polygons
     BoardIterator := Board.BoardIterator_Create;
     BoardIterator.AddFilter_ObjectSet(MkSet(ePolyObject));
-    BoardIterator.AddFilter_LayerSet(SignalLayers);
+    BoardIterator.AddFilter_LayerSet(AllLayers);
     BoardIterator.AddFilter_Method(eProcessAll);
 
     Poligon := BoardIterator.FirstPCBObject;
     While (Poligon <> Nil) Do
     begin
        // Ignore solid poligons
-       if (Poligon.PolyHatchStyle <> ePolySolid) then
+       if (Poligon.PolyHatchStyle <> ePolySolid) and(
+       (Poligon.Layer = eTopLayer) or (Poligon.Layer = eMidLayer1) or (Poligon.Layer = eMidLayer2) or (Poligon.Layer = eMidLayer3) or (Poligon.Layer = eMidLayer4) or
+       (Poligon.Layer = eMidLayer5) or (Poligon.Layer = eMidLayer6) or (Poligon.Layer = eMidLayer7) or (Poligon.Layer = eMidLayer8) or (Poligon.Layer = eMidLayer9) or
+       (Poligon.Layer = eMidLayer10) or (Poligon.Layer = eMidLayer11) or (Poligon.Layer = eMidLayer12) or (Poligon.Layer = eMidLayer13) or (Poligon.Layer = eMidLayer14) or
+       (Poligon.Layer = eMidLayer15) or (Poligon.Layer = eMidLayer16) or (Poligon.Layer = eMidLayer17) or (Poligon.Layer = eMidLayer18) or (Poligon.Layer = eMidLayer19) or
+       (Poligon.Layer = eMidLayer20) or (Poligon.Layer = eMidLayer21) or (Poligon.Layer = eMidLayer22) or (Poligon.Layer = eMidLayer23) or (Poligon.Layer = eMidLayer24) or
+       (Poligon.Layer = eMidLayer25) or (Poligon.Layer = eMidLayer26) or (Poligon.Layer = eMidLayer27) or (Poligon.Layer = eMidLayer28) or (Poligon.Layer = eMidLayer29) or
+       (Poligon.Layer = eMidLayer30) or (Poligon.Layer = eBottomLayer)) then
+
        Begin
           // We need to set net name here, and find the place where net is
           NetName := 'UNUSED_PINS_PADS00';
@@ -565,7 +596,7 @@ Begin
 
                 X2 := FormatFloat('0.00000',Arc.XCenter/10000000);
                 X1 := FormatFloat('0.00000',Arc.EndX/10000000);
-                Y2 := FormatFloat('0.00000',(Arc.Arc.YCenter + Arc.Radius)/10000000);
+                Y2 := FormatFloat('0.00000',(Arc.YCenter + Arc.Radius)/10000000);
                 Y1 := FormatFloat('0.00000',Arc.EndY/10000000);
                 XC := FormatFloat('0.00000',Arc.XCenter/10000000);
                 YC := FormatFloat('0.00000',Arc.YCenter/10000000);
@@ -585,7 +616,6 @@ Begin
              end;
 
 
-
              Arc := PolyIterator.NextPCBObject;
           end;
           Poligon.GroupIterator_Destroy(PolyIterator);
@@ -598,14 +628,21 @@ Begin
     // Transfering fills to hyp file
     BoardIterator := Board.BoardIterator_Create;
     BoardIterator.AddFilter_ObjectSet(MkSet(eFillObject));
-    BoardIterator.AddFilter_LayerSet(SignalLayers);
+    BoardIterator.AddFilter_LayerSet(AllLayers);
     BoardIterator.AddFilter_Method(eProcessAll);
 
     Fill := BoardIterator.FirstPCBObject;
 
     While (Fill <> nil) do
     begin
-       if (not (Fill.IsKeepout)) then
+       if (not (Fill.IsKeepout)) and (
+       (Fill.Layer = eTopLayer) or (Fill.Layer = eMidLayer1) or (Fill.Layer = eMidLayer2) or (Fill.Layer = eMidLayer3) or (Fill.Layer = eMidLayer4) or
+       (Fill.Layer = eMidLayer5) or (Fill.Layer = eMidLayer6) or (Fill.Layer = eMidLayer7) or (Fill.Layer = eMidLayer8) or (Fill.Layer = eMidLayer9) or
+       (Fill.Layer = eMidLayer10) or (Fill.Layer = eMidLayer11) or (Fill.Layer = eMidLayer12) or (Fill.Layer = eMidLayer13) or (Fill.Layer = eMidLayer14) or
+       (Fill.Layer = eMidLayer15) or (Fill.Layer = eMidLayer16) or (Fill.Layer = eMidLayer17) or (Fill.Layer = eMidLayer18) or (Fill.Layer = eMidLayer19) or
+       (Fill.Layer = eMidLayer20) or (Fill.Layer = eMidLayer21) or (Fill.Layer = eMidLayer22) or (Fill.Layer = eMidLayer23) or (Fill.Layer = eMidLayer24) or
+       (Fill.Layer = eMidLayer25) or (Fill.Layer = eMidLayer26) or (Fill.Layer = eMidLayer27) or (Fill.Layer = eMidLayer28) or (Fill.Layer = eMidLayer29) or
+       (Fill.Layer = eMidLayer30) or (Fill.Layer = eBottomLayer)) then
        begin
 
           // We will figure out net of this region
@@ -2739,4 +2776,4 @@ Begin
     // Saving "hypFile" StringList to file
     hypFile.SaveToFile(SaveAs);
     if Doc <> nil then Doc.SetFileName(FileName);
-End;
+end;
