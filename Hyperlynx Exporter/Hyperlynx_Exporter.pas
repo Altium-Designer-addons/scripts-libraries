@@ -157,7 +157,7 @@ Begin
 
     ShowMessage('Wait for export to finish. (it might take a while)'#13#10 +
                 'Export is done when document temporarily closes and re-opens.'#13#10 +
-                'Until then your PCB file will have *.hyp extension in Altium'#13#10
+                'Until then your PCB file will have *.hyp extension in Altium'#13#10 +
                 'Click OK to continue.');
 
     if Doc <> nil then
