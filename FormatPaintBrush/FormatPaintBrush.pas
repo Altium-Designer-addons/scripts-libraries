@@ -6,9 +6,7 @@ var
    // PCB variables and objects
    PCBBoard   : IPCB_Board;
    SourcePrim : IPCB_Primitive;
-   DestinPrim : IPCB_Primitive;
-
-   BoardIterator : IPCB_BoardIterator;
+   DestinPrim : IPCB_Primitive;         
 
 
    // Common variables
@@ -38,7 +36,6 @@ begin
 
       SourcePrim := PCBBoard.GetObjectAtCursor(AllObjects, AllLayers,'Choose Source Primitive');
       DestinPrim := PCBBoard.GetObjectAtCursor(MkSet(SourcePrim.ObjectId), AllLayers,'Choose Destination Primitive');
-
 
       PCBServer.PreProcess;
 

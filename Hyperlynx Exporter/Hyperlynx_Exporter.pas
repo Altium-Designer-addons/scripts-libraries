@@ -5,6 +5,8 @@ var
     Flag          : Bool;
     Board         : IPCB_Board;
     Doc           : IServerDocument;
+    GuiManager    : IGUIManager;
+
     SaveDialog    : TSaveDialog;
     PCBObject     : IPCB_Primitive;
     NewObject     : IPCB_Primitive;
@@ -254,6 +256,10 @@ Begin
     end;
     Board.BoardIterator_Destroy(BoardIterator);
     *)
+    GuiManager := Client.GUIManager;
+    Guimanager.StatusBar_SetState(-5,'');
+    for i:= 1 to 10 do Guimanager.StatusBar_SetState(-7,'');
+
 
     // Fourth part - the fun begins :) - read all regions on top-mid-bot layers:
     BoardIterator := Board.BoardIterator_Create;
@@ -264,6 +270,9 @@ Begin
     // Start iterating through regions
     ID := 0;
     Region := BoardIterator.FirstPCBObject;
+
+    for i:= 1 to 20 do Guimanager.StatusBar_SetState(-7,'');   
+
     While (Region <> Nil) Do
     begin
        // Ignore regions that are polygon cutout, keepout or board cutout.
@@ -435,6 +444,8 @@ Begin
        Region := BoardIterator.NextPCBObject;
     end;
     Board.BoardIterator_Destroy(BoardIterator);
+
+    for i:= 1 to 10 do Guimanager.StatusBar_SetState(-7,'');
 
     // Right now we will transfer all hatched and outlines only polygons
     BoardIterator := Board.BoardIterator_Create;
@@ -624,6 +635,7 @@ Begin
     end;
     Board.BoardIterator_Destroy(BoardIterator);
 
+    for i:= 1 to 10 do Guimanager.StatusBar_SetState(-7,'');
 
     // Transfering fills to hyp file
     BoardIterator := Board.BoardIterator_Create;
@@ -752,6 +764,7 @@ Begin
     end;
     Board.BoardIterator_Destroy(BoardIterator);
 
+    for i:= 1 to 10 do Guimanager.StatusBar_SetState(-7,'');
 
     // We need to transfer split planes to hyp file. This will be little harder to do,
     // and since Steve helped, We can go
@@ -2772,6 +2785,7 @@ Begin
     end;
     Board.BoardIterator_Destroy(BoardIterator);
 
+    Guimanager.StatusBar_SetState(-6,'');
 
     // Saving "hypFile" StringList to file
     hypFile.SaveToFile(SaveAs);
