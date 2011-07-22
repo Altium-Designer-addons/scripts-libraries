@@ -48,28 +48,28 @@ begin
 
          PCBServer.SendMessageToRobots(DestinPrim.I_ObjectAddress ,c_Broadcast, PCBM_BeginModify , c_NoEventData);
          if (SourcePrim.DimensionKind = eLinearDimension) then
-            begin
-               DestinPrim.ArrowLength        := SourcePrim.ArrowLength;
-               DestinPrim.ArrowLineWidth     := SourcePrim.ArrowLineWidth;
-               DestinPrim.ArrowSize          := SourcePrim.ArrowSize;
-               DestinPrim.LineWidth          := SourcePrim.LineWidth;
-               DestinPrim.TextHeight         := SourcePrim.TextHeight;
-               DestinPrim.TextWidth          := SourcePrim.TextWidth;
-               DestinPrim.TextFont           := SourcePrim.TextFont;
-               DestinPrim.TextLineWidth      := SourcePrim.TextLineWidth;
-               DestinPrim.TextGap            := SourcePrim.TextGap;
-               DestinPrim.TextFormat         := SourcePrim.TextFormat;
-               DestinPrim.TextDimensionUnit  := SourcePrim.TextDimensionUnit;
-               DestinPrim.TextPrecision      := SourcePrim.TextPrecision;
-               DestinPrim.ExtensionOffset    := SourcePrim.ExtensionOffset;
-               DestinPrim.ExtensionLineWidth := SourcePrim.ExtensionLineWidth;
-               DestinPrim.ExtensionPickGap   := SourcePrim.ExtensionPickGap;
-               DestinPrim.Style              := SourcePrim.Style;
-               DestinPrim.UseTTFonts         := SourcePrim.UseTTFonts;
-               DestinPrim.Bold               := SourcePrim.Bold;
-               DestinPrim.Italic             := SourcePrim.Italic;
-               DestinPrim.FontName           := SourcePrim.FontName;
-               DestinPrim.Selected           := True;
+         begin
+            DestinPrim.ArrowLength        := SourcePrim.ArrowLength;
+            DestinPrim.ArrowLineWidth     := SourcePrim.ArrowLineWidth;
+            DestinPrim.ArrowSize          := SourcePrim.ArrowSize;
+            DestinPrim.LineWidth          := SourcePrim.LineWidth;
+            DestinPrim.TextHeight         := SourcePrim.TextHeight;
+            DestinPrim.TextWidth          := SourcePrim.TextWidth;
+            DestinPrim.TextFont           := SourcePrim.TextFont;
+            DestinPrim.TextLineWidth      := SourcePrim.TextLineWidth;
+            DestinPrim.TextGap            := SourcePrim.TextGap;
+            DestinPrim.TextFormat         := SourcePrim.TextFormat;
+            DestinPrim.TextDimensionUnit  := SourcePrim.TextDimensionUnit;
+            DestinPrim.TextPrecision      := SourcePrim.TextPrecision;
+            DestinPrim.ExtensionOffset    := SourcePrim.ExtensionOffset;
+            DestinPrim.ExtensionLineWidth := SourcePrim.ExtensionLineWidth;
+            DestinPrim.ExtensionPickGap   := SourcePrim.ExtensionPickGap;
+            DestinPrim.Style              := SourcePrim.Style;
+            DestinPrim.UseTTFonts         := SourcePrim.UseTTFonts;
+            DestinPrim.Bold               := SourcePrim.Bold;
+            DestinPrim.Italic             := SourcePrim.Italic;
+            DestinPrim.FontName           := SourcePrim.FontName;
+            DestinPrim.Selected           := True;
          end;
 
 
