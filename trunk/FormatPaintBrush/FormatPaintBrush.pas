@@ -9,16 +9,18 @@ var
    SpatialIterator : ISch_Iterator;
 
    // PCB variables and objects
-   PCBBoard      : IPCB_Board;
-   SourcePrim    : IPCB_Primitive;
-   DestinPrim    : IPCB_Primitive;
-   BoardIterator : IPCB_BoardIterator;
+   PCBBoard        : IPCB_Board;
+   SourcePrim      : IPCB_Primitive;
+   DestinPrim      : IPCB_Primitive;
+   BoardIterator   : IPCB_BoardIterator;
 
    // Common variables
-   boolLoc       : bool;
+   boolLoc         : bool;
+   DocKind         : String;
 
 Begin
-   If GetWorkspace.DM_FocusedDocument.DM_DocumentKind = 'SCH' then
+   DocKind := GetWorkspace.DM_FocusedDocument.DM_DocumentKind;
+   If (DocKind = 'SCH') or (DocKind = 'SCHLIB') then
    Begin
       // Get the document
       if SchServer = nil then exit;
@@ -43,6 +45,11 @@ Begin
          If SpatialIterator = Nil Then Exit;
          Try
             SpatialIterator.AddFilter_Area(Location.X - 1, Location.Y - 1, Location.X + 1, Location.Y + 1);
+            if (DocKind = 'SCHLIB') then
+            begin
+               SpatialIterator.AddFilter_CurrentPartPrimitives;
+               SpatialIterator.AddFilter_CurrentDisplayModePrimitives;
+            end;
 
             SchTempPrim := SpatialIterator.FirstSchObject;
             SchSourcePrim := SchTempPrim;
@@ -80,6 +87,11 @@ Begin
          Try
             SpatialIterator.AddFilter_ObjectSet(MkSet(SchSourcePrim.ObjectId));
             SpatialIterator.AddFilter_Area(Location.X - 1, Location.Y - 1, Location.X + 1, Location.Y + 1);
+            if (DocKind = 'SCHLIB') then
+            begin
+               SpatialIterator.AddFilter_CurrentPartPrimitives;
+               SpatialIterator.AddFilter_CurrentDisplayModePrimitives;
+            end;
 
             SchDestinPrim := SpatialIterator.FirstSchObject;
          Finally
@@ -175,13 +187,13 @@ Begin
             end;
          end
 
-         (*
          // Pin - no use in sch document
-         else if (SchSourcePrim.ObjectId = ePin) then
+         else if (SchSourcePrim.ObjectId = ePin) and (DocKind = 'SCHLIB') then
          begin
-
+            SchDestinPrim.Color         := SchSourcePrim.Color;
+            SchDestinPrim.ShowName      := SchSourcePrim.ShowName;
+            SchDestinPrim.ShowDesignator:= SchSourcePrim.ShowDesignator;
          end
-         *)
 
          // Designator
          else if (SchSourcePrim.ObjectId = eDesignator) then
@@ -449,6 +461,11 @@ Begin
                If SpatialIterator = Nil Then Exit;
                Try
                   SpatialIterator.AddFilter_Area(Location.X - 1, Location.Y - 1, Location.X + 1, Location.Y + 1);
+                  if (DocKind = 'SCHLIB') then
+                  begin
+                     SpatialIterator.AddFilter_CurrentPartPrimitives;
+                     SpatialIterator.AddFilter_CurrentDisplayModePrimitives;
+                  end;
 
                   SchTempPrim := SpatialIterator.FirstSchObject;
                   SchSourcePrim := SchTempPrim;
@@ -488,6 +505,11 @@ Begin
             Try
                SpatialIterator.AddFilter_ObjectSet(MkSet(SchSourcePrim.ObjectId));
                SpatialIterator.AddFilter_Area(Location.X - 1, Location.Y - 1, Location.X + 1, Location.Y + 1);
+               if (DocKind = 'SCHLIB') then
+               begin
+                  SpatialIterator.AddFilter_CurrentPartPrimitives;
+                  SpatialIterator.AddFilter_CurrentDisplayModePrimitives;
+               end;
 
                SchDestinPrim := SpatialIterator.FirstSchObject;
             Finally
@@ -503,7 +525,7 @@ Begin
       end;
 
    End
-   Else If GetWorkspace.DM_FocusedDocument.DM_DocumentKind = 'PCB' then
+   Else If DocKind = 'PCB' then
    Begin
       // Get the document
       If PCBServer = Nil Then Exit;
