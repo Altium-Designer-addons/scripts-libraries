@@ -5,6 +5,7 @@ var
    Location        : TLocation;
    SchSourcePrim   : TObject;
    SchDestinPrim   : TObject;
+   SchTempPrim     : TObject;
    SpatialIterator : ISch_Iterator;
 
    // PCB variables and objects
@@ -32,34 +33,59 @@ Begin
 
       // Get Source Object
       boolLoc := SchDoc.ChooseLocationInteractively(Location, 'Choose Source Object');
-
       If Not boolLoc Then Exit;
 
-      SpatialIterator := SchDoc.SchIterator_Create;
-      If SpatialIterator = Nil Then Exit;
-      Try
-         SpatialIterator.AddFilter_Area(Location.X - 1, Location.Y - 1, Location.X + 1, Location.Y + 1);
+      SchSourcePrim := nil;
 
-         SchSourcePrim := SpatialIterator.FirstSchObject;
-      Finally
-         SchDoc.SchIterator_Destroy(SpatialIterator);
-      End;
+      while SchSourcePrim = nil do
+      begin
+         SpatialIterator := SchDoc.SchIterator_Create;
+         If SpatialIterator = Nil Then Exit;
+         Try
+            SpatialIterator.AddFilter_Area(Location.X - 1, Location.Y - 1, Location.X + 1, Location.Y + 1);
 
-      // Get First Destination Object
-      boolLoc := SchDoc.ChooseLocationInteractively(Location, 'Choose Destination Object');
+            SchTempPrim := SpatialIterator.FirstSchObject;
+            SchSourcePrim := SchTempPrim;
 
-      If Not boolLoc Then Exit;
+            if SchTempPrim <> nil then
+            begin
+               if (SchTempPrim.ObjectId = eHarnessConnector) or (SchTempPrim.ObjectId = eSheetSymbol) then
+               while SchTempPrim <> nil do
+               begin
+                  if (SchTempPrim.ObjectId = eHarnessEntry) or (SchTempPrim.ObjectId = eSheetEntry) then
+                     SchSourcePrim := SchTempPrim;
+                  SchTempPrim   := SpatialIterator.NextSchObject;
+               end;
+            end
+            else
+            begin
+               boolLoc := SchDoc.ChooseLocationInteractively(Location, 'Choose Source Object');
+               If Not boolLoc Then Exit;
+            end;
+         Finally
+            SchDoc.SchIterator_Destroy(SpatialIterator);
+         End;
+      end;
 
-      SpatialIterator := SchDoc.SchIterator_Create;
-      If SpatialIterator = Nil Then Exit;
-      Try
-         SpatialIterator.AddFilter_ObjectSet(MkSet(SchSourcePrim.ObjectId));
-         SpatialIterator.AddFilter_Area(Location.X - 1, Location.Y - 1, Location.X + 1, Location.Y + 1);
+      // Get Destination Object
+      SchDestinPrim := nil;
 
-         SchDestinPrim := SpatialIterator.FirstSchObject;
-      Finally
-         SchDoc.SchIterator_Destroy(SpatialIterator);
-      End;
+      While SchDestinPrim = nil do
+      begin
+         boolLoc := SchDoc.ChooseLocationInteractively(Location, 'Choose Destination Object');
+         If Not boolLoc Then Exit;
+
+         SpatialIterator := SchDoc.SchIterator_Create;
+         If SpatialIterator = Nil Then Exit;
+         Try
+            SpatialIterator.AddFilter_ObjectSet(MkSet(SchSourcePrim.ObjectId));
+            SpatialIterator.AddFilter_Area(Location.X - 1, Location.Y - 1, Location.X + 1, Location.Y + 1);
+
+            SchDestinPrim := SpatialIterator.FirstSchObject;
+         Finally
+            SchDoc.SchIterator_Destroy(SpatialIterator);
+         End;
+      end;
 
       While (SchSourcePrim <> nil) and (SchDestinPrim <> nil) do
       begin
@@ -105,7 +131,7 @@ Begin
          end
 
          (*
-         // Probe
+         // Probe - has nothing to copy
          else if (SchSourcePrim.ObjectId = eProbe) then
          begin
 
@@ -150,7 +176,7 @@ Begin
          end
 
          (*
-         // Pin
+         // Pin - no use in sch document
          else if (SchSourcePrim.ObjectId = ePin) then
          begin
 
@@ -195,7 +221,7 @@ Begin
          begin
             SchDestinPrim.Color         := SchSourcePrim.Color;
             SchDestinPrim.FontID        := SchSourcePrim.FontID;
-            SchDestinPrim.Justification := SchSourcePrim.Justification; 
+            SchDestinPrim.Justification := SchSourcePrim.Justification;
             SchDestinPrim.IsMirrored    := SchSourcePrim.IsMirrored;
          end
 
@@ -274,12 +300,24 @@ Begin
             SchDestinPrim.Autoposition  := SchSourcePrim.Autoposition;
          end
 
-         (* Have no idea what is interface for this
-         // C Code Symbol
-         else if (SchSourcePrim.ObjectId = ) then
+         // Sheet Entry
+         else if (SchSourcePrim.ObjectId = eSheetEntry) then
          begin
+            SchDestinPrim.Color         := SchSourcePrim.Color;
+            SchDestinPrim.AreaColor     := SchSourcePrim.AreaColor;
+            SchDestinPrim.TextColor     := SchSourcePrim.TextColor;
+            SchDestinPrim.Style         := SchSourcePrim.Style;
+            SchDestinPrim.HarnessColor  := SchSourcePrim.HarnessColor;
          end
-         *)
+
+         // C Code Symbol
+         else if (SchSourcePrim.ObjectId = '56') then
+         begin
+            SchDestinPrim.Color         := SchSourcePrim.Color;
+            SchDestinPrim.AreaColor     := SchSourcePrim.AreaColor;
+            SchDestinPrim.IsSolid       := SchSourcePrim.IsSolid;
+            SchDestinPrim.LineWidth     := SchSourcePrim.LineWidth;
+         end
 
          // Note
          else if (SchSourcePrim.ObjectId = eNote) then
@@ -297,6 +335,7 @@ Begin
          else if (SchSourcePrim.ObjectId = eBezier) then
          begin
             SchDestinPrim.Color         := SchSourcePrim.Color;
+            SchDestinPrim.LineWidth     := SchSourcePrim.LineWidth;
          end
 
          // Image
@@ -305,7 +344,7 @@ Begin
             SchDestinPrim.Color         := SchSourcePrim.Color;
             SchDestinPrim.LineWidth     := SchSourcePrim.LineWidth;
             SchDestinPrim.KeepAspect    := SchSourcePrim.KeepAspect;
-            // I do not know what property is for show border
+            SchDestinPrim.IsSolid       := SchSourcePrim.IsSolid;
          end
 
          // Pie Chart
@@ -371,55 +410,86 @@ Begin
             SchDestinPrim.LineWidth     := SchSourcePrim.LineWidth;
          end
 
-         // Harness Entry - This "else" is never executed
+         // Harness Entry
          else if (SchSourcePrim.ObjectId = eHarnessEntry) then
          begin
             SchDestinPrim.Color         := SchSourcePrim.Color;
-            SchDestinPrim.FontID        := SchSourcePrim.FontID;
+            // SchDestinPrim.FontID        := SchSourcePrim.FontID;
             SchDestinPrim.TextColor     := SchSourcePrim.TextColor;
-
          end;
-
 
          SchServer.RobotManager.SendMessage(SchDestinPrim.I_ObjectAddress, c_BroadCast, SCHM_EndModify  , c_NoEventData);
 
          SchServer.ProcessControl.PostProcess(SchDoc, '');
 
          // Get Next Destination Object
-         boolLoc := SchDoc.ChooseLocationInteractively(Location, 'Choose Next Destination Object');
+         boolLoc := SchDoc.ChooseLocationInteractively(Location, 'Choose Destination Object');
 
          If Not boolLoc Then
-         begin
-            // Get New Source Object
-            boolLoc := SchDoc.ChooseLocationInteractively(Location, 'Choose New Source Object');
-
+         begin  
+            // Get Source Object
+            boolLoc := SchDoc.ChooseLocationInteractively(Location, 'Choose Source Object');
             If Not boolLoc Then Exit;
 
-            SpatialIterator := SchDoc.SchIterator_Create;
-            If SpatialIterator = Nil Then Exit;
-            Try
-               SpatialIterator.AddFilter_Area(Location.X - 1, Location.Y - 1, Location.X + 1, Location.Y + 1);
+            SchSourcePrim := nil;
 
-               SchSourcePrim := SpatialIterator.FirstSchObject;
-            Finally
-               SchDoc.SchIterator_Destroy(SpatialIterator);
-            End;
+            while SchSourcePrim = nil do
+            begin
+               SpatialIterator := SchDoc.SchIterator_Create;
+               If SpatialIterator = Nil Then Exit;
+               Try
+                  SpatialIterator.AddFilter_Area(Location.X - 1, Location.Y - 1, Location.X + 1, Location.Y + 1);
+
+                  SchTempPrim := SpatialIterator.FirstSchObject;
+                  SchSourcePrim := SchTempPrim;
+
+                  if SchTempPrim <> nil then
+                  begin
+                     if (SchTempPrim.ObjectId = eHarnessConnector) or (SchTempPrim.ObjectId = eSheetSymbol) then
+                     while SchTempPrim <> nil do
+                     begin
+                        if (SchTempPrim.ObjectId = eHarnessEntry) or (SchTempPrim.ObjectId = eSheetEntry) then
+                           SchSourcePrim := SchTempPrim;
+                        SchTempPrim   := SpatialIterator.NextSchObject;
+                     end;
+                  end
+                  else
+                  begin
+                     boolLoc := SchDoc.ChooseLocationInteractively(Location, 'Choose Source Object');
+                     If Not boolLoc Then Exit;
+                  end;
+               Finally
+                  SchDoc.SchIterator_Destroy(SpatialIterator);
+               End;
+            end;
 
             // Get Destination Object
             boolLoc := SchDoc.ChooseLocationInteractively(Location, 'Choose Destination Object');
             If Not boolLoc Then Exit;
          end;
 
-         SpatialIterator := SchDoc.SchIterator_Create;
-         If SpatialIterator = Nil Then Exit;
-         Try
-            SpatialIterator.AddFilter_ObjectSet(MkSet(SchSourcePrim.ObjectId));
-            SpatialIterator.AddFilter_Area(Location.X - 1, Location.Y - 1, Location.X + 1, Location.Y + 1);
+         // Get Destination Object
+         SchDestinPrim := nil;
 
-            SchDestinPrim := SpatialIterator.FirstSchObject;
-         Finally
-            SchDoc.SchIterator_Destroy(SpatialIterator);
-         End;
+         While SchDestinPrim = nil do
+         begin
+            SpatialIterator := SchDoc.SchIterator_Create;
+            If SpatialIterator = Nil Then Exit;
+            Try
+               SpatialIterator.AddFilter_ObjectSet(MkSet(SchSourcePrim.ObjectId));
+               SpatialIterator.AddFilter_Area(Location.X - 1, Location.Y - 1, Location.X + 1, Location.Y + 1);
+
+               SchDestinPrim := SpatialIterator.FirstSchObject;
+            Finally
+               SchDoc.SchIterator_Destroy(SpatialIterator);
+            End;
+
+            if SchDestinPrim = nil then
+            begin
+               boolLoc := SchDoc.ChooseLocationInteractively(Location, 'Choose Destination Object');
+               If Not boolLoc Then Exit;
+            end;
+         end;
       end;
 
    End
