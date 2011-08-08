@@ -68,35 +68,347 @@ Begin
          SchServer.RobotManager.SendMessage(SchDestinPrim.I_ObjectAddress, c_BroadCast, SCHM_BeginModify, c_NoEventData);
 
          // This is where modification goes.
-         if SchSourcePrim.ObjectId = eWire then
-         begin
-            SchDestinPrim.LineStyle := SchSourcePrim.LineStyle;
-            SchDestinPrim.LineWidth := SchSourcePrim.LineWidth;
-            SchDestinPrim.Color     := SchSourcePrim.Color;     
 
-         //---------------------------------------------------------------------
-         //
-         //----------------      NEW SCH OBJECTS HERE      ---------------------
-         //
-         //---------------------------------------------------------------------
-         //
-         // if you want to add some new SCH objects, uncomment this
-     (*
-         end
-         else if (SchSourcePrim.ObjectId = <ObjectId-here>) then
+         // Bus
+         if (SchSourcePrim.ObjectId = eBus) then
          begin
-            // This is where object properties are being copies
-     *)
+            SchDestinPrim.Color     := SchSourcePrim.Color;
+            SchDestinPrim.LineWidth := SchSourcePrim.LineWidth;
+         end
+
+         // Parameter Set
+         else if (SchSourcePrim.ObjectId = eParameterSet) then
+         begin
+            SchDestinPrim.Color     := SchSourcePrim.Color;
+            SchDestinPrim.Style     := SchSourcePrim.Style;
+         end
+
+         // Bus Entry
+         else if (SchSourcePrim.ObjectId = eBusEntry) then
+         begin
+            SchDestinPrim.Color     := SchSourcePrim.Color;
+            SchDestinPrim.LineWidth := SchSourcePrim.LineWidth;
+         end
+
+         // Wire
+         else if (SchSourcePrim.ObjectId = eWire) then
+         begin
+            SchDestinPrim.Color     := SchSourcePrim.Color;
+            SchDestinPrim.LineWidth := SchSourcePrim.LineWidth;
+         end
+
+         // Net Label
+         else if (SchSourcePrim.ObjectId = eNetLabel) then
+         begin
+            SchDestinPrim.Color     := SchSourcePrim.Color;
+            SchDestinPrim.FontId    := SchSourcePrim.FontId;
+         end
+
+         (*
+         // Probe
+         else if (SchSourcePrim.ObjectId = eProbe) then
+         begin
+
+         end
+         *)
+
+         // NoERC Marker
+         else if (SchSourcePrim.ObjectId = eNoERC) then
+         begin
+            SchDestinPrim.Color     := SchSourcePrim.Color;
+         end
+
+         // Port
+         else if (SchSourcePrim.ObjectId = ePort) then
+         begin
+            SchDestinPrim.Color     := SchSourcePrim.Color;
+            SchDestinPrim.TextColor := SchSourcePrim.TextColor;
+            SchDestinPrim.AreaColor := SchSourcePrim.AreaColor;
+            SchDestinPrim.Alignment := SchSourcePrim.Alignment;
+            SchDestinPrim.Style     := SchSourcePrim.Style;
+         end
+
+         // Off-Sheet Connector
+         else if (SchSourcePrim.ObjectId = eCrossSheetConnector) then
+         begin
+            SchDestinPrim.Color     := SchSourcePrim.Color;
+            SchDestinPrim.CrossSheetStyle := SchSourcePrim.CrossSheetStyle;
+         end
+
+         // Part
+         else if (SchSourcePrim.ObjectId = eSchComponent) then
+         begin
+            SchDestinPrim.Designator.ShowName := SchSourcePrim.Designator.ShowName;
+            SchDestinPrim.Comment.ShowName    := SchSourcePrim.Comment.ShowName;
+            SchDestinPrim.OverideColors       := SchSourcePrim.OverideColors;
+            if SchDestinPrim.OverideColors = True then
+            begin
+               SchDestinPrim.Color            := SchSourcePrim.Color;
+               SchDestinPrim.AreaColor        := SchSourcePrim.AreaColor;
+               SchDestinPrim.PinColor         := SchSourcePrim.PinColor;
+            end;
+         end
+
+         (*
+         // Pin
+         else if (SchSourcePrim.ObjectId = ePin) then
+         begin
+
+         end
+         *)
+
+         // Designator
+         else if (SchSourcePrim.ObjectId = eDesignator) then
+         begin
+            SchDestinPrim.Color         := SchSourcePrim.Color;
+            SchDestinPrim.FontID        := SchSourcePrim.FontID;
+            SchDestinPrim.Justification := SchSourcePrim.Justification;
+            SchDestinPrim.Autoposition  := SchSourcePrim.Autoposition;
+         end
+
+         // Parameter
+         else if (SchSourcePrim.ObjectId = eParameter) then
+         begin
+            SchDestinPrim.Color         := SchSourcePrim.Color;
+            SchDestinPrim.FontID        := SchSourcePrim.FontID;
+            SchDestinPrim.Justification := SchSourcePrim.Justification;
+            SchDestinPrim.Autoposition  := SchSourcePrim.Autoposition;
+         end
+
+         // Text Frame
+         else if (SchSourcePrim.ObjectId = eTextFrame) then
+         begin
+            SchDestinPrim.Color      := SchSourcePrim.Color;
+            SchDestinPrim.TextColor  := SchSourcePrim.TextColor;
+            SchDestinPrim.AreaColor  := SchSourcePrim.AreaColor;
+            SchDestinPrim.IsSolid    := SchSourcePrim.IsSolid;
+            SchDestinPrim.FontID     := SchSourcePrim.FontID;
+            SchDestinPrim.Alignment  := SchSourcePrim.Alignment;
+            SchDestinPrim.LineWidth  := SchSourcePrim.LineWidth;
+            SchDestinPrim.ShowBorder := SchSourcePrim.ShowBorder;
+            SchDestinPrim.WordWrap   := SchSourcePrim.WordWrap;
+            SchDestinPrim.ClipToRect := SchSourcePrim.ClipToRect;
+         end
+
+         // Text String (Annotation, Label)
+         else if (SchSourcePrim.ObjectId = eLabel) then
+         begin
+            SchDestinPrim.Color         := SchSourcePrim.Color;
+            SchDestinPrim.FontID        := SchSourcePrim.FontID;
+            SchDestinPrim.Justification := SchSourcePrim.Justification; 
+            SchDestinPrim.IsMirrored    := SchSourcePrim.IsMirrored;
+         end
+
+         // Ellipse
+         else if (SchSourcePrim.ObjectId = eEllipse) then
+         begin
+            SchDestinPrim.Color         := SchSourcePrim.Color;
+            SchDestinPrim.AreaColor     := SchSourcePrim.AreaColor;
+            SchDestinPrim.IsSolid       := SchSourcePrim.IsSolid;
+            SchDestinPrim.Transparent   := SchSourcePrim.Transparent;
+            SchDestinPrim.LineWidth     := SchSourcePrim.LineWidth;
+         end
+
+         // Elliptical Arc
+         else if (SchSourcePrim.ObjectId = eEllipticalArc) then
+         begin
+            SchDestinPrim.Color         := SchSourcePrim.Color;
+            SchDestinPrim.LineWidth     := SchSourcePrim.LineWidth;
+         end
+
+         // Arc
+         else if (SchSourcePrim.ObjectId = eArc) then
+         begin
+            SchDestinPrim.Color         := SchSourcePrim.Color;
+            SchDestinPrim.LineWidth     := SchSourcePrim.LineWidth;
+         end
+
+         // Power Port
+         else if (SchSourcePrim.ObjectId = ePowerObject) then
+         begin
+            SchDestinPrim.Color         := SchSourcePrim.Color;
+            SchDestinPrim.Style         := SchSourcePrim.Style;
+            SchDestinPrim.ShowNetName   := SchSourcePrim.ShowNetName;
+         end
+
+         // Polygon
+         else if (SchSourcePrim.ObjectId = ePolygon) then
+         begin
+            SchDestinPrim.Color         := SchSourcePrim.Color;
+            SchDestinPrim.AreaColor     := SchSourcePrim.AreaColor;
+            SchDestinPrim.IsSolid       := SchSourcePrim.IsSolid;
+            SchDestinPrim.Transparent   := SchSourcePrim.Transparent;
+            SchDestinPrim.LineWidth     := SchSourcePrim.LineWidth;
+         end
+
+         // Sheet Symbol
+         else if (SchSourcePrim.ObjectId = eSheetSymbol) then
+         begin
+            SchDestinPrim.Color         := SchSourcePrim.Color;
+            SchDestinPrim.AreaColor     := SchSourcePrim.AreaColor;
+            SchDestinPrim.IsSolid       := SchSourcePrim.IsSolid;
+            SchDestinPrim.LineWidth     := SchSourcePrim.LineWidth;
+         end
+
+         // Sheet Name
+         else if (SchSourcePrim.ObjectId = eSheetName) then
+         begin
+            SchDestinPrim.Color         := SchSourcePrim.Color;
+            SchDestinPrim.IsHidden      := SchSourcePrim.IsHidden;
+            SchDestinPrim.FontID        := SchSourcePrim.FontID;
+            SchDestinPrim.Justification := SchSourcePrim.Justification;
+            SchDestinPrim.TextHorzAnchor:= SchSourcePrim.TextHorzAnchor;
+            SchDestinPrim.TextVertAnchor:= SchSourcePrim.TextVertAnchor;
+            SchDestinPrim.Autoposition  := SchSourcePrim.Autoposition;
+         end
+
+         // Sheet File Name
+         else if (SchSourcePrim.ObjectId = eSheetFileName) then
+         begin
+            SchDestinPrim.Color         := SchSourcePrim.Color;
+            SchDestinPrim.IsHidden      := SchSourcePrim.IsHidden;
+            SchDestinPrim.FontID        := SchSourcePrim.FontID;
+            SchDestinPrim.Justification := SchSourcePrim.Justification;
+            SchDestinPrim.TextHorzAnchor:= SchSourcePrim.TextHorzAnchor;
+            SchDestinPrim.TextVertAnchor:= SchSourcePrim.TextVertAnchor;
+            SchDestinPrim.Autoposition  := SchSourcePrim.Autoposition;
+         end
+
+         (* Have no idea what is interface for this
+         // C Code Symbol
+         else if (SchSourcePrim.ObjectId = ) then
+         begin
+         end
+         *)
+
+         // Note
+         else if (SchSourcePrim.ObjectId = eNote) then
+         begin
+            SchDestinPrim.Color         := SchSourcePrim.Color;
+            SchDestinPrim.TextColor     := SchSourcePrim.TextColor;
+            SchDestinPrim.AreaColor     := SchSourcePrim.AreaColor;
+            SchDestinPrim.FontID        := SchSourcePrim.FontID;
+            SchDestinPrim.Alignment     := SchSourcePrim.Alignment;
+            SchDestinPrim.WordWrap      := SchSourcePrim.WordWrap;
+            SchDestinPrim.ClipToRect    := SchSourcePrim.ClipToRect;
+         end
+
+         // Brezier
+         else if (SchSourcePrim.ObjectId = eBezier) then
+         begin
+            SchDestinPrim.Color         := SchSourcePrim.Color;
+         end
+
+         // Image
+         else if (SchSourcePrim.ObjectId = eImage) then
+         begin
+            SchDestinPrim.Color         := SchSourcePrim.Color;
+            SchDestinPrim.LineWidth     := SchSourcePrim.LineWidth;
+            SchDestinPrim.KeepAspect    := SchSourcePrim.KeepAspect;
+            // I do not know what property is for show border
+         end
+
+         // Pie Chart
+         else if (SchSourcePrim.ObjectId = ePie) then
+         begin
+            SchDestinPrim.Color         := SchSourcePrim.Color;
+            SchDestinPrim.AreaColor     := SchSourcePrim.AreaColor;
+            SchDestinPrim.IsSolid       := SchSourcePrim.IsSolid;
+            SchDestinPrim.LineWidth     := SchSourcePrim.LineWidth;
+         end
+
+         // Round Rectangle
+         else if (SchSourcePrim.ObjectId = eRoundRectangle) then
+         begin
+            SchDestinPrim.Color         := SchSourcePrim.Color;
+            SchDestinPrim.AreaColor     := SchSourcePrim.AreaColor;
+            SchDestinPrim.IsSolid       := SchSourcePrim.IsSolid;
+            SchDestinPrim.LineWidth     := SchSourcePrim.LineWidth;
+         end
+
+         // Line
+         else if (SchSourcePrim.ObjectId = eLine) then
+         begin
+            SchDestinPrim.Color         := SchSourcePrim.Color;
+            SchDestinPrim.LineStyle     := SchSourcePrim.LineStyle;
+            SchDestinPrim.LineWidth     := SchSourcePrim.LineWidth;
+         end
+
+         // Polyline
+         else if (SchSourcePrim.ObjectId = ePolyline) then
+         begin
+            SchDestinPrim.Color         := SchSourcePrim.Color;
+            SchDestinPrim.LineStyle     := SchSourcePrim.LineStyle;
+            SchDestinPrim.StartLineShape:= SchSourcePrim.StartLineShape;
+            SchDestinPrim.EndLineShape  := SchSourcePrim.EndLineShape;
+            SchDestinPrim.LineShapeSize := SchSourcePrim.LineShapeSize;
+            SchDestinPrim.LineWidth     := SchSourcePrim.LineWidth;
+         end
+
+         // Rectangle
+         else if (SchSourcePrim.ObjectId = eRectangle) then
+         begin
+            SchDestinPrim.Color         := SchSourcePrim.Color;
+            SchDestinPrim.AreaColor     := SchSourcePrim.AreaColor;
+            SchDestinPrim.IsSolid       := SchSourcePrim.IsSolid;
+            SchDestinPrim.LineWidth     := SchSourcePrim.LineWidth;
+            SchDestinPrim.Transparent   := SchSourcePrim.Transparent;
+         end
+
+         // Harness Connector
+         else if (SchSourcePrim.ObjectId = eHarnessConnector) then
+         begin
+            SchDestinPrim.Color         := SchSourcePrim.Color;
+            SchDestinPrim.AreaColor     := SchSourcePrim.AreaColor;
+            SchDestinPrim.LineWidth     := SchSourcePrim.LineWidth;
+            SchDestinPrim.HarnessConnectorType.IsHidden  := SchSourcePrim.HarnessConnectorType.IsHidden;
+         end
+
+         // Signal Harness
+         else if (SchSourcePrim.ObjectId = eSignalHarness) then
+         begin
+            SchDestinPrim.Color         := SchSourcePrim.Color;
+            SchDestinPrim.LineWidth     := SchSourcePrim.LineWidth;
+         end
+
+         // Harness Entry - This "else" is never executed
+         else if (SchSourcePrim.ObjectId = eHarnessEntry) then
+         begin
+            SchDestinPrim.Color         := SchSourcePrim.Color;
+            SchDestinPrim.FontID        := SchSourcePrim.FontID;
+            SchDestinPrim.TextColor     := SchSourcePrim.TextColor;
 
          end;
+
+
          SchServer.RobotManager.SendMessage(SchDestinPrim.I_ObjectAddress, c_BroadCast, SCHM_EndModify  , c_NoEventData);
 
          SchServer.ProcessControl.PostProcess(SchDoc, '');
 
          // Get Next Destination Object
-         boolLoc := SchDoc.ChooseLocationInteractively(Location, 'Choose Destination Object');
+         boolLoc := SchDoc.ChooseLocationInteractively(Location, 'Choose Next Destination Object');
 
-         If Not boolLoc Then Exit;
+         If Not boolLoc Then
+         begin
+            // Get New Source Object
+            boolLoc := SchDoc.ChooseLocationInteractively(Location, 'Choose New Source Object');
+
+            If Not boolLoc Then Exit;
+
+            SpatialIterator := SchDoc.SchIterator_Create;
+            If SpatialIterator = Nil Then Exit;
+            Try
+               SpatialIterator.AddFilter_Area(Location.X - 1, Location.Y - 1, Location.X + 1, Location.Y + 1);
+
+               SchSourcePrim := SpatialIterator.FirstSchObject;
+            Finally
+               SchDoc.SchIterator_Destroy(SpatialIterator);
+            End;
+
+            // Get Destination Object
+            boolLoc := SchDoc.ChooseLocationInteractively(Location, 'Choose Destination Object');
+            If Not boolLoc Then Exit;
+         end;
 
          SpatialIterator := SchDoc.SchIterator_Create;
          If SpatialIterator = Nil Then Exit;
