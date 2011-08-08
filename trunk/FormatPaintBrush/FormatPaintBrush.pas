@@ -49,10 +49,10 @@ Begin
 
             if SchTempPrim <> nil then
             begin
-               if (SchTempPrim.ObjectId = eHarnessConnector) or (SchTempPrim.ObjectId = eSheetSymbol) then
+               if (SchTempPrim.ObjectId = eHarnessConnector) or (SchTempPrim.ObjectId = eSheetSymbol) or (SchTempPrim.ObjectId = '56') then
                while SchTempPrim <> nil do
                begin
-                  if (SchTempPrim.ObjectId = eHarnessEntry) or (SchTempPrim.ObjectId = eSheetEntry) then
+                  if (SchTempPrim.ObjectId = eHarnessEntry) or (SchTempPrim.ObjectId = eSheetEntry) or (SchTempPrim.ObjectId = '57') then
                      SchSourcePrim := SchTempPrim;
                   SchTempPrim   := SpatialIterator.NextSchObject;
                end;
@@ -319,6 +319,16 @@ Begin
             SchDestinPrim.LineWidth     := SchSourcePrim.LineWidth;
          end
 
+         // C Code Entry
+         else if (SchSourcePrim.ObjectId = '57') then
+         begin
+            SchDestinPrim.Color         := SchSourcePrim.Color;
+            SchDestinPrim.AreaColor     := SchSourcePrim.AreaColor;
+            SchDestinPrim.TextColor     := SchSourcePrim.TextColor;
+            SchDestinPrim.Style         := SchSourcePrim.Style;
+            SchDestinPrim.HarnessColor  := SchSourcePrim.HarnessColor;
+         end
+
          // Note
          else if (SchSourcePrim.ObjectId = eNote) then
          begin
@@ -426,7 +436,7 @@ Begin
          boolLoc := SchDoc.ChooseLocationInteractively(Location, 'Choose Destination Object');
 
          If Not boolLoc Then
-         begin  
+         begin
             // Get Source Object
             boolLoc := SchDoc.ChooseLocationInteractively(Location, 'Choose Source Object');
             If Not boolLoc Then Exit;
@@ -445,10 +455,10 @@ Begin
 
                   if SchTempPrim <> nil then
                   begin
-                     if (SchTempPrim.ObjectId = eHarnessConnector) or (SchTempPrim.ObjectId = eSheetSymbol) then
+                     if (SchTempPrim.ObjectId = eHarnessConnector) or (SchTempPrim.ObjectId = eSheetSymbol) or (SchTempPrim.ObjectId = '56') then
                      while SchTempPrim <> nil do
                      begin
-                        if (SchTempPrim.ObjectId = eHarnessEntry) or (SchTempPrim.ObjectId = eSheetEntry) then
+                        if (SchTempPrim.ObjectId = eHarnessEntry) or (SchTempPrim.ObjectId = eSheetEntry) or (SchTempPrim.ObjectId = '57')  then
                            SchSourcePrim := SchTempPrim;
                         SchTempPrim   := SpatialIterator.NextSchObject;
                      end;
