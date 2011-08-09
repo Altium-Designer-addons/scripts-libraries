@@ -1,3 +1,15 @@
+{..............................................................................}
+{ Summary   This scripts selects all objects that are touched by the rectangle }
+{           set by the user.                                                   }
+{                                                                              }
+{           In July 2011 Altium Implemented this freature, so there is no need }
+{           for this script any more.                                          }
+{                                                                              }
+{ Created by:    Petar Perisin                                                 }
+{..............................................................................}
+
+{..............................................................................}
+
 Function Start;
 var
    CurrentSheet    : ISch_Document;
@@ -38,4 +50,5 @@ begin
    Finally
       CurrentSheet.SchIterator_Destroy(SpatialIterator);
    End;
+   SchServer.ProcessControl.PostProcess(CurrentSheet, '');
 end;

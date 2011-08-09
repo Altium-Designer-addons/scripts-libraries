@@ -1,3 +1,16 @@
+{..............................................................................}
+{ Summary   This scripts can be used to copy some formatting properties from   }
+{           one (source) primitive to many other (destination) primitives of   }
+{           the same type.                                                     }
+{                                                                              }
+{           Currently script works with all schematic objects (in SCH document }
+{           and library) and only some objects (dimension and coordinate) in   }
+{           PCB Document                                                       }
+{                                                                              }
+{ Created by:    Petar Perisin                                                 }
+{..............................................................................}
+
+{..............................................................................}
 function FormatPaintBrush;
 var
    // SCH variables and objects
@@ -502,7 +515,7 @@ Begin
                   SchTempPrim := SpatialIterator.FirstSchObject;
                   SchSourcePrim := SchTempPrim;
 
-                  // here we need to test weather we clicked on Harness Entry, Sheet Entry or C Code Entry  
+                  // here we need to test weather we clicked on Harness Entry, Sheet Entry or C Code Entry
                   if SchTempPrim <> nil then
                   begin
                      if (SchTempPrim.ObjectId = eHarnessConnector) or (SchTempPrim.ObjectId = eSheetSymbol) or (SchTempPrim.ObjectId = '56') then
