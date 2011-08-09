@@ -1,35 +1,24 @@
 {..............................................................................}
-// This script was written for my own use, so no liability taken!
-// ----------------------------------------------------------------------------
-// This script could be useful to increment designators of components
-// within a schematic in your own free order. Prefix letters (e.g. R for
-// resistor) will survive.
-// It uses a spatial iterator, that is why it is necessary to click twice
-// (or as an alternative, triple-click directly on a component).
-//
-// Short instruction:
-// * Execute the script
-// * Type the starting number into the edit box
-// * Hit "Enter" key or press "Start" button
-// * Crosshairs will appear
-// * Click twice to span a rectangle (containing one or more components)
-// * All components within the rectangle will be incremented (positional order
-//       is not taken into account, unfortunately! Alpha Prefix does not matter either.)
-// * Click again twice, for next component(s)
-//       (incrementation step still being remembered, it just goes on from the last value)
-// * If you want to stop, or choose a new starting number: escape from the
-//       crosshairs via right mouse button
-// * Finally press "Close" button to close form window
-//
-// LIMITATIONS:
-// - For the moment works with prefixes up to two letters only
-// - Only very little error handling implemented!
-// - I did not have much time, so did not work on optimisations
-{..............................................................................}
+{  This script was written for my own use, so no liability taken!              }
+{  ----------------------------------------------------------------------------}
+{  This script could be useful to modify designators of components (in SCH or  }
+{  PCB), Pins (In SCHLIB) or Pads (ib PCBLIB). Component Prefix letters are    }
+{  not changed.                                                                }
+{                                                                              }
+{  Script has two modes of working:                                            }
+{                                                                              }
+{  - Incrementing: This mode is used if "Swap Designators" is unchecked.       }
+{                  It assigns "Next Index Number" to clicked primitive. In     }
+{                  this mode "Increment Number" is also used ad increment step.}
+{                                                                              }
+{  - Swapping:     This mode is used if "Swap Designators" is unchecked.       }
+{                  User needs to select two primitives and their designators   }
+{                  will be swapped. Whe in SCHLIB, usre can shoose to move pin }
+{                  names too (if "Move Pin Name" is checked)                   }
+{                                                                              }
+{  Created by: Petar Perisin                                                   }
 {..............................................................................}
 
-
-{..............................................................................}
 // Global Variables:
 Var
 SchDoc   : ISch_Document;
