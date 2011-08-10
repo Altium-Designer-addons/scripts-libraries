@@ -26,9 +26,11 @@ var
    SourcePrim      : IPCB_Primitive;
    DestinPrim      : IPCB_Primitive;
    BoardIterator   : IPCB_BoardIterator;
+   ASetOfObjects   : TObjectSet;
+   Layer           : TLayer;
 
    // Common variables
-   boolLoc         : bool;
+   boolLoc         : Integer;
    DocKind         : String;
 
 Begin
@@ -542,12 +544,27 @@ Begin
       PCBBoard := PCBServer.GetCurrentPCBBoard;
       If PCBBoard = Nil Then Exit;
 
-      ResetParameters;
-      AddStringParameter('Scope', 'All');
-      RunProcess('PCB:DeSelect');
+      // Make it work for Pads, Vias, Strings, Polygons, Dimensions and coordinates
+      ASetOfObjects := MkSet((*ePadObject, eViaObject,*) eTextObject, ePolyObject, eDimensionObject, eCoordinateObject);
 
-      SourcePrim := PCBBoard.GetObjectAtCursor(AllObjects, AllLayers,'Choose Source Primitive');
-      DestinPrim := PCBBoard.GetObjectAtCursor(MkSet(SourcePrim.ObjectId), AllLayers,'Choose Destination Primitive');
+      SourcePrim := nil;
+      DestinPrim := nil;
+
+      While (DestinPrim = nil) or (SourcePrim = nil) Do
+      Begin
+         SourcePrim := PCBBoard.GetObjectAtCursor(ASetOfObjects, AllLayers,'Choose Source Primitive');
+         if SourcePrim = nil then exit
+         else
+         begin
+            if SourcePrim.ObjectId = ePadObject then
+               boolLoc := MessageDlg('Do you want to copy layer info (SMD/Thru)', mtConfirmation, mbYesNo, 0);
+            if SourcePrim.ObjectId = eViaObject then
+               boolLoc := MessageDlg('Do you want to copy StartLayer/StopLayer info', mtConfirmation, mbYesNo, 0);
+         end;
+
+         DestinPrim := PCBBoard.GetObjectAtCursor(MkSet(SourcePrim.ObjectId), AllLayers,'Choose Destination Primitive');
+         if DestinPrim = nil then SourcePrim := nil;
+      end;
 
       While Assigned(DestinPrim) And Assigned(SourcePrim) Do
       Begin
@@ -556,35 +573,165 @@ Begin
          Try
              // Always use IPCB_Primitive.BeginModify instead of PCBServer.SendMessageToRobots because is deprecated
              DestinPrim.BeginModify;
-             If (SourcePrim.ObjectId = eDimensionObject) Then
-             Begin
-                 DestinPrim.ArrowLength        := SourcePrim.ArrowLength;
-                 DestinPrim.ArrowLineWidth     := SourcePrim.ArrowLineWidth;
-                 DestinPrim.ArrowSize          := SourcePrim.ArrowSize;
-                 DestinPrim.ArrowPosition      := SourcePrim.ArrowPosition;
-                 DestinPrim.LineWidth          := SourcePrim.LineWidth;
 
-                 DestinPrim.TextHeight         := SourcePrim.TextHeight;
-                 DestinPrim.TextWidth          := SourcePrim.TextWidth;
-                 DestinPrim.TextFont           := SourcePrim.TextFont;
-                 DestinPrim.TextLineWidth      := SourcePrim.TextLineWidth;
-                 DestinPrim.TextGap            := SourcePrim.TextGap;
-                 DestinPrim.TextFormat         := SourcePrim.TextFormat;
-                 DestinPrim.TextDimensionUnit  := SourcePrim.TextDimensionUnit;
-                 DestinPrim.TextPrecision      := SourcePrim.TextPrecision;
-                 DestinPrim.TextPosition       := SourcePrim.TextPosition;
-                 DestinPrim.TextPrefix         := SourcePrim.TextPrefix;
-                 DestinPrim.TextSuffix         := SourcePrim.TextSuffix;
-                 DestinPrim.TextValue          := SourcePrim.TextValue;
-                 DestinPrim.ExtensionOffset    := SourcePrim.ExtensionOffset;
-                 DestinPrim.ExtensionLineWidth := SourcePrim.ExtensionLineWidth;
-                 DestinPrim.ExtensionPickGap   := SourcePrim.ExtensionPickGap;
-                 DestinPrim.Style              := SourcePrim.Style;
-                 DestinPrim.UseTTFonts         := SourcePrim.UseTTFonts;
-                 DestinPrim.Bold               := SourcePrim.Bold;
-                 DestinPrim.Italic             := SourcePrim.Italic;
-                 DestinPrim.FontName           := SourcePrim.FontName;
-                 DestinPrim.Size               := SourcePrim.Size;
+             // Pads - do this only if they both are through-hole or not
+             if (SourcePrim.ObjectId = ePadObject) and (not SourcePrim.InComponent) and (not DestinPrim.InComponent) then
+             begin
+                if boolLoc = mrYes then
+                   DestinPrim.Layer             := SourcePrim.Layer;
+
+                DestinPrim.Mode                 := SourcePrim.Mode;
+                DestinPrim.TopYSize             := SourcePrim.TopYSize;
+                DestinPrim.TopXSize             := SourcePrim.TopXSize;
+                DestinPrim.TopShape             := SourcePrim.TopShape;
+                DestinPrim.Cache.SolderMaskExpansionValid  := SourcePrim.Cache.SolderMaskExpansionValid;
+                DestinPrim.Cache.SolderMaskExpansion       := SourcePrim.Cache.SolderMaskExpansion;
+                DestinPrim.Cache.PasteMaskExpansionValid   := SourcePrim.Cache.PasteMaskExpansionValid;
+                DestinPrim.Cache.PasteMaskExpansion        := SourcePrim.Cache.PasteMaskExpansion;
+                DestinPrim.IsTenting            := SourcePrim.IsTenting;
+                DestinPrim.IsTenting_Top        := SourcePrim.IsTenting_Top;
+                DestinPrim.IsTenting_Bottom     := SourcePrim.IsTenting_Bottom;
+                DestinPrim.HoleWidth            := SourcePrim.HoleWidth;
+                DestinPrim.HoleType             := SourcePrim.HoleType;
+                DestinPrim.HoleRotation         := SourcePrim.HoleRotation;
+                DestinPrim.HoleSize             := SourcePrim.HoleSize;
+                DestinPrim.MidYSize             := SourcePrim.MidYSize;
+                DestinPrim.MidXSize             := SourcePrim.MidXSize;
+                DestinPrim.MidShape             := SourcePrim.MidShape;
+                DestinPrim.BotYSize             := SourcePrim.BotYSize;
+                DestinPrim.BotXSize             := SourcePrim.BotXSize;
+                DestinPrim.BotShape             := SourcePrim.BotShape;
+
+                for Layer := eTopLayer to eBottomLayer Do
+                begin
+                   DestinPrim.StackShapeOnLayer[Layer]     := SourcePrim.XStackSizeOnLayer[Layer];
+                   DestinPrim.StackCRPctOnLayer[Layer]     := SourcePrim.XStackSizeOnLayer[Layer];
+
+                   DestinPrim.XStackSizeOnLayer[Layer]     := SourcePrim.XStackSizeOnLayer[Layer];
+                   DestinPrim.YStackSizeOnLayer[Layer]     := SourcePrim.YStackSizeOnLayer[Layer];
+
+                   DestinPrim.XPadOffset[Layer]            := SourcePrim.XPadOffset[Layer];
+                   DestinPrim.YPadOffset[Layer]            := SourcePrim.YPadOffset[Layer];
+
+                end;
+                DestinPrim.GraphicallyInvalidate;
+             end
+
+             // Vias
+             else if (SourcePrim.ObjectId = eViaObject) then
+             begin
+                DestinPrim.Mode                 := SourcePrim.Mode;
+                DestinPrim.HoleSize             := SourcePrim.HoleSize;
+                DestinPrim.Cache.SolderMaskExpansionValid  := SourcePrim.Cache.SolderMaskExpansionValid;
+                DestinPrim.Cache.SolderMaskExpansion       := SourcePrim.Cache.SolderMaskExpansion;
+
+                DestinPrim.Size                 := SourcePrim.Size;
+
+                if boolLoc = mrYes then
+                begin
+                   DestinPrim.HighLayer         := SourcePrim.HighLayer;
+                   DestinPrim.LowLayer          := SourcePrim.LowLayer;
+                end;
+
+
+                DestinPrim.IsTenting_Top        := SourcePrim.IsTenting_Top;
+                DestinPrim.IsTenting_Bottom     := SourcePrim.IsTenting_Bottom;
+                DestinPrim.IsTenting            := SourcePrim.IsTenting;
+
+
+                for Layer := eTopLayer to eBottomLayer Do
+                begin
+                   DestinPrim.StackSizeOnLayer[Layer]      := SourcePrim.StackSizeOnLayer[Layer];
+                   DestinPrim.SizeOnLayer[Layer]           := SourcePrim.SizeOnLayer[Layer];
+                end;
+                DestinPrim.GraphicallyInvalidate;
+             end
+
+             // Strings
+             else if (SourcePrim.ObjectId = eTextObject) then
+             begin
+                DestinPrim.Width                := SourcePrim.Width;
+                DestinPrim.UseTTFonts           := SourcePrim.UseTTFonts;
+                DestinPrim.UseInvertedRectangle := SourcePrim.UseInvertedRectangle;
+                DestinPrim.TTFTextWidth         := SourcePrim.TTFTextWidth;
+                DestinPrim.TTFTextHeight        := SourcePrim.TTFTextHeight;
+                DestinPrim.TTFOffsetFromInvertedRect       := SourcePrim.TTFOffsetFromInvertedRect;
+                DestinPrim.TTFInvertedTextJustify          := SourcePrim.TTFInvertedTextJustify;
+                DestinPrim.TextKind             := SourcePrim.TextKind;
+                DestinPrim.Size                 := SourcePrim.Size;
+                DestinPrim.Italic               := SourcePrim.Italic;
+                DestinPrim.InvRectWidth         := SourcePrim.InvRectWidth;
+                DestinPrim.InvRectHeight        := SourcePrim.InvRectHeight;
+                DestinPrim.InvertedTTTextBorder := SourcePrim.InvertedTTTextBorder;
+                DestinPrim.Inverted             := SourcePrim.Inverted;
+                DestinPrim.FontName             := SourcePrim.FontName;
+                DestinPrim.FontID               := SourcePrim.FontID;
+                DestinPrim.Bold                 := SourcePrim.Bold;
+                DestinPrim.BarCodeYMargin       := SourcePrim.BarCodeYMargin;
+                DestinPrim.BarCodeXMargin       := SourcePrim.BarCodeXMargin;
+                DestinPrim.BarCodeShowText      := SourcePrim.BarCodeShowText;
+                DestinPrim.BarCodeRenderMode    := SourcePrim.BarCodeRenderMode;
+                DestinPrim.BarCodeMinWidth      := SourcePrim.BarCodeMinWidth;
+                DestinPrim.BarCodeKind          := SourcePrim.BarCodeKind;
+                DestinPrim.BarCodeInverted      := SourcePrim.BarCodeInverted;
+                DestinPrim.BarCodeFullWidth     := SourcePrim.BarCodeFullWidth;
+                DestinPrim.BarCodeFullHeight    := SourcePrim.BarCodeFullHeight;
+                DestinPrim.BarCodeFontName      := SourcePrim.BarCodeFontName;
+                DestinPrim.GraphicallyInvalidate;
+             end
+
+             // Polygons
+             else if (SourcePrim.ObjectId = ePolyObject) then
+             begin
+                DestinPrim.PolyHatchStyle       := SourcePrim.PolyHatchStyle;
+                DestinPrim.PolygonType          := SourcePrim.PolygonType;
+                DestinPrim.IgnoreViolations     := SourcePrim.IgnoreViolations;
+                DestinPrim.PrimitiveLock        := SourcePrim.PrimitiveLock;
+                DestinPrim.MinTrack             := SourcePrim.MinTrack;
+                DestinPrim.PourOver             := SourcePrim.PourOver;
+                DestinPrim.UseOctagons          := SourcePrim.UseOctagons;
+                DestinPrim.RemoveNarrowNecks    := SourcePrim.RemoveNarrowNecks;
+                DestinPrim.RemoveIslandsByArea  := SourcePrim.RemoveIslandsByArea;
+                DestinPrim.RemoveDead           := SourcePrim.RemoveDead;
+                DestinPrim.NeckWidthThreshold   := SourcePrim.NeckWidthThreshold;
+                DestinPrim.IslandAreaThreshold  := SourcePrim.IslandAreaThreshold;
+                DestinPrim.Grid                 := SourcePrim.Grid;
+                DestinPrim.TrackSize            := SourcePrim.TrackSize;
+                DestinPrim.ArcApproximation     := SourcePrim.ArcApproximation;
+                // DestinPrim.Rebuild;
+                // DestinPrim.GraphicallyInvalidate;
+             end
+
+             // Dimensions
+             else if (SourcePrim.ObjectId = eDimensionObject) Then
+             Begin
+                 DestinPrim.ArrowLength         := SourcePrim.ArrowLength;
+                 DestinPrim.ArrowLineWidth      := SourcePrim.ArrowLineWidth;
+                 DestinPrim.ArrowSize           := SourcePrim.ArrowSize;
+                 DestinPrim.ArrowPosition       := SourcePrim.ArrowPosition;
+                 DestinPrim.LineWidth           := SourcePrim.LineWidth;
+
+                 DestinPrim.TextHeight          := SourcePrim.TextHeight;
+                 DestinPrim.TextWidth           := SourcePrim.TextWidth;
+                 DestinPrim.TextFont            := SourcePrim.TextFont;
+                 DestinPrim.TextLineWidth       := SourcePrim.TextLineWidth;
+                 DestinPrim.TextGap             := SourcePrim.TextGap;
+                 DestinPrim.TextFormat          := SourcePrim.TextFormat;
+                 DestinPrim.TextDimensionUnit   := SourcePrim.TextDimensionUnit;
+                 DestinPrim.TextPrecision       := SourcePrim.TextPrecision;
+                 DestinPrim.TextPosition        := SourcePrim.TextPosition;
+                 DestinPrim.TextPrefix          := SourcePrim.TextPrefix;
+                 DestinPrim.TextSuffix          := SourcePrim.TextSuffix;
+                 DestinPrim.TextValue           := SourcePrim.TextValue;
+                 DestinPrim.ExtensionOffset     := SourcePrim.ExtensionOffset;
+                 DestinPrim.ExtensionLineWidth  := SourcePrim.ExtensionLineWidth;
+                 DestinPrim.ExtensionPickGap    := SourcePrim.ExtensionPickGap;
+                 DestinPrim.Style               := SourcePrim.Style;
+                 DestinPrim.UseTTFonts          := SourcePrim.UseTTFonts;
+                 DestinPrim.Bold                := SourcePrim.Bold;
+                 DestinPrim.Italic              := SourcePrim.Italic;
+                 DestinPrim.FontName            := SourcePrim.FontName;
+                 DestinPrim.Size                := SourcePrim.Size;
 
                  // !!! Workaround for now - needed to fake Dimension has changed semantics. This
                  // is necesary because we don't currenly have access to the Dimension method that
@@ -598,9 +745,10 @@ Begin
                  DestinPrim.GraphicallyInvalidate;
 
              End
+
+             // Coordinates
              else if (SourcePrim.ObjectId = eCoordinateObject) Then
              begin
-                // this is where we put coordinate formatting
                  DestinPrim.Size               := SourcePrim.Size;
                  DestinPrim.LineWidth          := SourcePrim.LineWidth;
                  DestinPrim.TextHeight         := SourcePrim.TextHeight;
@@ -622,30 +770,27 @@ Begin
                  DestinPrim.X     := DestinPrim.X - MilsToCoord(0.01);
                  DestinPrim.SetState_XSizeYSize;
                  DestinPrim.GraphicallyInvalidate;
-
-             //-----------------------------------------------------------------
-             //
-             //----------      NEW PCB OBJECTS HERE      -----------------------
-             //
-             //-----------------------------------------------------------------
-             //
-             // if you want to add some new PCB objects, uncomment this
-          (*
-             end
-             else if (SourcePrim.ObjectId = <ObjectId-here>) then
-             begin
-               // This is where object properties are being copies
-          *) 
-
-
              end;
-             // Always use IPCB_Primitive.EndModify / CancelMdify instead of PCBServer.SendMessageToRobots because is deprecated
+
+             // Always use IPCB_Primitive.EndModify / CancelModify instead of PCBServer.SendMessageToRobots because is deprecated
              DestinPrim.EndModify;
              PCBBoard.ViewManager_FullUpdate;
          Finally
              PCBServer.PostProcess;
          End;
-         DestinPrim := PCBBoard.GetObjectAtCursor(MkSet(SourcePrim.ObjectId), AllLayers,'Choose Next Destination Primitive');
+
+         DestinPrim := nil;
+
+         // Get next PCB Object
+         While (DestinPrim = nil) or (SourcePrim = nil) Do
+         Begin
+            DestinPrim := PCBBoard.GetObjectAtCursor(MkSet(SourcePrim.ObjectId), AllLayers,'Choose Destination Primitive');
+            if DestinPrim = nil then SourcePrim := nil;
+
+            if SourcePrim = nil then
+               SourcePrim := PCBBoard.GetObjectAtCursor(ASetOfObjects, AllLayers,'Choose Source Primitive');
+            if SourcePrim = nil then exit;
+         end;
       End;
    End;
 End;
