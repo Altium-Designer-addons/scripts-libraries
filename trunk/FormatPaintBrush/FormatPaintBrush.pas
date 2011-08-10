@@ -26,10 +26,10 @@ var
    SourcePrim      : IPCB_Primitive;
    DestinPrim      : IPCB_Primitive;
    BoardIterator   : IPCB_BoardIterator;
-   ASetOfObjects   : TObjectSet;
    Layer           : TLayer;
 
    // Common variables
+   ASetOfObjects   : TObjectSet;
    boolLoc         : Integer;
    DocKind         : String;
 
@@ -70,7 +70,14 @@ Begin
                end;
 
                SchTempPrim := SpatialIterator.FirstSchObject;
-               SchSourcePrim := SchTempPrim;
+
+
+               // If it got hidden parameter move it away
+               while ((SchTempPrim <> nil) and (((SchTempPrim.ObjectId = eDesignator) or (SchTempPrim.ObjectId = eParameter)) and SchTempPrim.IsHidden)) do
+                  SchTempPrim   := SpatialIterator.NextSchObject;
+
+               SchSourcePrim := SchTempPrim;       
+
 
                // here we need to test weather we clicked on Harness Entry, Sheet Entry or C Code Entry
                if SchTempPrim <> nil then
@@ -103,7 +110,12 @@ Begin
             SpatialIterator := SchDoc.SchIterator_Create;
             If SpatialIterator = Nil Then Exit;
             Try
-               SpatialIterator.AddFilter_ObjectSet(MkSet(SchSourcePrim.ObjectId));
+               if (SchSourcePrim.ObjectId = eLabel) or (SchSourcePrim.ObjectId = eDesignator) or (SchSourcePrim.ObjectId = eParameter) then
+                  ASetOfObjects := MkSet(eDesignator, eParameter, eLabel)
+               else
+                  ASetOfObjects := MkSet(SchSourcePrim.ObjectId);
+
+               SpatialIterator.AddFilter_ObjectSet(ASetOfObjects);
                SpatialIterator.AddFilter_Area(Location.X - 1, Location.Y - 1, Location.X + 1, Location.Y + 1);
                if (DocKind = 'SCHLIB') then
                begin
@@ -112,6 +124,9 @@ Begin
                end;
 
                SchDestinPrim := SpatialIterator.FirstSchObject;
+               while ((SchDestinPrim <> nil) and (((SchTempPrim.ObjectId = eDesignator) or (SchTempPrim.ObjectId = eParameter)) and SchTempPrim.IsHidden)) do
+                  SchDestinPrim   := SpatialIterator.NextSchObject;
+
             Finally
                SchDoc.SchIterator_Destroy(SpatialIterator);
             End;
@@ -220,7 +235,8 @@ Begin
             SchDestinPrim.Color         := SchSourcePrim.Color;
             SchDestinPrim.FontID        := SchSourcePrim.FontID;
             SchDestinPrim.Justification := SchSourcePrim.Justification;
-            SchDestinPrim.Autoposition  := SchSourcePrim.Autoposition;
+            if (SchDestinPrim.ObjectId <> eLabel) then
+               SchDestinPrim.Autoposition := SchSourcePrim.Autoposition;
          end
 
          // Parameter
@@ -229,7 +245,8 @@ Begin
             SchDestinPrim.Color         := SchSourcePrim.Color;
             SchDestinPrim.FontID        := SchSourcePrim.FontID;
             SchDestinPrim.Justification := SchSourcePrim.Justification;
-            SchDestinPrim.Autoposition  := SchSourcePrim.Autoposition;
+            if (SchDestinPrim.ObjectId <> eLabel) then
+               SchDestinPrim.Autoposition := SchSourcePrim.Autoposition;
          end
 
          // Text Frame
@@ -253,7 +270,8 @@ Begin
             SchDestinPrim.Color         := SchSourcePrim.Color;
             SchDestinPrim.FontID        := SchSourcePrim.FontID;
             SchDestinPrim.Justification := SchSourcePrim.Justification;
-            SchDestinPrim.IsMirrored    := SchSourcePrim.IsMirrored;
+            if (SchDestinPrim.ObjectId = eLabel) then
+               SchDestinPrim.IsMirrored    := SchSourcePrim.IsMirrored;
          end
 
          // Ellipse
@@ -484,7 +502,12 @@ Begin
                SpatialIterator := SchDoc.SchIterator_Create;
                If SpatialIterator = Nil Then Exit;
                Try
-                  SpatialIterator.AddFilter_ObjectSet(MkSet(SchSourcePrim.ObjectId));
+                  if (SchSourcePrim.ObjectId = eLabel) or (SchSourcePrim.ObjectId = eDesignator) or (SchSourcePrim.ObjectId = eParameter) then
+                     ASetOfObjects := MkSet(eDesignator, eParameter, eLabel)
+                  else
+                     ASetOfObjects := MkSet(SchSourcePrim.ObjectId);
+
+                  SpatialIterator.AddFilter_ObjectSet(ASetOfObjects);
                   SpatialIterator.AddFilter_Area(Location.X - 1, Location.Y - 1, Location.X + 1, Location.Y + 1);
                   if (DocKind = 'SCHLIB') then
                   begin
@@ -493,6 +516,10 @@ Begin
                   end;
 
                   SchDestinPrim := SpatialIterator.FirstSchObject;
+
+                  while ((SchDestinPrim <> nil) and (((SchTempPrim.ObjectId = eDesignator) or (SchTempPrim.ObjectId = eParameter)) and SchTempPrim.IsHidden)) do
+                     SchDestinPrim   := SpatialIterator.NextSchObject;
+
                Finally
                   SchDoc.SchIterator_Destroy(SpatialIterator);
                End;
@@ -515,6 +542,11 @@ Begin
                   end;
 
                   SchTempPrim := SpatialIterator.FirstSchObject;
+
+                  // If it got hidden parameter move it away
+                  while ((SchTempPrim <> nil) and (((SchTempPrim.ObjectId = eDesignator) or (SchTempPrim.ObjectId = eParameter)) and SchTempPrim.IsHidden)) do
+                     SchTempPrim   := SpatialIterator.NextSchObject;
+
                   SchSourcePrim := SchTempPrim;
 
                   // here we need to test weather we clicked on Harness Entry, Sheet Entry or C Code Entry
@@ -523,7 +555,8 @@ Begin
                      if (SchTempPrim.ObjectId = eHarnessConnector) or (SchTempPrim.ObjectId = eSheetSymbol) or (SchTempPrim.ObjectId = '56') then
                      while SchTempPrim <> nil do
                      begin
-                        if (SchTempPrim.ObjectId = eHarnessEntry) or (SchTempPrim.ObjectId = eSheetEntry) or (SchTempPrim.ObjectId = '57')  then
+                        if (((SchTempPrim.ObjectId = eDesignator) or (SchTempPrim.ObjectId = eParameter)) and not SchTempPrim.IsHidden) or
+                        (SchTempPrim.ObjectId = eHarnessEntry) or (SchTempPrim.ObjectId = eSheetEntry) or (SchTempPrim.ObjectId = '57')  then
                            SchSourcePrim := SchTempPrim;
 
                         SchTempPrim   := SpatialIterator.NextSchObject;
