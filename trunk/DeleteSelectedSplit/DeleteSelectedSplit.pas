@@ -41,6 +41,8 @@ begin
 
           Region := PolyIterator.FirstPCBObject;
 
+          Split.GroupIterator_Destroy(PolyIterator);  
+
           NewRegion := PCBServer.PCBObjectFactory(eRegionObject, eNoDimension,eCreate_Default);
           NewRegion.Layer := Region.Layer;
 
@@ -65,6 +67,8 @@ begin
        end;
        Split := BoardIterator.NextPCBObject;
     end;
+    Board.BoardIterator_Destroy(BoardIterator);
+    
     ResetParameters;
     AddStringParameter('Action', 'Redraw');
     RunProcess('PCB:Zoom');
