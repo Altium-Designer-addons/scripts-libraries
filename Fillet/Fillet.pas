@@ -25,7 +25,7 @@ var
 
 
 procedure TForm1.ButtonCancelClick(Sender: TObject);
-Var                     
+Var
    close;
 end;
 
@@ -346,6 +346,7 @@ begin
                          Arc.StartAngle := StartAngle * 180 / pi;
                          Arc.EndAngle   := StopAngle * 180 / pi;
                          Arc.Layer      := FirstTrack.Layer;
+                         if FirstTrack.InNet then Arc.Net := FirstTrack.Net;
                          Board.AddPCBObject(Arc);
                          Arc.Selected   := True;
 
