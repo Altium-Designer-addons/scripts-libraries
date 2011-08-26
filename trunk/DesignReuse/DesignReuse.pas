@@ -33,7 +33,7 @@ Procedure WriteSnippetsFolders;
 begin
    SnippetsFolders := TStringList.Create;
 
-   SnippetsFolders.Add('C:\Users\Public\Documents\Altium\AD 10\Examples\Snippets Examples');     
+   SnippetsFolders.Add('C:\Users\Public\Documents\Altium\AD 10\Examples\Snippets Examples');
 
    // I have used default Snippets folder in previous line:
    // If you use some other folders for snippets, please uncomment
@@ -75,6 +75,231 @@ begin
 end;
 *)
 
+Procedure TestSnippet;
+var
+    Board             : IPCB_Board;
+    BoardIterator1    : IPCB_BoardIterator;
+    BoardIterator2    : IPCB_BoardIterator;
+    Comp1             : IPCB_Component;
+    Comp2             : IPCB_Component;
+    Designatori       : TStringList;
+    i, flag           : Integer;
+    S                 : String;
+begin
+
+    Board := PCBServer.GetCurrentPCBBoard;
+
+    If Board = Nil Then Exit;
+    try
+       BoardIterator1 := Board.BoardIterator_Create;
+       BoardIterator1.AddFilter_ObjectSet(MkSet(eComponentObject));
+       BoardIterator1.AddFilter_LayerSet(AllLayers);
+       BoardIterator1.AddFilter_Method(eProcessAll);
+
+       Designatori := TStringList.Create;
+
+       Comp1 := BoardIterator1.FirstPCBObject;
+       While (Comp1 <> Nil) Do
+       Begin
+          if Comp1.Selected then
+          begin
+             try
+                BoardIterator2 := Board.BoardIterator_Create;
+                BoardIterator2.AddFilter_ObjectSet(MkSet(eComponentObject));
+                BoardIterator2.AddFilter_LayerSet(AllLayers);
+                BoardIterator2.AddFilter_Method(eProcessAll);
+
+                Comp2 := BoardIterator2.FirstPCBObject;
+                While (Comp2 <> Nil) Do
+                Begin
+                   if (Comp2.Selected) and (Comp2.Name.GetDesignatorDisplayString = Comp1.Name.GetDesignatorDisplayString) and not (Comp1.I_ObjectAddress = Comp2.I_ObjectAddress) then
+                   begin
+                      if Designatori.Count = 0 then
+                         Designatori.Add(Comp2.Name.GetDesignatorDisplayString)
+                      else
+                      begin
+                         flag := 0;
+                         for i := 0 to Designatori.Count - 1 do
+                            if Designatori[i] = Comp2.Name.GetDesignatorDisplayString then
+                               flag := 1;
+
+                         if flag = 0 then
+                            Designatori.Add(Comp2.Name.GetDesignatorDisplayString);
+                      end;
+                   end;
+                   Comp2 := BoardIterator2.NextPCBObject;
+                end;
+             finally
+                Board.BoardIterator_Destroy(BoardIterator2);
+             end;
+          end;
+          Comp1 := BoardIterator1.NextPCBObject;
+       end;
+    finally
+       Board.BoardIterator_Destroy(BoardIterator1);
+    end;
+
+    if Designatori.Count = 0 then
+       s := 'All OK'
+    else
+    begin
+       S := 'Duplicates are:' + #13;
+       for i := 0 to Designatori.Count - 1 do
+           S := S + Designatori[i] + #13;
+    end;
+
+    ShowInfo(S);
+end;
+
+Procedure AddSheetSymbolParts(Document : IDocument);
+var
+    Sheet             : ISCH_Sheet;
+    DocCompNum        : Integer;
+    DocComponent      : IComponent;
+    DocSheetSymbolNum : Integer;
+    DocSheetSymbol    : ISheetSymbol;
+    DocPartNum        : Integer;
+    DocPart           : IPart;
+    DocPartFlag       : Integer;
+
+
+    Board             : IPCB_Board;
+    BoardIterator     : IPCB_BoardIterator;
+    PcbComp           : IPCB_Component;
+    LogicalComp       : IPCB_Component;
+    PhysicalComp      : IPCB_Component;
+
+begin
+   Sheet := SCHServer.GetSchDocumentByPath(Document.DM_FullPath);
+   if Sheet = nil then exit;
+
+   Board := PCBServer.GetCurrentPCBBoard;
+   If Board = Nil Then exit;
+
+
+   for DocCompNum := 0 to Document.DM_ComponentCount - 1 do
+   begin
+      DocPartFlag := 0;
+      for DocPartNum := 0 to Document.DM_Components(DocCompNum).DM_SubPartCount - 1 do
+      begin
+          if (DocPartFlag = 0) then
+          begin
+             DocPart := Document.DM_Components(DocCompNum).DM_SubParts(DocPartNum);
+
+             // OK, so here is the part on sch. I need it's logical designator to find snippet component,
+             // and I need it's UniqueID to find it's matching component on the PCB. Wish me luck.
+
+             Try
+                // I need to iterate through PCB components
+                BoardIterator := Board.BoardIterator_Create;
+                BoardIterator.AddFilter_ObjectSet(MkSet(eComponentObject));
+                BoardIterator.AddFilter_LayerSet(AllLayers);
+                BoardIterator.AddFilter_Method(eProcessAll);
+
+                PcbComp := BoardIterator.FirstPCBObject;
+                PhysicalComp := nil;
+                LogicalComp  := nil;
+
+                While (PcbComp <> nil) do
+                begin
+                   if PcbComp.Selected then
+                   begin
+                      // this is a snippet component
+                      if PcbComp.Name.Text = DocPart.DM_LogicalDesignator then
+                         LogicalComp := PcbComp;
+                   end
+                   else
+                   begin
+                      // this is a PCB component;
+                      if PcbComp.SourceUniqueId = (DocPart.DM_UniqueIdPath + '\' + DocPart.DM_UniqueId) then
+                         PhysicalComp := PcbComp;
+                   end;
+                   PcbComp := BoardIterator.NextPCBObject;
+                end;
+             finally
+                Board.BoardIterator_Destroy(BoardIterator);
+             end;
+
+             // now we have snippet component and doc component. let us modify some ot their parameters
+             if ((PhysicalComp <> nil) and (LogicalComp <> nil)) then
+             begin
+                PhysicalComp.BeginModify;
+
+                PhysicalComp.x := LogicalComp.x;
+                PhysicalComp.y := LogicalComp.y;
+
+                PhysicalComp.Rotation := LogicalComp.Rotation;
+                PhysicalComp.Layer := LogicalComp.Layer;
+
+                PhysicalComp.Selected := True;
+
+                // Set some options of designator and comment
+                Physicalcomp.NameAutoPosition             :=LogicalComp.NameAutoPosition;
+                Physicalcomp.NameOn                       :=LogicalComp.NameOn;
+
+                Physicalcomp.CommentAutoPosition          :=LogicalComp.CommentAutoPosition;
+                Physicalcomp.CommentOn                    :=LogicalComp.CommentOn;
+
+                PhysicalComp.GraphicallyInvalidate;
+
+                PhysicalComp.EndModify;
+
+                // Set Designator
+                Physicalcomp.Name.BeginModify;
+                Physicalcomp.Name.XLocation               :=LogicalComp.Name.XLocation;
+                Physicalcomp.Name.YLocation               :=LogicalComp.Name.YLocation;
+                Physicalcomp.Name.Size                    :=LogicalComp.Name.Size;
+                Physicalcomp.Name.Width                   :=LogicalComp.Name.Width;
+                Physicalcomp.Name.Layer                   :=LogicalComp.Name.Layer;
+                Physicalcomp.Name.Rotation                :=LogicalComp.Name.Rotation;
+                Physicalcomp.Name.MirrorFlag              :=LogicalComp.Name.MirrorFlag;
+                Physicalcomp.Name.UseTTFonts              :=LogicalComp.Name.UseTTFonts;
+                Physicalcomp.Name.FontID                  :=LogicalComp.Name.FontID;
+                Physicalcomp.Name.FontName                :=LogicalComp.Name.FontName;
+                Physicalcomp.Name.Bold                    :=LogicalComp.Name.Bold;
+                Physicalcomp.Name.Italic                  :=LogicalComp.Name.Italic;
+                Physicalcomp.Name.Inverted                :=LogicalComp.Name.Inverted;
+                Physicalcomp.Name.InvertedTTTextBorder    :=LogicalComp.Name.InvertedTTTextBorder;
+                Physicalcomp.Name.EndModify;
+
+                // Set Comment
+                Physicalcomp.Comment.BeginModify;
+                Physicalcomp.Comment.XLocation            :=LogicalComp.Comment.XLocation;
+                Physicalcomp.Comment.YLocation            :=LogicalComp.Comment.YLocation;
+                Physicalcomp.Comment.Size                 :=LogicalComp.Comment.Size;
+                Physicalcomp.Comment.Width                :=LogicalComp.Comment.Width;
+                Physicalcomp.Comment.Layer                :=LogicalComp.Comment.Layer;
+                Physicalcomp.Comment.Rotation             :=LogicalComp.Comment.Rotation;
+                Physicalcomp.Comment.MirrorFlag           :=LogicalComp.Comment.MirrorFlag;
+                Physicalcomp.Comment.UseTTFonts           :=LogicalComp.Comment.UseTTFonts;
+                Physicalcomp.Comment.FontID               :=LogicalComp.Comment.FontID;
+                Physicalcomp.Comment.FontName             :=LogicalComp.Comment.FontName;
+                Physicalcomp.Comment.Bold                 :=LogicalComp.Comment.Bold;
+                Physicalcomp.Comment.Italic               :=LogicalComp.Comment.Italic;
+                Physicalcomp.Comment.Inverted             :=LogicalComp.Comment.Inverted;
+                Physicalcomp.Comment.InvertedTTTextBorder :=LogicalComp.Comment.InvertedTTTextBorder;
+                Physicalcomp.Comment.EndModify;
+
+
+                // Over here we will need to delete component.
+                // I will need to cycling through footprint
+
+                PCBServer.PreProcess;
+                Board.RemovePCBObject(LogicalComp);
+                PCBServer.PostProcess;
+             end;
+          end;
+      end;
+   end;
+
+   // Now we need to add other sheet symbols to this recursively
+   // there will be drawbacks with this - a lot of them
+
+
+   for DocSheetSymbolNum := 0 to Document.DM_SheetSymbolCount - 1 do
+      AddSheetSymbolParts(Document.DM_SheetSymbols(DocSheetSymbolNum).DM_ChildSheet(0));
+end;
+
 
 
 procedure DesignReuse;
@@ -87,9 +312,12 @@ var
     Document          : IDocument;
     DocCompNum        : Integer;
     DocComponent      : IComponent;
+    DocSheetSymbolNum : Integer;
+    DocSheetSymbol    : ISheetSymbol;
     DocPartNum        : Integer;
     DocPart           : IPart;
     DocPartFlag       : Integer;
+
     PCBDoc            : IServerDocument;
     ModeFlag          : Integer;
 
@@ -102,7 +330,6 @@ var
     PcbComp           : IPCB_Component;
     LogicalComp       : IPCB_Component;
     PhysicalComp      : IPCB_Component;
-    PCBGroupIterator  : IPCB_GroupIterator;
     SnippetDocument   : IServerDocument;
     SnippetName       : String;
     SnippetPCB        : IPCB_Board;
@@ -130,7 +357,7 @@ begin
    If Board = Nil Then
    Begin
       ShowMessage('Current Document is not a PCB Document');
-      close;
+      exit;
    end;
 
    PCBDoc := Client.GetDocumentByPath(GetWorkspace.DM_FocusedDocument.DM_FullPath);
@@ -138,7 +365,7 @@ begin
    if PcbDoc = nil then
    begin
       ShowMessage('Save PCB Document First');
-      close;
+      exit;
    end;
 
    Workspace := GetWorkspace;
@@ -147,13 +374,13 @@ begin
    If (PcbProject = nil) then
    Begin
       ShowMessage('Current Project is not a PCB Project');
-      close;
+      exit;
    end;
 
    If (AnsiUpperCase(ExtractFileExt(PCBProject.DM_ProjectFileName)) <> '.PRJPCB') then
    Begin
       ShowMessage('Current Project is not a PCB Project');
-      close;
+      exit;
    end;
 
    // Compile project
@@ -173,7 +400,6 @@ begin
         If (Document = Nil) Then
         Begin
             ShowMessage('NOTICE: Compile the Project before Running this script.');
-            Close;
             Exit;
         End; // If (FlattenedDoc = Nil) Then
     End;
@@ -243,7 +469,8 @@ begin
                                   if (AnsiUpperCase(Parameter.Name) = 'SNIPPET') then
                                   begin
 
-                                     // We will mark that we have placed snippet for this blanket
+                                     // We will set "mode" flag
+                                      ModeFlag := 0;
 
                                      // Now we need to place snippet on the PCB.
                                      // It will be placed on an empty area above the Board
@@ -373,7 +600,7 @@ begin
                                                          BoardIterator.AddFilter_ObjectSet(MkSet(eComponentObject));
                                                          BoardIterator.AddFilter_LayerSet(AllLayers);
                                                          BoardIterator.AddFilter_Method(eProcessAll);
-                                                        
+
                                                          PcbComp := BoardIterator.FirstPCBObject;
                                                          PhysicalComp := nil;
                                                          LogicalComp  := nil;
@@ -466,10 +693,6 @@ begin
                                                          PCBServer.PreProcess;
                                                          Board.RemovePCBObject(LogicalComp);
                                                          PCBServer.PostProcess;
-                                                      end
-                                                      else
-                                                      begin
-                                                         ModeFlag := 1;
                                                       end;
 
                                                       // This sets ModeFlag to say that there are components in this blanket
@@ -481,6 +704,27 @@ begin
                                             end;
                                         end;
                                      end;
+
+
+                                     // Now we need to add sheet symbols to this
+
+                                     // there will be drawbacks wiht this - a lot of them
+                                     DocSheetSymbolNum := Document.DM_SheetSymbolCount;
+
+                                     for DocSheetSymbolNum := 0 to Document.DM_SheetSymbolCount - 1 do
+                                     begin
+                                        DocSheetSymbol := Document.DM_SheetSymbols(DocSheetSymbolNum);
+                                        // ShowMessage(Rectangle.Left + ' ' + DocPart.DM_LocationX + ' ' + Rectangle.Right);
+
+                                        if ((DocSheetSymbol.DM_LocationX >= Rectangle.Left)   and (DocSheetSymbol.DM_LocationX <= Rectangle.Right) and
+                                            (DocSheetSymbol.DM_LocationY >= Rectangle.Bottom) and (DocSheetSymbol.DM_LocationY <= Rectangle.Top)) then
+                                            begin
+                                               AddSheetSymbolParts(DocSheetSymbol.DM_ChildSheet(0));
+                                               ModeFlag := 1;
+                                            end;
+
+                                     end;
+
 
                                      // We will add all selected objects to union
                                      ResetParameters;
