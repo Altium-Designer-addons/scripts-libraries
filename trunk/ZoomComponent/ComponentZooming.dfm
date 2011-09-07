@@ -74,13 +74,4 @@ object ZoomToComponent: TZoomToComponent
     State = cbChecked
     TabOrder = 5
   end
-  object Button1: TButton
-    Left = 16
-    Top = 64
-    Width = 75
-    Height = 25
-    Caption = 'Button1'
-    TabOrder = 6
-    OnClick = Button1Click
-  end
 end
