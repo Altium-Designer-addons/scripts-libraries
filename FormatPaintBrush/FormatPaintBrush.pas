@@ -124,7 +124,7 @@ Begin
                end;
 
                SchDestinPrim := SpatialIterator.FirstSchObject;
-               while ((SchDestinPrim <> nil) and (((SchTempPrim.ObjectId = eDesignator) or (SchTempPrim.ObjectId = eParameter)) and SchTempPrim.IsHidden)) do
+               while ((SchDestinPrim <> nil) and (((SchDestinPrim.ObjectId = eDesignator) or (SchDestinPrim.ObjectId = eParameter)) and SchDestinPrim.IsHidden)) do
                   SchDestinPrim   := SpatialIterator.NextSchObject;
 
             Finally
@@ -517,7 +517,7 @@ Begin
 
                   SchDestinPrim := SpatialIterator.FirstSchObject;
 
-                  while ((SchDestinPrim <> nil) and (((SchTempPrim.ObjectId = eDesignator) or (SchTempPrim.ObjectId = eParameter)) and SchTempPrim.IsHidden)) do
+                  while ((SchDestinPrim <> nil) and (((SchDestinPrim.ObjectId = eDesignator) or (SchDestinPrim.ObjectId = eParameter)) and SchDestinPrim.IsHidden)) do
                      SchDestinPrim   := SpatialIterator.NextSchObject;
 
                Finally

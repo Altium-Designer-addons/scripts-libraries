@@ -534,7 +534,7 @@ begin
    // Get the type of document
    DocKind := GetWorkspace.DM_FocusedDocument.DM_DocumentKind;
 
-   If SchServer <> Nil Then
+   If ((DocKind = 'SCH') or (DocKind = 'SCHLIB')) Then
    begin
       SchDoc := SchServer.GetCurrentSchDocument;
       If SchDoc = Nil Then Exit;
@@ -544,7 +544,7 @@ begin
          CheckBoxPinName.Visible := True;
       end;
    end
-   else if PCBServer <> nil then
+   else if ((DocKind = 'PCB') or (DocKind = 'PCBLIB')) then
    begin
       PCBBoard := PCBServer.GetCurrentPCBBoard;
       If PCBBoard = Nil Then Exit;
