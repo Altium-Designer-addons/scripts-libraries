@@ -267,7 +267,8 @@ begin
       Via.Size     := Rule.PreferedWidth;
       Via.HoleSize := Rule.PreferedHoleWidth;
 
-      (*                       
+
+      (*
       if (Via.Size < Rule.MinWidth) then
          Via.Size     := Rule.MinWidth;
 
