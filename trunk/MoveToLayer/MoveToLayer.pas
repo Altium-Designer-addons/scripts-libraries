@@ -1,6 +1,7 @@
 {..............................................................................}
 { Summary   This script moves selected copper tracks to another signal layer,  }
-{           while maintaining connectivity.                                    }
+{           while maintaining connectivity with Vias that are automatically    }
+{           placed.                                                            }
 {                                                                              }
 {                                                                              }
 { Created by:    Petar Perisin                                                 }
@@ -151,6 +152,7 @@ Procedure ModifyVia(Via : IPCB_Via);
 var
     BoardIterator : IPCB_BoardIterator;
     Primitive     : IPCB_Primitive;
+    Rule          : IPCB_Rule;
 
     PCBLayerPair  : IPCB_DrillLayerPair;
     LowLayerObj   : IPCB_LayerObject;
@@ -259,6 +261,25 @@ begin
 
           LayerObj := TheLayerStack.NextLayer(LayerObj);
       Until LayerObj = Nil;
+
+      Rule := Board.FindDominantRuleForObject(Via, eRule_RoutingViaStyle);
+
+      Via.Size     := Rule.PreferedWidth;
+      Via.HoleSize := Rule.PreferedHoleWidth;
+
+      (*                       
+      if (Via.Size < Rule.MinWidth) then
+         Via.Size     := Rule.MinWidth;
+
+      if (Via.Size > Rule.MaxWidth) then
+         Via.Size     := Rule.MaxWidth;
+
+      If (Via.HoleSize < Rule.MinHoleWidth) then
+         Via.HoleSize := Rule.MinHoleWidth;
+
+      if (Via.HoleSize > Rule.MaxHoleWidth) then
+         Via.HoleSize := Rule.MaxHoleWidth;
+      *)
 
       Via.GraphicallyInvalidate;
    end;
