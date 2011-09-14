@@ -293,26 +293,30 @@ var
    Component  : IPCB_Component;
    Primitive  : IPCB_Primitive;
    i          : Integer;
+   flag       : Integer;
 begin
    Board := PCBServer.GetCurrentPCBBoard;
    if Board = nil then exit;
 
-   if Board.SelectecObjectCount = 0 then
+   flag := 0;
+
+   for i := 0 to Board.SelectecObjectCount - 1 do
+   begin
+      Primitive := Board.SelectecObject[i];
+      if Primitive.ObjectId = eComponentObject then
+      begin
+         Calculate(Primitive);
+         flag := 1;
+      end;
+   end;
+
+   if flag = 0 then
    begin
       Component := Board.GetObjectAtCursor(MkSet(eComponentObject),AllLayers, 'Choose Component');
       While Component <> nil do
       begin
          Calculate(Component);
          Component := Board.GetObjectAtCursor(MkSet(eComponentObject),AllLayers, 'Choose Component');
-      end;
-   end
-   else
-   begin
-      for i := 0 to Board.SelectecObjectCount - 1 do
-      begin
-         Primitive := Board.SelectecObject[i];
-         if Primitive.ObjectId = eComponentObject then
-            Calculate(Primitive);
       end;
    end;
 end;
