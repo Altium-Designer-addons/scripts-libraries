@@ -83,8 +83,8 @@ begin
 
    FileName := SaveDialog.FileName;
 
-   if (FileName[Length(FileName)-3] <> '.') then
-       FileName := FileName + '.csv';
+   // Set file extension
+   FileName := ChangeFileExt(FileName, '.csv');
 
    VariationFile := TStringList.Create;
 
@@ -122,5 +122,4 @@ begin
 
    VariationFile.SaveToFile(FileName);
    VariationFile.Free;
-
 end;
