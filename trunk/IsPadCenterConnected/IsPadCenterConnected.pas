@@ -9,21 +9,30 @@
 {..............................................................................}
 Procedure IsPadCenterConnected;
 Var
+
+    Board                   : IPCB_Board;
     Track                   : IPCB_Primitive;
     Pad                     : IPCB_Primitive;
-    TrackIteratorHandle     : IPCB_BoardIterator;
+    TrackIteratorHandle     : IPCB_SpatialIterator;
     Component               : IPCB_Component;
     ComponentIteratorHandle : IPCB_BoardIterator;
     PadIteratorHandle       : IPCB_GroupIterator;
+    TheLayerStack           : IPCB_LayerStack;
+    LayerObj                : IPCB_LayerObject;
+    Rectangle               : TCoordRect;
+    TrackFoundFlag          : Integer;
+    LayerFlag               : Integer;
+
 Begin
 
-    If PCBServer.GetCurrentPCBBoard = Nil Then Exit;
+    Board := PCBServer.GetCurrentPCBBoard;
+    If Board = Nil Then Exit;
 
     ResetParameters;
     AddStringParameter('Scope', 'All');
     RunProcess('PCB:DeSelect');
 
-    ComponentIteratorHandle := PCBServer.GetCurrentPCBBoard.BoardIterator_Create;
+    ComponentIteratorHandle := Board.BoardIterator_Create;
     ComponentIteratorHandle.AddFilter_ObjectSet(MkSet(eComponentObject));
     ComponentIteratorHandle.AddFilter_LayerSet(AllLayers);
     ComponentIteratorHandle.AddFilter_Method(eProcessAll);
@@ -38,34 +47,80 @@ Begin
         Pad := PadIteratorHandle.FirstPCBObject;
         While (Pad <> Nil) Do
         Begin
-            Pad.Selected := True;
-            TrackIteratorHandle        := PCBServer.GetCurrentPCBBoard.BoardIterator_Create;
-            TrackIteratorHandle.AddFilter_ObjectSet(MkSet(eTrackObject));
+            Rectangle := Pad.BoundingRectangle;
+
 
             if Layer2String(Pad.Layer) = 'Multi Layer' then
-               TrackIteratorHandle.AddFilter_LayerSet(MkSet(eTopLayer,  eMidLayer1,  eMidLayer2,
-                                 eMidLayer3,  eMidLayer4,  eMidLayer5,  eMidLayer6,  eMidLayer7,
-                                 eMidLayer8,  eMidLayer9,  eMidLayer10, eMidLayer11, eMidLayer12,
-                                 eMidLayer13, eMidLayer14, eMidLayer15, eMidLayer16, eMidLayer17,
-                                 eMidLayer18, eMidLayer19, eMidLayer20, eMidLayer21, eMidLayer22,
-                                 eMidLayer23, eMidLayer24, eMidLayer25, eMidLayer26, eMidLayer27,
-                                 eMidLayer28, eMidLayer29, eMidLayer30, eBottomLayer))
+            begin
+               Pad.Selected := False;
+               TheLayerStack := Board.LayerStack;
+
+               LayerObj := TheLayerStack.FirstLayer;
+
+               While LayerObj <> nil do
+               begin
+                  if ILayer.IsSignalLayer(LayerObj.V7_LayerID) then
+                  begin
+                     TrackIteratorHandle        := Board.SpatialIterator_Create;
+                     TrackIteratorHandle.AddFilter_ObjectSet(MkSet(eTrackObject));
+                     TrackIteratorHandle.AddFilter_Area(Rectangle.Left, Rectangle.Bottom, Rectangle.Right, Rectangle.Top);
+                     TrackIteratorHandle.AddFilter_LayerSet(MkSet(LayerObj.LayerID));
+
+                     Track := TrackIteratorHandle.FirstPCBObject;
+
+                     TrackFoundFlag  := 0;
+                     LayerFlag       := 0;
+
+                     While (Track <> Nil) Do
+                     Begin
+                        if Track.InNet and Pad.InNet then
+                           If Track.Net.Name = Pad.Net.Name then
+                           begin
+
+                              TrackFoundFlag := 1;
+                              if (((Track.x1 = Pad.x) and (Track.y1 = Pad.y)) or ((Track.x2 = Pad.x) and (Track.y2 = Pad.y))) then
+                                 LayerFlag := 1;
+
+                           end;
+
+                        Track := TrackIteratorHandle.NextPCBObject;
+                     End;
+
+                     if (TrackFoundFlag = 1) and (LayerFlag = 0) then
+                        Pad.Selected := True;
+
+                  end;
+
+                  LayerObj := TheLayerStack.NextLayer(LayerObj);
+               end;
+
+            end
             else
-               TrackIteratorHandle.AddFilter_LayerSet(MkSet(eTopLayer, eBottomLayer));
+            begin
+               Pad.Selected               := True;
+               TrackIteratorHandle        := Board.SpatialIterator_Create;
+               TrackIteratorHandle.AddFilter_ObjectSet(MkSet(eTrackObject));
+               TrackIteratorHandle.AddFilter_Area(Rectangle.Left, Rectangle.Bottom, Rectangle.Right, Rectangle.Top);
 
-            TrackIteratorHandle.AddFilter_Method(eProcessAll);
+               if Layer2String(Pad.Layer) = 'Top Layer' then
+                  TrackIteratorHandle.AddFilter_LayerSet(MkSet(eTopLayer))
+               else if Layer2String(Pad.Layer) = 'Bottom Layer' then
+                  TrackIteratorHandle.AddFilter_LayerSet(MkSet(eBottomLayer));
 
-            Track := TrackIteratorHandle.FirstPCBObject;
-            While (Track <> Nil) Do
-            Begin
-                if (((Track.x1 = Pad.x) and (Track.y1 = Pad.y)) or ((Track.x2 = Pad.x) and (Track.y2 = Pad.y))) then
-                   Pad.Selected := False;
+               Track := TrackIteratorHandle.FirstPCBObject;
+               While (Track <> Nil) Do
+               Begin
+                   if (((Track.x1 = Pad.x) and (Track.y1 = Pad.y)) or ((Track.x2 = Pad.x) and (Track.y2 = Pad.y))) then
+                      Pad.Selected := False;
 
 
-                Track := TrackIteratorHandle.NextPCBObject;
-            End;
+                   Track := TrackIteratorHandle.NextPCBObject;
+               End;
 
-            PCBServer.GetCurrentPCBBoard.BoardIterator_Destroy(TrackIteratorHandle);
+               if not Pad.Innet then Pad.Selected := False;
+            end;
+
+            Board.SpatialIterator_Destroy(TrackIteratorHandle);
 
             Pad := PadIteratorHandle.NextPCBObject;
         End;
@@ -74,7 +129,7 @@ Begin
 
         Component := ComponentIteratorHandle.NextPCBObject;
     End;
-    PCBServer.GetCurrentPCBBoard.BoardIterator_Destroy(ComponentIteratorHandle);
+    Board.BoardIterator_Destroy(ComponentIteratorHandle);
 
     ResetParameters;
     AddStringParameter('Action','Redraw');

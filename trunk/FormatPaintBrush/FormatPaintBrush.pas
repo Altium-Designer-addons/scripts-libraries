@@ -27,6 +27,7 @@ var
    DestinPrim      : IPCB_Primitive;
    BoardIterator   : IPCB_BoardIterator;
    Layer           : TLayer;
+   Flag            : Integer;
 
    // Common variables
    ASetOfObjects   : TObjectSet;
@@ -589,6 +590,7 @@ Begin
          if SourcePrim = nil then exit
          else
          begin
+            boolLoc := MessageDlg('Do you want to copy Layer info', mtConfirmation, mbYesNo, 0);
             if SourcePrim.ObjectId = ePadObject then
                boolLoc := MessageDlg('Do you want to copy layer info (SMD/Thru)', mtConfirmation, mbYesNo, 0);
             if SourcePrim.ObjectId = eViaObject then
@@ -710,7 +712,29 @@ Begin
                 DestinPrim.BarCodeFullWidth     := SourcePrim.BarCodeFullWidth;
                 DestinPrim.BarCodeFullHeight    := SourcePrim.BarCodeFullHeight;
                 DestinPrim.BarCodeFontName      := SourcePrim.BarCodeFontName;
+
+
+                if boolLoc = mrYes then
+                   DestinPrim.Layer             := SourcePrim.Layer;
+                (*
+                if (SourcePrim.IsDesignator and DestinPrim.IsDesignator) then
+                begin
+                   DestinPrim.Component.BeginModify;
+                   DestinPrim.Component.ChangeNameAutoposition(SourcePrim.Component.NameAutoPosition);
+                   DestinPrim.Component.GraphicallyInvalidate;
+                   DestinPrim.Component.EndModify;
+                end;
+
+                if (SourcePrim.IsComment and DestinPrim.IsComment) then
+                begin
+                   DestinPrim.Component.BeginModify;
+                   DestinPrim.Component.ChangeCommentAutoposition(SourcePrim.Component.CommentAutoPosition);
+                   DestinPrim.Component.GraphicallyInvalidate;
+                   DestinPrim.Component.EndModify;
+                end;
+                *)
                 DestinPrim.GraphicallyInvalidate;
+
              end
 
              // Polygons
@@ -731,6 +755,9 @@ Begin
                 DestinPrim.Grid                 := SourcePrim.Grid;
                 DestinPrim.TrackSize            := SourcePrim.TrackSize;
                 DestinPrim.ArcApproximation     := SourcePrim.ArcApproximation;
+
+                if boolLoc = mrYes then
+                   DestinPrim.Layer             := SourcePrim.Layer;
                 // DestinPrim.Rebuild;
                 // DestinPrim.GraphicallyInvalidate;
              end
@@ -738,71 +765,77 @@ Begin
              // Dimensions
              else if (SourcePrim.ObjectId = eDimensionObject) Then
              Begin
-                 DestinPrim.ArrowLength         := SourcePrim.ArrowLength;
-                 DestinPrim.ArrowLineWidth      := SourcePrim.ArrowLineWidth;
-                 DestinPrim.ArrowSize           := SourcePrim.ArrowSize;
-                 DestinPrim.ArrowPosition       := SourcePrim.ArrowPosition;
-                 DestinPrim.LineWidth           := SourcePrim.LineWidth;
+                DestinPrim.ArrowLength         := SourcePrim.ArrowLength;
+                DestinPrim.ArrowLineWidth      := SourcePrim.ArrowLineWidth;
+                DestinPrim.ArrowSize           := SourcePrim.ArrowSize;
+                DestinPrim.ArrowPosition       := SourcePrim.ArrowPosition;
+                DestinPrim.LineWidth           := SourcePrim.LineWidth;
 
-                 DestinPrim.TextHeight          := SourcePrim.TextHeight;
-                 DestinPrim.TextWidth           := SourcePrim.TextWidth;
-                 DestinPrim.TextFont            := SourcePrim.TextFont;
-                 DestinPrim.TextLineWidth       := SourcePrim.TextLineWidth;
-                 DestinPrim.TextGap             := SourcePrim.TextGap;
-                 DestinPrim.TextFormat          := SourcePrim.TextFormat;
-                 DestinPrim.TextDimensionUnit   := SourcePrim.TextDimensionUnit;
-                 DestinPrim.TextPrecision       := SourcePrim.TextPrecision;
-                 DestinPrim.TextPosition        := SourcePrim.TextPosition;
-                 DestinPrim.TextPrefix          := SourcePrim.TextPrefix;
-                 DestinPrim.TextSuffix          := SourcePrim.TextSuffix;
-                 DestinPrim.TextValue           := SourcePrim.TextValue;
-                 DestinPrim.ExtensionOffset     := SourcePrim.ExtensionOffset;
-                 DestinPrim.ExtensionLineWidth  := SourcePrim.ExtensionLineWidth;
-                 DestinPrim.ExtensionPickGap    := SourcePrim.ExtensionPickGap;
-                 DestinPrim.Style               := SourcePrim.Style;
-                 DestinPrim.UseTTFonts          := SourcePrim.UseTTFonts;
-                 DestinPrim.Bold                := SourcePrim.Bold;
-                 DestinPrim.Italic              := SourcePrim.Italic;
-                 DestinPrim.FontName            := SourcePrim.FontName;
-                 DestinPrim.Size                := SourcePrim.Size;
+                DestinPrim.TextHeight          := SourcePrim.TextHeight;
+                DestinPrim.TextWidth           := SourcePrim.TextWidth;
+                DestinPrim.TextFont            := SourcePrim.TextFont;
+                DestinPrim.TextLineWidth       := SourcePrim.TextLineWidth;
+                DestinPrim.TextGap             := SourcePrim.TextGap;
+                DestinPrim.TextFormat          := SourcePrim.TextFormat;
+                DestinPrim.TextDimensionUnit   := SourcePrim.TextDimensionUnit;
+                DestinPrim.TextPrecision       := SourcePrim.TextPrecision;
+                DestinPrim.TextPosition        := SourcePrim.TextPosition;
+                DestinPrim.TextPrefix          := SourcePrim.TextPrefix;
+                DestinPrim.TextSuffix          := SourcePrim.TextSuffix;
+                DestinPrim.TextValue           := SourcePrim.TextValue;
+                DestinPrim.ExtensionOffset     := SourcePrim.ExtensionOffset;
+                DestinPrim.ExtensionLineWidth  := SourcePrim.ExtensionLineWidth;
+                DestinPrim.ExtensionPickGap    := SourcePrim.ExtensionPickGap;
+                DestinPrim.Style               := SourcePrim.Style;
+                DestinPrim.UseTTFonts          := SourcePrim.UseTTFonts;
+                DestinPrim.Bold                := SourcePrim.Bold;
+                DestinPrim.Italic              := SourcePrim.Italic;
+                DestinPrim.FontName            := SourcePrim.FontName;
+                DestinPrim.Size                := SourcePrim.Size;
 
-                 // !!! Workaround for now - needed to fake Dimension has changed semantics. This
-                 // is necesary because we don't currenly have access to the Dimension method that
-                 // force a dimension update. Without this the call to DestinPrim.SetState_XSizeYSize
-                 // is not doing anything
-                 DestinPrim.TextX              := DestinPrim.TextX + MilsToCoord(0.01);
-                 DestinPrim.SetState_XSizeYSize;
-                 DestinPrim.GraphicallyInvalidate;
-                 DestinPrim.TextX              := DestinPrim.TextX - MilsToCoord(0.01);
-                 DestinPrim.SetState_XSizeYSize;
-                 DestinPrim.GraphicallyInvalidate;
+                if boolLoc = mrYes then
+                   DestinPrim.Layer            := SourcePrim.Layer;
+
+                // !!! Workaround for now - needed to fake Dimension has changed semantics. This
+                // is necesary because we don't currenly have access to the Dimension method that
+                // force a dimension update. Without this the call to DestinPrim.SetState_XSizeYSize
+                // is not doing anything
+                DestinPrim.TextX              := DestinPrim.TextX + MilsToCoord(0.01);
+                DestinPrim.SetState_XSizeYSize;
+                DestinPrim.GraphicallyInvalidate;
+                DestinPrim.TextX              := DestinPrim.TextX - MilsToCoord(0.01);
+                DestinPrim.SetState_XSizeYSize;
+                DestinPrim.GraphicallyInvalidate;
 
              End
 
              // Coordinates
              else if (SourcePrim.ObjectId = eCoordinateObject) Then
              begin
-                 DestinPrim.Size               := SourcePrim.Size;
-                 DestinPrim.LineWidth          := SourcePrim.LineWidth;
-                 DestinPrim.TextHeight         := SourcePrim.TextHeight;
-                 DestinPrim.TextWidth          := SourcePrim.TextWidth;
-                 DestinPrim.TextFont           := SourcePrim.TextFont;
-                 DestinPrim.Style              := SourcePrim.Style;
-                 DestinPrim.UseTTFonts         := SourcePrim.UseTTFonts;
-                 DestinPrim.Bold               := SourcePrim.Bold;
-                 DestinPrim.Italic             := SourcePrim.Italic;
-                 DestinPrim.FontName           := SourcePrim.FontName;
+                DestinPrim.Size               := SourcePrim.Size;
+                DestinPrim.LineWidth          := SourcePrim.LineWidth;
+                DestinPrim.TextHeight         := SourcePrim.TextHeight;
+                DestinPrim.TextWidth          := SourcePrim.TextWidth;
+                DestinPrim.TextFont           := SourcePrim.TextFont;
+                DestinPrim.Style              := SourcePrim.Style;
+                DestinPrim.UseTTFonts         := SourcePrim.UseTTFonts;
+                DestinPrim.Bold               := SourcePrim.Bold;
+                DestinPrim.Italic             := SourcePrim.Italic;
+                DestinPrim.FontName           := SourcePrim.FontName;
 
-                 // !!! Workaround for now - needed to fake Dimension has changed semantics. This
-                 // is necesary because we don't currenly have access to the Dimension method that
-                 // force a dimension update. Without this the call to DestinPrim.SetState_XSizeYSize
-                 // is not doing anything
-                 DestinPrim.X     := DestinPrim.X + MilsToCoord(0.01);
-                 DestinPrim.SetState_XSizeYSize;
-                 DestinPrim.GraphicallyInvalidate;
-                 DestinPrim.X     := DestinPrim.X - MilsToCoord(0.01);
-                 DestinPrim.SetState_XSizeYSize;
-                 DestinPrim.GraphicallyInvalidate;
+                if boolLoc = mrYes then
+                   DestinPrim.Layer           := SourcePrim.Layer;
+
+                // !!! Workaround for now - needed to fake Dimension has changed semantics. This
+                // is necesary because we don't currenly have access to the Dimension method that
+                // force a dimension update. Without this the call to DestinPrim.SetState_XSizeYSize
+                // is not doing anything
+                DestinPrim.X     := DestinPrim.X + MilsToCoord(0.01);
+                DestinPrim.SetState_XSizeYSize;
+                DestinPrim.GraphicallyInvalidate;
+                DestinPrim.X     := DestinPrim.X - MilsToCoord(0.01);
+                DestinPrim.SetState_XSizeYSize;
+                DestinPrim.GraphicallyInvalidate;
              end;
 
              // Always use IPCB_Primitive.EndModify / CancelModify instead of PCBServer.SendMessageToRobots because is deprecated
@@ -822,7 +855,8 @@ Begin
 
             if SourcePrim = nil then
                SourcePrim := PCBBoard.GetObjectAtCursor(ASetOfObjects, AllLayers,'Choose Source Primitive');
-            if SourcePrim = nil then exit;
+            if SourcePrim = nil then exit
+            else boolLoc := MessageDlg('Do you want to copy Layer info', mtConfirmation, mbYesNo, 0);
          end;
       End;
    End;
