@@ -250,6 +250,8 @@ begin
       End;
       Board.BoardIterator_Destroy(CompIterator);
    end;
+   
+   Close;
 end;
 
 
