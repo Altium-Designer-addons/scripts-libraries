@@ -90,7 +90,8 @@ Begin
                         Pad.Selected := True;
 
                   end;
-
+				  
+				  
                   LayerObj := TheLayerStack.NextLayer(LayerObj);
                end;
 
