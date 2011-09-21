@@ -181,11 +181,11 @@ begin
       for i := 1 to 32 do
       begin
          if (Board.LayerStack.LayerObject_V7[ILayer.MechanicalLayer(i)].Name = RadioButtonLayer1.Caption) then
-            if RadioButtonLayer1.Checked then MechTop := Board.LayerStack.LayerObject_V7[ILayer.MechanicalLayer(i)]
-            else                              MechBot := Board.LayerStack.LayerObject_V7[ILayer.MechanicalLayer(i)];
+            if RadioButtonLayer1.Checked then MechTop := ILayer.MechanicalLayer(i)
+            else                              MechBot := ILayer.MechanicalLayer(i);
          if (Board.LayerStack.LayerObject_V7[ILayer.MechanicalLayer(i)].Name = RadioButtonLayer2.Caption) then
-            if RadioButtonLayer2.Checked then MechTop := Board.LayerStack.LayerObject_V7[ILayer.MechanicalLayer(i)]
-            else                              MechBot := Board.LayerStack.LayerObject_V7[ILayer.MechanicalLayer(i)];
+            if RadioButtonLayer2.Checked then MechTop := ILayer.MechanicalLayer(i)
+            else                              MechBot := ILayer.MechanicalLayer(i);
       end;
    end
    else
@@ -193,8 +193,8 @@ begin
       for i := 1 to 32 do
          if (Board.LayerStack.LayerObject_V7[ILayer.MechanicalLayer(i)].Name = ComboBoxLayers.Text) then
          begin
-            MechTop := Board.LayerStack.LayerObject_V7[ILayer.MechanicalLayer(i)];
-            MechBot := Board.LayerStack.LayerObject_V7[ILayer.MechanicalLayer(i)];
+            MechTop := ILayer.MechanicalLayer(i);
+            MechBot := ILayer.MechanicalLayer(i);
             break;
          end;
    end;
@@ -212,8 +212,8 @@ begin
          flag := 1;
          NewDesignator := Primitive.Name.Replicate;
 
-         if Primitive.Layer = eTopLayer then NewDesignator.Layer := MechTop.LayerID
-         else                                NewDesignator.Layer := MechBot.LayerID;
+         if Primitive.Layer = eTopLayer then NewDesignator.Layer := MechTop
+         else                                NewDesignator.Layer := MechBot;
 
          NewDesignator.Text := '.Designator';
 
@@ -237,8 +237,8 @@ begin
       Begin
          NewDesignator := Primitive.Name.Replicate;
 
-         if Primitive.Layer = eTopLayer then NewDesignator.Layer := MechTop.LayerID
-         else                                NewDesignator.Layer := MechBot.LayerID;
+         if Primitive.Layer = eTopLayer then NewDesignator.Layer := MechTop
+         else                                NewDesignator.Layer := MechBot;
 
          NewDesignator.Text := '.Designator';
 
