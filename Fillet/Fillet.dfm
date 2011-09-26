@@ -41,6 +41,14 @@ object Form1: TForm1
     Height = 13
     Caption = '50'
   end
+  object LabelRadius: TLabel
+    Left = 200
+    Top = 8
+    Width = 57
+    Height = 13
+    Caption = 'LabelRadius'
+    Visible = False
+  end
   object ButtonOK: TButton
     Left = 96
     Top = 88
