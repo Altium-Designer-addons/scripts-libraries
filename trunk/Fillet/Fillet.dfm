@@ -11,7 +11,6 @@ object Form1: TForm1
   Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
-  OnCreate = Form1Create
   PixelsPerInch = 96
   TextHeight = 13
   object Label1: TLabel
@@ -34,6 +33,13 @@ object Form1: TForm1
     Width = 20
     Height = 13
     Caption = 'Max'
+  end
+  object LabelValue: TLabel
+    Left = 136
+    Top = 8
+    Width = 12
+    Height = 13
+    Caption = '50'
   end
   object ButtonOK: TButton
     Left = 96
@@ -61,5 +67,6 @@ object Form1: TForm1
     PageSize = 1
     Position = 50
     TabOrder = 2
+    OnChange = ScrollBarPercChange
   end
 end
