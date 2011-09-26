@@ -9,6 +9,7 @@
 {..............................................................................}
 var
    Board         : IPCB_Board;
+   MinDistance   : Double;
 
    (* I need string list to memorize radius of each track.
    Since arc is added betwen two tracks, I will need to find lesser value of the two
@@ -24,10 +25,6 @@ var
 
 
 
-procedure TForm1.ButtonCancelClick(Sender: TObject);
-Var
-   close;
-end;
 
 
 procedure TForm1.ButtonOKClick(Sender: TObject);
@@ -310,6 +307,10 @@ end;
 procedure TForm1.ScrollBarPercChange(Sender: TObject);
 begin
    LabelValue.Caption := IntToStr(ScrollBarPerc.Position);
+   if ScrollBarPerc.Position <> 0 then
+      LabelRadius.Caption := FloatToStr(CoordToMMs(Int(MinDistance * ScrollBarPerc.Position / 100))) + ' mm'
+   else
+      LabelRadius.Caption := '0 mm';
 end;
 
 
@@ -319,13 +320,14 @@ var
     Leng      : Integer;
     Flag      : Integer;
     i         : Integer;
+    Distance  : Double;
+
 begin
     Board := PCBServer.GetCurrentPCBBoard;
     If Board = Nil Then Exit;
 
     flag := 0;
     RadiusList := TStringList.Create;
-
 
     for i := 0 to Board.SelectecObjectCount - 1 do
     begin
@@ -342,8 +344,6 @@ begin
 
           flag := 1;
        end;
-
-
     end;
 
     If flag = 0 then
@@ -352,8 +352,24 @@ begin
        exit;
     end;
 
+    MinDistance := sqrt(sqr(Board.SelectecObject[0].x1 - Board.SelectecObject[0].x2) + sqr(Board.SelectecObject[0].y1 - Board.SelectecObject[0].y2));
+    for i := 1 to Board.SelectecObjectCount - 1 do
+    begin
+       Distance := sqrt(sqr(Board.SelectecObject[0].x1 - Board.SelectecObject[0].x2) + sqr(Board.SelectecObject[0].y1 - Board.SelectecObject[0].y2));
+       if Distance < Mindistance then Mindistance := Distance;
+    end;
+
+    Mindistance := MinDistance / 2;
+
+    LabelRadius.Caption := FloatToStr(CoordToMMs(Int(MinDistance / 2))) + ' mm';
+
     Form1.ShowModal;
 end;
 
+
+procedure TForm1.ButtonCancelClick(Sender: TObject);
+begin
+   close;
+end;
 
 
