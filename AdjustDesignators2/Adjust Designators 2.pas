@@ -1,15 +1,11 @@
 {..............................................................................}
-{ Summary   This scripts can be used to copy component designators to mech     }
-{           layer or mech layer pair.                                          }
-{                                                                              }
-{           Designators will be the same as in main components, but they will  }
-{           have '.Designator' text, and they will be part of component        }
+{ Summary   This scripts can be used to adjust designators on mech layers or   }
+{           on slikscreen.                                                     }
 {                                                                              }
 {                                                                              }
-{ Created by:    Petar Perisin                                                 }
+{ Created by:     Mattias Ericson                                              }
+{ Reviewed by:    Petar Perisin                                                }
 {..............................................................................}
-
-
 
 
 var
@@ -18,17 +14,16 @@ var
    MechSingles : TStringList;
 
 
-
 function GetFirstLayerName(Pair : String) : String;
 var
    pos : Integer;
 begin
    Pos := AnsiPos(' <----> ', Pair);
-   SetLength(Pair, Pos - 1);
+   if Pos <> 0 then
+      SetLength(Pair, Pos - 1);
 
    Result := Pair;
 end;
-
 
 
 function GetSecondLayerName(Pair : String) : String;
@@ -55,19 +50,6 @@ begin
           7 : Result := MMsToCoord(0.1957*CoordToMMs(Size)-0.2201);
           else Result := -1;
      end;
-end;
-
-
-
-procedure ModifyDesignator(Designator : IPCB_Text; X : Integer; Y : Integer);
-var
-   S          : String;
-   TextLength : Integer;
-   Size       : Integer;
-begin
-
-
-
 end;
 
 
@@ -437,6 +419,8 @@ begin
 
             end;
 
+            if Size = -1 then ShowMessage('Too Many characters in' + Component.Name.Text + '. More than 7 characters are not supported.');
+
             if Size > 0 then
             begin
 
@@ -498,10 +482,10 @@ begin
                   begin
                      for i := 1 to 32 do
                      begin
-                        if ComboBoxLayers.Text := Board.LayerStack.LayerObject_V7[ILayer.MechanicalLayer(i)] then
+                        if GetFirstLayerName(ComboBoxLayers.Text) = Board.LayerStack.LayerObject_V7[ILayer.MechanicalLayer(i)].Name then 
                         begin
                            Layer3 := ILayer.MechanicalLayer(i);
-                           Layer4 := -1;
+                           Layer4 := ILayer.MechanicalLayer(i);
                         end;
                      end;
                   end;
@@ -511,7 +495,7 @@ begin
                   MechDesignator := TrackIteratorHandle.FirstPCBObject;
                   while (MechDesignator <> Nil) Do
                   begin
-                     if (((MechDesignator.Layer = Layer3) or (Mechdesignator.Layer = Layer4))(* and (MechDesignator.Text := '.Designator')*)) then
+                     if (((MechDesignator.Layer = Layer3) or (MechDesignator.Layer = Layer4))(* and (MechDesignator.Text := '.Designator')*)) then
                      begin
                         MechDesignator.Size       := Designator.Size;
                         MechDesignator.UseTTFonts := Designator.UseTTFonts;
