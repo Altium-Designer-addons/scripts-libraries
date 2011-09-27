@@ -282,7 +282,7 @@ begin
               if ComboBoxLayers.Text := Board.LayerStack.LayerObject_V7[ILayer.MechanicalLayer(i)].Name then
               begin
                  Layer3 := ILayer.MechanicalLayer(i);
-                 Layer4 := false;
+                 Layer4 := ILayer.MechanicalLayer(i);
               end;
            end;
         end;
@@ -494,8 +494,8 @@ begin
 
                   MechDesignator := TrackIteratorHandle.FirstPCBObject;
                   while (MechDesignator <> Nil) Do
-                  begin
-                     if (((MechDesignator.Layer = Layer3) or (MechDesignator.Layer = Layer4))(* and (MechDesignator.Text := '.Designator')*)) then
+                  begin                                                        //                     \/ This function returns just string of MechDesignator.Text
+                     if (((MechDesignator.Layer = Layer3) or (MechDesignator.Layer = Layer4)) and (GetFirstLayerName(MechDesignator.Text) = '.Designator' )) then
                      begin
                         MechDesignator.Size       := Designator.Size;
                         MechDesignator.UseTTFonts := Designator.UseTTFonts;
@@ -506,6 +506,7 @@ begin
                         MechDesignator.Rotation   := Designator.Rotation;
                         MechDesignator.XLocation  := Designator.XLocation;
                         MechDesignator.YLocation  := Designator.YLocation;
+
                      end;
 
                      MechDesignator := TrackIteratorHandle.NextPCBObject;
