@@ -192,6 +192,7 @@ object FormAdjustDesignators: TFormAdjustDesignators
       Height = 17
       Caption = 'Layer Pair'
       Checked = True
+      Enabled = False
       TabOrder = 2
       TabStop = True
       OnClick = RadioButtonLayerPairClick
@@ -202,6 +203,7 @@ object FormAdjustDesignators: TFormAdjustDesignators
       Width = 80
       Height = 17
       Caption = 'Single Layer'
+      Enabled = False
       TabOrder = 3
       OnClick = RadioButtonLayerSingleClick
     end
@@ -210,6 +212,7 @@ object FormAdjustDesignators: TFormAdjustDesignators
       Top = 99
       Width = 184
       Height = 21
+      Enabled = False
       TabOrder = 4
       Text = 'ComboBoxLayers'
     end
