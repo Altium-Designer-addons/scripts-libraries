@@ -89,80 +89,9 @@ Begin
                         if Track.InNet and Pad.InNet then
                            If Track.Net.Name = Pad.Net.Name then
                            begin
-                              // I will need much deeper Check here, because 45° tracks get detected
-                              // if their bounding rectangle is within pad.
 
-                              Left   := Rectangle.Left   - Track.Width / 2;
-                              Right  := Rectangle.Right  + Track.Width / 2;
-                              Bottom := Rectangle.Bottom - Track.Width / 2;
-                              Top    := Rectangle.Top    + Track.Width / 2;
-
-                              if ((Track.x1 > Left)   and (Track.x1 < Right)) and
-                                 ((Track.y1 > Bottom) and (Track.y1 < Top)) then
-
-                                          TrackFoundFlag := 1
-
-                              else if ((Track.x2 > Left)   and (Track.x2 < Right)) and
-                                      ((Track.y2 > Bottom) and (Track.y2 < Top)) then
-
-                                          TrackFoundFlag := 1
-
-                              else if (Track.x1 = Track.x2) and (Track.x1 > Left) and (Track.x1 < Right) then
-
-                                          TrackFoundFlag := 1
-
-                              else if (Track.y1 = Track.y2) and (Track.y1 > Bottom) and (Track.y1 < Top) then
-
-                                          TrackFoundFlag := 1
-
-                              else
-                              begin
-                                 // now I need real trigonometry here.
-
-
-                                 k := (Track.y2 - Track.y1) / (Track.x2 - Track.x1);
-                                 c := Track.y1 - k * Track.x1;
-
-                                 aboveLine := 0;
-                                 onLine    := 0;
-                                 belowLine := 0;
-
-
-                                 for i := 1 to 4 do
-                                 begin
-                                    if i = 1 then
-                                    begin
-                                       PointX := Left;
-                                       PointY := Bottom;
-                                    end
-                                    else if i = 2 then
-                                    begin
-                                       PointX := Right;
-                                       PointY := Bottom;
-                                    end
-                                    else if i = 3 then
-                                    begin
-                                       PointX := Left;
-                                       PointY := Top;
-                                    end
-                                    else if i = 4 then
-                                    begin
-                                       PointX := Right;
-                                       PointY := Top;
-                                    end;
-
-                                    if (k * PointX + c < PointY) then
-                                       aboveLine := 1
-                                    else if (k * PointX + c > PointY) then
-                                       belowLine := 1
-                                    else
-                                       onLine := 1;
-                                 end;
-
-                                 // Now is the time to check
-                                 if OnLine or (AboveLine and Belowline) then
-                                    TrackFoundFlag := 1;
-                              end;
+                              if Board.PrimPrimDistance(Track, Pad) = 0 then
+                                 TrackFoundFlag := 1;
 
                               if (((Track.x1 = Pad.x) and (Track.y1 = Pad.y)) or ((Track.x2 = Pad.x) and (Track.y2 = Pad.y))) then
                                  LayerFlag := 1;
@@ -175,8 +104,7 @@ Begin
                      if (TrackFoundFlag = 1) and (LayerFlag = 0) then
                         Pad.Selected := True;
 
-                  end;
-                  
+                  end;                  
                   
                   LayerObj := TheLayerStack.NextLayer(LayerObj);
                end;
