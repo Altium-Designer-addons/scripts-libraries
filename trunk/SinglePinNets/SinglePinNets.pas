@@ -96,15 +96,7 @@ begin
       Net  := FlatHierarchy.DM_Nets(NetNum);
 
       if ((Net.DM_PinCount = 1) and ((Net.DM_NetLabelCount <> 0) or (Net.DM_PortCount <> 0) or (Net.DM_PowerObjectCount <> 0) )) then
-         SinglePinsFile.Add('Net ' + Net.DM_NetName + ' has only one pin (Pin ' + Net.DM_Pins(0).DM_Part.DM_LogicalDesignator + '-' + Net.DM_Pins(0).DM_PinNumber + ')');
-      (*
-      begin
-         NetName := Net.DM_NetName;
-
-         if Not ((NetName[1] = 'N') and (NetName[2] = 'e') and (NetName[3] = 't')) then
-            SinglePinsFile.Add('Net ' + Net.DM_NetName + ' has only one pin (Pin ' + Net.DM_Pins(0).DM_Part.DM_LogicalDesignator + '-' + Net.DM_Pins(0).DM_PinNumber + ')');
-
-      end; *)
+         SinglePinsFile.Add('Net ' + Net.DM_NetName + ' has only one pin (Pin ' + Net.DM_Pins(0).DM_Part.DM_LogicalDesignator + '-' + Net.DM_Pins(0).DM_PinNumber + ')');    
    end;
 
    SinglePinsFile.SaveToFile(FileName);
