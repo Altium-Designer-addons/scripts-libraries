@@ -13,6 +13,7 @@ var
     TheLayerStack : IPCB_LayerStack;
     LayerObj      : IPCB_LayerObject;
     LastLayerNum  : Integer;
+    MaxWidth      : Integer;
 
 
 {..............................................................................}
@@ -22,6 +23,7 @@ var
 {..............................................................................}
 Procedure PlaceVia(Layer : TLayer; X : Integer; Y : Integer; Layer2 : String; Net : IPCB_Net);
 var
+    BoardIterator : IPCB_SpatialIterator;
     PCBLayerPair  : IPCB_DrillLayerPair;
     LowLayerObj   : IPCB_LayerObject;
     HighLayerObj  : IPCB_LayerObject;
@@ -37,6 +39,8 @@ var
     FinalLayer    : TLayer;
     Rule          : IPCB_Rule;
     Via           : IPCB_Via;
+    Primitive     : IPCB_Primitive;
+    Rectangle     : TCoordRect;
 begin
    FinalLayer := String2Layer(Layer2);
 
@@ -140,6 +144,33 @@ begin
 
    Via.Size     := Rule.PreferedWidth;
    Via.HoleSize := Rule.PreferedHoleWidth;
+
+   Rectangle := Via.BoundingRectangle;
+
+   BoardIterator := Board.SpatialIterator_Create;
+   BoardIterator.AddFilter_IPCB_LayerSet(LayerSet.SignalLayers);
+   BoardIterator.AddFilter_ObjectSet(AllObjects);
+   BoardIterator.AddFilter_Area(Rectangle.Left - MaxWidth, Rectangle.Bottom - MaxWidth, Rectangle.Right + MaxWidth, Rectangle.Top + MaxWidth);
+
+   Primitive := BoardIterator.FirstPCBObject;
+
+   while Primitive <> Nil do
+   begin
+      if Via.IntersectLayer(Primitive.Layer) then
+      Begin
+         Rule := Board.FindDominantRuleForObjectPair(Via, Primitive, eRule_Clearance);
+
+         if Rule <> nil then
+         begin
+            Board.AddPCBObject(Rule.ActualCheck(Via, Primitive));
+            Primitive.GraphicallyInvalidate;
+         end;
+      end;
+      Primitive := BoardIterator.NextPCBObject;
+   end;
+   Board.SpatialIterator_Destroy(BoardIterator);
+   Via.GraphicallyInvalidate;
+
 end;
 
 
@@ -150,7 +181,7 @@ end;
 {..............................................................................}
 Procedure ModifyVia(Via : IPCB_Via);
 var
-    BoardIterator : IPCB_BoardIterator;
+    BoardIterator : IPCB_SpatialIterator;
     Primitive     : IPCB_Primitive;
     Rule          : IPCB_Rule;
 
@@ -165,6 +196,7 @@ var
     ViaLowlayer   : Integer;
 
     i, j          : integer;
+    Rectangle     : TCoordRect;
 begin
    // modify existing via or delete via
 
@@ -283,6 +315,34 @@ begin
       *)
 
       Via.GraphicallyInvalidate;
+
+      Rectangle := Via.BoundingRectangle;
+
+      BoardIterator := Board.SpatialIterator_Create;
+      BoardIterator.AddFilter_IPCB_LayerSet(LayerSet.SignalLayers);
+      BoardIterator.AddFilter_ObjectSet(AllObjects);
+      BoardIterator.AddFilter_Area(Rectangle.Left - MaxWidth, Rectangle.Bottom - MaxWidth, Rectangle.Right + MaxWidth, Rectangle.Top + MaxWidth);
+
+      Primitive := BoardIterator.FirstPCBObject;
+
+      while Primitive <> Nil do
+      begin
+         if Via.IntersectLayer(Primitive.Layer) then
+         Begin
+            Rule := Board.FindDominantRuleForObjectPair(Via, Primitive, eRule_Clearance);
+
+            if Rule <> nil then
+            begin
+               Board.AddPCBObject(Rule.ActualCheck(Via, Primitive));
+               Primitive.GraphicallyInvalidate;
+            end;
+         end;
+         Primitive := BoardIterator.NextPCBObject;
+      end;
+      Board.SpatialIterator_Destroy(BoardIterator);
+
+      Via.GraphicallyInvalidate;
+
    end;
 end;
 
@@ -295,10 +355,13 @@ end;
 procedure TMoveToLayer.ButtonOKClick(Sender: TObject);
 Var
 
+    Iterator      : IPCB_BoardIterator;
+    Rule          : IPCB_Rule;
     BoardIterator : IPCB_SpatialIterator;
     FinalLayer    : String;
-    Primitive1    : IPCB_Primitive;
-    Primitive2    : IPCB_Primitive;
+    Prim          : IPCB_Primitive;
+    Prim1         : IPCB_Primitive;
+    Prim2         : IPCB_Primitive;
     Layer1        : String;
     Layer2        : String;
     NetName1      : String;
@@ -315,6 +378,8 @@ Var
 
     Flag1         : Integer;
     Flag2         : Integer;
+    Rectangle     : TCoordRect;
+    Violation     : IPCB_Violation;
 
 Begin
     // There will be two big steps:
@@ -362,34 +427,53 @@ Begin
     // I need to figure out potential places where Via ahould be Added/Deleted/Modified
 
 
+    Iterator        := Board.BoardIterator_Create;
+    Iterator.AddFilter_ObjectSet(MkSet(eRuleObject));
+
+    Iterator.AddFilter_LayerSet(AllLayers);
+    Iterator.AddFilter_Method(eProcessAll);
+
+    MaxWidth := 0;
+
+    Rule := Iterator.FirstPCBObject;
+    While (Rule <> Nil) Do
+    Begin
+        if (Rule.RuleKind = eRule_Clearance) and Rule.Enabled then
+           if MaxWidth < Rule.Gap then
+              MaxWidth := Rule.Gap;
+
+        Rule := Iterator.NextPCBObject;
+    End;
+    Board.BoardIterator_Destroy(Iterator);
+
     for i := 0 to Board.SelectecObjectCount - 1 do
     begin
-       Primitive1 := Board.SelectecObject[i];
+       Prim1 := Board.SelectecObject[i];
 
-       NetName1   := Primitive1.Net.Name;
-       Layer1     := Primitive1.Layer;
-       If Primitive1.ObjectID = eTrackObject then
+       NetName1   := Prim1.Net.Name;
+       Layer1     := Prim1.Layer;
+       If Prim1.ObjectID = eTrackObject then
        begin
-          X11        := Primitive1.x1;
-          Y11        := Primitive1.y1;
-          X12        := Primitive1.x2;
-          Y12        := Primitive1.y2;
+          X11        := Prim1.x1;
+          Y11        := Prim1.y1;
+          X12        := Prim1.x2;
+          Y12        := Prim1.y2;
        end
-       else if Primitive1.ObjectID = eArcObject then
+       else if Prim1.ObjectID = eArcObject then
        begin
-          X11        := Primitive1.StartX;
-          Y11        := Primitive1.StartY1;
-          X12        := Primitive1.EndX;
-          Y12        := Primitive1.EndY;
+          X11        := Prim1.StartX;
+          Y11        := Prim1.StartY1;
+          X12        := Prim1.EndX;
+          Y12        := Prim1.EndY;
        end;
 
        Flag1 := 0;
        Flag2 := 0;
 
-       Primitive1.BeginModify;
-       Primitive1.Layer := String2Layer(FinalLayer);
-       Primitive1.EndModify;
-       Primitive1.GraphicallyInvalidate;
+       Prim1.BeginModify;
+       Prim1.Layer := String2Layer(FinalLayer);
+       Prim1.EndModify;
+       Prim1.GraphicallyInvalidate;
 
        // first thing we need to look is does via already exist on edge
 
@@ -398,24 +482,24 @@ Begin
        BoardIterator.AddFilter_LayerSet(AllLayers);
        BoardIterator.AddFilter_Area(X11 - 1, Y11 - 1, X11 + 1, Y11 + 1);
 
-       Primitive2 := BoardIterator.FirstPCBObject;
-       While (Primitive2 <> Nil) Do
+       Prim2 := BoardIterator.FirstPCBObject;
+       While (Prim2 <> Nil) Do
        Begin
-          if Primitive2.InNet then
-             if (Primitive2.net.Name = NetName1) then
-                if ((X11 = Primitive2.x) and (Y11 = Primitive2.y)) then
-                   if Primitive2.ObjectID = eViaobject then
+          if Prim2.InNet then
+             if (Prim2.net.Name = NetName1) then
+                if ((X11 = Prim2.x) and (Y11 = Prim2.y)) then
+                   if Prim2.ObjectID = eViaobject then
                    begin
-                      ModifyVia(Primitive2);
+                      ModifyVia(Prim2);
                       Flag1 := 1;
                    end
                    else
                    begin
                       // if there is pad on multi layer - do nothing
-                      if Layer2String(Primitive2.Layer) = 'Multi Layer' then
+                      if Layer2String(Prim2.Layer) = 'Multi Layer' then
                          Flag2 := 1;
                    end;
-          Primitive2 := BoardIterator.NextPCBObject;
+          Prim2 := BoardIterator.NextPCBObject;
        End;
        Board.SpatialIterator_Destroy(BoardIterator);
 
@@ -430,30 +514,30 @@ Begin
           BoardIterator.AddFilter_LayerSet(MkSet(Layer1));
           BoardIterator.AddFilter_Area(X11 - 1, Y11 - 1, X11 + 1, Y11 + 1);
 
-          Primitive2 := BoardIterator.FirstPCBObject;
-          While (Primitive2 <> Nil) Do
+          Prim2 := BoardIterator.FirstPCBObject;
+          While (Prim2 <> Nil) Do
           Begin
-             if ((not Primitive2.Selected) and (Primitive2.net.Name = NetName1)) then
+             if ((not Prim2.Selected) and (Prim2.net.Name = NetName1)) then
              begin
-                If Primitive2.ObjectID = eTrackObject then
+                If Prim2.ObjectID = eTrackObject then
                 begin
-                   X21        := Primitive2.x1;
-                   Y21        := Primitive2.y1;
-                   X22        := Primitive2.x2;
-                   Y22        := Primitive2.y2;
+                   X21        := Prim2.x1;
+                   Y21        := Prim2.y1;
+                   X22        := Prim2.x2;
+                   Y22        := Prim2.y2;
                 end
-                else if Primitive2.ObjectID = eArcObject then
+                else if Prim2.ObjectID = eArcObject then
                 begin
-                   X21        := Primitive2.StartX;
-                   Y21        := Primitive2.StartY1;
-                   X22        := Primitive2.EndX;
-                   Y22        := Primitive2.EndY;
+                   X21        := Prim2.StartX;
+                   Y21        := Prim2.StartY1;
+                   X22        := Prim2.EndX;
+                   Y22        := Prim2.EndY;
                 end;
 
-                if ((X11 = X21) and (Y11 = Y21)) or ((X11 = X22) and (Y11 = Y22)) then PlaceVia(Layer1, X11, Y11, FinalLayer, Primitive2.Net);
+                if ((X11 = X21) and (Y11 = Y21)) or ((X11 = X22) and (Y11 = Y22)) then PlaceVia(Layer1, X11, Y11, FinalLayer, Prim2.Net);
              end;
 
-             Primitive2 := BoardIterator.NextPCBObject;
+             Prim2 := BoardIterator.NextPCBObject;
           End;
           Board.SpatialIterator_Destroy(BoardIterator);
        end;
@@ -465,24 +549,24 @@ Begin
        BoardIterator.AddFilter_LayerSet(AllLayers);
        BoardIterator.AddFilter_Area(X12 - 1, Y12 - 1, X12 + 1, Y12 + 1);
 
-       Primitive2 := BoardIterator.FirstPCBObject;
-       While (Primitive2 <> Nil) Do
+       Prim2 := BoardIterator.FirstPCBObject;
+       While (Prim2 <> Nil) Do
        Begin
-          if Primitive2.InNet then
-             if (Primitive2.net.Name = NetName1) then
-                if ((X12 = Primitive2.x) and (Y12 = Primitive2.y)) then
-                   if Primitive2.ObjectID = eViaobject then
+          if Prim2.InNet then
+             if (Prim2.net.Name = NetName1) then
+                if ((X12 = Prim2.x) and (Y12 = Prim2.y)) then
+                   if Prim2.ObjectID = eViaobject then
                    begin
-                      ModifyVia(Primitive2);
+                      ModifyVia(Prim2);
                       Flag2 := 1;
                    end
                    else
                    begin
                       // if there is pad on multi layer - do nothing
-                      if Layer2String(Primitive2.Layer) = 'Multi Layer' then
+                      if Layer2String(Prim2.Layer) = 'Multi Layer' then
                          Flag2 := 1;
                    end;
-          Primitive2 := BoardIterator.NextPCBObject;
+          Prim2 := BoardIterator.NextPCBObject;
        End;
        Board.SpatialIterator_Destroy(BoardIterator);
 
@@ -496,34 +580,67 @@ Begin
           BoardIterator.AddFilter_LayerSet(MkSet(Layer1));
           BoardIterator.AddFilter_Area(X12 - 1, Y12 - 1, X12 + 1, Y12 + 1);
 
-          Primitive2 := BoardIterator.FirstPCBObject;
-          While (Primitive2 <> Nil) Do
+          Prim2 := BoardIterator.FirstPCBObject;
+          While (Prim2 <> Nil) Do
           Begin
-             if ((not Primitive2.Selected) and (Primitive2.net.Name = NetName1)) then
+             if ((not Prim2.Selected) and (Prim2.net.Name = NetName1)) then
              begin
-                If Primitive2.ObjectID = eTrackObject then
+                If Prim2.ObjectID = eTrackObject then
                 begin
-                   X21        := Primitive2.x1;
-                   Y21        := Primitive2.y1;
-                   X22        := Primitive2.x2;
-                   Y22        := Primitive2.y2;
+                   X21        := Prim2.x1;
+                   Y21        := Prim2.y1;
+                   X22        := Prim2.x2;
+                   Y22        := Prim2.y2;
                 end
-                else if Primitive2.ObjectID = eArcObject then
+                else if Prim2.ObjectID = eArcObject then
                 begin
-                   X21        := Primitive2.StartX;
-                   Y21        := Primitive2.StartY1;
-                   X22        := Primitive2.EndX;
-                   Y22        := Primitive2.EndY;
+                   X21        := Prim2.StartX;
+                   Y21        := Prim2.StartY1;
+                   X22        := Prim2.EndX;
+                   Y22        := Prim2.EndY;
                 end;
 
-                if ((X12 = X21) and (Y12 = Y21)) or ((X12 = X22) and (Y12 = Y22)) then PlaceVia(Layer1, X12, Y12, FinalLayer, Primitive2.Net);
+                if ((X12 = X21) and (Y12 = Y21)) or ((X12 = X22) and (Y12 = Y22)) then PlaceVia(Layer1, X12, Y12, FinalLayer, Prim2.Net);
 
              end;
 
-             Primitive2 := BoardIterator.NextPCBObject;
+             Prim2 := BoardIterator.NextPCBObject;
           End;
           Board.SpatialIterator_Destroy(BoardIterator);
        end;
+
+
+
+       Rectangle := Prim1.BoundingRectangle;
+
+       // We will remove all violations that are connected to the Prim1, using a simple trick :-)
+
+       Board.RemovePCBObject(Prim1);
+       Board.AddPCBObject(Prim1);
+
+       // Over here we will test this track and all other primitives on current layer for clearence violation
+
+       BoardIterator := Board.SpatialIterator_Create;
+       BoardIterator.AddFilter_IPCB_LayerSet(String2Layer(FinalLayer));
+       BoardIterator.AddFilter_ObjectSet(AllObjects);
+       BoardIterator.AddFilter_Area(Rectangle.Left - MaxWidth, Rectangle.Bottom - MaxWidth, Rectangle.Right + MaxWidth, Rectangle.Top + MaxWidth);
+
+       Prim2 := BoardIterator.FirstPCBObject;
+
+       while Prim2 <> Nil do
+       begin
+          Rule := Board.FindDominantRuleForObjectPair(Prim1, Prim2, eRule_Clearance);
+
+          if Rule <> nil then
+          begin
+             Board.AddPCBObject(Rule.ActualCheck(Prim1, Prim2));
+             Prim2.GraphicallyInvalidate;
+          end;
+
+          Prim2 := BoardIterator.NextPCBObject;
+       end;
+       Board.SpatialIterator_Destroy(BoardIterator);
+       Prim1.GraphicallyInvalidate;
     end;
     Board.ViewManager_FullUpdate;
     close;
@@ -546,16 +663,8 @@ end;
 {   Procedure that runs on create                                              }
 {                                                                              }
 {..............................................................................}
-procedure TMoveToLayer.MoveToLayerCreate(Sender: TObject);
+procedure TMoveToLayer.MoveToLayerShow(Sender: TObject);
 begin
-   // Get the board
-   Board := PCBServer.GetCurrentPCBBoard;
-   If Board = Nil Then Exit;
-
-   // Now we need to get the signal layers and populate comboBox
-   TheLayerStack := Board.LayerStack;
-    If TheLayerStack = Nil Then Exit;
-
     LayerObj := TheLayerStack.FirstLayer;
     LastLayerNum := 0;
     Repeat
@@ -578,3 +687,17 @@ begin
     ComboBoxLayer.Text := ComboBoxLayer.Items.Get(0);
 end;
 
+
+Procedure Start;
+begin  // Get the board
+   Board := PCBServer.GetCurrentPCBBoard;
+   If Board = Nil Then Exit;
+
+   // Now we need to get the signal layers and populate comboBox
+   TheLayerStack := Board.LayerStack;
+   If TheLayerStack = Nil Then Exit;
+
+   if Board.SelectecObjectCount = 0 then exit;
+
+   MoveToLayer.ShowModal;
+end;    

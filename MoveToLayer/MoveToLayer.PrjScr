@@ -29,6 +29,7 @@ NameNetsHierarchically=0
 PowerPortNamesTakePriority=0
 PushECOToAnnotationFile=1
 DItemRevisionGUID=
+ReportSuppressedErrorsInMessages=1
 
 [Document1]
 DocumentPath=MoveToLayer.pas
