@@ -1,4 +1,12 @@
+{..............................................................................}
+{ Summary   This script creates Thieving Pads to a PCB Document.               }
+{           Pads are added to dummy component, for easier manipulation.        }
+{                                                                              }
+{                                                                              }
+{ Created by:    Petar Perisin                                                 }
+{..............................................................................}
 
+{..............................................................................}
 var
    Board : IPCB_Board;
 
@@ -419,7 +427,7 @@ begin
    if not CheckBoxElectrical.Checked then Board.RemovePCBObject(RuleElectrical);
    if not CheckBoxOutline.Checked    then Board.RemovePCBObject(RuleOutline);
 
-   Board.ViewManager_GraphicallyInvalidatePrimitive(Comp);  
+   Board.ViewManager_GraphicallyInvalidatePrimitive(Comp);
 
    close;
 end;
