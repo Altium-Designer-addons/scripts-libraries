@@ -37,6 +37,29 @@ begin
 end;
 
 
+// Function that checks is string a float number or not
+function IsStringANum(Tekst : String) : Boolean;
+var
+   i : Integer;
+   dotCount : Integer;
+begin
+   Result := True;
+
+   // Test weather we have number, dot or comma
+   for i := 1 to Length(Tekst) do
+      if not(((ord(Tekst[i]) > 47) and (ord(Tekst[i]) < 58)) or (ord(Tekst[i]) = 44) or (ord(Tekst[i]) = 46)) then
+         Result := False;
+
+   // Test if we have more than one dot or comma
+   dotCount := 0;
+   for i := 1 to Length(Tekst) do
+      if ((ord(Tekst[i]) = 44) or (ord(Tekst[i]) = 46)) then
+         Inc(dotCount);
+
+   if dotCount > 1 then Result := False;
+end;
+
+
 //Calculate the hight of the true type text to best fit for Microsoft Sans Serif
 function CalculateSize (Size:Integer,S:String,TextLength:Integer):Integer;
 begin
@@ -600,6 +623,40 @@ end;
 
 
 
+procedure TFormAdjustDesignators.EditMinHeightChange(Sender: TObject);
+begin
+   if not IsStringANum(EditMinHeight.Text) then
+   begin
+      ButtonOK.Enabled := False;
+      EditMinHeight.Font.Color := clRed;
+   end
+   else
+   begin
+      EditMinHeight.Font.Color := clWindowText;
+      if IsStringANum(EditMaxHeight.Text) then
+         ButtonOK.Enabled := True;
+   end;
+end;
+
+
+
+procedure TFormAdjustDesignators.EditMaxHeightChange(Sender: TObject);
+begin
+   if not IsStringANum(EditMaxHeight.Text) then
+   begin
+      ButtonOK.Enabled := False;
+      EditMaxHeight.Font.Color := clRed;
+   end
+   else
+   begin
+      EditMaxHeight.Font.Color := clWindowText;
+      if IsStringANum(EditMinHeight.Text) then
+         ButtonOK.Enabled := True;
+   end;
+end;
+
+
+
 Procedure Start;
 begin
    Board := PCBServer.GetCurrentPCBBoard;
@@ -610,6 +667,3 @@ begin
 
    FormAdjustDesignators.ShowModal;
 end;
-
-
-
