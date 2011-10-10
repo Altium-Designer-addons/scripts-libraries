@@ -48,7 +48,7 @@ begin
    else
    begin
       EditOutline.Font.Color := clWindowText;
-      if (IsStringANum(EditBetween.Text) and (IsStringANum(EditElectrical.Text)) and (IsStringANum(EditSize.Text))) then
+      if (IsStringANum(EditBetween.Text) and IsStringANum(EditElectrical.Text) and IsStringANum(EditSize.Text)) then
          ButtonOK.Enabled := True;
    end;
 end;
@@ -65,7 +65,7 @@ begin
    else
    begin
       EditBetween.Font.Color := clWindowText;
-      if (IsStringANum(EditBetween.Text) and (IsStringANum(EditOutline.Text)) and (IsStringANum(EditSize.Text))) then
+      if (IsStringANum(EditBetween.Text) and IsStringANum(EditOutline.Text) and IsStringANum(EditSize.Text)) then
          ButtonOK.Enabled := True;
    end;
 end;
@@ -82,7 +82,7 @@ begin
    else
    begin
       EditElectrical.Font.Color := clWindowText;
-      if (IsStringANum(EditOutline.Text) and (IsStringANum(EditElectrical.Text)) and (IsStringANum(EditSize.Text))) then
+      if (IsStringANum(EditOutline.Text) and IsStringANum(EditElectrical.Text) and IsStringANum(EditSize.Text)) then
          ButtonOK.Enabled := True;
    end;
 end;
@@ -99,7 +99,7 @@ begin
    else
    begin
       EditSize.Font.Color := clWindowText;
-      if (IsStringANum(EditOutline.Text) and (IsStringANum(EditElectrical.Text)) and (IsStringANum(EditBetween.Text))) then
+      if (IsStringANum(EditOutline.Text) and IsStringANum(EditElectrical.Text) and IsStringANum(EditBetween.Text)) then
          ButtonOK.Enabled := True;
    end;
 end;
@@ -146,6 +146,7 @@ var
    RuleOutline    : IPCB_ClearanceConstraint;
    RuleElectrical : IPCB_ClearanceConstraint;
    RuleBetween    : IPCB_ClearanceConstraint;
+   RuleCompClear  : IPCB_ComponentClearanceConstraint;
 
    MaxGap         : Integer;
    PadRect        : TCoordRect;
@@ -174,7 +175,7 @@ begin
    If Comp = Nil Then Exit;
 
    // Set the reference point of the Component
-   if (Board.XOrigin <> 0) and (Board.YOrigin <> 0) then
+   if (Board.XOrigin > BoardShapeRect.Left) and (Board.YOrigin > BoardShapeRect.Bottom) then
    begin
       Comp.X := Board.XOrigin;
       Comp.Y := Board.YOrigin;
@@ -186,6 +187,8 @@ begin
    end;
 
    Comp.Layer := eTopLayer;
+   Comp.PrimitiveLock := False;
+   Comp.Moveable := False;
 
    // Make the designator text visible;
    Comp.NameOn       := False;
@@ -216,6 +219,7 @@ begin
    RuleOutline    := Nil;
    RuleElectrical := Nil;
    RuleBetween    := Nil;
+   RuleCompClear  := Nil;
 
    While (Rule <> Nil) Do
    Begin
@@ -231,36 +235,15 @@ begin
 
        end;
 
+       if Rule.RuleKind = eRule_ComponentClearance then
+          if (Rule.Scope1Expression = 'InComponent(''Venting'')') and (Rule.Scope2Expression = 'All') then
+             RuleCompClear := Rule;
+
        Rule :=  Iterator.NextPCBObject;
    End;
    Board.BoardIterator_Destroy(Iterator);
 
-   if RuleBetween = Nil then
-   begin
-      RuleBetween := PCBServer.PCBRuleFactory(eRule_Clearance);
-
-      // Set values
-      RuleBetween.Scope1Expression := 'InComponent(''Venting'')';
-      RuleBetween.Scope2Expression := 'InComponent(''Venting'')';
-
-      RuleBetween.NetScope  := eNetScope_AnyNet;
-
-      if RadioButtonMM.Checked then RuleBetween.Gap := MMsToCoord(StrToFloat(EditBetween.Text))
-      else                          RuleBetween.Gap := MilsToCoord(StrToFloat(EditBetween.Text));
-
-      RuleBetween.Name    := 'Venting';
-      RuleBetween.Comment := 'Clearance between Venting Pads';
-
-      // Add the rule into the Board
-      Board.AddPCBObject(RuleBetween);
-
-   end
-   else
-   begin
-      if RadioButtonMM.Checked then RuleBetween.Gap := MMsToCoord(StrToFloat(EditBetween.Text))
-      else                          RuleBetween.Gap := MilsToCoord(StrToFloat(EditBetween.Text));
-   end;
-
+   // Check rule to outline
    if RuleOutline = Nil then
    begin
       RuleOutline := PCBServer.PCBRuleFactory(eRule_Clearance);
@@ -287,6 +270,7 @@ begin
       else                          RuleOutline.Gap := MilsToCoord(StrToFloat(EditOutline.Text));
    end;
 
+   // Check rule to other electrical objects
    if RuleElectrical = Nil then
    begin
       RuleElectrical := PCBServer.PCBRuleFactory(eRule_Clearance);
@@ -312,6 +296,61 @@ begin
       if RadioButtonMM.Checked then RuleElectrical.Gap := MMsToCoord(StrToFloat(EditElectrical.Text))
       else                          RuleElectrical.Gap := MilsToCoord(StrToFloat(EditElectrical.Text));
    end;
+
+   // Check rule between pads
+   if RuleBetween = Nil then
+   begin
+      RuleBetween := PCBServer.PCBRuleFactory(eRule_Clearance);
+
+      // Set values
+      RuleBetween.Scope1Expression := 'InComponent(''Venting'')';
+      RuleBetween.Scope2Expression := 'InComponent(''Venting'')';
+
+      RuleBetween.NetScope  := eNetScope_AnyNet;
+
+      if RadioButtonMM.Checked then RuleBetween.Gap := MMsToCoord(StrToFloat(EditBetween.Text))
+      else                          RuleBetween.Gap := MilsToCoord(StrToFloat(EditBetween.Text));
+
+      RuleBetween.Name    := 'Venting-Internal';
+      RuleBetween.Comment := 'Clearance between Venting Pads';
+
+      // Add the rule into the Board
+      Board.AddPCBObject(RuleBetween);
+
+   end
+   else
+   begin
+      if RadioButtonMM.Checked then RuleBetween.Gap := MMsToCoord(StrToFloat(EditBetween.Text))
+      else                          RuleBetween.Gap := MilsToCoord(StrToFloat(EditBetween.Text));
+   end;
+
+   // Check component clearence rule
+   if CheckBoxCompClearRule.Checked then
+      if RuleCompClear = Nil then
+      begin
+         RuleCompClear := PCBServer.PCBRuleFactory(eRule_ComponentClearance);
+
+         // Set values
+         RuleCompClear.Scope1Expression := 'InComponent(''Venting'')';
+         RuleCompClear.Scope2Expression := 'All';
+
+         RuleCompClear.NetScope := eNetScope_AnyNet;
+
+         RuleCompClear.Gap         := 0;
+         RuleCompClear.VerticalGap := 0;
+
+         RuleCompClear.Name     := 'Venting-Comp';
+         RuleCompClear.Comment  := 'Clearance between "Venting" Component and other Components';
+
+         // Add the rule into the Board
+         Board.AddPCBObject(RuleCompClear);
+
+      end
+      else
+      begin
+         RuleCompClear.Gap         := 0;
+         RuleCompClear.VerticalGap := 0;
+      end;
 
    // We will save MaxGap value for further testing
    if RuleElectrical.Gap > RuleOutline.Gap then MaxGap := RuleElectrical.Gap
@@ -349,11 +388,11 @@ begin
                         NewPad.X    := PosX;
                         NewPad.Y    := PosY;
 
-                        if RadioButtonMM.Checked then NewPad.TopXSize := MMsToCoord(EditSize.Text)
-                        else                          NewPad.TopXSize := MilsToCoord(EditSize.Text);
+                        if RadioButtonMM.Checked then NewPad.TopXSize := MMsToCoord(StrToFloat(EditSize.Text))
+                        else                          NewPad.TopXSize := MilsToCoord(StrToFloat(EditSize.Text));
 
-                        if RadioButtonMM.Checked then NewPad.TopYSize := MMsToCoord(EditSize.Text)
-                        else                          NewPad.TopYSize := MilsToCoord(EditSize.Text);
+                        if RadioButtonMM.Checked then NewPad.TopYSize := MMsToCoord(StrToFloat(EditSize.Text))
+                        else                          NewPad.TopYSize := MilsToCoord(StrToFloat(EditSize.Text));
 
                         NewPad.TopShape  := eRounded;
                         NewPad.HoleSize  := 0;
@@ -427,7 +466,13 @@ begin
    if not CheckBoxElectrical.Checked then Board.RemovePCBObject(RuleElectrical);
    if not CheckBoxOutline.Checked    then Board.RemovePCBObject(RuleOutline);
 
+   Comp.PrimitiveLock := False;
+   Comp.Moveable := False;
    Board.ViewManager_GraphicallyInvalidatePrimitive(Comp);
+
+   ResetParameters;
+   AddStringParameter('Action', 'Redraw');
+   RunProcess('PCB:Zoom');
 
    close;
 end;

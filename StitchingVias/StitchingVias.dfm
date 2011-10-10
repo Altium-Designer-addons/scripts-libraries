@@ -1,8 +1,8 @@
-object ThievingPads: TThievingPads
+object StitchingVias: TStitchingVias
   Left = 32
   Top = 18
   Caption = 'Thieving Pads'
-  ClientHeight = 393
+  ClientHeight = 400
   ClientWidth = 289
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -11,11 +11,12 @@ object ThievingPads: TThievingPads
   Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
+  OnShow = StitchingViasShow
   PixelsPerInch = 96
   TextHeight = 13
   object ButtonOK: TButton
-    Left = 112
-    Top = 360
+    Left = 120
+    Top = 368
     Width = 75
     Height = 25
     Caption = 'OK'
@@ -24,8 +25,8 @@ object ThievingPads: TThievingPads
     OnClick = ButtonOKClick
   end
   object ButtonCancel: TButton
-    Left = 200
-    Top = 360
+    Left = 208
+    Top = 368
     Width = 75
     Height = 25
     Caption = 'Cancel'
@@ -34,7 +35,7 @@ object ThievingPads: TThievingPads
   end
   object GroupBoxDistances: TGroupBox
     Left = 8
-    Top = 176
+    Top = 184
     Width = 272
     Height = 96
     Caption = 'Distances:'
@@ -49,9 +50,9 @@ object ThievingPads: TThievingPads
     object Label2: TLabel
       Left = 16
       Top = 19
-      Width = 72
+      Width = 68
       Height = 13
-      Caption = 'Between Pads:'
+      Caption = 'Between Vias:'
     end
     object Label3: TLabel
       Left = 16
@@ -84,7 +85,6 @@ object ThievingPads: TThievingPads
       Top = 40
       Width = 40
       Height = 21
-      Enabled = False
       TabOrder = 1
       Text = '0.5'
       OnChange = EditElectricalChange
@@ -97,7 +97,7 @@ object ThievingPads: TThievingPads
       Caption = 'Create Rule'
       Checked = True
       State = cbChecked
-      TabOrder = 3
+      TabOrder = 5
     end
     object CheckBoxBetween: TCheckBox
       Left = 184
@@ -107,7 +107,7 @@ object ThievingPads: TThievingPads
       Caption = 'Create Rule'
       Checked = True
       State = cbChecked
-      TabOrder = 4
+      TabOrder = 3
     end
     object CheckBoxElectrical: TCheckBox
       Left = 184
@@ -116,9 +116,8 @@ object ThievingPads: TThievingPads
       Height = 17
       Caption = 'Create Rule'
       Checked = True
-      Enabled = False
       State = cbChecked
-      TabOrder = 5
+      TabOrder = 4
     end
   end
   object GroupBoxOptions: TGroupBox
@@ -128,117 +127,122 @@ object ThievingPads: TThievingPads
     Height = 168
     Caption = 'Options:'
     TabOrder = 0
-    object Label4: TLabel
-      Left = 16
-      Top = 126
-      Width = 28
-      Height = 13
-      Caption = 'Units:'
-    end
     object Label9: TLabel
       Left = 16
-      Top = 101
-      Width = 44
+      Top = 20
+      Width = 72
       Height = 13
-      Caption = 'Pad Size:'
+      Caption = 'Size / Hole Size'
     end
-    object Label10: TLabel
+    object Label5: TLabel
       Left = 16
-      Top = 146
-      Width = 36
+      Top = 47
+      Width = 51
       Height = 13
-      Caption = 'Layers:'
+      Caption = 'Net Name:'
     end
-    object CheckBoxObjectsOutside: TCheckBox
-      Left = 16
-      Top = 48
-      Width = 192
-      Height = 17
-      Caption = 'Place Thieving Pads Outside Board'
-      Checked = True
-      State = cbChecked
-      TabOrder = 0
-    end
-    object CheckBoxObjectsInside: TCheckBox
-      Left = 16
-      Top = 72
-      Width = 192
-      Height = 17
-      Caption = 'Place Thieving Pads Inside Board'
-      TabOrder = 1
-      OnClick = CheckBoxObjectsInsideClick
-    end
-    object RadioButtonmm: TRadioButton
-      Left = 72
-      Top = 124
-      Width = 32
-      Height = 17
-      Caption = 'mm'
-      Checked = True
-      TabOrder = 2
-      TabStop = True
-    end
-    object RadioButtonmil: TRadioButton
-      Left = 120
-      Top = 124
-      Width = 32
-      Height = 17
-      Caption = 'mil'
-      TabOrder = 3
+    object Label4: TLabel
+      Left = 142
+      Top = 20
+      Width = 4
+      Height = 13
+      Caption = '/'
     end
     object EditSize: TEdit
-      Left = 72
-      Top = 99
+      Left = 104
+      Top = 17
       Width = 32
       Height = 21
-      TabOrder = 4
+      TabOrder = 0
       Text = '2'
       OnChange = EditSizeChange
     end
-    object CheckBoxTop: TCheckBox
-      Left = 72
-      Top = 144
-      Width = 40
+    object EditHoleSize: TEdit
+      Left = 152
+      Top = 17
+      Width = 32
+      Height = 21
+      TabOrder = 1
+      Text = '1'
+      OnChange = EditHoleSizeChange
+    end
+    object ComboBoxNets: TComboBox
+      Left = 80
+      Top = 44
+      Width = 105
+      Height = 21
+      TabOrder = 2
+    end
+    object CheckBoxViaStyleRule: TCheckBox
+      Left = 16
+      Top = 72
+      Width = 208
       Height = 17
-      Caption = 'Top'
+      Caption = 'Create/modify "Routing Via Style" Rule'
+      Checked = True
+      State = cbChecked
+      TabOrder = 3
+    end
+    object CheckBoxPlaneConnRule: TCheckBox
+      Left = 16
+      Top = 96
+      Width = 248
+      Height = 17
+      Caption = 'Create/modify "Power Plane Connect Style" Rule'
+      Checked = True
+      State = cbChecked
+      TabOrder = 4
+    end
+    object CheckBoxCompClearRule: TCheckBox
+      Left = 16
+      Top = 144
+      Width = 232
+      Height = 17
+      Caption = 'Create/modify "Component Clearence" Rule'
       Checked = True
       State = cbChecked
       TabOrder = 5
     end
-    object CheckBoxMid: TCheckBox
-      Left = 120
-      Top = 144
-      Width = 40
-      Height = 17
-      Caption = 'Mid'
-      Checked = True
-      State = cbChecked
+    object GroupBoxUnits: TGroupBox
+      Left = 200
+      Top = 8
+      Width = 64
+      Height = 56
+      Caption = 'Units'
       TabOrder = 6
+      object RadioButtonmm: TRadioButton
+        Left = 9
+        Top = 16
+        Width = 32
+        Height = 17
+        Caption = 'mm'
+        Checked = True
+        TabOrder = 0
+        TabStop = True
+      end
+      object RadioButtonmil: TRadioButton
+        Left = 9
+        Top = 32
+        Width = 32
+        Height = 17
+        Caption = 'mil'
+        TabOrder = 1
+      end
     end
-    object CheckBoxBottom: TCheckBox
-      Left = 168
-      Top = 144
-      Width = 56
+    object CheckBoxPolyConnRule: TCheckBox
+      Left = 16
+      Top = 120
+      Width = 240
       Height = 17
-      Caption = 'Bottom'
+      Caption = 'Create/modify "Polygon Connect Style" Rule'
       Checked = True
       State = cbChecked
       TabOrder = 7
     end
-    object CheckBoxCompClearRule: TCheckBox
-      Left = 16
-      Top = 24
-      Width = 192
-      Height = 17
-      Caption = 'Create Component Clearence Rule'
-      Checked = True
-      State = cbChecked
-      TabOrder = 8
-    end
   end
   object GroupBoxNote: TGroupBox
     Left = 8
-    Top = 280
+    Top = 288
     Width = 272
     Height = 72
     Caption = 'Note:'
