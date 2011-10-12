@@ -65,7 +65,7 @@ begin
    else
    begin
       EditBetween.Font.Color := clWindowText;
-      if (IsStringANum(EditBetween.Text) and IsStringANum(EditOutline.Text) and IsStringANum(EditSize.Text) and IsStringANum(EditHoleSize.Text)) then
+      if (IsStringANum(EditElectrical.Text) and IsStringANum(EditOutline.Text) and IsStringANum(EditSize.Text) and IsStringANum(EditHoleSize.Text)) then
          ButtonOK.Enabled := True;
    end;
 end;
@@ -82,7 +82,7 @@ begin
    else
    begin
       EditElectrical.Font.Color := clWindowText;
-      if (IsStringANum(EditOutline.Text) and IsStringANum(EditElectrical.Text) and IsStringANum(EditSize.Text) and IsStringANum(EditHoleSize.Text)) then
+      if (IsStringANum(EditOutline.Text) and IsStringANum(EditBetween.Text) and IsStringANum(EditSize.Text) and IsStringANum(EditHoleSize.Text)) then
          ButtonOK.Enabled := True;
    end;
 end;
@@ -116,7 +116,7 @@ begin
    else
    begin
       EditSize.Font.Color := clWindowText;
-      if (IsStringANum(EditOutline.Text) and IsStringANum(EditElectrical.Text) and IsStringANum(EditBetween.Text) and IsStringANum(EditHoleSize.Text)) then
+      if (IsStringANum(EditOutline.Text) and IsStringANum(EditElectrical.Text) and IsStringANum(EditBetween.Text) and IsStringANum(EditSize.Text)) then
          ButtonOK.Enabled := True;
    end;
 end;
