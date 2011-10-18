@@ -1,5 +1,5 @@
 {..............................................................................}
-{ Summary   This script Trims or extends many destination tracks to the first  }
+{ Summary   This script Trims or Extends many tracks to the first              }
 {           (Destination) track that was selected. It is popular AutoCAD       }
 {           function available in many 3D tools.                               }
 {                                                                              }
@@ -7,7 +7,7 @@
 {..............................................................................}
 
 {..............................................................................}
-Procedure Extend;
+Procedure TrimExtend;
 Var
 
     Board            : IPCB_Board;
@@ -27,17 +27,23 @@ Begin
    Board := PCBServer.GetCurrentPCBBoard;
    If Board = Nil Then Exit;
 
+
    while True do
    begin
 
-      DestinTrack := Board.GetObjectAtCursor(MkSet(eTrackObject), MkSet(Board.CurrentLayer), 'Select Destination Track');
+      DestinTrack := Board.GetObjectAtCursor(MkSet(eTrackObject), Mkset(Board.CurrentLayer), 'Select Destination Track');
       if DestinTrack = nil then exit;
 
       While True do
       begin
 
-         Track2Modify := Board.GetObjectAtCursor(MkSet(eTrackObject), MkSet(Board.CurrentLayer), 'Select Tracks to Extend');
+         Track2Modify := Board.GetObjectAtCursor(MkSet(eTrackObject), Mkset(Board.CurrentLayer), 'Select Tracks to Extend');
          if Track2Modify = nil then break;
+
+         PCBServer.PreProcess;
+         Track2Modify.BeginModify;
+
+         Board.NewUndo;
 
          // Get the cursor location - used for trim, when lines cross over
          CursorX := Board.XCursor;
@@ -252,6 +258,11 @@ Begin
             end;
          end;
          Track2Modify.GraphicallyInvalidate;
+
+         Board.NewUndo();
+         Track2Modify.EndModify;
+         Board.DispatchMessage(Board.I_ObjectAddress, c_Broadcast, PCBM_BoardRegisteration, Track2Modify.I_ObjectAddress);
+         PCBServer.PostProcess;
       end;
    end;
 end;
