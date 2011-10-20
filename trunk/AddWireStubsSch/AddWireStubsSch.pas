@@ -24,8 +24,7 @@
 {-                directions separately                                       -}
 {-                                                                            -}
 {-  Known issues:                                                             -}
-{-     - created net labels with non zero rotation are not displayed in       -}
-{-       way, close and open cycle of schematic sheet is required             -}
+{-     - created net labels can not be rotatet with space.                    -}
 {-                                                                            -}
 {-     ---  Please report script issues to Petr.Tosovsky@edatools.cz   ---    -}
 {-                                                                            -}
