@@ -107,10 +107,24 @@ Begin
     SchNetlabel := SchServer.SchObjectFactory(eNetlabel,eCreate_GlobalCopy);
     If SchNetlabel = Nil Then Exit;
 
-    SchNetlabel.Location    := Point(MilsToCoord(X), MilsToCoord(Y));
-    SchNetlabel.Orientation := Rotate;
+    SchDoc.AddSchObject(SchNetlabel);
+
     SchNetlabel.Text        := Text;
-    SchDoc.RegisterSchObjectInContainer(SchNetlabel);
+
+    SchServer.RobotManager.SendMessage(SchNetlabel.I_ObjectAddress, c_BroadCast, SCHM_BeginModify, c_NoEventData);
+
+
+    SchNetlabel.MoveToXY(MilsToCoord(X), MilsToCoord(Y));
+    SchNetlabel.RotateBy90(Point(MilsToCoord(X), MilsToCoord(Y)), Rotate);
+
+    SchNetlabel.SetState_xSizeySize;
+
+    SchServer.RobotManager.SendMessage(SchNetlabel.I_ObjectAddress, c_BroadCast, SCHM_EndModify, c_NoEventData);
+
+    SchServer.RobotManager.SendMessage(SchDoc.I_ObjectAddress,c_BroadCast,
+           SCHM_PrimitiveRegistration,SchNetlabel.I_ObjectAddress);
+
+    SchNetlabel.GraphicallyInvalidate;
 End;
 {..............................................................................}
 
