@@ -54,13 +54,14 @@ var
 
     a, b          : Integer;
 begin
+   PCBServer.PreProcess;
    For a := 0 to Board.SelectecObjectCount - 1 do
    begin
       FirstTrack := Board.SelectecObject[a];
       for b := 0 to Board.SelectecObjectCount - 1 do
       begin
          SecondTrack := Board.SelectecObject[b];
-         if (SecondTrack.I_ObjectAddress <> FirstTrack.I_ObjectAddress) and
+         if (FirstTrack.ObjectId = eTrackObject) and (SecondTrack.ObjectId = eTrackObject) and (a <> b) and
          (SecondTrack.Layer = FirstTrack.Layer) and (
          ((SecondTrack.x1 = FirstTrack.x1) and (SecondTrack.y1 = FirstTrack.y1)) or
          ((SecondTrack.x2 = FirstTrack.x1) and (SecondTrack.y2 = FirstTrack.y1)) or
@@ -269,6 +270,7 @@ begin
 
                   // Count radius - I have no idea why
 
+
                   Arc := PCBServer.PCBObjectFactory(eArcObject, eNoDimension, eCreate_Default);
                   Arc.XCenter    := Int(Xc);
                   Arc.YCenter    := Int(Yc);
@@ -281,16 +283,31 @@ begin
                   Board.AddPCBObject(Arc);
                   Arc.Selected   := False;
 
-                  // Check weather we need to delete some tracks
-                  If ScrollBarPerc.Position = 100 then
-                  begin
-                     if ((FirstTrack.x1 = FirstTrack.x2)   and (FirstTrack.y1 = FirstTrack.y2))   then Board.RemovePCBObject(FirstTrack);
-                     if ((SecondTrack.x1 = SecondTrack.x2) and (SecondTrack.y1 = SecondTrack.y2)) then Board.RemovePCBObject(SecondTrack);
-                  end;
+                  Board.DispatchMessage(Board.I_ObjectAddress, c_Broadcast, PCBM_BoardRegisteration, FirstTrack.I_ObjectAddress);
+                  Board.DispatchMessage(Board.I_ObjectAddress, c_Broadcast, PCBM_BoardRegisteration, SecondTrack.I_ObjectAddress);
+                  Board.DispatchMessage(Board.I_ObjectAddress, c_Broadcast, PCBM_BoardRegisteration, Arc.I_ObjectAddress);
+
             end;
          end;
       end;
    end;
+
+   PCBServer.PostProcess;
+
+   RadiusList.Clear;
+
+   If ScrollBarPerc.Position = 100 then
+   begin
+      for i := 0 to Board.SelectecObjectCount - 1 do
+      begin
+         FirstTrack := Board.SelectecObject[i];
+         if ((FirstTrack.x1 = FirstTrack.x2) and (FirstTrack.y1 = FirstTrack.y2)) then RadiusList.AddObject(FirstTrack.I_ObjectAddress, FirstTrack);
+      end;
+
+      for i := 0 to Radiuslist.Count - 1 do
+         Board.RemovePCBObject(RadiusList.GetObject(i));
+   end;
+
    
    ResetParameters;
    AddStringParameter('Scope', 'All');
@@ -332,18 +349,17 @@ begin
     for i := 0 to Board.SelectecObjectCount - 1 do
     begin
        Track := Board.SelectecObject[i];
+       (*
        if Track.ObjectID <> eTrackObject then
        begin
           showMessage('Select only Tracks');
           exit;
-       end
-       else
-       begin
-          Leng := Int(sqrt(sqr(Track.x2 - Track.x1) + sqr(Track.y2 - Track.y1)) * 0.5);
-          RadiusList.Add(IntToStr(Track.I_ObjectAddress) + ';' + IntToStr(Leng));
+       end;  *)
 
-          flag := 1;
-       end;
+       Leng := Int(sqrt(sqr(Track.x2 - Track.x1) + sqr(Track.y2 - Track.y1)) * 0.5);
+       RadiusList.Add(IntToStr(Track.I_ObjectAddress) + ';' + IntToStr(Leng));
+
+       flag := 1;
     end;
 
     If flag = 0 then
@@ -352,11 +368,15 @@ begin
        exit;
     end;
 
-    MinDistance := sqrt(sqr(Board.SelectecObject[0].x1 - Board.SelectecObject[0].x2) + sqr(Board.SelectecObject[0].y1 - Board.SelectecObject[0].y2));
+    MinDistance := -1;
     for i := 1 to Board.SelectecObjectCount - 1 do
     begin
-       Distance := sqrt(sqr(Board.SelectecObject[0].x1 - Board.SelectecObject[0].x2) + sqr(Board.SelectecObject[0].y1 - Board.SelectecObject[0].y2));
-       if Distance < Mindistance then Mindistance := Distance;
+       if Track.ObjectID <> eTrackObject then
+       begin
+          Distance := sqrt(sqr(Board.SelectecObject[i].x1 - Board.SelectecObject[i].x2) + sqr(Board.SelectecObject[i].y1 - Board.SelectecObject[i].y2));
+
+          if (Distance < Mindistance) or (MinDistance = -1) then Mindistance := Distance;
+       end
     end;
 
     Mindistance := MinDistance / 2;
