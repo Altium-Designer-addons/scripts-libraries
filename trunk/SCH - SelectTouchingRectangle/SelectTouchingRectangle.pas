@@ -14,7 +14,7 @@ Function Start;
 var
    CurrentSheet    : ISch_Document;
    SpatialIterator : ISch_Iterator;
-   Obj             : TObject;
+   Obj             : ISCH_BasicContainer;
    Rect            : TCoordRect;
    boolRect        : bool;
 begin
