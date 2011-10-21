@@ -17,9 +17,7 @@
 {             should catch it. This is very rare case.                         }
 {           - If you use import, have only wire stub + Netlabel connected to   }
 {             your component. if you use DiffPair directives, please place     }
-{             then on wire stubs next to ports, not next to component pins.    }
-{           - Netlabels that are placed have issues. If you try to move them   }
-{             you will not be able to use space to rotate them. Don't know why.}
+{             then on wire stubs next to ports, not next to component pins.    }  
 {                                                                              }
 {                                                                              }
 { Created by:    Petar Perisin                                                 }

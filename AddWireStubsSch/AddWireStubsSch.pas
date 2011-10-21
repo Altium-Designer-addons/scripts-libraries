@@ -23,8 +23,6 @@
 {-  LabelOffset - offset of new net labels from pin in up, down, left, right  -}
 {-                directions separately                                       -}
 {-                                                                            -}
-{-  Known issues:                                                             -}
-{-     - created net labels can not be rotatet with space.                    -}
 {-                                                                            -}
 {-     ---  Please report script issues to Petr.Tosovsky@edatools.cz   ---    -}
 {-                                                                            -}
