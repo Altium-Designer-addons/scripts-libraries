@@ -178,6 +178,8 @@ Begin
                 'Until then your PCB file will have *.hyp extension in Altium'#13#10 +
                 'Click OK to continue.');
 
+    Screen.Cursor := crHourGlass;
+
     if Doc <> nil then
     begin
       Doc.SetFileName(SaveAs);
@@ -2806,4 +2808,6 @@ Begin
     // Saving "hypFile" StringList to file
     hypFile.SaveToFile(SaveAs);
     if Doc <> nil then Doc.SetFileName(FileName);
+
+    Screen.Cursor          := crArrow; 
 end;
