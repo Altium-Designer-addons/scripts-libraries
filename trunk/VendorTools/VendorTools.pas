@@ -17,7 +17,9 @@
 {             should catch it. This is very rare case.                         }
 {           - If you use import, have only wire stub + Netlabel connected to   }
 {             your component. if you use DiffPair directives, please place     }
-{             then on wire stubs next to ports, not next to component pins.    }  
+{             then on wire stubs next to ports, not next to component pins.    }
+{           - Netlabels that are placed have issues. If you try to move them   }
+{             you will not be able to use space to rotate them. Don't know why.}
 {                                                                              }
 {                                                                              }
 { Created by:    Petar Perisin                                                 }
@@ -378,7 +380,7 @@ var
 begin
    Lista := TStringList.Create;
    // set_location_assignment -to "ADC_CAL" PIN_F29
-   PinInfo.SaveToFile('C:\Users\Petar\Desktop\Report3.Txt');
+   // PinInfo.SaveToFile('C:\Report.Txt');
 
    for i := 0 to PinInfo.Count - 1 do
    begin
