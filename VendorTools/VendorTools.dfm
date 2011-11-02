@@ -116,8 +116,9 @@ object VendorToolsForm: TVendorToolsForm
       Top = 56
       Width = 41
       Height = 21
+      Enabled = False
       TabOrder = 2
-      Text = '10'
+      Text = '5'
     end
   end
   object ButtonCancel: TButton
