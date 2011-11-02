@@ -21,7 +21,7 @@ procedure LR_Justify;
     //Find the bloody selections
       iterator := sk.schIterator_Create;
       iterator.SetState_FilterAll;
-      iterator.AddFilter_ObjectSet(mkSet(eDesignator,eParameter));
+      iterator.AddFilter_ObjectSet(mkSet(eDesignator,eParameter,eLabel,eNetLabel));
       txt := iterator.FirstSCHObject;
 
     //Choose Text Object

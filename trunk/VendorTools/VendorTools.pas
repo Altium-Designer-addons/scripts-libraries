@@ -15,11 +15,6 @@
 {             maybe script will not be able to remove positioned netlabel.     }
 {             But anyway, this netlabel will always be floating, so ERC        }
 {             should catch it. This is very rare case.                         }
-{           - If you use import, have only wire stub + Netlabel connected to   }
-{             your component. if you use DiffPair directives, please place     }
-{             then on wire stubs next to ports, not next to component pins.    }
-{           - Netlabels that are placed have issues. If you try to move them   }
-{             you will not be able to use space to rotate them. Don't know why.}
 {                                                                              }
 {                                                                              }
 { Created by:    Petar Perisin                                                 }
@@ -208,8 +203,8 @@ Begin
 
    if (Temp[Len - 1] = '_')then
    begin
-      if      (Temp[Len] = 'P') then Result := 'Positive'
-      else if (Temp[Len] = 'N') then Result := 'Negative';
+      if      (Temp[Len] = 'P') or (Temp[Len] = 'p') then Result := 'Positive'
+      else if (Temp[Len] = 'N') or (Temp[Len] = 'n') then Result := 'Negative';
    end;
 end;
 
@@ -513,30 +508,34 @@ end;
 
 procedure TVendorToolsForm.ButtonOKClick(Sender: TObject);
 var
-   i, j      : Integer;
-   Component : IComponent;
-   Part      : IPart;
+   i, j       : Integer;
+   Component  : IComponent;
+   Part       : IPart;
 
-   Iterator  : ISCH_Iterator;
-   CompItr   : ISCH_Iterator;
-   Comp      : ISCH_Component;
-   Pin       : ISCH_Pin;
+   Iterator   : ISCH_Iterator;
+   CompItr    : ISCH_Iterator;
+   Comp       : ISCH_Component;
+   Pin        : ISCH_Pin;
 
-   NetItr    : ISCH_Iterator;
+   NetItr     : ISCH_Iterator;
 
-   NetLabel  : ISCH_NetLabel;
-   Templabel : ISCH_NetLabel;
+   NetLabel   : ISCH_NetLabel;
+   Templabel  : ISCH_NetLabel;
 
-   Wire      : ISCH_Wire;
-   Tempwire  : ISCH_Wire;
-   X1, Y1    : Integer;
-   X2, Y2    : Integer;
+   Wire       : ISCH_Wire;
+   Tempwire   : ISCH_Wire;
+   X1, Y1     : Integer;
+   X2, Y2     : Integer;
 
-   WireSize  : Integer;
-   GridSize  : Integer;
+   WireSize   : Integer;
+   GridSize   : Integer;
 
-   NoErc     : ISch_NoERC;
-   TempNoERC : ISch_NoERC;
+   NoErc      : ISch_NoERC;
+   TempNoERC  : ISch_NoERC;
+
+   DiffPairDirective : ISCH_ParameterSet;
+   TempDirective     : ISCH_ParameterSet;
+   DiffPairParameter : ISCH_Parameter;
 
 begin
 
@@ -563,7 +562,7 @@ begin
 
    // We create PinInfo StringList
    PinInfo := TSTringList.Create;
-                  
+
    if RadioButtonImport.Checked then
    begin
       // Here we are importing info to PinInfo StringList
@@ -584,7 +583,12 @@ begin
          // We need to find sch document this part is on
          SchDoc   := SCHServer.GetSchDocumentByPath(Part.DM_OwnerDocumentFullPath);
          GridSize := MilsToCoord(SchDoc.VisibleGridSize / cInternalPrecision);
-         WireSize := StrToInt(EditLength.Text) * GridSize;
+
+         // WireSize := StrToInt(EditLength.Text) * GridSize;
+         // Old wire size
+
+         // Now wire size will always be 5 * grid size
+         WireSize := 5 * GridSize;
 
          SchServer.ProcessControl.PreProcess(SchDoc, '');
 
@@ -697,7 +701,7 @@ begin
                                        SCHM_PrimitiveRegistration,Wire.I_ObjectAddress);
 
 
-                             // now the net label
+                             // now the net label - delete old one
                              try
 
                                 NetItr := SchDoc.SchIterator_Create;
@@ -713,12 +717,12 @@ begin
 
                                    if (Pin.Orientation = eRotate0) or (Pin.Orientation = eRotate180) then
                                    begin
-                                      if Pin.Location.Y = NetLabel.Location.Y then
+                                      if (NetLabel.Location.Y = Y1) and (NetLabel.Location.X >= X1) and (NetLabel.Location.X <= X2) then
                                          TempLabel := NetLabel;
                                    end
                                    else
                                    begin
-                                      if Pin.Location.X = NetLabel.Location.X then
+                                      if (NetLabel.Location.X = X1) and (NetLabel.Location.Y >= Y1) and (NetLabel.Location.Y <= Y2) then
                                          TempLabel := NetLabel;
                                    end;
                                    NetLabel := NetItr.NextSchObject;
@@ -757,20 +761,59 @@ begin
                                 SchDoc.SchIterator_Destroy(NetItr);
                              end;
 
+                             // Now the Diff Pair directives - delete all
+                             try
+
+                                NetItr := SchDoc.SchIterator_Create;
+                                NetItr.AddFilter_ObjectSet(MkSet(eParameterSet));
+                                NetItr.AddFilter_Area(X1 - 1, Y1 - 1, X2 + 1, Y2 + 1);
+
+                                DiffPairDirective := NetItr.FirstSchObject;
+                                while DiffPairDirective <> nil do
+                                begin
+                                   TempDirective := nil;
+
+                                   if (Pin.Orientation = eRotate0) or (Pin.Orientation = eRotate180) then
+                                   begin
+                                      if (DiffPairDirective.Location.Y = Y1) and (DiffPairDirective.Location.X >= X1) and (DiffPairDirective.Location.X <= X2) then
+                                         TempDirective := DiffPairDirective;
+                                   end
+                                   else
+                                   begin
+                                      if (DiffPairDirective.Location.X = X1) and (DiffPairDirective.Location.Y >= Y1) and (DiffPairDirective.Location.Y <= Y2) then
+                                         TempDirective := DiffPairDirective;
+                                   end;
+
+                                   DiffPairDirective := NetItr.NextSchObject;
+
+                                   if TempDirective <> nil then
+                                   begin
+                                      SchDoc.RemoveSchObject(TempDirective);
+
+                                      SchServer.RobotManager.SendMessage(SchDoc.I_ObjectAddress,c_BroadCast,
+                                                SCHM_PrimitiveRegistration,TempDirective.I_ObjectAddress);
+                                   end;
+
+                                end;
+                             finally
+                                SchDoc.SchIterator_Destroy(NetItr);
+                             end;
+
+
                              // modify net info based on gotten objects
                              if (Pininfo.Values[Pin.Designator] = 'DoNotConnectOnSCH') or (Pininfo.Values[Pin.Designator] = '') then
                              begin
-                                // in This case we have no connection - place noerc
+                                // in This case we have no connection - place NoERC
                                 NoERC := SchServer.SchObjectFactory(eNoERC, eCreate_Default);
 
                                 if      Pin.Orientation = eRotate0 then
-                                   NoERC.Location    := Point(X2 - GridSize, Y2)
+                                   NoERC.Location    := Point(X2 -  2 *GridSize, Y2)
                                 else if Pin.Orientation = eRotate90 then
-                                   NoERC.Location    := Point(X2, Y2 - GridSize)
+                                   NoERC.Location    := Point(X2, Y2 - 2 * GridSize)
                                 else if Pin.Orientation = eRotate180 then
-                                   NoERC.Location    := Point(X1 + GridSize, Y1)
+                                   NoERC.Location    := Point(X1 + 2 * GridSize, Y1)
                                 else if Pin.Orientation = eRotate270 then
-                                   NoERC.Location    := Point(X1, Y1 + GridSize);
+                                   NoERC.Location    := Point(X1, Y1 + 2 * GridSize);
 
                                 SchDoc.AddSchObject(NoERC);
 
@@ -785,16 +828,30 @@ begin
 
                                 NetLabel.Text := PinInfo.Values[Pin.Designator];
 
-                                if (Pin.Orientation = eRotate0) or (Pin.Orientation = eRotate180) then
+
+                                if (Pin.Orientation = eRotate0) then
                                 begin
-                                   NetLabel.Location := Point(X1 + GridSize, Y1);
+                                   NetLabel.Location := Point(X1 + 3 * GridSize, Y1);
                                    NetLabel.Orientation := eRotate0;
                                 end
-                                else if (Pin.Orientation = eRotate90) or (Pin.Orientation = eRotate270) then
+                                else if (Pin.Orientation = eRotate90) then
                                 begin
-                                   NetLabel.MoveToXY(X1, Y1 + GridSize);
-                                   NetLabel.RotateBy90(Point(X1, Y1 + GridSize), eRotate90);
+                                   NetLabel.MoveToXY(X1, Y1 + 3 * GridSize);
+                                   NetLabel.RotateBy90(Point(X1, Y1 + 3 * GridSize), eRotate90);
+                                end
+                                else if (Pin.Orientation = eRotate180) then
+                                begin
+                                   NetLabel.Location := Point(X1 + 2 * GridSize, Y1);
+                                   NetLabel.Orientation := eRotate0;
+                                   NetLabel.justification := akRight;
+                                end
+                                else if (Pin.Orientation = eRotate270) then
+                                begin
+                                   NetLabel.MoveToXY(X1, Y1 + 2 * GridSize);
+                                   NetLabel.RotateBy90(Point(X1, Y1 + 2 * GridSize), eRotate90);
+                                   NetLabel.justification := akRight;
                                 end;
+
 
                                 //SchServer.RobotManager.SendMessage(NetLabel.I_ObjectAddress, c_BroadCast, SCHM_EndModify, c_NoEventData);
 
@@ -803,6 +860,37 @@ begin
                                        SCHM_PrimitiveRegistration,NetLabel.I_ObjectAddress);
 
                                 NetLabel.GraphicallyInvalidate;
+
+                                // Now after net label is placed, we need to check weather Net Label is
+                                // in diff pair. If it is, we need to gove it diff pair directive.
+
+                                if (IsDiffPair(NetLabel.Text) <> 'None') then
+                                begin
+                                   // Now we need to add diff pair directive here
+                                   DiffPairParameter := SchServer.SchObjectFactory(eParameter, eCreate_Default);
+                                   DiffPairParameter.Name := 'DifferentialPair';
+                                   DiffPairParameter.Text := 'True';
+                                   DiffPairParameter.IsHidden := True;
+
+                                   DiffPairDirective := SchServer.SchObjectFactory(eParameterSet, eCreate_Default);
+                                   DiffPairDirective.AddSchObject(DiffPairParameter);
+
+                                   if ((Pin.Orientation = eRotate0) or (Pin.Orientation = eRotate90)) then
+                                   begin
+                                      DiffPairDirective.Location    := Point(X1, Y1);
+                                      DiffPairDirective.Orientation := NetLabel.Orientation;
+                                   end
+                                   else
+                                   begin
+                                      DiffPairDirective.Location    := Point(NetLabel.Location.X, NetLabel.Location.Y);
+                                      DiffPairDirective.Orientation := NetLabel.Orientation;
+                                   end;
+
+                                   SchDoc.AddSchObject(DiffPairDirective);
+
+                                   SchServer.RobotManager.SendMessage(SchDoc.I_ObjectAddress,c_BroadCast,
+                                          SCHM_PrimitiveRegistration,DiffPairDirective.I_ObjectAddress);
+                                end;
 
                              end;
                           end;

@@ -109,7 +109,7 @@ begin
       begin;
          Variant := PCBProject.DM_ProjectVariants(VariantNum);
 
-         CompVariation := Variant.DM_FindComponentVariationByDesignator(Component.DM_PhysicalDesignator);
+         CompVariation := Variant.DM_FindComponentVariationByUniqueId(Component.DM_UniqueId);
 
          If (CompVariation = Nil) Then Line := Line + ',Fitted'
          Else if CompVariation.DM_VariationKind = eVariation_NotFitted then
