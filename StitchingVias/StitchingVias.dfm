@@ -2,7 +2,7 @@ object StitchingVias: TStitchingVias
   Left = 32
   Top = 18
   Caption = 'Thieving Pads'
-  ClientHeight = 400
+  ClientHeight = 440
   ClientWidth = 289
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -16,7 +16,7 @@ object StitchingVias: TStitchingVias
   TextHeight = 13
   object ButtonOK: TButton
     Left = 120
-    Top = 368
+    Top = 408
     Width = 75
     Height = 25
     Caption = 'OK'
@@ -26,7 +26,7 @@ object StitchingVias: TStitchingVias
   end
   object ButtonCancel: TButton
     Left = 208
-    Top = 368
+    Top = 408
     Width = 75
     Height = 25
     Caption = 'Cancel'
@@ -35,7 +35,7 @@ object StitchingVias: TStitchingVias
   end
   object GroupBoxDistances: TGroupBox
     Left = 8
-    Top = 184
+    Top = 224
     Width = 272
     Height = 96
     Caption = 'Distances:'
@@ -124,7 +124,7 @@ object StitchingVias: TStitchingVias
     Left = 8
     Top = 8
     Width = 272
-    Height = 168
+    Height = 208
     Caption = 'Options:'
     TabOrder = 0
     object Label9: TLabel
@@ -175,7 +175,7 @@ object StitchingVias: TStitchingVias
     end
     object CheckBoxViaStyleRule: TCheckBox
       Left = 16
-      Top = 72
+      Top = 112
       Width = 208
       Height = 17
       Caption = 'Create/modify "Routing Via Style" Rule'
@@ -185,7 +185,7 @@ object StitchingVias: TStitchingVias
     end
     object CheckBoxPlaneConnRule: TCheckBox
       Left = 16
-      Top = 96
+      Top = 136
       Width = 248
       Height = 17
       Caption = 'Create/modify "Power Plane Connect Style" Rule'
@@ -195,7 +195,7 @@ object StitchingVias: TStitchingVias
     end
     object CheckBoxCompClearRule: TCheckBox
       Left = 16
-      Top = 144
+      Top = 184
       Width = 232
       Height = 17
       Caption = 'Create/modify "Component Clearence" Rule'
@@ -231,7 +231,7 @@ object StitchingVias: TStitchingVias
     end
     object CheckBoxPolyConnRule: TCheckBox
       Left = 16
-      Top = 120
+      Top = 160
       Width = 240
       Height = 17
       Caption = 'Create/modify "Polygon Connect Style" Rule'
@@ -239,10 +239,18 @@ object StitchingVias: TStitchingVias
       State = cbChecked
       TabOrder = 7
     end
+    object CheckBoxPoly: TCheckBox
+      Left = 16
+      Top = 72
+      Width = 240
+      Height = 17
+      Caption = 'Place Vias Over Polygons with Different Net'
+      TabOrder = 8
+    end
   end
   object GroupBoxNote: TGroupBox
     Left = 8
-    Top = 288
+    Top = 328
     Width = 272
     Height = 72
     Caption = 'Note:'

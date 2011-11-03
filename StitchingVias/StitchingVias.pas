@@ -163,6 +163,8 @@ var
    ViolationFlag  : Integer;
    SetOfLayers    : IPCB_LayerSet;
 
+   ConditionFlag  : Integer;
+
 begin
 
    // Distance
@@ -550,11 +552,29 @@ begin
 
          while (Primitive <> nil) do
          begin
-            Violation := RuleElectrical.ActualCheck(Primitive, NewVia);
-            if Violation <> nil then ViolationFlag := 1;
+            // We test this primitive
+            ConditionFlag := 1;
 
-            Violation := RuleOutline.ActualCheck(Primitive, NewVia);
-            if Violation <> nil then ViolationFlag := 1;
+            // Poly primitives are special case
+            if (Primitive.InPolygon) then
+               // if checkbox is checked - we never test
+               if (CheckBoxPoly.Checked) then
+                  ConditionFlag := 0
+               // If CheckBox is not checked - we do not test only if poly and via are on same net
+               else if (Primitive.Polygon.Net <> nil) then
+                  if (Primitive.Polygon.Net.Name = NewVia.Net.Name) then
+                     ConditionFlag := 0;
+
+            if ConditionFlag = 1 then
+            begin
+               Violation := RuleElectrical.ActualCheck(Primitive, NewVia);
+               if Violation <> nil then ViolationFlag := 1;
+
+               Violation := RuleOutline.ActualCheck(Primitive, NewVia);
+               if Violation <> nil then ViolationFlag := 1;
+            end;
+
+            If ViolationFlag = 1 then Break;
 
             Primitive := Spatial.NextPCBObject;
          end;
