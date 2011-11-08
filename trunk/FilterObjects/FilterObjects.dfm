@@ -1,9 +1,10 @@
 object FormFilterObjects: TFormFilterObjects
-  Left = 0
-  Top = 0
+  Left = 6
+  Top = 3
+  Width = 320
+  Height = 438
+  AutoScroll = True
   Caption = 'Filter Objects'
-  ClientHeight = 325
-  ClientWidth = 303
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -14,15 +15,17 @@ object FormFilterObjects: TFormFilterObjects
   PixelsPerInch = 96
   TextHeight = 13
   object GroupBoxObjects: TGroupBox
-    Left = 16
-    Top = 16
-    Width = 136
-    Height = 264
+    Left = 8
+    Top = 8
+    Width = 144
+    Height = 352
     Caption = 'Objects'
+    DockSite = True
+    DragMode = dmAutomatic
     TabOrder = 0
     object CheckBoxFills: TCheckBox
       Left = 16
-      Top = 160
+      Top = 184
       Width = 97
       Height = 17
       Caption = 'Fills'
@@ -32,7 +35,7 @@ object FormFilterObjects: TFormFilterObjects
     end
     object CheckBoxRegions: TCheckBox
       Left = 16
-      Top = 136
+      Top = 160
       Width = 97
       Height = 17
       Caption = 'Solid Regions'
@@ -42,7 +45,7 @@ object FormFilterObjects: TFormFilterObjects
     end
     object CheckBoxStrings: TCheckBox
       Left = 16
-      Top = 112
+      Top = 136
       Width = 97
       Height = 17
       Caption = 'Strings'
@@ -52,7 +55,7 @@ object FormFilterObjects: TFormFilterObjects
     end
     object CheckBoxPads: TCheckBox
       Left = 16
-      Top = 88
+      Top = 112
       Width = 97
       Height = 17
       Caption = 'Pads'
@@ -62,7 +65,7 @@ object FormFilterObjects: TFormFilterObjects
     end
     object CheckBoxVias: TCheckBox
       Left = 16
-      Top = 64
+      Top = 88
       Width = 97
       Height = 17
       Caption = 'Vias'
@@ -72,7 +75,7 @@ object FormFilterObjects: TFormFilterObjects
     end
     object CheckBoxArcs: TCheckBox
       Left = 16
-      Top = 40
+      Top = 64
       Width = 97
       Height = 17
       Caption = 'Arcs'
@@ -82,7 +85,7 @@ object FormFilterObjects: TFormFilterObjects
     end
     object CheckBoxTracks: TCheckBox
       Left = 16
-      Top = 16
+      Top = 40
       Width = 97
       Height = 17
       Caption = 'Tracks'
@@ -92,45 +95,81 @@ object FormFilterObjects: TFormFilterObjects
     end
     object CheckBoxComponents: TCheckBox
       Left = 16
-      Top = 184
+      Top = 280
       Width = 97
       Height = 17
       Caption = 'Components'
       Checked = True
       State = cbChecked
       TabOrder = 7
+      OnClick = CheckBoxComponentsClick
     end
     object CheckBoxPolygons: TCheckBox
       Left = 16
-      Top = 208
+      Top = 304
       Width = 97
       Height = 17
       Caption = 'Polygons'
       Checked = True
       State = cbChecked
       TabOrder = 8
+      OnClick = CheckBoxPolygonsClick
     end
     object CheckBoxDimensions: TCheckBox
       Left = 16
-      Top = 232
+      Top = 328
       Width = 97
       Height = 17
       Caption = 'Dimensions'
       Checked = True
       State = cbChecked
       TabOrder = 9
+      OnClick = CheckBoxDimensionsClick
+    end
+    object CheckBoxConnections: TCheckBox
+      Left = 16
+      Top = 232
+      Width = 97
+      Height = 17
+      Caption = 'Connection Lines'
+      Checked = True
+      State = cbChecked
+      TabOrder = 10
+    end
+    object CheckBoxRooms: TCheckBox
+      Left = 16
+      Top = 208
+      Width = 97
+      Height = 17
+      Caption = 'Rooms'
+      Checked = True
+      State = cbChecked
+      TabOrder = 11
+    end
+    object CheckBoxAllObjects: TCheckBox
+      Left = 8
+      Top = 16
+      Width = 32
+      Height = 17
+      BiDiMode = bdLeftToRight
+      Caption = 'All'
+      Checked = True
+      ParentBiDiMode = False
+      State = cbChecked
+      TabOrder = 12
+      OnClick = CheckBoxAllObjectsClick
     end
   end
   object GroupBoxLayers: TGroupBox
-    Left = 168
-    Top = 16
-    Width = 120
-    Height = 184
+    Left = 160
+    Top = 8
+    Width = 136
+    Height = 208
     Caption = 'Layers'
     TabOrder = 1
     object CheckBoxSignal: TCheckBox
       Left = 16
-      Top = 16
+      Top = 40
       Width = 96
       Height = 17
       Caption = 'Signal Layers'
@@ -140,7 +179,7 @@ object FormFilterObjects: TFormFilterObjects
     end
     object CheckBoxPlane: TCheckBox
       Left = 16
-      Top = 40
+      Top = 64
       Width = 97
       Height = 17
       Caption = 'Internal Planes'
@@ -150,7 +189,7 @@ object FormFilterObjects: TFormFilterObjects
     end
     object CheckBoxMech: TCheckBox
       Left = 16
-      Top = 64
+      Top = 88
       Width = 97
       Height = 17
       Caption = 'Mech Layers'
@@ -160,7 +199,7 @@ object FormFilterObjects: TFormFilterObjects
     end
     object CheckBoxOverlay: TCheckBox
       Left = 16
-      Top = 88
+      Top = 112
       Width = 97
       Height = 17
       Caption = 'Overlay'
@@ -170,7 +209,7 @@ object FormFilterObjects: TFormFilterObjects
     end
     object CheckBoxSolder: TCheckBox
       Left = 16
-      Top = 112
+      Top = 136
       Width = 97
       Height = 17
       Caption = 'Solder'
@@ -180,7 +219,7 @@ object FormFilterObjects: TFormFilterObjects
     end
     object CheckBoxPaste: TCheckBox
       Left = 16
-      Top = 136
+      Top = 160
       Width = 97
       Height = 17
       Caption = 'Paste'
@@ -190,7 +229,7 @@ object FormFilterObjects: TFormFilterObjects
     end
     object CheckBoxDrill: TCheckBox
       Left = 16
-      Top = 160
+      Top = 184
       Width = 97
       Height = 17
       Caption = 'Drill'
@@ -198,25 +237,29 @@ object FormFilterObjects: TFormFilterObjects
       State = cbChecked
       TabOrder = 6
     end
-  end
-  object ButtonClose: TButton
-    Left = 208
-    Top = 288
-    Width = 75
-    Height = 25
-    Caption = 'Close'
-    TabOrder = 2
-    OnClick = ButtonCloseClick
+    object CheckBoxAllLayers: TCheckBox
+      Left = 7
+      Top = 16
+      Width = 33
+      Height = 17
+      BiDiMode = bdLeftToRight
+      Caption = 'All'
+      Checked = True
+      ParentBiDiMode = False
+      State = cbChecked
+      TabOrder = 7
+      OnClick = CheckBoxAllLayersClick
+    end
   end
   object GroupBoxParents: TGroupBox
-    Left = 168
-    Top = 208
-    Width = 120
-    Height = 72
+    Left = 160
+    Top = 216
+    Width = 136
+    Height = 64
     Caption = 'Parents'
-    TabOrder = 3
+    TabOrder = 2
     object CheckBoxFreePrims: TCheckBox
-      Left = 16
+      Left = 8
       Top = 16
       Width = 97
       Height = 17
@@ -226,34 +269,50 @@ object FormFilterObjects: TFormFilterObjects
       TabOrder = 0
     end
     object CheckBoxComponentPrims: TCheckBox
-      Left = 16
+      Left = 8
       Top = 40
-      Width = 104
+      Width = 128
       Height = 17
-      Caption = 'Component prims'
+      Caption = 'Component Primitives'
       Checked = True
       State = cbChecked
       TabOrder = 1
     end
   end
-  object CheckBoxAll: TCheckBox
-    Left = 32
-    Top = 288
-    Width = 97
-    Height = 17
-    Caption = 'All On/Off'
-    Checked = True
-    State = cbChecked
-    TabOrder = 4
-    OnClick = CheckBoxAllClick
-  end
   object ButtonOK: TButton
-    Left = 128
-    Top = 288
+    Left = 216
+    Top = 368
     Width = 75
     Height = 25
-    Caption = 'OK'
-    TabOrder = 5
+    Caption = 'Apply'
+    Default = True
+    TabOrder = 3
     OnClick = ButtonOKClick
+  end
+  object GroupBoxOptions: TGroupBox
+    Left = 160
+    Top = 296
+    Width = 136
+    Height = 64
+    Caption = 'Options'
+    TabOrder = 4
+    object CheckBoxWithinArea: TCheckBox
+      Left = 8
+      Top = 16
+      Width = 104
+      Height = 17
+      Caption = 'Within Area'
+      TabOrder = 0
+      OnClick = CheckBoxWithinAreaClick
+    end
+    object CheckBoxCurrentLayer: TCheckBox
+      Left = 8
+      Top = 39
+      Width = 97
+      Height = 17
+      Caption = 'Current Layer'
+      TabOrder = 1
+      OnClick = CheckBoxCurrentLayerClick
+    end
   end
 end
