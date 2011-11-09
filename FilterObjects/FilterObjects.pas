@@ -9,8 +9,8 @@
 Uses
     IniFiles;
 Var
-    IniFileName : String;
-    Rectangle   : String;
+    IniFileName    : String;
+    Rectangle      : String;
 
 {..............................................................................}
 
@@ -81,10 +81,20 @@ begin
     else
         CheckBoxDimensions.Checked := 0;
 
-    if (IniFile.ReadBool('Layers','Signals',True)) then
-        CheckBoxSignal.Checked := 1
+    if (IniFile.ReadBool('Layers','Top',True)) then
+        CheckBoxTop.Checked := 1
     else
-        CheckBoxSignal.Checked := 0;
+        CheckBoxTop.Checked := 0;
+
+    if (IniFile.ReadBool('Layers','Mid',True)) then
+        CheckBoxMid.Checked := 1
+    else
+        CheckBoxMid.Checked := 0;
+
+    if (IniFile.ReadBool('Layers','Bottom',True)) then
+        CheckBoxBottom.Checked := 1
+    else
+        CheckBoxBottom.Checked := 0;
 
     if (IniFile.ReadBool('Layers','Planes',True)) then
         CheckBoxPlane.Checked := 1
@@ -116,21 +126,13 @@ begin
     else
         CheckBoxDrill.Checked := 0;
 
-    if (IniFile.ReadBool('Parents','FreePrims',True)) then
-        CheckBoxFreePrims.Checked := 1
-    else
-        CheckBoxFreePrims.Checked := 0;
-
-    if (IniFile.ReadBool('Parents','ComponentPrims',True)) then
-        CheckBoxComponentPrims.Checked := 1
-    else
-        CheckBoxComponentPrims.Checked := 0;
-
     if (IniFile.ReadBool('Options','CurrentLayer',False)) then
     begin
         CheckBoxCurrentLayer.Checked := 1;
 
-        CheckBoxSignal.Enabled         := False;
+        CheckBoxTop.Enabled            := False;
+        CheckBoxMid.Enabled            := False;
+        CheckBoxBottom.Enabled         := False;
         CheckBoxPlane.Enabled          := False;
         CheckBoxMech.Enabled           := False;
         CheckBoxOverlay.Enabled        := False;
@@ -140,6 +142,11 @@ begin
     end
     else
         CheckBoxCurrentLayer.Checked := 0;
+
+    FormFilterObjects.Top    := IniFile.ReadInteger('Window', 'DialogueTop',    FormFilterObjects.Top);
+    FormFilterObjects.Height := IniFile.ReadInteger('Window', 'DialogueHeight', FormFilterObjects.Height);
+    FormFilterObjects.Left   := IniFile.ReadInteger('Window', 'DialogueLeft',   FormFilterObjects.Left);
+    FormFilterObjects.Width  := IniFile.ReadInteger('Window', 'DialogueWidth',  FormFilterObjects.Width);
 
     IniFile.Free;
 end;
@@ -188,8 +195,14 @@ Begin
     if CheckBoxConnections.Checked     then IniFile.WriteBool('Objects','Connections',True)
     else                                    IniFile.WriteBool('Objects','Connections',False);
 
-    if CheckBoxSignal.Checked          then IniFile.WriteBool('Layers','Signals',True)
-    else                                    IniFile.WriteBool('Layers','Signals',False);
+    if CheckBoxTop.Checked             then IniFile.WriteBool('Layers','Top',True)
+    else                                    IniFile.WriteBool('Layers','Top',False);
+
+    if CheckBoxMid.Checked             then IniFile.WriteBool('Layers','Mid',True)
+    else                                    IniFile.WriteBool('Layers','Mid',False);
+
+    if CheckBoxBottom.Checked          then IniFile.WriteBool('Layers','Bottom',True)
+    else                                    IniFile.WriteBool('Layers','Bottom',False);
 
     if CheckBoxPlane.Checked           then IniFile.WriteBool('Layers','Planes',True)
     else                                    IniFile.WriteBool('Layers','Planes',False);
@@ -209,14 +222,13 @@ Begin
     if CheckBoxDrill.Checked           then IniFile.WriteBool('Layers','Drill',True)
     else                                    IniFile.WriteBool('Layers','Drill',False);
 
-    if CheckBoxFreePrims.Checked       then IniFile.WriteBool('Parents','FreePrims',True)
-    else                                    IniFile.WriteBool('Parents','FreePrims',False);
-
-    if CheckBoxComponentPrims.Checked  then IniFile.WriteBool('Parents','ComponentPrims',True)
-    else                                    IniFile.WriteBool('Parents','ComponentPrims',False);
-
     if CheckBoxCurrentLayer.Checked    then IniFile.WriteBool('Options','CurrentLayer',True)
     else                                    IniFile.WriteBool('Options','CurrentLayer',False);
+
+    IniFile.WriteInteger('Window', 'DialogueTop',    FormFilterObjects.Top);
+    IniFile.WriteInteger('Window', 'DialogueHeight', FormFilterObjects.Height);
+    IniFile.WriteInteger('Window', 'DialogueLeft',   FormFilterObjects.Left);
+    IniFile.WriteInteger('Window', 'DialogueWidth',  FormFilterObjects.Width);
 
     IniFile.Free;
 End;
@@ -263,7 +275,11 @@ begin
 
     if CheckBoxDimensions.Checked      then Objects := Objects + 'IsDimension or IsCoordinate or ';
 
-    if CheckBoxSignal.Checked          then Layers := Layers + 'OnSignal or OnMultiLayer or ';
+    if CheckBoxTop.Checked             then Layers := Layers + 'OnTopLayer or OnMultiLayer or ';
+
+    if CheckBoxMid.Checked             then Layers := Layers + 'OnMid or OnMultiLayer or ';
+
+    if CheckBoxBottom.Checked          then Layers := Layers + 'OnBottomLayer or OnMultiLayer or ';
 
     if CheckBoxPlane.Checked           then Layers := Layers + 'OnPlane or ';
 
@@ -276,10 +292,7 @@ begin
     if CheckBoxPaste.Checked           then Layers := Layers + 'OnPaste or ';
 
     if CheckBoxDrill.Checked           then Layers := Layers + '(Layer = ''DrillGuide'') or (Layer = ''DrillDrawing'') or ';
-
-    if CheckBoxFreePrims.Checked       then Parents := Parents + 'Not InAnyComponent or ';
-
-    if CheckBoxComponentPrims.Checked  then Parents := Parents + 'InAnyComponent or ';
+    
 
     if Objects <> '' then
     begin
@@ -336,6 +349,8 @@ begin
       CheckBoxComponents.Checked     := True;
       CheckBoxPolygons.Checked       := True;
       CheckBoxDimensions.Checked     := True;
+      CheckBoxRooms.Checked          := True;
+      CheckBoxConnections.Checked    := True;
    end
    else
    begin
@@ -349,6 +364,8 @@ begin
       CheckBoxComponents.Checked     := False;
       CheckBoxPolygons.Checked       := False;
       CheckBoxDimensions.Checked     := False;
+      CheckBoxRooms.Checked          := False;
+      CheckBoxConnections.Checked    := False;
    end;
 end;
 
@@ -358,7 +375,9 @@ procedure TFormFilterObjects.CheckBoxAllLayersClick(Sender: TObject);
 begin
    if CheckBoxAllLayers.Checked then
    begin
-      CheckBoxSignal.Enabled         := True;
+      CheckBoxTop.Enabled            := True;
+      CheckBoxMid.Enabled            := True;
+      CheckBoxBottom.Enabled         := True;
       CheckBoxPlane.Enabled          := True;
       CheckBoxMech.Enabled           := True;
       CheckBoxOverlay.Enabled        := True;
@@ -366,7 +385,9 @@ begin
       CheckBoxPaste.Enabled          := True;
       CheckBoxDrill.Enabled          := True;
 
-      CheckBoxSignal.Checked         := True;
+      CheckBoxTop.Checked            := True;
+      CheckBoxMid.Checked            := True;
+      CheckBoxBottom.Checked         := True;
       CheckBoxPlane.Checked          := True;
       CheckBoxMech.Checked           := True;
       CheckBoxOverlay.Checked        := True;
@@ -378,7 +399,9 @@ begin
    end
    else
    begin
-      CheckBoxSignal.Enabled         := True;
+      CheckBoxTop.Enabled            := True;
+      CheckBoxMid.Enabled            := True;
+      CheckBoxBottom.Enabled         := True;
       CheckBoxPlane.Enabled          := True;
       CheckBoxMech.Enabled           := True;
       CheckBoxOverlay.Enabled        := True;
@@ -386,7 +409,9 @@ begin
       CheckBoxPaste.Enabled          := True;
       CheckBoxDrill.Enabled          := True;
 
-      CheckBoxSignal.Checked         := False;
+      CheckBoxTop.Checked            := False;
+      CheckBoxMid.Checked            := False;
+      CheckBoxBottom.Checked         := False;
       CheckBoxPlane.Checked          := False;
       CheckBoxMech.Checked           := False;
       CheckBoxOverlay.Checked        := False;
@@ -400,22 +425,13 @@ end;
 
 
 
-Procedure Start;
-begin
-   If PCBServer.GetCurrentPCBBoard = nil then exit;
-
-   ReadFromIniFile(ClientAPI_SpecialFolder_AltiumApplicationData + '\FilterObjectsScriptData');
-   Rectangle := '';
-
-   FormFilterObjects.ShowModal;
-end;
-
-
 procedure TFormFilterObjects.CheckBoxCurrentLayerClick(Sender: TObject);
 begin
    if CheckBoxCurrentLayer.Checked then
    begin
-      CheckBoxSignal.Enabled         := False;
+      CheckBoxTop.Enabled            := False;
+      CheckBoxMid.Enabled            := False;
+      CheckBoxBottom.Enabled         := False;
       CheckBoxPlane.Enabled          := False;
       CheckBoxMech.Enabled           := False;
       CheckBoxOverlay.Enabled        := False;
@@ -425,7 +441,9 @@ begin
    end
    else
    begin
-      CheckBoxSignal.Enabled         := True;
+      CheckBoxTop.Enabled            := True;
+      CheckBoxMid.Enabled            := True;
+      CheckBoxBottom.Enabled         := True;
       CheckBoxPlane.Enabled          := True;
       CheckBoxMech.Enabled           := True;
       CheckBoxOverlay.Enabled        := True;
@@ -434,6 +452,7 @@ begin
       CheckBoxDrill.Enabled          := True;
    end;
 end;
+
 
 
 procedure TFormFilterObjects.CheckBoxWithinAreaClick(Sender: TObject);
@@ -466,7 +485,9 @@ begin
          CheckBoxDimensions.Checked := False;
 
          CheckBoxWithinArea.Checked := True;
-      end;
+      end
+      else
+         CheckBoxWithinArea.Checked := False;
    end;
 end;
 
@@ -489,5 +510,17 @@ end;
 procedure TFormFilterObjects.CheckBoxDimensionsClick(Sender: TObject);
 begin
    if CheckBoxDimensions.Checked then CheckBoxWithinArea.Checked := False;
+end;
+
+
+
+Procedure Start;
+begin
+   If PCBServer.GetCurrentPCBBoard = nil then exit;
+
+   ReadFromIniFile(ClientAPI_SpecialFolder_AltiumApplicationData + '\FilterObjectsScriptData');
+   Rectangle := '';
+
+   FormFilterObjects.Show;
 end;
 

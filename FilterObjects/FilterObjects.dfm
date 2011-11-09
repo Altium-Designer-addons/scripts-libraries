@@ -1,8 +1,8 @@
 object FormFilterObjects: TFormFilterObjects
   Left = 6
   Top = 3
-  Width = 320
-  Height = 438
+  Width = 319
+  Height = 413
   AutoScroll = True
   Caption = 'Filter Objects'
   Color = clBtnFace
@@ -18,7 +18,7 @@ object FormFilterObjects: TFormFilterObjects
     Left = 8
     Top = 8
     Width = 144
-    Height = 352
+    Height = 360
     Caption = 'Objects'
     DockSite = True
     DragMode = dmAutomatic
@@ -164,22 +164,22 @@ object FormFilterObjects: TFormFilterObjects
     Left = 160
     Top = 8
     Width = 136
-    Height = 208
+    Height = 256
     Caption = 'Layers'
     TabOrder = 1
-    object CheckBoxSignal: TCheckBox
+    object CheckBoxMid: TCheckBox
       Left = 16
-      Top = 40
+      Top = 64
       Width = 96
       Height = 17
-      Caption = 'Signal Layers'
+      Caption = 'Mid Layers'
       Checked = True
       State = cbChecked
       TabOrder = 0
     end
     object CheckBoxPlane: TCheckBox
       Left = 16
-      Top = 64
+      Top = 112
       Width = 97
       Height = 17
       Caption = 'Internal Planes'
@@ -189,7 +189,7 @@ object FormFilterObjects: TFormFilterObjects
     end
     object CheckBoxMech: TCheckBox
       Left = 16
-      Top = 88
+      Top = 136
       Width = 97
       Height = 17
       Caption = 'Mech Layers'
@@ -199,40 +199,40 @@ object FormFilterObjects: TFormFilterObjects
     end
     object CheckBoxOverlay: TCheckBox
       Left = 16
-      Top = 112
+      Top = 160
       Width = 97
       Height = 17
-      Caption = 'Overlay'
+      Caption = 'Overlay Layers'
       Checked = True
       State = cbChecked
       TabOrder = 3
     end
     object CheckBoxSolder: TCheckBox
       Left = 16
-      Top = 136
+      Top = 184
       Width = 97
       Height = 17
-      Caption = 'Solder'
+      Caption = 'Solder Layers'
       Checked = True
       State = cbChecked
       TabOrder = 4
     end
     object CheckBoxPaste: TCheckBox
       Left = 16
-      Top = 160
+      Top = 208
       Width = 97
       Height = 17
-      Caption = 'Paste'
+      Caption = 'Paste Layers'
       Checked = True
       State = cbChecked
       TabOrder = 5
     end
     object CheckBoxDrill: TCheckBox
       Left = 16
-      Top = 184
+      Top = 232
       Width = 97
       Height = 17
-      Caption = 'Drill'
+      Caption = 'Drill Layers'
       Checked = True
       State = cbChecked
       TabOrder = 6
@@ -250,52 +250,44 @@ object FormFilterObjects: TFormFilterObjects
       TabOrder = 7
       OnClick = CheckBoxAllLayersClick
     end
-  end
-  object GroupBoxParents: TGroupBox
-    Left = 160
-    Top = 216
-    Width = 136
-    Height = 64
-    Caption = 'Parents'
-    TabOrder = 2
-    object CheckBoxFreePrims: TCheckBox
-      Left = 8
-      Top = 16
+    object CheckBoxTop: TCheckBox
+      Left = 16
+      Top = 40
       Width = 97
       Height = 17
-      Caption = 'Free Primitives'
+      Caption = 'Top Layer'
       Checked = True
       State = cbChecked
-      TabOrder = 0
+      TabOrder = 8
     end
-    object CheckBoxComponentPrims: TCheckBox
-      Left = 8
-      Top = 40
-      Width = 128
+    object CheckBoxBottom: TCheckBox
+      Left = 16
+      Top = 88
+      Width = 97
       Height = 17
-      Caption = 'Component Primitives'
+      Caption = 'Bottom Layer'
       Checked = True
       State = cbChecked
-      TabOrder = 1
+      TabOrder = 9
     end
   end
   object ButtonOK: TButton
     Left = 216
-    Top = 368
+    Top = 344
     Width = 75
     Height = 25
     Caption = 'Apply'
     Default = True
-    TabOrder = 3
+    TabOrder = 2
     OnClick = ButtonOKClick
   end
   object GroupBoxOptions: TGroupBox
     Left = 160
-    Top = 296
+    Top = 272
     Width = 136
     Height = 64
-    Caption = 'Options'
-    TabOrder = 4
+    Caption = 'Advanced Options'
+    TabOrder = 3
     object CheckBoxWithinArea: TCheckBox
       Left = 8
       Top = 16
@@ -308,9 +300,9 @@ object FormFilterObjects: TFormFilterObjects
     object CheckBoxCurrentLayer: TCheckBox
       Left = 8
       Top = 39
-      Width = 97
+      Width = 120
       Height = 17
-      Caption = 'Current Layer'
+      Caption = 'Current Layer Only'
       TabOrder = 1
       OnClick = CheckBoxCurrentLayerClick
     end
