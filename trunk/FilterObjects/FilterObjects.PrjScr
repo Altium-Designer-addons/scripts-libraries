@@ -54,6 +54,9 @@ Name=Default Configuration
 Variant=[No Variations]
 GenerateBOM=0
 
+[Generic_ScriptingSystem]
+StartProcName=FilterObjects.pas>Start
+
 [OutputGroup1]
 Name=Netlist Outputs
 Description=
