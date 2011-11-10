@@ -1,0 +1,72 @@
+[OutputJobFile]
+Version=1.0
+
+[OutputGroup1]
+Name=XRM2_XIA_schematic_review.OutJob
+Description=
+TargetOutputMedium=Publish_To_PDF_XIA_schematic_review
+VariantName=[No Variations]
+VariantScope=0
+CurrentConfigurationName=
+TargetPrinter=HP Designjet T2300ps PS3
+PrinterOptions=Record=PrinterOptions|Copies=1|Duplex=1|TrueTypeOptions=3|Collate=1|PrintWhat=0
+OutputMedium1=Publish_To_PDF_XIA_schematic_review
+OutputMedium1_Type=Publish
+OutputMedium2=Publish To Web
+OutputMedium2_Type=PublishToWeb
+OutputType1=Schematic Print
+OutputName1=Schematic Prints
+OutputCategory1=Documentation
+OutputDocumentPath1=[Project Physical Documents]
+OutputVariantName1=
+OutputEnabled1=1
+OutputEnabled1_OutputMedium1=1
+OutputEnabled1_OutputMedium2=0
+OutputDefault1=0
+PageOptions1=Record=PageOptions|CenterHorizontal=True|CenterVertical=True|PrintScale=1.07|XCorrection=1.00|YCorrection=1.00|PrintKind=0|BorderSize=5000000|LeftOffset=0|BottomOffset=0|Orientation=2|PaperLength=5588|PaperWidth=4318|Scale=100|PaperSource=7|PrintQuality=600|MediaType=1|DitherType=10|PaperKind=Letter|PrintScaleMode=1
+Configuration1_Name1=OutputConfigurationParameter1
+Configuration1_Item1=Record=SchPrintView|ShowNoERC=True|ShowParamSet=True|ShowProbe=True|ExpandDesignator=True|ExpandNetLabel=True|ExpandPort=True|ExpandSheetNum=True|ExpandDocNum=True
+
+[PublishSettings]
+OutputFilePath1=H:\projects\MicroCal_sandbox\trunk\schem\MicroCal_main\Project Outputs for MICROCAL_MAIN\XRM2_XIA_schematic_review\MicroCal_main_Schematic_plots.PDF
+ReleaseManaged1=0
+OutputBasePath1=Project Outputs for MICROCAL_MAIN\
+OutputPathMedia1=XRM2_XIA_schematic_review
+OutputPathOutputer1=[Output Type]
+OutputFileName1=MicroCal_main_Schematic_plots.PDF
+OpenOutput1=1
+PromptOverwrite1=0
+PublishMethod1=0
+ZoomLevel1=90
+FitSCHPrintSizeToDoc1=0
+FitPCBPrintSizeToDoc1=0
+GenerateNetsInfo1=1
+MarkPins1=1
+MarkNetLabels1=1
+MarkPortsId1=1
+GenerateTOC=1
+OutputFilePath2=H:\projects\MicroCal_sandbox\trunk\schem\MicroCal_main\Project Outputs for MICROCAL_MAIN\
+ReleaseManaged2=0
+OutputBasePath2=Project Outputs for MICROCAL_MAIN
+OutputPathMedia2=
+OutputPathOutputer2=[Output Type]
+OutputFileName2=
+OpenOutput2=1
+PromptOverwrite2=1
+PublishMethod2=2
+ZoomLevel2=50
+FitSCHPrintSizeToDoc2=1
+FitPCBPrintSizeToDoc2=1
+GenerateNetsInfo2=1
+MarkPins2=1
+MarkNetLabels2=1
+MarkPortsId2=1
+WebOutputMediumType2=FS
+OutputDirectory2=Project Outputs for MICROCAL_MAIN\WebOutput
+
+[GeneratedFilesSettings]
+RelativeOutputPath1=H:\projects\MicroCal_sandbox\trunk\schem\MicroCal_main\Project Outputs for MICROCAL_MAIN\XRM2_XIA_schematic_review\MicroCal_main_Schematic_plots.PDF
+OpenOutputs1=1
+RelativeOutputPath2=H:\projects\MicroCal_sandbox\trunk\schem\MicroCal_main\Project Outputs for MICROCAL_MAIN\
+OpenOutputs2=1
+

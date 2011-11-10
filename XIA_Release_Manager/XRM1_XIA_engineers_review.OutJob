@@ -1,0 +1,160 @@
+[OutputJobFile]
+Version=1.0
+
+[OutputGroup1]
+Name=
+Description=
+TargetOutputMedium=Generate_files_XIA_engineers_review
+VariantName=[No Variations]
+VariantScope=0
+CurrentConfigurationName=
+TargetPrinter=HP Designjet T2300ps PS3
+PrinterOptions=Record=PrinterOptions|Copies=1|Duplex=1|TrueTypeOptions=3|Collate=1|PrintWhat=1
+OutputMedium1=Publish To Web
+OutputMedium1_Type=PublishToWeb
+OutputMedium2=Generate_files_XIA_engineers_review
+OutputMedium2_Type=GeneratedFiles
+OutputType1=Electrical Rules Check
+OutputName1=Electrical Rules Check
+OutputCategory1=Validation
+OutputDocumentPath1=
+OutputVariantName1=
+OutputEnabled1=1
+OutputEnabled1_OutputMedium1=0
+OutputEnabled1_OutputMedium2=5
+OutputDefault1=0
+PageOptions1=Record=PageOptions|CenterHorizontal=True|CenterVertical=True|PrintScale=1.00|XCorrection=1.00|YCorrection=1.00|PrintKind=0|BorderSize=5000000|LeftOffset=0|BottomOffset=0|Orientation=1|PaperLength=1000|PaperWidth=1000|Scale=100|PaperSource=7|PrintQuality=-4|MediaType=1|DitherType=10|PaperKind=Letter|PrintScaleMode=1
+Configuration1_Name1=OutputConfigurationParameter1
+Configuration1_Item1=ERCClassColumnOrder=0|ERCClassColumnSort=0|ERCClassColumnVisibility=True|ERCConnectionMatrixL1=NNNNNNNNNNNWNNNWW|ERCConnectionMatrixL10=NWNNNNNENNEWNNEWN|ERCConnectionMatrixL11=NNENNNNEEENWNENWN|ERCConnectionMatrixL12=WWWWNWWNWWWNWWWNN|ERCConnectionMatrixL13=NNNNNNNNNNNWNNNWW|ERCConnectionMatrixL14=NWEENEEEENEWNEEWW|ERCConnectionMatrixL15=NNENNNNEEENWNENWW|ERCConnectionMatrixL16=WWWWNWWNWWWNWWWNW|ERCConnectionMatrixL17=WNNNNNNNWNNNWWWWN|ERCConnectionMatrixL2=NNWNNNNWWWNWNWNWN|ERCConnectionMatrixL3=NWEENEEEENEWNEEWN|ERCConnectionMatrixL4=NNENNNWEENNWNENWN|ERCConnectionMatrixL5=NNNNNNNNNNNNNNNNN|ERCConnectionMatrixL6=NNENNNNEENNWNENWN|ERCConnectionMatrixL7=NNEWNNWEENNWNENWN|ERCConnectionMatrixL8=NWEENEENEEENNEENN|ERCConnectionMatrixL9=NWEENEEEENEWNEEWW|ERCDocumentColumnOrder=1|ERCDocumentColumnSort=0|ERCDocumentColumnVisibility=True|ERCMessageColumnOrder=2|ERCMessageColumnSort=0|ERCMessageColumnVisibility=True|ERCReportGrouping=2|ERCReportMode=0|ERCType1=1|ERCType10=1|ERCType11=2|ERCType12=2|ERCType13=2|ERCType14=1|ERCType15=1|ERCType16=1|ERCType17=1|ERCType18=1|ERCType19=1|ERCType2=1|ERCType20=1|ERCType21=1|ERCType22=1|ERCType23=1|ERCType24=1|ERCType25=2|ERCType26=2|ERCType27=2|ERCType28=1|ERCType29=1|ERCType3=2|ERCType30=1|ERCType31=1|ERCType32=2|ERCType33=2|ERCType34=2|ERCType35=1|ERCType36=2|ERCType37=1|ERCType38=2|ERCType39=2|ERCType4=1|ERCType40=2|ERCType41=0|ERCType42=2|ERCType43=1|ERCType44=1|ERCType45=2|ERCType46=1|ERCType47=2|ERCType48=2|ERCType49=1|ERCType5=2|ERCType50=2|ERCType51=1|ERCType52=1|ERCType53=1|ERCType54=1|ERCType55=1|ERCType56=2|ERCType57=1|ERCType58=1|ERCType59=0|ERCType6=2|ERCType60=1|ERCType61=2|ERCType62=2|ERCType63=1|ERCType64=0|ERCType65=2|ERCType66=3|ERCType67=2|ERCType68=2|ERCType69=1|ERCType7=1|ERCType70=2|ERCType71=2|ERCType72=2|ERCType73=2|ERCType74=1|ERCType75=2|ERCType76=1|ERCType77=1|ERCType78=1|ERCType79=1|ERCType8=1|ERCType80=2|ERCType81=3|ERCType82=3|ERCType83=3|ERCType84=3|ERCType85=3|ERCType86=2|ERCType87=2|ERCType88=2|ERCType89=1|ERCType9=1|ERCType90=1|ERCType91=3|ERCType92=3|ERCType93=2|ERCType94=2|ERCType95=2|ERCType96=2|ERCType97=2|ERCType98=0|Record=ERCReportView
+OutputType2=ReportHierarchy
+OutputName2=Report Project Hierarchy
+OutputCategory2=Report
+OutputDocumentPath2=
+OutputVariantName2=
+OutputEnabled2=1
+OutputEnabled2_OutputMedium1=0
+OutputEnabled2_OutputMedium2=1
+OutputDefault2=0
+Configuration2_Name1=OutputConfigurationParameter1
+Configuration2_Item1=Record=ReportHierarchyView|ReportHierarchyMode=0
+OutputType3=SinglePinNetReporter
+OutputName3=Report Single Pin Nets
+OutputCategory3=Report
+OutputDocumentPath3=
+OutputVariantName3=
+OutputEnabled3=1
+OutputEnabled3_OutputMedium1=0
+OutputEnabled3_OutputMedium2=2
+OutputDefault3=0
+Configuration3_Name1=OutputConfigurationParameter1
+Configuration3_Item1=NetlistVersion=0|Record=SinglePinNetsView
+OutputType4=MultiWire
+OutputName4=MultiWire
+OutputCategory4=Netlist
+OutputDocumentPath4=[Project]
+OutputVariantName4=
+OutputEnabled4=1
+OutputEnabled4_OutputMedium1=0
+OutputEnabled4_OutputMedium2=4
+OutputDefault4=0
+Configuration4_Name1=OutputConfigurationParameter1
+Configuration4_Item1=NetlistVersion=0|Record=MultiWireView
+OutputType5=Design Rules Check
+OutputName5=Design Rules Check
+OutputCategory5=Validation
+OutputDocumentPath5=
+OutputVariantName5=
+OutputEnabled5=1
+OutputEnabled5_OutputMedium1=0
+OutputEnabled5_OutputMedium2=6
+OutputDefault5=0
+PageOptions5=Record=PageOptions|CenterHorizontal=True|CenterVertical=True|PrintScale=1.00|XCorrection=1.00|YCorrection=1.00|PrintKind=0|BorderSize=5000000|LeftOffset=0|BottomOffset=0|Orientation=1|PaperLength=1000|PaperWidth=1000|Scale=100|PaperSource=7|PrintQuality=-4|MediaType=1|DitherType=10|PaperKind=Letter|PrintScaleMode=1
+Configuration5_Name1=OutputConfigurationParameter1
+Configuration5_Item1=πω
+OutputType6=BOM_PartType
+OutputName6=Bill_of_Materials_csv
+OutputCategory6=Report
+OutputDocumentPath6=[Project]
+OutputVariantName6=VarA-Standard
+OutputEnabled6=1
+OutputEnabled6_OutputMedium1=0
+OutputEnabled6_OutputMedium2=3
+OutputDefault6=0
+PageOptions6=Record=PageOptions|CenterHorizontal=True|CenterVertical=True|PrintScale=1.00|XCorrection=1.00|YCorrection=1.00|PrintKind=0|BorderSize=5000000|LeftOffset=0|BottomOffset=0|Orientation=2|PaperLength=1000|PaperWidth=1000|Scale=100|PaperSource=7|PrintQuality=-4|MediaType=1|DitherType=10|PaperKind=Letter|PrintScaleMode=1
+Configuration6_Name1=Filter
+Configuration6_Item1=545046300E5446696C74657257726170706572000D46696C7465722E416374697665090F46696C7465722E43726974657269610A04000000000000000000
+Configuration6_Name2=General
+Configuration6_Item2=OpenExported=False|AddToProject=True|ForceFit=False|Database=True|IncludePCBData=False|ShowExportOptions=True|TemplateFilename=|BatchMode=0|FormWidth=1603|FormHeight=960|SupplierProdQty=1|SupplierAutoQty=False
+Configuration6_Name3=GroupOrder
+Configuration6_Item3=Comment=True|Footprint=True
+Configuration6_Name4=OutputConfigurationParameter1
+Configuration6_Item4=Record=BOMPrintView|ShowNoERC=True|ShowParamSet=True|ShowProbe=True|ExpandDesignator=True|ExpandNetLabel=False|ExpandPort=False|ExpandSheetNum=False|ExpandDocNum=False
+Configuration6_Name5=SortOrder
+Configuration6_Item5=ESP PN=Up
+Configuration6_Name6=VisibleOrder
+Configuration6_Item6=Quantity=100|Designator=100|ESP PN=100|Comment=100|VALUE=100|Tolerance=100|Rating=100|PACKAGE SIZE=100|MFGNAME=100|MFGNUMBER=100|MFGNAME2=100|MFGNUMBER2=100|MFGNAME3=100|MFGNUMBER3=100|Description=100|Supplier 1=100|Supplier Part Number 1=100|Supplier 2=100|Supplier Part Number 2=100|Supplier 3=100|Supplier Part Number 3=100|Supplier 4=100|Supplier Part Number 4=100|Supplier 5=100|Supplier Part Number 5=100|Marking_on_Component=100|APPROVED=100|FOOTPRT CHECK=100|MFG CHECK=100|ROHS_COMPLIANT=100|STATUS=100|SYMBOL CHECK=100|TEMPERATURE=100|SOLDERING SPEC=100|Footprint=100
+OutputType7=Differences Report
+OutputName7=Differences Report
+OutputCategory7=Validation
+OutputDocumentPath7=MICROCAL_MAIN.PcbDoc
+OutputVariantName7=
+OutputEnabled7=1
+OutputEnabled7_OutputMedium1=0
+OutputEnabled7_OutputMedium2=7
+OutputDefault7=0
+PageOptions7=Record=PageOptions|CenterHorizontal=True|CenterVertical=True|PrintScale=1.00|XCorrection=1.00|YCorrection=1.00|PrintKind=0|BorderSize=5000000|LeftOffset=0|BottomOffset=0|Orientation=1|PaperLength=1000|PaperWidth=1000|Scale=100|PaperSource=7|PrintQuality=-4|MediaType=1|DitherType=10|PaperKind=Letter|PrintScaleMode=1
+Configuration7_Name1=OutputConfigurationParameter1
+Configuration7_Item1=DifferenceLevel1=1|DifferenceLevel10=1|DifferenceLevel11=1|DifferenceLevel12=1|DifferenceLevel13=1|DifferenceLevel14=1|DifferenceLevel15=1|DifferenceLevel16=1|DifferenceLevel17=1|DifferenceLevel18=1|DifferenceLevel19=1|DifferenceLevel2=1|DifferenceLevel20=1|DifferenceLevel21=1|DifferenceLevel22=1|DifferenceLevel23=1|DifferenceLevel24=1|DifferenceLevel25=1|DifferenceLevel26=1|DifferenceLevel27=1|DifferenceLevel28=1|DifferenceLevel29=1|DifferenceLevel3=1|DifferenceLevel30=1|DifferenceLevel31=1|DifferenceLevel32=1|DifferenceLevel33=1|DifferenceLevel34=1|DifferenceLevel35=1|DifferenceLevel36=1|DifferenceLevel37=1|DifferenceLevel38=1|DifferenceLevel39=1|DifferenceLevel4=1|DifferenceLevel40=1|DifferenceLevel5=1|DifferenceLevel6=1|DifferenceLevel7=1|DifferenceLevel8=1|DifferenceLevel9=1|Record=DiffReportView
+OutputType8=Footprint Comparison Report
+OutputName8=Footprint Comparison Report
+OutputCategory8=Validation
+OutputDocumentPath8=MICROCAL_MAIN.PcbDoc
+OutputVariantName8=
+OutputEnabled8=1
+OutputEnabled8_OutputMedium1=0
+OutputEnabled8_OutputMedium2=8
+OutputDefault8=0
+Configuration8_Name1=OutputConfigurationParameter1
+Configuration8_Item1=Bottom Layer=True|Bottom Overlay=True|Bottom Paste=True|Bottom Solder=True|Drill Drawing=True|Drill Guide=True|Internal Plane 1=True|Internal Plane 2=True|Internal Plane 3=True|Keep-Out Layer=True|Mechanical 1=True|Mechanical 10=True|Mechanical 2=True|Mechanical 3=True|Mechanical 4=True|Mechanical 5=True|Mechanical 6=True|Mechanical 7=True|Mechanical 8=True|Mechanical 9=True|Mid-Layer 1=True|Mid-Layer 2=True|MidLayer3=True|Multi-Layer=True|Record=TUpdateFromPCBLibrariesSettings|Top Layer=True|Top Overlay=True|Top Paste=True|Top Solder=True
+
+[PublishSettings]
+OutputFilePath1=H:\projects\MicroCal_sandbox\trunk\schem\MicroCal_main\Project Outputs for MICROCAL_MAIN\
+ReleaseManaged1=0
+OutputBasePath1=Project Outputs for MICROCAL_MAIN
+OutputPathMedia1=
+OutputPathOutputer1=[Output Type]
+OutputFileName1=
+OpenOutput1=1
+PromptOverwrite1=1
+PublishMethod1=2
+ZoomLevel1=50
+FitSCHPrintSizeToDoc1=1
+FitPCBPrintSizeToDoc1=1
+GenerateNetsInfo1=1
+MarkPins1=1
+MarkNetLabels1=1
+MarkPortsId1=1
+WebOutputMediumType1=FS
+OutputDirectory1=Project Outputs for MICROCAL_MAIN\WebOutput
+OutputFilePath2=H:\projects\MicroCal_sandbox\trunk\schem\MicroCal_main\Project Outputs for MICROCAL_MAIN\XRM1_XIA_engineers_review\
+ReleaseManaged2=0
+OutputBasePath2=Project Outputs for MICROCAL_MAIN\
+OutputPathMedia2=XRM1_XIA_engineers_review
+OutputPathOutputer2=
+OutputFileName2=
+OpenOutput2=1
+
+[GeneratedFilesSettings]
+RelativeOutputPath1=H:\projects\MicroCal_sandbox\trunk\schem\MicroCal_main\Project Outputs for MICROCAL_MAIN\
+OpenOutputs1=1
+RelativeOutputPath2=H:\projects\MicroCal_sandbox\trunk\schem\MicroCal_main\Project Outputs for MICROCAL_MAIN\XRM1_XIA_engineers_review\
+OpenOutputs2=1
+AddToProject2=1
+TimestampFolder2=0
+UseOutputName2=1
+OpenODBOutput2=0
+OpenGerberOutput2=0
+OpenNCDrillOutput2=0
+OpenIPCOutput2=0
+EnableReload2=0
+
