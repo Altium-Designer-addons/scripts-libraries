@@ -160,6 +160,7 @@ var
 
     i                 : Integer;
     fileFlag          : Integer;
+    ASetOfObjects     : TObjectSet;
 
 begin
    SnippetName := '\' + SnippetName;
@@ -208,9 +209,12 @@ begin
    AddStringParameter('Scope', 'All');
    RunProcess('PCB:DeSelect');
 
+   ASetOfObjects := MkSet(ePadObject, eViaObject, eTrackObject, eTextObject, eFillObject, eComponentObject, ePolyObject,
+                          eRegionObject, eComponentBodyObject, eDimensionObject, eCoordinateObject);
+
    Try
       SnippetIterator := SnippetPCB.BoardIterator_Create;
-      SnippetIterator.AddFilter_ObjectSet(AllObjects);
+      SnippetIterator.AddFilter_ObjectSet(ASetOfObjects);
       SnippetIterator.AddFilter_LayerSet(AllLayers);
       SnippetIterator.AddFilter_Method(eProcessAll);
 
@@ -220,10 +224,11 @@ begin
       begin
          PCBObj := nil;
 
-         if SnippetObj.ObjectId = eComponentobject then
-            PcbObj := SnippetObj.ReplicateWithChildren
-         else if not SnippetObj.InComponent then
-            PcbObj := SnippetObj.Replicate;
+         if (SnippetObj.ObjectId = eComponentobject) or (SnippetObj.ObjectId = ePolyObject) or
+            (SnippetObj.ObjectId = eDimensionObject) or (SnippetObj.ObjectId = eCoordinateObject) then
+               PcbObj := SnippetObj.ReplicateWithChildren
+         else if SnippetObj.IsFreePrimitive then
+               PcbObj := SnippetObj.Replicate;
 
          if PCBObj <> nil then
          begin
@@ -846,4 +851,8 @@ begin
    ResetParameters;
    AddStringParameter('Action', 'UpdateFreePrimitiveNets');
    RunProcess('PCB:Netlist');
+
+   // Reset error markers
+   ResetParameters;
+   RunProcess('PCB:ResetAllErrorMarkers');
 end;
