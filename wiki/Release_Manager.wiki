@@ -28,3 +28,64 @@ https://altium-designer-addons.googlecode.com/svn/trunk/XIA_Release_Manager/docs
 ==WHAT THIS SCRIPT WILL *NOT* DO:==
   # Generate and then gather up all the generated output files and then throw them over the wall into some other, unrelated document management system, as the Altium 10 builtin release manager does with their strange "Vault" concept.  We have a company svn server.  Everyone here has access to it.  Everyone knows how to use it.  Everyone has already been using it for Altium projects.  Why on earth would we want to throw releases over the wall into some unrelated document management system??  We want to use releases/ and tags/ in svn!!
   # Generate release output in some other sandbox directory, other than the project's usual ProjectOutputs/ directory.
+
+==Function list:==
+===Manage string lists to configure this script for your company's needs===
+{{{
+{***************************************************************************
+ * function PopulateStringLists()
+ *  Perform init step by populating several string lists.
+ *  
+ *  What we're doing here is telling the script some detailed information
+ *  about each of our 6 OutJob files, as well as flagging some additional
+ *  steps that need to be performed after running certain OutJob files.
+ *
+ *  Note:  Unusually for this script, this function will create all
+ *  the var string lists.  They will need to be Free()'ed later.
+ *
+ *  Returns created and populated string lists in all of these var parms.
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function PopulateStringLists(var projOutSubDirs				: TStringList;
+                             var projOutIncludes			: TStringList;
+                             var outJobFiles				: TStringList;
+                             var outJobPdfContainers		: TStringList;
+                             var outJobPdfEnableNets		: TStringList;
+                             var outJobGenContainers		: TStringList;
+                             var outJobStatusMsg			: TStringList;
+                             var outJobDoSortMultiNetlist	: TStringList;
+                             var outJobSetSvnKeywordsOnBoms	: TStringList;
+                             var outJobDoFixIpc356Netlist	: TStringList;
+                             var deleteExcludes				: TStringList;
+							 var zipDoCheckForExisting		: TStringList;
+                             var zipExcludes				: TStringList;
+                             var zipFindAddlFiles			: TStringList;
+                             var zipFileNames				: TStringList;
+                             var relAndTagSubDir			: TStringList;
+                                 )							: Integer;
+
+{***************************************************************************
+ * function FreeStringLists()
+ *  Perform cleanup step by freeing several string lists.
+ *  
+ *  Returns freed string lists in all of these var parms.
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function FreeStringLists(var projOutSubDirs				: TStringList;
+						 var projOutIncludes			: TStringList;
+						 var outJobFiles				: TStringList;
+						 var outJobPdfContainers		: TStringList;
+						 var outJobPdfEnableNets		: TStringList;
+						 var outJobGenContainers		: TStringList;
+						 var outJobStatusMsg			: TStringList;
+						 var outJobDoSortMultiNetlist	: TStringList;
+						 var outJobSetSvnKeywordsOnBoms	: TStringList;
+						 var outJobDoFixIpc356Netlist	: TStringList;
+						 var deleteExcludes				: TStringList;
+						 var zipDoCheckForExisting		: TStringList;
+						 var zipExcludes				: TStringList;
+						 var zipFindAddlFiles			: TStringList;
+						 var zipFileNames				: TStringList;
+						 var relAndTagSubDir			: TStringList;
+							 )							: Integer;
+}}}
