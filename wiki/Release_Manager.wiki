@@ -1,5 +1,9 @@
 #summary This is the script in use by my company to do all of our Altium output generation, packaging (zipping), and release-tag.  Everything is done within Subversion (SVN).
 
+== Screen captures: ==
+
+https://altium-designer-addons.googlecode.com/svn/trunk/XIA_Release_Manager/docs/v1.8.10_screen_capture1.jpg
+
 == WHAT THIS SCRIPT WILL DO: ==
 
   # This release manager script is intended to be an interface to a set of 6 OutJob files that were copied from company templates and somewhat customized for the project in question.  The 6 OutJob files exist to break up the task of output generation into 6 pieces, so that all output files need not be generated each time.  (This was XIA's previous setup, and wasted lots of time.)
