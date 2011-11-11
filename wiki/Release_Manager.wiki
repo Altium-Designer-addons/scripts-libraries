@@ -82,5 +82,455 @@ function PopulateStringLists(var projOutSubDirs             : TStringList;
  ***************************************************************************}
 function StripTrailingBackslash(filePath : TDynamicString;
                                 )        : TDynamicString;
+
+{***************************************************************************
+ * function SplitDelimitedStringIntoStringList()
+ *  Splits a delimited string (eg. 'foo|bar|bin|bat|"gee whiz"') into a list containing
+ *  eg. 'foo', 'bar', 'bin', 'bat', and 'gee whiz'.
+ *  
+ *  Note:  Assumes that stringList has already been created.
+ *  Note:  Assumes that any field containing spaces (eg. "gee whiz" above) is quoted!
+ *
+ *  Returns populated string list in var parameter stringList.
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function SplitDelimitedStringIntoStringList(    delimitedString : TDynamicString;
+                                                delimiter       : TDynamicString;
+                                            var stringList      : TStringList;
+                                                )               : Integer;
+
+{***************************************************************************
+ * function SplitStringIntoLeftAndRight()
+ *  Split a string with a single delimiter character into "left" and "right"
+ *  halves.
+ *  
+ *  Returns left half in var parm leftStr.
+ *  Returns right half in var parm rightStr.
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function SplitStringIntoLeftAndRight(    splitMe   : TDynamicString;
+                                         delimiter : TString;
+                                     var leftStr   : TDynamicString;
+                                     var rightStr  : TDynamicString;
+                                         )         : Integer;
+
+{***************************************************************************
+ * function SplitStringIntoLeftAndRightWithAbort()
+ *  Split a string with a single delimiter character into "left" and "right"
+ *  halves.
+ *  
+ *  Returns left half in var parm leftStr.
+ *  Returns right half in var parm rightStr.
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function SplitStringIntoLeftAndRightWithAbort(    splitMe   : TDynamicString;
+                                                  delimiter : TString;
+                                              var leftStr   : TDynamicString;
+                                              var rightStr  : TDynamicString;
+                                                  )         : Integer;
+
+
+
+}}}
+</code>
+
+===Misc file handling functions===
+<code language="Delphi">
+{{{
+{***************************************************************************
+ * function DeleteFileWithVerify()
+ *  Try to delete a file and make sure we succeeded.
+ *
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function DeleteFileWithVerify(filePath : TDynamicString;
+                              )        : Integer;
+
+{***************************************************************************
+ * function MyFindFilesSpecifyRecursion()
+ *  Search a given directory (either recursively or non-recursively)
+ *  for files matching specified mask.
+ *
+ *  Note:  FilesOnly string list is assumed to have already been created by caller.
+ *  
+ *  Returns:  String list of generated files in var parameter FilesOnly.
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function MyFindFilesSpecifyRecursion(    projOutPath : TString;
+                                         subDir      : TString;
+                                         mask        : TString;
+                                         recursive   : Boolean;
+                                     var FilesOnly   : TStringList);
+
+{***************************************************************************
+ * function MyFindFiles()
+ *  Search a given directory for files matching specified mask.
+ *  
+ *  Note:  Assumes that list FilesOnly has already been created!
+ *
+ *  Returns:  String list of generated files in var parameter FilesOnly.
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function MyFindFiles(    projOutPath : TString;
+                         subDir      : TString;
+                         mask        : TString;
+                     var FilesOnly   : TStringList);
+
+{***************************************************************************
+ * function MyFindFilesRecursive()
+ *  Search a given directory recursively for files matching specified mask.
+ *  
+ *  Note:  Assumes that list FilesOnly has already been created!
+ *
+ *  Returns:  String list of generated files in var parameter FilesOnly.
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function MyFindFilesRecursive(    projOutPath : TString;
+                                  subDir      : TString;
+                                  mask        : TString;
+                              var FilesOnly   : TStringList);
+
+{***************************************************************************
+ * function IsFileZeroLength()
+ *  Determine if a given file is 0 length.
+ *
+ *  Returns:  True if file is 0 length, False if non-existent or non-zero length.
+ ***************************************************************************}
+function IsFileZeroLength(filePath : TDynamicString;
+                          )        : Boolean;
+
+{***************************************************************************
+ * function IsFileWriteable()
+ *  Determine if a given file is writeable (eg. not flocked by Excel or Acroread)..
+ *
+ *  Returns:  True if file is writeable, False if non-existent or non-writeable.
+ ***************************************************************************}
+function IsFileWriteable(filePath : TDynamicString;
+                         )        : Boolean;
+
+{***************************************************************************
+ * function VerifyFileIsWriteable()
+ *  Verify that a given file is writeable (eg. not flocked by Excel or Acroread).
+ *  If it is flocked, warn the user to close it, then check one more time.
+ *  If on the 2nd check the file is still flocked, then abort script with error.
+ *
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function VerifyFileIsWriteable(filePath : TDynamicString;
+                               )        : Boolean;
+
+{***************************************************************************
+ * function TruncateFile()
+ *  Try to truncate a file to zero length.
+ *
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function TruncateFile(filePath : TDynamicString;
+                      )      : Integer;
+
+{***************************************************************************
+ * function TruncateFileWithVerify()
+ *  Try to truncate a file to zero length and make sure we succeeded.
+ *
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function TruncateFileWithVerify(filePath : TDynamicString;
+                                )        : Integer;
+
+
+{***************************************************************************
+ * procedure OpenDebugFile()
+ *  Open debug file for the first time.
+ ***************************************************************************}
+procedure OpenDebugFile(fileName :  TDynamicString);
+
+{***************************************************************************
+ * procedure WriteToDebugFile()
+ *  Write a new line of text to the debug file.
+ *  
+ *  Note that we will be operating in append-write-close mode in order to
+ *  prevent Altium from flocking this file in the event of an unhandled
+ *  Altium script crash.
+ ***************************************************************************}
+procedure WriteToDebugFile(msg : TDynamicString);
+
+{***************************************************************************
+ * procedure CloseDebugFile()
+ *  Close debug file.
+ *
+ *  Note:  Since we're now operating in append-write-close mode, there's
+ *  no longer anything we actually have to do here.
+ *  
+ *  Note:  foo is a dummy parameter that exists only to keep CloseDebugFile()
+ *  from being offered as the script entry point in Altium.
+ ***************************************************************************}
+procedure CloseDebugFile(foo : Integer);
+
+{***************************************************************************
+ * procedure OpenSummaryFile()
+ *  Open summary file for the first time.
+ ***************************************************************************}
+procedure OpenSummaryFile(fileName :  TDynamicString);
+
+{***************************************************************************
+ * procedure WriteToSummaryFile()
+ *  Write a new line of text to the summary file.
+ *  
+ *  Note that we will be operating in append-write-close mode in order to
+ *  prevent Altium from flocking this file in the event of an unhandled
+ *  Altium script crash.
+ ***************************************************************************}
+procedure WriteToSummaryFile(msg : TDynamicString);
+
+{***************************************************************************
+ * procedure CloseSummaryFile()
+ *  Close summary file.
+ *
+ *  Note:  Since we're now operating in append-write-close mode, there's
+ *  very little that we actually have to do here.
+ *  
+ *  Note:  foo is a dummy parameter that exists only to keep CloseDebugFile()
+ *  from being offered as the script entry point in Altium.
+ ***************************************************************************}
+procedure CloseSummaryFile(foo : Integer);
+
+}}}
+</code>
+
+===Misc user interface functions===
+<code language="Delphi">
+{{{
+{***************************************************************************
+ * procedure UpdateGuiStatusMessage()
+ *  Update status message in dialog box and write said status to the debug file.
+ ***************************************************************************}
+procedure UpdateGuiStatusMessage(msg :  TDynamicString);
+
+{***************************************************************************
+ * procedure IssueDialogBoxWithOkOrCancel()
+ *  Present the user with a dialog box of the specified type, with a specified message in it.
+ *  If user clicks OK, optionally display "ok" message and return to caller.
+ *  If user clicks Cancel, then abort script with "cancel" message.
+ ***************************************************************************}
+procedure IssueDialogBoxWithOkOrCancel(dialogType : TMsgDlgType;
+                                       msg        : TDynamicString;
+                                       okMsg      : TDynamicString;
+                                       cancelMsg  : TDynamicString);
+
+{***************************************************************************
+ * procedure IssueConfirmationWithOkOrCancel()
+ *  Present the user with a confirmation dialog box with a specified message in it.
+ *  If user clicks OK, optionally display "ok" message and return to caller.
+ *  If user clicks Cancel, then abort script with "cancel" message.
+ ***************************************************************************}
+procedure IssueConfirmationWithOkOrCancel(msg       : TDynamicString;
+                                          okMsg     : TDynamicString;
+                                          cancelMsg : TDynamicString);
+
+{***************************************************************************
+ * procedure IssueWarningWithOkOrCancel()
+ *  Present the user with a warning dialog box with a specified message in it.
+ *  If user clicks OK, optionally display "ok" message and return to caller.
+ *  If user clicks Cancel, then abort script with "cancel" message.
+ ***************************************************************************}
+procedure IssueWarningWithOkOrCancel(msg       : TDynamicString;
+                                     okMsg     : TDynamicString;
+                                     cancelMsg : TDynamicString);
+
+}}}
+</code>
+
+===Functions to handle calling external scripts===
+<code language="Delphi">
+{{{
+{***************************************************************************
+ * function CleanupSvnRcFile()
+ *  Try to delete rc file from external svn command.
+ *
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function CleanupSvnRcFile(svnRcPath : TDynamicString;
+                          )         : Integer;
+
+
+{***************************************************************************
+ * function AwaitSvnCompletion()
+ *  Wait for the external svn command to complete.
+ *
+ *  Returns first line in svn return code file in var parm svnRc.
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function AwaitSvnCompletion(    svnRcPath    : TDynamicString;
+                                timeoutLimit : Integer;
+                            var svnRc        : TDynamicString;
+                                )            : Integer;
+
+{***************************************************************************
+ * function IssueSvnCommandGetOutput()
+ *  Shell out and call bat file to issue a generic svn command.
+ *  Check its return code, and return all output generated by svn.exe.
+ *
+ *  Returns all svn output in var parm svnOut.
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function IssueSvnCommandGetOutput(    scriptsPath : TDynamicString;
+                                      projectPath : TDynamicString;
+                                      command     : TDynamicString;
+                                      parms       : TStringList;
+                                  var svnOut      : TStringList;
+                                      )           : Integer;
+
+{***************************************************************************
+ * function IssueSvnCommandLookForOutputLine()
+ *  Shell out and call bat file to issue a generic svn command.
+ *  Check its return code, and look for a specific line in its output.
+ *
+ *  Returns the line of svn output containing "lookForMe" as var parm foundInLine.
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function IssueSvnCommandLookForOutputLine(    scriptsPath : TDynamicString;
+                                              projectPath : TDynamicString;
+                                              command     : TDynamicString;
+                                              parms       : TStringList;
+                                              lookForMe   : TDynamicString;
+                                          var foundInLine : TDynamicString;
+                                              )           : Integer;
+
+{***************************************************************************
+ * function IssueSvnCommand()
+ *  Shell out and call bat file to issue a generic svn command.
+ *  Check its return code, but ignore its output.
+ *
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function IssueSvnCommand(scriptsPath : TDynamicString;
+                         projectPath : TDynamicString;
+                         command     : TDynamicString;
+                         parms       : TStringList;
+                         )           : Integer;
+
+{***************************************************************************
+ * function DoSvnRevert()
+ *  Do a recursive svn revert on 1 or 2 specified directories.
+ *
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function DoSvnRevert(scriptsPath : TDynamicString;
+                     projectPath : TString;
+                     dir1        : TDynamicString;
+                     dir2        : TDynamicString;
+                     )           : Integer;
+
+{***************************************************************************
+ * function DoSvnInfoAndGetOneLine()
+ *  Query via svn info and look for a line of text starting with "findLine".
+ *
+ *  Returns line we found in svn reply, not counting the header we were looking for.
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function DoSvnInfoAndGetOneLine(    scriptsPath : TDynamicString;
+                                    projectPath : TString;
+                                    fileOrDir   : TString;
+                                    findLine    : TString;
+                                var foundLine   : TDynamicString;
+                                    )           : Integer;
+
+{***************************************************************************
+ * function GetFileOrDirSvnServerUrl()
+ *  Query to get the svn server side URL for a specified file or directory.
+ *
+ *  Returns svn server side URL in var parm fileOrDirUrl.
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function GetFileOrDirSvnServerUrl(    scriptsPath : TDynamicString;
+                                      projectPath  : TString;
+                                      fileOrDir    : TString;
+                                  var fileOrDirUrl : TDynamicString;
+                                      )            : Integer;
+
+{***************************************************************************
+ * function GetFileSvnRevNum()
+ *  Query to get the latest svn rev number for a specified file.
+ *
+ *  Returns svn rev number (in string form) in var parm fileRevNum.
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function GetFileSvnRevNum(    scriptsPath : TDynamicString;
+                              projectPath  : TDynamicString;
+                              filePath     : TDynamicString;
+                          var fileRevNum   : TDynamicString;
+                              )            : Integer;
+
+{***************************************************************************
+ * function RunSomeSedBatFile()
+ *  Shell out and call specified batFile to run some sed-related command.
+ *  Check its return code.
+ *
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function RunSomeSedBatFile(scriptsPath : TDynamicString;
+                           projectPath : TDynamicString;
+                           inputPath   : TDynamicString;
+                           outputPath  : TDynamicString;
+                           batFile     : TDynamicString;
+                           command     : TDynamicString;
+                           )           : Integer;
+
+{***************************************************************************
+ * function RunSed()
+ *  Shell out and call bat file to run standard sed command.
+ *  Check its return code.
+ *
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function RunSed(scriptsPath : TDynamicString;
+                projectPath  : TDynamicString;
+                inputPath    : TDynamicString;
+                outputPath   : TDynamicString;
+                command      : TDynamicString;
+                )            : Integer;
+
+{***************************************************************************
+ * function RunPatchWithSed()
+ *  Shell out and call bat file to run patch sed command.
+ *  Check its return code.
+ *
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function RunPatchWithSed(scriptsPath : TDynamicString;
+                         projectPath : TDynamicString;
+                         inputPath   : TDynamicString;
+                         outputPath  : TDynamicString;
+                         command     : TDynamicString;
+                         )           : Integer;
+
+{***************************************************************************
+ * function RunSortMulti()
+ *  Shell out and call bat file to sort Multiwire netlist.
+ *  Check its return code.
+ *
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function RunSortMulti(scriptsPath : TDynamicString;
+                      projectPath  : TDynamicString;
+                      inputPath    : TDynamicString;
+                      outputPath   : TDynamicString;
+                      )            : Integer;
+
+
+}}}
+</code>
+
+===Misc file handling functions===
+<code language="Delphi">
+{{{
+
+}}}
+</code>
+
+===Misc file handling functions===
+<code language="Delphi">
+{{{
+
 }}}
 </code>
