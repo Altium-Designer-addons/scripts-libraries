@@ -521,16 +521,370 @@ function RunSortMulti(scriptsPath : TDynamicString;
 }}}
 </code>
 
-===Misc file handling functions===
+===Mid-level script functions (mostly file related)===
 <code language="Delphi">
 {{{
+{***************************************************************************
+ * function CreateSubDir()
+ *  Ensures that a given subdirectory exists.  If not, create it.
+ *  Return a list of directories created.
+ *
+ *  Note:  Previously this code would also attempt to restore a locally
+ *  deleted directory by running svn update.  However, we now handle that
+ *  operation by doing an svn revert of the directory tree long before we get here.
+ *
+ *  Note:  Assumes that string list newSubDirs has already been created.
+ *
+ *  Adds current subDir to var parm subDirs.
+ *  If new subDir is created, it is added to var parm newSubDirs
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function CreateSubDir(    scriptsPath : TDynamicString;
+                          projectPath : TDynamicString;
+                          subDir      : TString;
+                      var newSubDirs  : TStringList;
+                          )           : Integer;
+
+{***************************************************************************
+ * function CreateOutputSubDir()
+ *  Ensures that a given output subdirectory exists.  If not, create it.
+ *
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function CreateOutputSubDir(scriptsPath : TDynamicString;
+                            projectPath : TDynamicString;
+                            projOutPath : TString;
+                            subDir      : TString;
+                            )           : Integer;
+
+{***************************************************************************
+ * function CreateAllOutputSubDirs()
+ *  Ensures that all output subdirectories exist.  If any do not, create them.
+ *
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function CreateAllOutputSubDirs(scriptsPath     : TDynamicString;
+                                projectPath     : TDynamicString;
+                                projOutPath     : TString;
+                                projOutSubDirs  : TStringList;
+                                projOutIncludes : TStringList;
+                                )               : Integer;
+
+{***************************************************************************
+ * function ExcludeFilesFromList()
+ *  Process a list of files.  For each file, see if the filename or the fileext
+ *  matches a list of excludes.  If so, remove it from the list.
+ *
+ *  Note:  Assumes that fileList stringlist has already been created.
+ *
+ *  Returns modified string list as var parm fileList.
+ *  Returns:  0 on success, 1 if unable to delete one or more files
+ ***************************************************************************}
+function ExcludeFilesFromList(var fileList : TStringList;
+                                  excludes : TStringList;
+                                  )        : Integer;
+
+{***************************************************************************
+ * function DeleteOutputFiles()
+ *  Attempt to delete all files in a specified subdirectory of ProjectOutputs.
+ *  Take a list of files to exclude from deletion.
+ *
+ *  Returns:  0 on success, 1 if unable to delete one or more files
+ ***************************************************************************}
+function DeleteOutputFiles(projOutPath : TString;
+                           subDir      : TString;
+                           excludes    : TStringList;
+                           )           : Integer;
+
+{***************************************************************************
+ * function DeleteAllOutputFiles()
+ *  Attempt to delete all files in all output subdirs of ProjectOutputs.
+ *  Take a list of output subdirs and a list of files to exclude from
+ *  deletion for each subdir.
+ *
+ *  Returns:  0 on success, 1 if unsuccessful.
+ ***************************************************************************}
+function DeleteAllOutputFiles(projOutPath    : TString;
+                              projOutSubDirs : TStringList;
+                              deleteExcludes : TStringList;
+                              runOutJobs     : TStringList;
+                              )              : Integer;
+
+{***************************************************************************
+ * function CheckThatSvnScriptsWorkingCopyIsUpdated()
+ *  Make sure that the working copy containing our scripts and libraries
+ *  is up-to-date with respect to the svn server.
+ *
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function CheckThatSvnScriptsWorkingCopyIsUpdated(scriptsPath : TDynamicString;
+                                                 )           : Integer;
+
+{***************************************************************************
+ * function CheckForUnCheckedInFiles()
+ *  Do an svn status command in project home to look for files
+ *  that have not been checked into svn.
+ *
+ *  Returns:  0 on success, 1 if unsuccessful.
+ ***************************************************************************}
+function CheckForUnCheckedInFiles(scriptsPath : TDynamicString;
+                                  projectPath : TString;
+                                  filePaths   : TStringList;
+                                  msg         : TDynamicString;
+                                  )           : Integer;
+
+{***************************************************************************
+ * function CheckForUnCheckedInSourceFiles()
+ *  Do an svn status command in project home to look for source files
+ *  that have not been checked into svn.
+ *
+ *  Returns:  0 on success, 1 if unsuccessful.
+ ***************************************************************************}
+function CheckForUnCheckedInSourceFiles(scriptsPath     : TDynamicString;
+                                        projectPath     : TString;
+                                        sourceFilePaths : TStringList;
+                                        )               : Integer;
+
+{***************************************************************************
+ * function CheckForAllMissingOutputFiles()
+ *  Do an svn status command in ProjectOutputs SubDirs to look for files
+ *  that exist in svn repo but do not exist in working copy.
+ *
+ *  This situation occurs when an output file was previously generated and
+ *  checked into svn, but then the user disabled that output in OutJob
+ *  files before running this script.
+ *
+ *  Of course, it can also occur when a legitimate change (reducing number
+ *  of PcbDoc layers, reducing number of variants, etc.) results in fewer
+ *  output files being generated compared to last time this script was run.
+ *  In this event, the user must manually svn delete the file(s) in question
+ *  and re-run this release manager script.
+ *
+ *  Returns:  0 on success, 1 if unsuccessful.
+ ***************************************************************************}
+function CheckForAllMissingOutputFiles(scriptsPath    : TDynamicString;
+                                       projOutPath    : TString;
+                                       projOutSubDirs : TStringList;
+                                       )              : Integer;
+
+{***************************************************************************
+ * function CheckForUnsavedSource()
+ *  Iterate over all the source documents in the project.
+ *  Make sure that they've all been saved to disk.
+ *
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function CheckForUnsavedSource(sourceFilePaths : TStringList;
+                               )               : Integer;
 
 }}}
 </code>
 
-===Misc file handling functions===
+===Mid-level functions to analyze project===
 <code language="Delphi">
 {{{
+{***************************************************************************
+ * function GetSourceFilesAndFindTopLevelSchDoc()
+ *  Iterate over all the source documents in the project.
+ *  Return a list of the paths to all source documents.
+ *
+ *  While we're at it, also identify the top level schematic document.
+ *  This will be used later to find the pcb version number.
+ *
+ *  Also while we're at it, identify the project file name.
+ *  This will be used later to increment the pcba version number.
+ *
+ *  Returns source files in var parm sourceFilePaths.
+ *  Returns top level schematic as var parm topLevelSchDoc.
+ *  Returns project file name as var parm projFilePath.
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function GetSourceFilesAndFindTopLevelSchDoc(    Project         : IProject;
+                                             var sourceFilePaths : TStringList;
+                                             var topLevelSchDoc  : IDocument;
+                                             var projFilePath    : TDynamicString;
+                                                 )               : Integer;
+
+{***************************************************************************
+ * function GetPcbAndPcbaVersions()
+ *  Get the PCB (pcb fabrication) project properties.
+ *  Get the PCBA (pcb assembly) project properties.
+ *
+ *  If the user wishes to package fabrication, then require presence of PCB parms.
+ *  If the user wishes to package assembly, then require presence of PCB parms.
+ *
+ *  Returns modified project parms list as var parm projectParms.
+ *  Returns PCB part number and version as string in var parm pcbPartNumAndVersion.
+ *  Returns PCBA version as string in var parm pcbaVersion.
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function GetPcbAndPcbaVersions(    Project              : IProject;
+                                   projOutSubDirs       : TStringList;
+                                   runPackager          : TStringList;
+                               var projectParms         : TStringList;
+                               var pcbPartNumAndVersion : TDynamicString; 
+                               var pcbaVersion          : TDynamicString; 
+                                   )                    : Integer;
+
+{***************************************************************************
+ * function SplitPcbPartNumAndVersion()
+ *  Split a string that contains both the PCB part number (eg. "MICROCAL-MAIN")
+ *  and the PCB version number (eg. "1.13") into its component parts.
+ *
+ *  Returns PCB part number in var parm pcbPartNum.
+ *  Returns PCB version number in var parm pcbVersion.
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function SplitPcbPartNumAndVersion(    pcbPartNumAndVersion : TDynamicString;
+                                   var pcbPartNum           : TDynamicString;
+                                   var pcbVersion           : TDynamicString; 
+                                   )                        : Integer;
+
+{***************************************************************************
+ * function GetPcbVersionNumbersFromTopLevelSchDoc()
+ *  
+ *  In top level schematic document, find the schematic component with refdes "APCB1".
+ *  Also find the Gerber Title Block component that will have some refdes "XX*".
+ *  
+ *  APCB1 will have a MFGNUMBER parameter that looks something like
+ *  "PCB-MICROCAL_MAIN-1.13 Build Rev 19894".
+ *  Return everything up to the last char before the first space (eg. "PCB-MICROCAL_MAIN-1.13") as var parm schApcb1MnoPcbPartNum.
+ *  Return everyting after the last space char (eg. "19894") as var parm schApcb1MnoPcbRevNum.
+ *
+ *  APCB1 will have a VALUE parameter that looks something like
+ *  "PCB-MICROCAL_MAIN-1.13".
+ *  Return this as var parm schApcb1ValPcbPartNum.
+ *
+ *  APCB1 will have a Comment parameter that looks something like
+ *  "PCB-MICROCAL_MAIN-1.13" or "=VALUE".
+ *  Return this as var parm schApcb1ComPcbPartNum.
+ *
+ *  GerberTitleBlock component (XX something) with have a Comment parameter that looks something like
+ *  "PCB-MICROCAL_MAIN-1.13".
+ *  Return this as var parm schGtbPcbPartNum.
+ *
+ *  NOTE:  This entire function is highly specific to the required design
+ *  elements at XIA LLC.  It would need to be generalized or modified to
+ *  support another company's requirements!
+ *  
+ *  Returns : 0 on success, 1 if not successful.
+ ***************************************************************************}
+function GetPcbVersionNumbersFromTopLevelSchDoc(    topLevelSchDoc                  : IDocument,
+                                                var schApcb1MnoPcbPartNumAndVersion : TDynamicString;   { PCB part number and version as reported by SCH component APCB1, MFGNUMBER field. }
+                                                var schApcb1ValPcbPartNumAndVersion : TDynamicString;   { PCB part number and version as reported by SCH component APCB1, VALUE field. }
+                                                var schApcb1ComPcbPartNumAndVersion : TDynamicString;   { PCB part number and version as reported by SCH component APCB1, Comment field. }
+                                                var schApcb1MnoPcbRevNum            : TDynamicString;   { PcbDoc file svn rev number as reported by SCH component APCB1, MFGNUMBER field. }
+                                                var schGtbPcbPartNumAndVersion      : TDynamicString;   { PCB part number and version as reported by SCH component gerber title block, Comment field. }
+                                                var gtbRefDes                       : TDynamicString;
+                                               )                                    : Integer;
+
+{***************************************************************************
+ * function FindProjectPcbDocFile()
+ *  Find the PcbDoc file associated with this project.
+ *  Panic if we find any number not equal to 1 (eg 0 or 2).
+ *  
+ *  Returns full path to this project's PcbDoc file in var parm pcbDocPath.
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function FindProjectPcbDocFile(    Project               : IProject;
+                                   flagRequirePcbDocFile : Boolean;
+                               var pcbDocPath            : TDynamicString; 
+                               )                         : Integer;
+
+{***************************************************************************
+ * function GetPcbVersionNumbersFromPcbDoc()
+ *  
+ *  Find the PCB component with refdes "APCB1".
+ *  
+ *  APCB1 will have a Comment parameter that looks something like
+ *  "PCB-MICROCAL_MAIN-1.13" or "=VALUE".
+ *  Return this as var parm pcbApcb1PcbPartNumAndVersion.
+ *
+ *  GerberTitleBlock component (XX something) with have a Comment parameter that looks something like
+ *  "PCB-MICROCAL_MAIN-1.13".
+ *  Return this as var parm pcbGtbPcbPartNumAndVersion.
+ *
+ *  NOTE:  This entire function is highly specific to the required design
+ *  elements at XIA LLC.  It would need to be generalized or modified to
+ *  support another company's requirements!
+ *  
+ *  Returns : 0 on success, 1 if not successful.
+ ***************************************************************************}
+function GetPcbVersionNumbersFromPcbDoc(    pcbDocPath                   : TDynamicString;
+                                            gtbRefDes                    : TDynamicString;
+                                        var pcbApcb1PcbPartNumAndVersion : TDynamicString;  { PCB part number and version as reported by PCB component APCB1. }
+                                        var pcbGtbPcbPartNumAndVersion   : TDynamicString;  { PCB part number and version as reported by PCB component gerber title block. }
+                                        var step                         : Integer;
+                                            )                            : Integer;
+
+{***************************************************************************
+ * function GetPcbDocFileSvnRevNum()
+ *  Get the latest svn rev number for the PcbDoc file.
+ *
+ *  Returns svn rev number (in string form) in var parm pcbDocRevNum.
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function GetPcbDocFileSvnRevNum(    scriptsPath  : TDynamicString;
+                                    projectPath  : TDynamicString;
+                                    pcbDocPath   : TDynamicString;
+                                var pcbDocRevNum : TDynamicString;
+                                var step         : Integer;
+                                    )            : Integer;
+
+
+{***************************************************************************
+ * function GetPcbAndPcbaPartNumsVersionsAndRevs()
+ *  Get pcbPartNum and pcbVersion information from several sources:
+ *  (a) Project level properties
+ *  (b) Top Level schematic document
+ *  (c) PcbDoc file
+ *  and make sure that these all agree.
+ *
+ *  Get pcbaPartNum and pcbaVersion information from project level properties.
+ *
+ *  NOTE:  This entire function is highly specific to the required design
+ *  elements at XIA LLC.  It would need to be generalized or modified to
+ *  support another company's requirements!
+ *  
+ *  TODO:  Handle future use case where we are doing only release and tag,
+ *  and not packaging files this time around. (??)
+ *
+ *  Returns list of all project level paramters as var parm projectParms.
+ *  Returns pcb part number as var parm pcbPartNum.
+ *  Returns pcb version number as var parm pcbVersion.
+ *  Returns svn rev number of PcbDoc file as var parm pcbDocRevNum.
+ *  Returns pcba part number as var parm pcbaPartNum.
+ *  Returns pcba version number of project as var parm pcbaVersion.
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function GetPcbAndPcbaPartNumsVersionsAndRevs(    Project               : IProject;
+                                                  projectName           : TDynamicString;
+                                                  scriptsPath           : TDynamicString;
+                                                  projectPath           : TDynamicString;
+                                                  projOutPath           : TDynamicString;
+                                                  projOutSubDirs        : TStringList;
+                                                  zipFileNames          : TStringList;
+                                                  flagRequirePcbDocFile : Boolean;
+                                                  runPackager           : TStringList;
+                                                  topLevelSchDoc        : IDocument;
+                                              var projectParms          : TStringList;
+                                              var pcbPartNum            : TDynamicString;
+                                              var pcbVersion            : TDynamicString;
+                                              var pcbDocRevNum          : TDynamicString;
+                                              var pcbaPartNum           : TDynamicString;
+                                              var pcbaVersion           : TDynamicString;
+                                              var step                  : Integer;
+                                                  )                     : Integer;
+
+{***************************************************************************
+ * function SanityCheckRelAndTag()
+ *  Perform sanity checks before starting release & tag operation.
+ *
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function SanityCheckRelAndTag(scriptsPath : TDynamicString;
+                              projectPath : TDynamicString;
+                              )           : Integer;
 
 }}}
 </code>
