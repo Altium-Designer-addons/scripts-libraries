@@ -71,7 +71,7 @@ function PopulateStringLists(var projOutSubDirs             : TStringList;
 }}}
 </code>
 
-===Misc string manipulation functions===
+===Low-level misc string manipulation functions===
 <code language="Delphi">
 {{{
 {***************************************************************************
@@ -134,7 +134,7 @@ function SplitStringIntoLeftAndRightWithAbort(    splitMe   : TDynamicString;
 }}}
 </code>
 
-===Misc file handling functions===
+===Low-level misc file handling functions===
 <code language="Delphi">
 {{{
 {***************************************************************************
@@ -297,7 +297,7 @@ procedure CloseSummaryFile(foo : Integer);
 }}}
 </code>
 
-===Misc user interface functions===
+===Low-level misc user interface functions===
 <code language="Delphi">
 {{{
 {***************************************************************************
@@ -340,7 +340,7 @@ procedure IssueWarningWithOkOrCancel(msg       : TDynamicString;
 }}}
 </code>
 
-===Functions to handle calling external scripts===
+===Low-level functions to handle calling external scripts===
 <code language="Delphi">
 {{{
 {***************************************************************************
@@ -888,3 +888,658 @@ function SanityCheckRelAndTag(scriptsPath : TDynamicString;
 
 }}}
 </code>
+
+===Mid-level functions to make changes to project===
+<code language="Delphi">
+{{{
+{***************************************************************************
+ * function ComputeIncrementedVersion()
+ *  Extract the build number ("z" of "foo-bar-x.y.z" or "x.y.z"), increment
+ *  it, and then recombine it with the rest of the version string.
+ *
+ *  Returns incremented version string as var parm newVersion.
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function ComputeIncrementedVersion(    version    : TDynamicString; 
+                                   var newVersion : TDynamicString; 
+                                   )              : Integer;
+
+{***************************************************************************
+ * function ModifyProjectFileWithNewParms()
+ *  Implement kludge to modify the contents of the Altium project file, to
+ *  update/add project level parameters.
+ *  
+ *  FIXME:  We're currently doing this in a very kludgey way, by brutally
+ *  re-writing the .PrjPcb project file itself.  This is because I've been
+ *  unable to figure out how to modify and/or add project level parameters
+ *  within Altium DelphiScript.
+ *
+ *  WARNING:  After this script finishes running, Altium will have a duplicate
+ *  set of all project parameters in memory.  This is because it will read
+ *  in the new values of all parameters after we re-write the project file.
+ *  But it will not erase the old values of all the parameters.
+ *  So the second time that a user runs this script (without shutting down
+ *  and re-opening the project), GetPcbAndPcbaVersions() will find two
+ *  values for each project parameter, one from before the first run of this
+ *  script, and one from after the first run of this script.
+ *  Currently we are relying on GetPcbAndPcbaVersions() to compare the two
+ *  values for each parameter and use the "greater" one.
+ *  If this should prove unreliable, then we could get more aggressive and
+ *  force Altium to close the project after this script finishes running.
+ *  
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function ModifyProjectFileWithNewParms(Project      : IProject;
+                                       projFilePath : TDynamicString;
+                                       projectParms : TStringList;
+                                       )            : Integer;
+
+{***************************************************************************
+ * function ModifyProjectParm()
+ *  Modify a project level parameter in memory.
+ *  We will handle writing it to disk later.
+ *  
+ *  When we find a project level parameter named versionParm, we replace
+ *  its value with newVersion.
+ *  When we find a project level parameter named verionLastParm, we replace
+ *  its value with version.
+ *  
+ *  Returns modified project parms list as var parm projectParms.
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function ModifyProjectParm(    version         : TDynamicString; 
+                               newVersion      : TDynamicString; 
+                               versionParm     : TDynamicString; 
+                               versionLastParm : TDynamicString;
+                           var projectParms    : TStringList;
+                               )               : Integer;
+
+{***************************************************************************
+ * function IncrementPcbAndPcbaVersions()
+ *  If needed, increment the build number ("z" of the foo-bar-x.y.z version number)
+ *  for the PCB (pcb fabrication) project property.
+ *
+ *  If needed, increment the build number ("z" of the x.y.z version number)
+ *  for the PCBA (pcb assembly) project property.
+ *
+ *  If either of these parameters updated, then modify these parameters permanently
+ *  by modifying the project file.
+ *
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function IncrementPcbAndPcbaVersions(    Project              : IProject;
+                                         projOutSubDirs       : TStringList;
+                                         runPackager          : TStringList;
+                                         projFilePath         : TDynamicString;
+                                     var projectParms         : TStringList;
+                                         pcbPartNumAndVersion : TDynamicString; 
+                                         pcbaVersion          : TDynamicString; 
+                                     var step                 : Integer;
+                                         )                    : Integer;
+
+
+}}}
+</code>
+
+===Mid-level functions to generate and fix Altium output files===
+<code language="Delphi">
+{{{
+{***************************************************************************
+ * function DiffFiles()
+ *  Diff 2 text files on the disk and say whether or not they are exactly the same.
+ *
+ *  Returns:  0 when the files are the same, 1 if they are different.
+ ***************************************************************************}
+function DiffFiles(filePathA : TString;
+                   filePathB : TString;
+                   )         : Integer;
+
+
+{***************************************************************************
+ * function AddGeneratedFileToProject()
+ *  If the specified generated file is not already part of the project,
+ *  then add it to the project.
+ *
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function AddGeneratedFileToProject(var Project  : IProject;
+                                       filePath : TString;
+                                   var step     : Integer;
+                                       )        : Integer;
+
+{***************************************************************************
+ * function SortMultiwireNetlist()
+ *  Sort the generated Multiwire netlist to make it human-readable and
+ *  human-auditable.
+ *
+ *  TODO:  This whole operation could be done internally in this script,
+ *  rather than shelling out to call awk, sed, sort, etc.
+ *
+ *  Note:  Due to limitations of FindFiles(), the sorted Multiwire netlist file will
+ *  be named in ALL CAPS.  This is annoying, but not a show stopper.
+ *
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function SortMultiwireNetlist(var Project     : IProject;
+                                  scriptsPath : TDynamicString;
+                                  projectPath : TString;
+                                  projOutPath : TString;
+                                  subDir      : TString;
+                              var step        : Integer;
+                                  )           : Integer;
+
+{***************************************************************************
+ * function FixIpc356Netlist()
+ *  Correct bug with Altium generation of IPC-356 netlist files.
+ *
+ * The problem is that the IPC356 file format is a fixed column format that only allocates 4 digits
+ * to the X and Y sizes of any pad (where a digit is 1/10 of a mil).  So the max size of a pad is
+ * 9999 * 10^-4 inch = 999.9 mil = 0.9999 inch.
+ *
+ * Altium does not respect this limitation.  When it is presented with a pad with X or Y dimensions that 
+ * exceed 999.9 mil, it will use another digit, and thus generate an improper IPC356 netlist line.
+ * This comes up with ESD pads that are part of the PXI spec.
+ *
+ * A valid IPC356 netlist line looks like:
+ *327V_ESD1           R7    -2         PA01X 012563Y 001812X0591Y0512R270 S0
+ *
+ * An invalid one that uses one too many digits for an X or Y pad size looks like:
+ *327V_ESD1           ESD1  -1         PA01X 011750Y 000625X0700Y15500R090 S0
+ *
+ * We will fix this to look like:
+ *327V_ESD1           ESD1  -1         PA01X 011750Y 000625X0700Y9999R090 S0
+ *
+ * The fix will result in the PCB test group thinking that the pad is smaller in X or Y than it actually is.
+ * But this is not a big deal, and the pad will still be tested.
+ *
+ *  Note:  Due to limitations of FindFiles(), the fixed IPC356 netlist file will
+ *  be named in ALL CAPS.  This is annoying, but inconsequential.
+ *
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function FixIpc356Netlist(var Project     : IProject;
+                              scriptsPath : TDynamicString;
+                              projectPath : TString;
+                              projOutPath : TString;
+                              subDir      : TString;
+                          var step        : Integer;
+                          )               : Integer;
+
+{***************************************************************************
+ * function GenerateAllOutputs()
+ *  Open all OutJob files in turn and generate all output files.
+ *  Along the way, do a few cleanup steps as needed.
+ *
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function GenerateAllOutputs(var Project                    : IProject;
+                                projectName                : TDynamicString;
+                                scriptsPath                : TDynamicString;
+                                projectPath                : TString;
+                                projOutPath                : TString;
+                                projOutSubDirs             : TStringList;
+                                outJobFiles                : TStringList;
+                                outJobPdfContainers        : TStringList;
+                                outJobPdfEnableNets        : TStringList;
+                                outJobGenContainers        : TStringList;
+                                outJobStatusMsg            : TStringList;
+                                outJobDoSortMultiNetlist   : TStringList;
+                                outJobSetSvnKeywordsOnBoms : TStringList;
+                                outJobDoFixIpc356Netlist   : TStringList;
+                                runOutJobs                 : TStringList;
+                            var step                       : Integer;
+                                )                          : Integer;
+
+{***************************************************************************
+ * function VerifyBomFilteringIsHappy()
+ *  Ask the user if the filtering in the BOM file(s) turned out ok.
+ *
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function VerifyBomFilteringIsHappy(var step : Integer;
+                                       )    : Integer;
+
+{***************************************************************************
+ * function VerifyBomsAndPdfsAreNotFlocked()
+ *  Ask the user to close all .pdf and .xls files before proceeding.
+ *  Then check all files that are likely to be flocked to make sure they
+ *  are not flocked, before proceeding.
+ *
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function VerifyBomsAndPdfsAreNotFlocked(    scriptsPath    : TDynamicString;
+                                            projectPath    : TDynamicString;
+                                            projOutPath    : TString;
+                                            projOutSubDirs : TStringList;
+                                        var step           : Integer;
+                                            )              : Integer;
+
+{***************************************************************************
+ * function MarkXlsBomFileForAssemblyRelease()
+ *  Modify the xls BOM file in question so that it is "marked" as being
+ *  part of a valid assembly release.
+ *
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function MarkXlsBomFileForAssemblyRelease(scriptsPath : TDynamicString;
+                                          projectPath : TDynamicString;
+                                          pcbaVersion : TDynamicString; 
+                                          xlsBomPath  : TString;
+                                          )           : Integer;
+
+{***************************************************************************
+ * function MarkXlsBomFilesForAssemblyRelease()
+ *  Mark all xls BOM files if we're doing an assembly release.
+ *
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function MarkXlsBomFilesForAssemblyRelease(    scriptsPath    : TDynamicString;
+                                               projectPath    : TDynamicString;
+                                               projOutPath    : TString;
+                                               projOutSubDirs : TStringList;
+                                               runPackager    : TStringList;
+                                               pcbaVersion    : TDynamicString; 
+                                           var step           : Integer;
+                                               )              : Integer;
+
+{***************************************************************************
+ * function AlterSvnPropsForXlsBomFiles()
+ *  Alter svn:keywords properties on all Excel (.xls) BOM files that were
+ *  generated in all ProjectOutputs/ output subdirs.  This can be called
+ *  to either set or delete these svn:keywords properties.
+ *
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function AlterSvnPropsForXlsBomFiles(    scriptsPath                : TDynamicString;
+                                         projOutPath                : TString;
+                                         projOutSubDirs             : TStringList;
+                                         outJobSetSvnKeywordsOnBoms : TStringList;
+                                         runOutJobs                 : TStringList;
+                                         svnCmd                     : TString;
+                                         alterVerbProgressive       : TString;
+                                         alterVerbPast              : TString;
+                                     var xlsBomFiles                : TStringList;
+                                     var step                       : Integer;
+                                         )                          : Integer;
+
+{***************************************************************************
+ * function SetSvnPropsForXlsBomFiles()
+ *  Set svn:keywords properties on all Excel (.xls) BOM files that were
+ *  generated in all ProjectOutputs/ output subdirs.  
+ *
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function SetSvnPropsForXlsBomFiles(    scriptsPath                : TDynamicString;
+                                       projOutPath                : TString;
+                                       projOutSubDirs             : TStringList;
+                                       outJobSetSvnKeywordsOnBoms : TStringList;
+                                       runOutJobs                 : TStringList;
+                                   var step                       : Integer;
+                                       )                          : Integer;
+
+{***************************************************************************
+ * function DelSvnPropsForXlsBomFiles()
+ *  Del svn:keywords properties on all Excel (.xls) BOM files that were
+ *  generated in all ProjectOutputs/ output subdirs.
+ *
+ *  We will also use sed to replace "$Rev:: 21074         $:" with "Rev 12345              ".
+ *  This is purely a cosmetic change to make the text less cryptic for techs
+ *  at the board assembly house trying to make labels for our boards, etc.
+ *  Of course, the obvious thing is to have Excel do this substitution as part
+ *  of a formula.  The problem is that Excel will not re-evaluate expressions
+ *  whose dependencies change outside of Excel's purview.  So when we replace
+ *  the contents of cell D5 with Excel closed, Excel doesn't know that it needs
+ *  to re-evaluate all expressions that depend on cell D5.
+ *
+ *  Another way to accomplish this would be to figure out how to do the equivalent
+ *  of Control-Alt-Shift-F9 (re-evauluate ALL expressions) upon opening our Excel
+ *  BOM file(s).  If anyone knows VB script, maybe that's not so difficult.
+ *
+ *  Report whether any changes were made to svn controlled files as var parm changesMade.
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function DelSvnPropsForXlsBomFiles(    scriptsPath                : TDynamicString;
+                                       projOutPath                : TString;
+                                       projOutSubDirs             : TStringList;
+                                       outJobSetSvnKeywordsOnBoms : TStringList;
+                                       runOutJobs                 : TStringList;
+                                   var changesMade                : Boolean;
+                                   var step                       : Integer;
+                                       )                          : Integer;
+
+
+}}}
+</code>
+
+===Mid-level functions to checkin generated files===
+<code language="Delphi">
+{{{
+{***************************************************************************
+ * function ExcludeUnfixedIpc356()
+ *  Look in specified ProjectOutputs/ subdir for an .IPC file containing "_fixed."
+ *  in the filename.  When this occurs, it means that we earlier found a
+ *  flaw in the raw Altium-generated IPC-356 netlist file and corrected it,
+ *  by creating another IPC-356 netlist with "_fixed" in the name.
+ *  
+ *  When this happens, we want to add an exclusion entry for the "unfixed" version
+ *  of the file.  This way, the board fab house only sees the fixed version in
+ *  the zipfile that we generate.
+ *
+ *  Note:  Assumes that excludes stringlist has already been created.
+ *
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function ExcludeUnfixedIpc356(projOutPath : TString;
+                              subDir      : TString;
+                              excludes    : TStringList;
+                              )           : Integer;
+
+{***************************************************************************
+ * function AddAllOutputsToSvn()
+ *  Silently add all ECO log files in ProjectLogs/ directory to svn.
+ *  Add all generated output files and all zipfiles we just created to svn.
+ *  Don't check them in yet.
+ *
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function AddAllOutputsToSvn(scriptsPath     : TDynamicString;
+                            projectPath     : TDynamicString;
+                            projOutPath     : TString;
+                            projLogPath     : TString;
+                            projOutSubDirs  : TStringList;
+                            projOutIncludes : TStringList;
+                            )               : Integer;
+
+{***************************************************************************
+ * function CheckinGeneratedFiles()
+ *  Checkin all files that have already been "svn add'ed" in ProjectOutputs/
+ *  subdirectories.
+ *
+ *  Returns svn rev number from this checkin as var parm newRevNum.
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function CheckinGeneratedFiles(    Project     : IProject;
+                                   scriptsPath : TDynamicString;
+                                   projectPath : TDynamicString;
+                                   projLogPath : TString;
+                                   projOutPath : TString;
+                                   commitMsg   : TString;
+                               var newRevNum   : TDynamicString;
+                                   )           : Integer;
+
+
+}}}
+</code>
+
+===Mid-level functions to package (zip) output files===
+<code language="Delphi">
+{{{
+{***************************************************************************
+ * function CreateZipFileName()
+ *  Construct the name of a zipFile.
+ *  This will be accomplished by replacing placeholder strings (eg. "$bomRevNum$")
+ *  with the actual value of such, now that these are all known.
+ *
+ *  Returns zipFile name into var parm zipFileName.
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function CreateZipFileName(    projectName  : TDynamicString;
+                               pcbPartNum   : TDynamicString;
+                               pcbVersion   : TDynamicString;
+                               pcbDocRevNum : TDynamicString;
+                               pcbaPartNum  : TDynamicString;
+                               pcbaVersion  : TDynamicString;
+                               bomRevNum    : TDynamicString;
+                           var zipFileName  : TDynamicString;
+                               )            : Integer;
+
+{***************************************************************************
+ * function CreateAndStoreZipFileName()
+ *  Construct the name of a zipFile and store at the specified index.
+ *  This will be accomplished by replacing placeholder strings (eg. "$bomRevNum$")
+ *  with the actual value of such, now that these are all known.
+ *
+ *  Returns zipFile name into var parm zipFileNames.
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function CreateAndStoreZipFileName(    projectName  : TDynamicString;
+                                       pcbPartNum   : TDynamicString;
+                                       pcbVersion   : TDynamicString;
+                                       pcbDocRevNum : TDynamicString;
+                                       pcbaPartNum  : TDynamicString;
+                                       pcbaVersion  : TDynamicString;
+                                       bomRevNum    : TDynamicString;
+                                       currIndex    : Integer;
+                                   var zipFileNames : TStringList;
+                                       )            : Integer;
+
+{***************************************************************************
+ * function CreateAndStoreRelTagSubDirName()
+ *  Construct the name of a rel-and-tag subdir and store at the specified index.
+ *  This will be accomplished by replacing placeholder strings (eg. "$bomRevNum$")
+ *  with the actual value of such, now that these are all known.
+ *
+ *  Returns zipFile name into var parm relAndTagSubDir.
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function CreateAndStoreRelTagSubDirName(    projectName     : TDynamicString;
+                                            pcbPartNum      : TDynamicString;
+                                            pcbVersion      : TDynamicString;
+                                            pcbDocRevNum    : TDynamicString;
+                                            pcbaPartNum     : TDynamicString;
+                                            pcbaVersion     : TDynamicString;
+                                            bomRevNum       : TDynamicString;
+                                            currIndex       : Integer;
+                                        var relAndTagSubDir : TStringList;
+                                            )               : Integer;
+
+{***************************************************************************
+ * function CreateAllZipFileNames()
+ *  Using various version and svn rev information previously retrieved,
+ *  construct names for all the zipfiles and rel-and-tag subdirs.
+ *
+ *  As of 2011/08/30, bomRevNum is extracted from the original BOM file checkin,
+ *  and is given to this function as an input.
+ *
+ *  Returns modified zipfile names in var parm zipFileNames.
+ *  Returns modified rel-and-tag subdir names in var parm relAndTagSubDir.
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function CreateAllZipFileNames(    projectName     : TDynamicString;
+                                   projOutPath     : TString;
+                                   projOutSubDirs  : TStringList;
+                               var zipFileNames    : TStringList;
+                               var relAndTagSubDir : TStringList;
+                                   runPackager     : TStringList;
+                                   pcbPartNum      : TDynamicString;
+                                   pcbVersion      : TDynamicString;
+                                   pcbDocRevNum    : TDynamicString;
+                                   pcbaPartNum     : TDynamicString;
+                                   pcbaVersion     : TDynamicString;
+                                   bomRevNum       : TDynamicString;
+                                   )               : Integer;
+
+{***************************************************************************
+ * function CheckForExistingZipFile()
+ *  Check that a zipfile with the same version number (though possibly
+ *  different svn rev number) does not already exist in this directory.
+ *
+ *  Note:  Don't call this function on any subDir whose zipfiles do
+ *  not incorporate a "version" number, such as the purchasing subdir!
+ *
+ *  Note:  This code assumes/requires that all zipFile names end in "_$svnRevNum$.zip"!
+ *  
+ *  Returns:  0 on success, 1 if unable to delete one or more files
+ ***************************************************************************}
+function CheckForExistingZipFile(projOutPath : TString;
+                                 subDir      : TString;
+                                 zipFileName : TString;
+                                 )           : Integer;
+
+{***************************************************************************
+ * function CreateZipFile()
+ *  Create a zipfile in a particular subdirectory of ProjectOutputs.
+ *
+ *  Allow caller to specify zipfile name, a list of files/extensions to exclude
+ *  from zipfile, and a list of additional files to add to the zipfile.
+ *  All files will be stored in zipfile without path information.
+ *
+ *  Returns name of new zipfile as var parm zipPathFileName.
+ *  Returns:  0 on success, 1 if unable to delete one or more files
+ ***************************************************************************}
+function CreateZipFile(    projOutPath     : TString;
+                           subDir          : TString;
+                           zipFileName     : TString;
+                           excludes        : TStringList;
+                           addlIncludes    : TStringList;
+                       var zipPathFileName : TDynamicString;
+                           )               : Integer;
+
+{***************************************************************************
+ * function CreateAllZipFiles()
+ *  Create zipfiles in all desired ProjectOutputs/ subdirs.
+ *
+ *  Note:  Assumes that newZipFiles has already been Created.
+ *
+ *  Returns list of new zipfiles created as var parm newZipFiles.
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function CreateAllZipFiles(    scriptsPath              : TDynamicString;
+                               projOutPath              : TString;
+                               projOutSubDirs           : TStringList;
+                               projOutIncludes          : TStringList;
+                               outJobDoFixIpc356Netlist : TStringList;
+                               zipDoCheckForExisting    : TStringList;
+                               zipExcludes              : TStringList;
+                               zipFindAddlFiles         : TStringList;
+                               zipFileNames             : TStringList;
+                               runPackager              : TStringList;
+                           var newZipFiles              : TStringList;
+                               )                        : Integer;
+
+
+}}}
+</code>
+
+===Mid-level functions related to release-and-tag===
+<code language="Delphi">
+{{{
+{***************************************************************************
+ * function CreateRelOrTagSubDirs()
+ *  Iteratively create all needed subdirectories for a given OutJob in
+ *  either releases/ or tags/.
+ *
+ *  Note:  Assumes that finalSubDir includes exactly one trailing '\' char.
+ *
+ *  Returns a list of all subDirs created in var parm newSubDirs.
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function CreateRelOrTagSubDirs(    scriptsPath      : TDynamicString;
+                                   projectPath      : TDynamicString;
+                                   finalSubDir      : TDynamicString;
+                                   relOrTag         : TDynamicString;
+                               var newSubDirs       : TStringList;
+                                   )                : Integer;
+
+{***************************************************************************
+ * function CleanupRelAndTag()
+ *  Cleanup (svn revert) in top level releases/ and tags/.
+ *
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function CleanupRelAndTag(scriptsPath : TDynamicString;
+                          projectPath  : TDynamicString;
+                          )            : Integer;
+
+{***************************************************************************
+ * function CreateAllRelAndTagSubDirs()
+ *  For each OutJob, create desired subdirs in both releases/ and tags/.
+ *
+ *  Returns list of new subdirs created in var parm newSubDirs.
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function CreateAllRelAndTagSubDirs(    scriptsPath     : TDynamicString;
+                                       projectPath     : TDynamicString;
+                                       relAndTagSubDir : TStringList;
+                                       runRelAndTag    : TStringList;
+                                   var newSubDirs      : TStringList;
+                                       )               : Integer;
+
+{***************************************************************************
+ * function PopulateAllSubDirsInReleases()
+ *  For each OutJob, copy release zipfile to new subdir in releases/.
+ *
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function PopulateAllSubDirsInReleases(scriptsPath     : TDynamicString;
+                                      projectPath     : TDynamicString;
+                                      projOutPath     : TString;
+                                      projOutSubDirs  : TStringList;
+                                      zipFileNames    : TStringList;
+                                      relAndTagSubDir : TStringList;
+                                      runRelAndTag    : TStringList;
+                                      )               : Integer;
+
+{***************************************************************************
+ * function PopulateAllSubDirsInTags()
+ *  For each OutJob, perform svn server side copy-with-commit to copy snapshot
+ *  of project to new subdir in tags/.
+ *
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function PopulateAllSubDirsInTags(scriptsPath     : TDynamicString;
+                                  projectPath     : TDynamicString;
+                                  relAndTagSubDir : TStringList;
+                                  runRelAndTag    : TStringList;
+                                  )               : Integer;
+
+
+}}}
+</code>
+
+===High level code===
+<code language="Delphi">
+{{{
+{***************************************************************************
+ * function InitScript()
+ *  Do a bunch of standard initialization that is needed by all scripts.
+ *
+ *  Note:  You MUST examine return code from this function and do "Exit;" if
+ *  this function returns non-zero!
+ *
+ *  Returns various objects and pathnames in var parms listed below.
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function InitScript(var Workspace   : IWorkspace;
+                    var Project     : IProject;
+                    var scriptsPath : TDynamicString;
+                    var projectName : TDynamicString;
+                    var projectPath : TDynamicString;
+                    var projOutPath : TDynamicString;
+                    var projLogPath : TDynamicString;
+                        )           : Integer;
+
+{***************************************************************************
+ * procedure DoGenerateAndPackageOutputs()
+ *  Now that we have presented the user with a dialog box full of checkboxes,
+ *  we know what operations he/she wishes us to perform.  Proceed to do so.
+ ***************************************************************************}
+procedure DoGenerateAndPackageOutputs(runOutJobs            : TStringList;
+                                      runPackager           : TStringList;
+                                      runRelAndTag          : TStringList;
+                                      flagRequirePcbDocFile : Boolean;
+                                      flagCreateZipFiles    : Boolean;
+                                      flagDoReleaseAndTag   : Boolean;
+                                      );
+
+}}}
+</code>
+
+<wiki:comment>
+===foo===
+<code language="Delphi">
+{{{
+
+}}}
+</code>
+</wiki:comment>
