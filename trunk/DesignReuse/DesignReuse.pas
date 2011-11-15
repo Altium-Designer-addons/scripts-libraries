@@ -831,16 +831,16 @@ begin
       Document := PCBProject.DM_PhysicalDocuments(DocNum);
 
       // Remember top level document
-      if Document.DM_ParentDocumentCount = 0 then break;
+      if Document.DM_ParentDocumentCount = 0 then  
+         // --------------------------------------------------------------------
+         //
+         //                This is where calculation starts
+         //
+         // --------------------------------------------------------------------
+         AnalyzeDocument(Document);
    end;
 
-   // --------------------------------------------------------------------------
-   //
-   //                     This is where calculation starts
-   //
-   // --------------------------------------------------------------------------
 
-   AnalyzeDocument(Document);
 
    // Clear selection
    ResetParameters;
