@@ -9,9 +9,9 @@
  * Copyright (c) 2009-2011 XIA LLC.
  *  (Some code stolen from Altium examples and forum posts)
  *  Author:        Jeff Collins, jcollins@xia.com
- *  Author:        $Author: jcollins $
- *  Check-in Date: $Date: 2011-11-09 18:16:19 -0800 (Wed, 09 Nov 2011) $ 
- *  Version #:     $Revision: 21062 $
+ *  Author:        $Author$
+ *  Check-in Date: $Date$ 
+ *  Version #:     $Revision$
  *  
  * Redistribution and use in source and binary forms, 
  * with or without modification, are permitted provided 
@@ -48,7 +48,7 @@
  * External dependencies:
  *  1.  svn.exe that is in the DOS path.  Tested with SlikSvn v1.6.16 x64.
  *      See http://www.sliksvn.com/en/download .
- *  	**This script has NOT BEEN TESTED with svn v1.7!!  Stick with v1.6 for now!!**
+ *      **This script has NOT BEEN TESTED with svn v1.7!!  Stick with v1.6 for now!!**
  *  2.  UnxUtils from http://sourceforge.net/projects/unxutils/ .
  *      It's not exactly clear what version of this I have, but I downloaded
  *      mine on 2011/08/30.
@@ -60,16 +60,17 @@
  *  1.  Requires Altium 10.
  *  2.  Tested with Windows 7 x64.
  *  3.  Old versions of svn.exe will fail when trying to svn add files currently
- *  	open with MS Excel.  Svn version 1.6.3 is known to NOT work.
- *  	Svn versions 1.6.11 and 1.6.16 are known to work.
+ *      open with MS Excel.  Svn version 1.6.3 is known to NOT work.
+ *      Svn versions 1.6.11 and 1.6.16 are known to work.
  *  4.  When multiple people are working on a given project (and making releases),
- *  	this script will not necessarily pull in all the svn updates to
- *  	releases/ and tags/ for the	project to a given user's working copy.
- *  	Rather, it will only svn update empty directories, in order	to try to
- *  	minimize disk usage within a particular user's working copy.
- *  	If you wish to have releases/ and tags/ all the way updated in your working
- *  	copy, you will need to manually issue a command like:
- *  	svn update --set-depth=infinity h:/projects/foo/releases h:/projects/foo/tags
+ *      this script will not necessarily pull in all the svn updates to
+ *      releases/ and tags/ for the project to a given user's working copy.
+ *      Rather, it will only svn update empty directories, in order to try to
+ *      minimize disk usage within a particular user's working copy.
+ *      If you wish to have releases/ and tags/ all the way updated in your working
+ *      copy, you will need to manually issue a command like:
+ *      svn update --set-depth=infinity h:/projects/foo/releases h:/projects/foo/tags
+ *  5.  This file should no longer have TAB characters in it.
  *
  * TODO:
  *  1.  Implement non-release mode, where we do not require svn checkins,
@@ -83,7 +84,7 @@
  *  of output generation into 6 pieces, so that all output files need not be
  *  generated each time.  (This was XIA's previous setup, and wasted lots of time.)
  *
- *	2.  This script will perform some of the same checks as the Altium builtin release
+ *  2.  This script will perform some of the same checks as the Altium builtin release
  *  manager:  checking for source files that are saved and checked in.
  *
  *  3.  This script does a variety of additional sanity checks on the design,
@@ -135,7 +136,7 @@
  *  Finally, it will make a project snapshot in the new subdir(s) in tags/.
  *
  * WHAT THIS SCRIPT WILL *NOT* DO:
- *	1.  Generate and then gather up all the generated output files and then throw
+ *  1.  Generate and then gather up all the generated output files and then throw
  *  them over the wall into some other, unrelated document management system,
  *  as the Altium 10 builtin release manager does with their strange "Vault" concept.
  *  We have a company svn server.  Everyone here has access to it.  Everyone knows
@@ -147,7 +148,7 @@
  *  project's usual ProjectOutputs/ directory.
  *  
  * CAD SETUP REQUIREMENTS:
- *	1.  Subversion (svn) server that is accessible to all Altium users in your company.
+ *  1.  Subversion (svn) server that is accessible to all Altium users in your company.
  *  It must also be accessible to purchasing and operations personnel who interface
  *  with printed circuit board fabrication and/or assembly shops.
  *  The point is also for all users to be able to review other people's designs.
@@ -277,7 +278,7 @@
  * DESIGN AND USAGE REQUIREMENTS: 
  *  1.  This script assumes that the windows default printer when Altium started
  *  is capable of generating the size assembly drawing desired (eg. ANSI D).
- *  This script	makes no attempt to check which printer is the windows default,
+ *  This script makes no attempt to check which printer is the windows default,
  *  nor the exact capabilities of any windows printer drivers.  
  *
  *  2.  You must have exactly 1 PcbDoc file in your project.  However, this script will
@@ -642,8 +643,8 @@ type
    procedure TGenerateAndPackageOutputsForm.bCheck3_4(Sender : TPanel);
    procedure TGenerateAndPackageOutputsForm.bCheck3_5(Sender : TPanel);
    procedure TGenerateAndPackageOutputsForm.bCheck3_6(Sender : TPanel);
-//   procedure TGenerateAndPackageOutputsForm.AtExit(foo	: Integer);
-end;												
+//   procedure TGenerateAndPackageOutputsForm.AtExit(foo    : Integer);
+end;                                                
 
    
 {***************************************************************************
@@ -655,90 +656,145 @@ procedure GuiEnablePackageFabricationPreconditions(foo : Integer); forward;
 procedure GuiDisablePackageFabricationPreconditions(foo : Integer); forward;
 procedure GuiEnablePackageAssemblyPreconditions(foo : Integer); forward;
 procedure GuiDisablePackageAssemblyPreconditions(foo : Integer); forward;
-function GetFabIndex(projOutSubDirs		   : TStringList;
-					 )					   : Integer; forward;
-function GetAssyIndex(projOutSubDirs	   : TStringList;
-					  )					   : Integer; forward;
-function CreateZipFileName(	   projectName	: TDynamicString;
-							   pcbPartNum	: TDynamicString;
-							   pcbVersion	: TDynamicString;
-							   pcbDocRevNum	: TDynamicString;
-							   pcbaPartNum	: TDynamicString;
-							   pcbaVersion	: TDynamicString;
-							   bomRevNum	: TDynamicString;
-						   var zipFileName	: TDynamicString;
-							   )			: Integer; forward;
+function GetFabIndex(    projOutSubDirs     : TStringList;
+                         )                  : Integer; forward;
+function GetAssyIndex(    projOutSubDirs    : TStringList;
+                          )                 : Integer; forward;
+function CreateZipFileName(    projectName  : TDynamicString;
+                               pcbPartNum   : TDynamicString;
+                               pcbVersion   : TDynamicString;
+                               pcbDocRevNum : TDynamicString;
+                               pcbaPartNum  : TDynamicString;
+                               pcbaVersion  : TDynamicString;
+                               bomRevNum    : TDynamicString;
+                           var zipFileName  : TDynamicString;
+                               )            : Integer; forward;
 
 
 {***************************************************************************
  * Global constants.
  ***************************************************************************}
 const
-   constScriptVersion			 = 'v1.8.10 $Revision: 21062 $';
-   constThisScriptNameNoExt		 = 'XIA_Release_Manager';
-   constThisScriptName			 = constThisScriptNameNoExt + '.pas';
+{* Declare the version and name of this script. *}
+   constScriptVersion            = 'v1.8.13_gc $Revision$';
+   constThisScriptNameNoExt      = 'XIA_Release_Manager';
+   constThisScriptName           = constThisScriptNameNoExt + '.pas';
 
-{* Declare acronyms for the various scripts that could be running and using some of our code. }
-   constWhichScriptXrm           = 'XRM';
+{* Declare acronyms for the various scripts that could be running and using some of our code. *}
+   constWhichScriptXrm           = 'XRM';     { XIA_Release_Manager.pas }
+   constWhichScriptUfd           = 'UFD';     { XIA_Update_From_Database.pas }
 
 {* Declare the name of the script project of which this script must be part. }
-   constScriptProjectName		 = 'XIA_Altium_scripts';
+   constScriptProjectName        = 'XIA_Altium_scripts';
 
 {* Declare the global working copy (with scripts and libraries) that must be up-to-date before we allow this script to actually run. *}
-   constGlobalScriptsAndLibsWc   = 'R:\ALTIUM_LIBRARIES\';
+   constGlobalScriptsAndLibsWc   = 'R:\ALTIUM_LIBRARIES\'; { Leave the trailing "\" char there! }
    
+{* Declare file and path names to the required DBLib file and the approved DBLink file. *}
+   { Note:  These are only needed by the XIA_Update_From_Database script. }
+   { Note:  If there is no old DBLib file to upgrade, set constOldDbLibFileName to ''. }
+   constOldDbLibFileName         = 'Old_database_library_file.DBLib';
+   constRequiredDbLibFileName    = 'Current_database_library_file.DBLib';
+   constApprovedDblinkFileName   = 'Database_link_file_no_symbol_sync.DBLink';
+   constRequiredDbLibFilePath    = constGlobalScriptsAndLibsWc + constRequiredDbLibFileName;
+   constApprovedDblinkFilePath   = constGlobalScriptsAndLibsWc + constApprovedDblinkFileName;
+
 {* Declare the names of all ProjectOutputs/ subdirs. *}
-   { We are also using these as the names of the OutJob files (less the ".OutJob" extension). }
-   constEngineersReviewSubDir	 = 'XRM1_XIA_engineers_review';
-   constSchematicReviewSubDir	 = 'XRM2_XIA_schematic_review';
-   constLayoutReviewSubDir		 = 'XRM3_XIA_layout_review';
-   constPurchasingSubDir		 = 'XRM4_Purchasing';
-   constFabricationSubDir		 = 'XRM5_Fabrication';
-   constAssemblySubDir			 = 'XRM6_Assembly';
+   { We are also using these as the names of the OutJob files (don't include ".OutJob" extension here). }
+   constEngineersReviewSubDir    = 'XRM1_XIA_engineers_review';
+   constSchematicReviewSubDir    = 'XRM2_XIA_schematic_review';
+   constLayoutReviewSubDir       = 'XRM3_XIA_layout_review';
+   constPurchasingSubDir         = 'XRM4_Purchasing';
+   constFabricationSubDir        = 'XRM5_Fabrication';
+   constAssemblySubDir           = 'XRM6_Assembly';
 
 {* Declare the names of all ProjectOutputs/ include directories. *}
    constFabricationIncludeSubDir = 'XRM5_Fabrication_include';
-   constAssemblyIncludeSubDir	 = 'XRM6_Assembly_include';
+   constAssemblyIncludeSubDir    = 'XRM6_Assembly_include';
 
 {* Setup standard timeout limits for svn operations. *}
-   constStandardTimeoutLimit	 = 1000;                            { Each unit here means one Sleep(100) call. }
-   constCommitTimeoutLimit		 = 10000000;                        { Each unit here means one Sleep(100) call. }
+   constStandardTimeoutLimit     = 1000;                { Each unit here means one Sleep(100) call. }
+   constCommitTimeoutLimit       = 10000000;            { Each unit here means one Sleep(100) call. }
 
 {* Various boring constants. *}
-   constLineBreak				 = #13 + #10;                   { Windows CR/LF pair }
-   MaxInt						 = 1000000;
-   constStringDelimiter			 = '|';                         { Standard delimiter used to split delimited string into a stringList. }
-   constStringQuote				 = '"';                         { Standard quote char used to protect strings containing spaces when splitting delimited string into a stringList. }
+   constLineBreak                = #13 + #10;           { Windows CR/LF pair }
+   MaxInt                        = 1000000;             { Large positive integer. }
+   constStringDelimiter          = '|';                 { Standard delimiter used to split delimited string into a stringList. }
+   constStringQuote              = '"';                 { Standard quote char used to protect strings containing spaces when splitting delimited string into a stringList. }
+   constStringEquals             = '=';                 { Standard char to use for NAME=VALUE pairs. }
+   constStringFpNameVersionDelim = '/';                 { The character that appears exactly once in footprint names to separate FP name on left from version number on right. }
+
+{* Constants related to dialog boxes. *}
+   constMaxLinesInShowMessage    = 55;                  { Maximum lines that will fit in ShowMessage() in a horizontally oriented monitor. }
 
 {* Declare names of the project level parameters that we care about *}
-   constPcbVersionParm			 = 'XIA_fabrication_pcb_part_number_and_version_target';
-   constPcbVersionLastParm		 = 'XIA_fabrication_pcb_part_number_and_version_last';
-   constPcbaVersionParm			 = 'XIA_assembly_pcba_version_target';
-   constPcbaVersionLastParm		 = 'XIA_assembly_pcba_version_last';
+   constPcbVersionParm           = 'XIA_fabrication_pcb_part_number_and_version_target';
+   constPcbVersionLastParm       = 'XIA_fabrication_pcb_part_number_and_version_last';
+   constPcbaVersionParm          = 'XIA_assembly_pcba_version_target';
+   constPcbaVersionLastParm      = 'XIA_assembly_pcba_version_last';
+
+{* Constants related to XIA-specific database fields and associated values. *}
+   { Note:  If there is no old/interim database key, then set constDbParmDbKeyInterim to ''. }
+   constDbParmMfgNumber          = 'MFGNUMBER';         { Name of "MFGNUMBER" parameter. }
+   constDbParmValue              = 'VALUE';             { Name of "VALUE" parameter. }
+   constDbParmCategory           = 'CATEGORY';          { Name of "CATEGORY" parameter. }
+   constDbParmComment            = 'Comment';           { Name of "Comment" parameter. }
+   constDbParmDescription        = 'Description';       { Name of "Description" parameter. }
+   constDbParmDbKeyInterim       = 'OLD_DB_KEY';        { Name of former database key, that we will use on an interim basis until we find the real db key. }
+   constDbParmDbKey              = 'DB_KEY';            { Name of real database key. }
+   constDbValCommentStd          = '=VALUE';            { "Standard" setting for Comment value. }
+   constDbValValueFreeform       = 'ALLOW_COMMENT_TO_DIFFER_FROM_THIS_VALUE';  { Value of the VALUE field used to flag that Comment field for this component is freeform. }
+   constDbValCategoryFreeform    = 'ALLOW_COMMENT_TO_DIFFER_FROM_VALUE_FIELD'; { Value of the CATEGORY field used to flag that Comment field for this component is freeform. }
+
+{* Constants related to processing database info as seen by Altium. *}
+   { NOTE:  There must be no actual database parameters with names that conflict with these!! }
+   constDbParmModelType          = 'ModelType';         { Text that identifies ModelType in database record string. }
+   constDbParmModelName          = 'ModelName';         { Text that identifies ModelName in database record string. }
+   constDbParmCurrentModelType   = 'CurrentModelType';  { We will create fake entry named this to mark current model. }
+   constDbParmCurrentModelName   = 'CurrentModelName';  { We will create fake entry named this to mark current model. }
+   constDbParmParameterName      = 'ParameterName';     { Text that identifies ParameterName in database record string. }
+   constDbParmParameterValue     = 'ParameterValue';    { Text that identifies ParameterValue in database record string. }
+   constDbParmParameterVisible   = 'ParameterVisible';  { Text that identifies ParameterVisible in database record string. } 
+   constDbParmParmVisibleVisible = 'True';              { Text in the value field for ParameterVisible that means "Yes, it's visible.". }
 
 {* Constants related to required schematic components. *}
-   constGtbCategoryValue		 = 'ALLOW_COMMENT_TO_DIFFER_FROM_VALUE_FIELD';  { Value of the CATEGORY field used to recognize Gerber Title Block (gtb) component. }
+   constApcb1RefDes              = 'APCB1';
+   constGtbCategoryValue         = constDbValCategoryFreeform;  { Value of the CATEGORY field used to recognize Gerber Title Block (gtb) component. }
 
 {* Prefixes for the PCB (printed circuit board fabrication) and PCBA (printed circuit board assembly) part numbers. *}
    constPartNumPrefixPcb         = 'PCB-';
    constPartNumPrefixPcba        = 'PCBA-';
 
 {* Constants related to changes that we will brutally make to xls BOM files. *}
+   {Note:  Don't use any regex or sed special chars, aside from "!" (eg. "(", "/", "\", "[", "+", "*", etc.).  Don't use any more "$" chars than the ones already there. }
    {Note:  We MUST do a concatenation to prevent svn from doing a keyword substitution to this script on script checkin! }
-   constXlsBomPcbaVerAndRevStr	 = 'NOT-AN-ASSEMBLY-RELEASE! DO-NOT-BUILD-OR-PROGRAM-TO-THIS-BOM!  $'+'Rev::               $:';	{ Field from xls BOM template that we will replace with PCBA version if we are doing assembly release. Don't use any regex or sed special chars, aside from "!" (eg. "(", "/", "\", "[", "+", "*", etc.).  Don't use any more "$" chars than the ones already there. }
-   constXlsBomRevStr			 = '$'+'Rev::               $:';	{ Just the svn rev # part of the above string. }
+   constXlsBomPcbaVerAndRevStr   = 'NOT-AN-ASSEMBLY-RELEASE! DO-NOT-BUILD-OR-PROGRAM-TO-THIS-BOM!  $'+'Rev::               $:'; { Field from xls BOM template that we will replace with PCBA version if we are doing assembly release. }
+   constXlsBomRevStr             = '$'+'Rev::               $:';{ Just the svn rev # part of the above string. }
    
 {* Setup constants for some common file extensions. *}
-   constExtOutJob                = '.OutJob';
-   constExtXls                   = '.xls';
-   constExtXlsUpper              = '.XLS';
-   constExtXlsTemp               = '_TEMP.XLS';
-   constExtCsv                   = '.csv';
-   constExtPdf                   = '.pdf';
-   constExtMultiWireNetlist      = '.NET';
-   constExtMultiWireNetlistSorted= '_1.NET';
-   constExtIpc356Netlist         = '.IPC';
-   constExtIpc356NetlistFixed    = '_fixed.ipc';
+   constExtOutJob                = '.OutJob';     { Altium OutJob file. }
+   constExtXls                   = '.xls';        { Excel BOM file. }
+   constExtXlsUpper              = '.XLS';        { Excel BOM file, forced to all upper case. }
+   constExtXlsTemp               = '_TEMP.XLS';   { Temporary Excel BOM file. }
+   constExtCsv                   = '.csv';        { Comma separated values BOM file. }
+   constExtPdf                   = '.pdf';        { Adobe pdf document. }
+   constExtMultiWireNetlist      = '.NET';        { Altium generated Multiwire netlist. }
+   constExtMultiWireNetlistSorted= '_1.NET';      { Script generated sorted Multiwire netlist. }
+   constExtIpc356Netlist         = '.IPC';        { Altium generated IPC-356 netlist. }
+   constExtIpc356NetlistFixed    = '_fixed.ipc';  { Script generated fixed IPC-356 netlist. }
+   constExtBatScript             = '.bat';        { DOS/Windows batch script. }
+   constExtBatScriptRcFile       = '_rc.txt';     { File to store return code generated by external bat script. }
+   constExtBatScriptOutFile      = '_out.txt';    { File to store output generated by external bat script. }
+   
+{* Setup constants for some common file "kind"'s within Altium. *}
+   constKindSch                  = 'SCH';         { Altium schematic document.  Must be all UPPER case. }
+   constKindPcbLib               = 'PCBLIB';      { Altium PCB library.  Must be all UPPER case. }
+   constKindDbLib                = 'DATABASELIB'; { Altium database library.  Must be all UPPER case. }
+   constKindDbLink               = 'DATABASELINK';{ Altium database link.  Must be all UPPER case. }
+   constKindPcb                  = 'PCB';
+   constKindOutJob               = 'OUTPUTJOB';
+   constKindHarness              = 'Harness';
+   constKindSchLib               = 'SCHLIB';
    
 {* Setup constants for some of the svn commands that we will issue, to avoid having the code full of magic numbers (er, magic strings). *}
    constSvnCmdPropSetKeywords    = 'propset svn:keywords "Date Rev Author Id"';
@@ -778,13 +834,13 @@ const
 
 {* These are the valid variable substitutions that can be used in zipFileNames and relAndTagSubDir. *}
    { We aren't going to create constants for them at this time, in order to try to keep code readable. 
-	$projectName$', 	
-	$pcbPartNum$', 	
-	$pcbVersion$', 	
-	$pcbDocRevNum$',	 
-	$pcbaPartNum$', 	
-	$pcbaVersion$', 	
-	$bomRevNum$', 	
+    $projectName$',     
+    $pcbPartNum$',  
+    $pcbVersion$',  
+    $pcbDocRevNum$',     
+    $pcbaPartNum$',     
+    $pcbaVersion$',     
+    $bomRevNum$',   
    }
 
 {* Note that there are also a number of hardcoded constants in function PopulateStringLists(), 
@@ -794,14 +850,14 @@ const
  * Global variables.  Highly evil.  Ick ick.
  ***************************************************************************}
 var
-   whichScriptIsThis			 : TString;
+   whichScriptIsThis             : TString;
    GenerateAndPackageOutputsForm : TGenerateAndPackageOutputsForm;
-   DebugFile					 : TextFile;
-   SummaryFile					 : TextFile;
-   SummaryMessages				 : TStringList;
-   projectPath					 : TDynamicString;
-   enableGenerateOutputs		 : Boolean;
-   enableSvnCommits				 : Boolean;
+   DebugFile                     : TextFile;
+   SummaryFile                   : TextFile;
+   SummaryMessages               : TStringList;
+   projectPath                   : TDynamicString;
+   enableGenerateOutputs         : Boolean;
+   enableSvnCommits              : Boolean;
 
 
 
@@ -819,23 +875,23 @@ var
  *  Returns created and populated string lists in all of these var parms.
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function PopulateStringLists(var projOutSubDirs				: TStringList;
-                             var projOutIncludes			: TStringList;
-                             var outJobFiles				: TStringList;
-                             var outJobPdfContainers		: TStringList;
-                             var outJobPdfEnableNets		: TStringList;
-                             var outJobGenContainers		: TStringList;
-                             var outJobStatusMsg			: TStringList;
-                             var outJobDoSortMultiNetlist	: TStringList;
-                             var outJobSetSvnKeywordsOnBoms	: TStringList;
-                             var outJobDoFixIpc356Netlist	: TStringList;
-                             var deleteExcludes				: TStringList;
-							 var zipDoCheckForExisting		: TStringList;
-                             var zipExcludes				: TStringList;
-                             var zipFindAddlFiles			: TStringList;
-                             var zipFileNames				: TStringList;
-                             var relAndTagSubDir			: TStringList;
-                                 )							: Integer;
+function PopulateStringLists(var projOutSubDirs             : TStringList;
+                             var projOutIncludes            : TStringList;
+                             var outJobFiles                : TStringList;
+                             var outJobPdfContainers        : TStringList;
+                             var outJobPdfEnableNets        : TStringList;
+                             var outJobGenContainers        : TStringList;
+                             var outJobStatusMsg            : TStringList;
+                             var outJobDoSortMultiNetlist   : TStringList;
+                             var outJobSetSvnKeywordsOnBoms : TStringList;
+                             var outJobDoFixIpc356Netlist   : TStringList;
+                             var deleteExcludes             : TStringList;
+                             var zipDoCheckForExisting      : TStringList;
+                             var zipExcludes                : TStringList;
+                             var zipFindAddlFiles           : TStringList;
+                             var zipFileNames               : TStringList;
+                             var relAndTagSubDir            : TStringList;
+                                 )                          : Integer;
 begin
 
    { For now, assume/hope/pray that we will succeed. }
@@ -928,10 +984,10 @@ begin
    outJobDoFixIpc356Netlist.Add(BoolToStr(False));
    deleteExcludes.Add('*.zip');                                 { Exclude previously created zipfiles. }
    zipDoCheckForExisting.Add(BoolToStr(False));
-   zipExcludes.Add('"Status Report.Txt"|.ZIP');					{ Specific filenames and/or specific file extensions to exclude from zipfile.  Case insensitive.  Must quote protect anything containing a space char!}
+   zipExcludes.Add('"Status Report.Txt"|.ZIP');                 { Specific filenames and/or specific file extensions to exclude from zipfile.  Case insensitive.  Must quote protect anything containing a space char!}
    zipFindAddlFiles.Add('');                                    { No additional outputs to find to include in this zipfile. }
    zipFileNames.Add   ('$projectName$_purch_rev_$bomRevNum$.zip'); { Variables in $dollarsigns$ will be substituted in later.  Don't attempt to use "$" char otherwise. }
-   relAndTagSubDir.Add('$projectName$_purch_rev_$bomRevNum$');	{ Variables in $dollarsigns$ will be substituted in later.  Don't attempt to use "$" char otherwise. }
+   relAndTagSubDir.Add('$projectName$_purch_rev_$bomRevNum$');  { Variables in $dollarsigns$ will be substituted in later.  Don't attempt to use "$" char otherwise. }
 
    { Populate everything associated with OutJob #5:  fabrication outputs. }
    { NOTE:  For zipFileName, it MUST end with "_$pcbDocRevNum$.zip" unless you rewrite CheckForExistingZipFile()! }
@@ -946,7 +1002,7 @@ begin
    outJobSetSvnKeywordsOnBoms.Add(BoolToStr(False));
    outJobDoFixIpc356Netlist.Add(BoolToStr(True));               { Flag that we should fixup the IPC-356 netlist after running this OutJob file. }
    deleteExcludes.Add('*.zip');                                 { Exclude previously created zipfiles. }
-   zipDoCheckForExisting.Add(BoolToStr(True));					{ Check for existing zipfiles with same version number (though possibly different svn rev #). }
+   zipDoCheckForExisting.Add(BoolToStr(True));                  { Check for existing zipfiles with same version number (though possibly different svn rev #). }
    zipExcludes.Add('"Status Report.Txt"|.REP|.APR_LIB|.RUL|.ZIP');{ Specific filenames and/or specific file extensions to exclude from zipfile.  Case insensitive.  Must quote protect anything containing a space char!}
    zipFindAddlFiles.Add('');                                    { No additional outputs to find to include in this zipfile. }
    zipFileNames.Add   ('$pcbPartNum$-$pcbVersion$_fab_rev_$pcbDocRevNum$.zip'); { Variables in $dollarsigns$ will be substituted in later.  Don't attempt to use "$" char otherwise. }
@@ -965,7 +1021,7 @@ begin
    outJobSetSvnKeywordsOnBoms.Add(BoolToStr(False));
    outJobDoFixIpc356Netlist.Add(BoolToStr(False));
    deleteExcludes.Add('*.zip');                                 { Exclude previously created zipfiles. }
-   zipDoCheckForExisting.Add(BoolToStr(True));					{ Check for existing zipfiles with same version number (though possibly different svn rev #). }
+   zipDoCheckForExisting.Add(BoolToStr(True));                  { Check for existing zipfiles with same version number (though possibly different svn rev #). }
    zipExcludes.Add('"Status Report.Txt"|.REP|.APR_LIB|.RUL|.ZIP');{ Specific filenames and/or specific file extensions to exclude from zipfile.  Case insensitive.  Must quote protect anything containing a space char!}
    zipFindAddlFiles.Add(constPurchasingSubDir + '|' + '*.xls'); { Specify that we should also include all *.xls files in purchasing/ subdir. }
    zipFileNames.Add   ('$pcbaPartNum$-$pcbaVersion$_assy_rev_$bomRevNum$.zip'); { Variables in $dollarsigns$ will be substituted in later.  Don't attempt to use "$" char otherwise. }
@@ -981,23 +1037,23 @@ end; { end PopulateStringLists() }
  *  Returns freed string lists in all of these var parms.
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function FreeStringLists(var projOutSubDirs				: TStringList;
-						 var projOutIncludes			: TStringList;
-						 var outJobFiles				: TStringList;
-						 var outJobPdfContainers		: TStringList;
-						 var outJobPdfEnableNets		: TStringList;
-						 var outJobGenContainers		: TStringList;
-						 var outJobStatusMsg			: TStringList;
-						 var outJobDoSortMultiNetlist	: TStringList;
-						 var outJobSetSvnKeywordsOnBoms	: TStringList;
-						 var outJobDoFixIpc356Netlist	: TStringList;
-						 var deleteExcludes				: TStringList;
-						 var zipDoCheckForExisting		: TStringList;
-						 var zipExcludes				: TStringList;
-						 var zipFindAddlFiles			: TStringList;
-						 var zipFileNames				: TStringList;
-						 var relAndTagSubDir			: TStringList;
-							 )							: Integer;
+function FreeStringLists(var projOutSubDirs             : TStringList;
+                         var projOutIncludes            : TStringList;
+                         var outJobFiles                : TStringList;
+                         var outJobPdfContainers        : TStringList;
+                         var outJobPdfEnableNets        : TStringList;
+                         var outJobGenContainers        : TStringList;
+                         var outJobStatusMsg            : TStringList;
+                         var outJobDoSortMultiNetlist   : TStringList;
+                         var outJobSetSvnKeywordsOnBoms : TStringList;
+                         var outJobDoFixIpc356Netlist   : TStringList;
+                         var deleteExcludes             : TStringList;
+                         var zipDoCheckForExisting      : TStringList;
+                         var zipExcludes                : TStringList;
+                         var zipFindAddlFiles           : TStringList;
+                         var zipFileNames               : TStringList;
+                         var relAndTagSubDir            : TStringList;
+                             )                          : Integer;
 
 begin
 
@@ -1059,7 +1115,7 @@ end; { end XrmAtExit() }
  *  Returns original value of step (before increment) as function return value.
  ***************************************************************************}
 function StepPlusPlus(var step : Integer;
-						  )	   : Integer;
+                          )    : Integer;
    
 begin
 
@@ -1169,14 +1225,14 @@ end; { end SplitDelimitedStringIntoStringList() }
  *  Returns right half in var parm rightStr.
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function SplitStringIntoLeftAndRight(	 splitMe   : TDynamicString;
-										 delimiter : TString;
-									 var leftStr   : TDynamicString;
-									 var rightStr  : TDynamicString;
-										 )		   : Integer;
+function SplitStringIntoLeftAndRight(    splitMe   : TDynamicString;
+                                         delimiter : TString;
+                                     var leftStr   : TDynamicString;
+                                     var rightStr  : TDynamicString;
+                                         )         : Integer;
 var
-   position	: Integer;
-										 
+   position : Integer;
+                                         
 begin
 
    { Assume success. }
@@ -1185,7 +1241,7 @@ begin
    rightStr := '';
 
    { This entry will look something like "foo=bar".
-	So split it into a left string (before '=' char) and a right string (after '=' char). }
+    So split it into a left string (before '=' char) and a right string (after '=' char). }
 
    { Find the position of the next delimiter character. }
    position := AnsiPos(delimiter, splitMe);
@@ -1193,21 +1249,21 @@ begin
    { Sanity check. }
    if (position <= 0) then
    begin
-	  result := 1;	{ Flag that we had an error. }
-	  WriteToDebugFile('Unable to find delimiter "' + delimiter + '" in string "' + splitMe + '"!');
+      result := 1;  { Flag that we had an error. }
+      WriteToDebugFile('Unable to find delimiter "' + delimiter + '" in string "' + splitMe + '"!');
    end
 
    { Else we passed the sanity check.  Proceed. }
    else
    begin
 
-	  { The left string is everything up until the char before the delimiter. }
-	  leftStr := Copy(splitMe, 0, (position-1));
-	  //			WriteToDebugFile('db leftStr is "' + leftStr + '".');
+      { The left string is everything up until the char before the delimiter. }
+      leftStr := Copy(splitMe, 0, (position-1));
+      //            WriteToDebugFile('db leftStr is "' + leftStr + '".');
 
-	  { The right string is everything after the delimiter char. }
-	  rightStr := Copy(splitMe, (position+1), MaxInt);
-	  //			WriteToDebugFile('db rightStr is "' + rightStr + '".');
+      { The right string is everything after the delimiter char. }
+      rightStr := Copy(splitMe, (position+1), MaxInt);
+      //            WriteToDebugFile('db rightStr is "' + rightStr + '".');
 
    end; { endelse }
 
@@ -1223,14 +1279,14 @@ end; { end SplitStringIntoLeftAndRight() }
  *  Returns right half in var parm rightStr.
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function SplitStringIntoLeftAndRightWithAbort(	  splitMe	: TDynamicString;
-												  delimiter	: TString;
-											  var leftStr	: TDynamicString;
-											  var rightStr	: TDynamicString;
-												  )			: Integer;
+function SplitStringIntoLeftAndRightWithAbort(    splitMe   : TDynamicString;
+                                                  delimiter : TString;
+                                              var leftStr   : TDynamicString;
+                                              var rightStr  : TDynamicString;
+                                                  )         : Integer;
 var
    rc : Integer;
-										 
+                                         
 begin
 
    { Assume success. }
@@ -1238,14 +1294,14 @@ begin
 
    { Call SplitStringIntoLeftAndRight() to do all the real work. }
    rc := SplitStringIntoLeftAndRight(splitMe,
-									 delimiter,
-									 leftStr,
-									 rightStr);
+                                     delimiter,
+                                     leftStr,
+                                     rightStr);
 
    { Sanity check. }
    if (rc <> 0) then
    begin
-	  MyAbort('Unable to find delimiter "' + delimiter + '" in string "' + splitMe + '"!');
+      MyAbort('Unable to find delimiter "' + delimiter + '" in string "' + splitMe + '"!');
    end
 
 end; { end SplitStringIntoLeftAndRightWithAbort() }
@@ -1277,8 +1333,8 @@ begin
          ShowError('Unable to delete file ' + filePath + '.' + constLineBreak + constLineBreak +
                    'Please close whatever program has this file open (eg. Excel or Acroread or Altium).' + constLineBreak +
                    'Then click OK, and I will try one more time.' + constLineBreak + constLineBreak +
-				   'Note:  If I''m complaining about an html file, it''s probably something that Altium itself has open.' + constLineBreak +
-				   'In this case, you won''t be able to close it since this script is running.' + constLineBreak +
+                   'Note:  If I''m complaining about an html file, it''s probably something that Altium itself has open.' + constLineBreak +
+                   'In this case, you won''t be able to close it since this script is running.' + constLineBreak +
                    'So after script aborts, close all documents, and then re-start this script.');
          
          { Attempt to delete it one more time. }
@@ -1286,7 +1342,7 @@ begin
          begin
             MyAbort('Still unable to delete file ' + filePath + '.');
 
-			{ Report error. }
+            { Report error. }
             result := 1;
 
          end { endif attempt to delete one more time }
@@ -1334,20 +1390,20 @@ begin
    for i := 0 to FilesAndDirs.Count - 1 do
    begin
 
-	  //       ShowMessage(FilesAndDirs.Strings[i]);
+      //       ShowMessage(FilesAndDirs.Strings[i]);
 
-	  { Unfortunately, the FindFiles() call will also return directories.  So attempt to weed these out. }
-	  attrs := FileGetAttr(FilesAndDirs.Strings[i]);
+      { Unfortunately, the FindFiles() call will also return directories.  So attempt to weed these out. }
+      attrs := FileGetAttr(FilesAndDirs.Strings[i]);
 
-	  { if the directory bit is not set, then proceed to attempt to delete file. }
-	  if (attrs and faDirectory = 0) then
-	  begin
-		 //          ShowMessage('Found non-directory file ' + FilesAndDirs.Strings[i] + '.');
+      { if the directory bit is not set, then proceed to attempt to delete file. }
+      if (attrs and faDirectory = 0) then
+      begin
+         //          ShowMessage('Found non-directory file ' + FilesAndDirs.Strings[i] + '.');
 
-		 { Add this entry to list FilesOnly. }
-		 FilesOnly.Add(FilesAndDirs.Strings[i]);
-		 
-	  end { is not directory }
+         { Add this entry to list FilesOnly. }
+         FilesOnly.Add(FilesAndDirs.Strings[i]);
+         
+      end { is not directory }
 
    end; { endfor }
 
@@ -1414,7 +1470,7 @@ end; { end MyFindFilesRecursive() }
  *  Returns:  True if file is 0 length, False if non-existent or non-zero length.
  ***************************************************************************}
 function IsFileZeroLength(filePath : TDynamicString;
-						  )		   : Boolean;
+                          )        : Boolean;
 var
    fileHandle : TextFile;
    
@@ -1428,19 +1484,19 @@ begin
    { See if the file even exists. }
    if (FileExists(filePath)) then
    begin
-	  
-	  { Try to open file for reading. }
-	  AssignFile(fileHandle, filePath);
-	  Reset(fileHandle);
+      
+      { Try to open file for reading. }
+      AssignFile(fileHandle, filePath);
+      Reset(fileHandle);
 
-	  { See if we are already at EOF. }
-//	  ShowMessage('In IsFileZeroLength(), EOF is ' + BoolToStr(EOF(fileHandle)) + '.');
+      { See if we are already at EOF. }
+//    ShowMessage('In IsFileZeroLength(), EOF is ' + BoolToStr(EOF(fileHandle)) + '.');
 
-	  { Return this information to caller. }
-	  result := EOF(fileHandle);
+      { Return this information to caller. }
+      result := EOF(fileHandle);
 
-	  { Close file. }
-	  CloseFile(fileHandle);
+      { Close file. }
+      CloseFile(fileHandle);
 
    end; { endif file exists }
 
@@ -1454,13 +1510,13 @@ end; { end IsFileZeroLength() }
  *  Returns:  True if file is writeable, False if non-existent or non-writeable.
  ***************************************************************************}
 function IsFileWriteable(filePath : TDynamicString;
-						 )		  : Boolean;
+                         )        : Boolean;
 var
-   age		  : Integer;
-   newAge	  : Integer;
-   dir		  : TDynamicString;
-   name		  : TDynamicString;
-   rc		  : Integer;
+   age        : Integer;
+   newAge     : Integer;
+   dir        : TDynamicString;
+   name       : TDynamicString;
+   rc         : Integer;
    
 begin
 
@@ -1474,42 +1530,42 @@ begin
    if (FileExists(filePath)) then
    begin
 
-	  age := FileAge(filePath);
-//	  WriteToDebugFile('IsFileWriteable(), age before is ' + IntToStr(age) + '.');
+      age := FileAge(filePath);
+//    WriteToDebugFile('IsFileWriteable(), age before is ' + IntToStr(age) + '.');
 
-	  { The set age command requires us to operate in the current directory only. }
-	  dir := ExtractFileDir(filePath);
-	  name := ExtractFileName(filePath);
-	  ChDir(dir);
+      { The set age command requires us to operate in the current directory only. }
+      dir := ExtractFileDir(filePath);
+      name := ExtractFileName(filePath);
+      ChDir(dir);
 
-//	  WriteToDebugFile('IsFileWriteable(), dir is "' + dir + '", name is "' + name + '".');
-//	  WriteToDebugFile('IsFileWriteable(), GetCurrentDir() reports "' + GetCurrentDir + '".');
+//    WriteToDebugFile('IsFileWriteable(), dir is "' + dir + '", name is "' + name + '".');
+//    WriteToDebugFile('IsFileWriteable(), GetCurrentDir() reports "' + GetCurrentDir + '".');
 
-	  {* Attempt to set the age of this file to 1/1/2000. *}
-	  rc := FileSetDate(name, DateTimeToFileDate(StrToDateTime('01/01/2000 12:34:56')));
+      {* Attempt to set the age of this file to 1/1/2000. *}
+      rc := FileSetDate(name, DateTimeToFileDate(StrToDateTime('01/01/2000 12:34:56')));
 
-	  { Report success if warranted. }
-	  if (rc = 0) then
-		 result := True;
+      { Report success if warranted. }
+      if (rc = 0) then
+         result := True;
 
-	  WriteToDebugFile('In IsFileWriteable(), rc from FileSetDate() was ' + IntToStr(rc) + '.');
+      WriteToDebugFile('In IsFileWriteable(), rc from FileSetDate() was ' + IntToStr(rc) + '.');
 
-	  newAge := FileAge(filePath);
-//	  WriteToDebugFile('IsFileWriteable(), newAge after initial mod is ' + IntToStr(newAge) + '.');
+      newAge := FileAge(filePath);
+//    WriteToDebugFile('IsFileWriteable(), newAge after initial mod is ' + IntToStr(newAge) + '.');
 
-	  {* Attempt to set the age of this file back to what it was. *}
-	  rc := FileSetDate(name, age);
+      {* Attempt to set the age of this file back to what it was. *}
+      rc := FileSetDate(name, age);
 
-	  newAge := FileAge(filePath);
-//	  WriteToDebugFile('IsFileWriteable(), newAge after final mod is ' + IntToStr(newAge) + '.');
+      newAge := FileAge(filePath);
+//    WriteToDebugFile('IsFileWriteable(), newAge after final mod is ' + IntToStr(newAge) + '.');
 
-	  { Report success if warranted. }
-	  if ( (rc = 0) and (age = FileAge(filePath)) and (result = True) ) then
-		 result := True
-	  else
-		 result := False;
-	  
-	  WriteToDebugFile('IsFileWriteable(), reporting result as ' + BoolToStr(result) + '.');
+      { Report success if warranted. }
+      if ( (rc = 0) and (age = FileAge(filePath)) and (result = True) ) then
+         result := True
+      else
+         result := False;
+      
+      WriteToDebugFile('IsFileWriteable(), reporting result as ' + BoolToStr(result) + '.');
 
    end; { endif file exists }
 
@@ -1524,8 +1580,8 @@ end; { end IsFileWriteable() }
  *
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function VerifyFileIsWriteable(filePath	: TDynamicString;
-							   )		: Boolean;
+function VerifyFileIsWriteable(filePath : TDynamicString;
+                               )        : Boolean;
 begin
 
    { For now, assume/hope/pray that we will succeed. }
@@ -1535,16 +1591,16 @@ begin
    if (not IsFileWriteable(filePath)) then
    begin
 
-	  { Display warning dialog box to user. }
-	  ShowWarning('File "' + filePath + '" is not writeable (probably due to being flocked).' + constLineBreak + constLineBreak +
-				  'Probably is it still open in Excel or Acroread.' + constLineBreak + constLineBreak +
-				  'Please close this file and then click Ok.' + constLineBreak + constLineBreak +
-				  'I will try one more time.');
+      { Display warning dialog box to user. }
+      ShowWarning('File "' + filePath + '" is not writeable (probably due to being flocked).' + constLineBreak + constLineBreak +
+                  'Probably is it still open in Excel or Acroread.' + constLineBreak + constLineBreak +
+                  'Please close this file and then click Ok.' + constLineBreak + constLineBreak +
+                  'I will try one more time.');
 
-	  { Check one more time. }
-	  if (not IsFileWriteable(filePath)) then
-		 MyAbort('File "' + filePath + '" is still not writeable.');
-	  
+      { Check one more time. }
+      if (not IsFileWriteable(filePath)) then
+         MyAbort('File "' + filePath + '" is still not writeable.');
+      
 
    end; { endif }
 
@@ -1558,9 +1614,9 @@ end; { end VerifyFileIsWriteable() }
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
 function TruncateFile(filePath : TDynamicString;
-					  )		 : Integer;
+                      )      : Integer;
 var
-   i		  : Integer;
+   i          : Integer;
    fileHandle : TextFile;
 
 begin
@@ -1572,13 +1628,13 @@ begin
    if (FileExists(filePath)) then
    begin
       
-	  {* Attempt to truncate this file. *}
-	  { Try to open file for writing. }
-	  AssignFile(fileHandle, filePath);
-	  ReWrite(fileHandle);
-	  
-	  { Close file. }
-	  CloseFile(fileHandle);
+      {* Attempt to truncate this file. *}
+      { Try to open file for writing. }
+      AssignFile(fileHandle, filePath);
+      ReWrite(fileHandle);
+      
+      { Close file. }
+      CloseFile(fileHandle);
 
    end { endif file exists }
 
@@ -1586,8 +1642,8 @@ begin
    else
    begin
 
-	  { Report failure. }
-	  result := 1;
+      { Report failure. }
+      result := 1;
 
    end; { endelse }
 
@@ -1601,11 +1657,11 @@ end; { end TruncateFile() }
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
 function TruncateFileWithVerify(filePath : TDynamicString;
-								)		 : Integer;
+                                )        : Integer;
 var
-   i		  : Integer;
-   size		  : Int64;
-   tempFile	  : TextFile;
+   i          : Integer;
+   size       : Int64;
+   tempFile   : TextFile;
    fileHandle : THandle;
 
 begin
@@ -1617,29 +1673,29 @@ begin
    if (FileExists(filePath)) then
    begin
       
-	  { Attempt to truncate this file to 0 length. }
-	  TruncateFile(filePath);
-	  
-	  { If file size is not 0, then panic. }
-	  if (not IsFileZeroLength(filePath)) then
+      { Attempt to truncate this file to 0 length. }
+      TruncateFile(filePath);
+      
+      { If file size is not 0, then panic. }
+      if (not IsFileZeroLength(filePath)) then
       begin
          ShowError('Unable to truncate file ' + filePath + '.' + constLineBreak + constLineBreak +
                    'Please close whatever program has this file open (eg. Excel or Acroread or Altium).' + constLineBreak +
                    'Then click OK, and I will try one more time.' + constLineBreak + constLineBreak +
-				   'Note:  If I''m complaining about an html file, it''s probably something that Altium itself has open.' + constLineBreak +
-				   'In this case, you won''t be able to close it since this script is running.' + constLineBreak +
+                   'Note:  If I''m complaining about an html file, it''s probably something that Altium itself has open.' + constLineBreak +
+                   'In this case, you won''t be able to close it since this script is running.' + constLineBreak +
                    'So after script aborts, close all documents, and then re-start this script.');
          
-		 {* Attempt to truncate this file one more time. *}
-		 TruncateFile(filePath);
+         {* Attempt to truncate this file one more time. *}
+         TruncateFile(filePath);
 
-		 { Make sure we succeeded. }
-		 if (not IsFileZeroLength(filePath)) then
-		 begin
+         { Make sure we succeeded. }
+         if (not IsFileZeroLength(filePath)) then
+         begin
 
             MyAbort('Still unable to truncate file ' + filePath + '.');
 
-			{ Report error. }
+            { Report error. }
             result := 1;
 
          end { endif attempt to delete one more time }
@@ -1802,86 +1858,87 @@ end; { end UpdateGuiStatusMessage() }
  ***************************************************************************}
 procedure AtExit(rc : Integer);
 var
-   FileName	: TDynamicString;
-   msg		: TDynamicString;
-   i		: Integer;
+   FileName : TDynamicString;
+   msg      : TDynamicString;
+   i        : Integer;
 
 begin 
 
-   { If we have less than 55 lines in the summary messages list, then we can just use
-	ShowMessage().}
-   if (SummaryMessages.Count <= 55) then
+   { If we have less than or equal to 55 lines in the summary messages list,
+    or we're not being called from the UFD script, then just use ShowMessage().}
+   if ( (SummaryMessages.Count <= constMaxLinesInShowMessage) or
+       (whichScriptIsThis <> constWhichScriptUfd) ) then
    begin
-	  
-	  { Loop over all the lines in summary. }
-	  msg := '';
+      
+      { Loop over all the lines in summary. }
+      msg := '';
 
-	  { Loop over all the summary messages. }
-	  for i := 0 to SummaryMessages.Count - 1 do
-	  begin
+      { Loop over all the summary messages. }
+      for i := 0 to SummaryMessages.Count - 1 do
+      begin
 
-		 { Append next line to running message. }
-		 msg := msg + SummaryMessages.Strings[i] + constLineBreak;
-		 
-	  end; { endfor }
+         { Append next line to running message. }
+         msg := msg + SummaryMessages.Strings[i] + constLineBreak;
+         
+      end; { endfor }
 
-	  { If we were given a sucess error code, meaning we're exiting successfully, report that. }
-	  if ( (rc = 0) and (enableGenerateOutputs = True) and (enableSvnCommits = True) ) then
-	  begin
-		 msg := msg + constLineBreak + constLineBreak +
-		 'Script is exiting successfully.  Click Ok to finish.';
+      { If we were given a sucess error code, meaning we're exiting successfully, report that. }
+      if ( (rc = 0) and (enableGenerateOutputs = True) and (enableSvnCommits = True) ) then
+      begin
+         msg := msg + constLineBreak + constLineBreak +
+         'Script is exiting successfully.  Click Ok to finish.';
 
-		 { Display summary to screen. }
-		 ShowMessage(msg);
-		 
-	  end
+         { Display summary to screen. }
+         ShowMessage(msg);
+         
+      end
 
-	  { Else report error exit condition. }
+      { Else report error exit condition. }
       else
-	  begin
+      begin
 
-		 { Report if either enableGenerateOutputs or enableSvnCommits were disabled. }
-		 if ( (enableGenerateOutputs = False) or (enableSvnCommits = False) ) then
-		 begin
-			
-			{ Report if enableGenerateOutputs was disabled. }
-			if (enableGenerateOutputs = False) then
-			begin
-			   msg := msg + constLineBreak + constLineBreak +
-			   'ERROR ERROR ERROR Script was running with enableGenerateOutputs set to False, meaning that I generated no outputs!!!';
-			end;
+         { Report if either enableGenerateOutputs or enableSvnCommits were disabled. }
+         if ( (enableGenerateOutputs = False) or (enableSvnCommits = False) ) then
+         begin
+            
+            { Report if enableGenerateOutputs was disabled. }
+            if (enableGenerateOutputs = False) then
+            begin
+               msg := msg + constLineBreak + constLineBreak +
+               'ERROR ERROR ERROR Script was running with enableGenerateOutputs set to False, meaning that I generated no outputs!!!';
+            end;
 
-			{ Report if enableSvnCommits was disabled. }
-			if (enableSvnCommits = False) then
-			begin
-			   msg := msg + constLineBreak + constLineBreak +
-			   'ERROR ERROR ERROR Script was running with enableSvnCommits set to False, meaning that I did no svn commits!!!';
-			end;
+            { Report if enableSvnCommits was disabled. }
+            if (enableSvnCommits = False) then
+            begin
+               msg := msg + constLineBreak + constLineBreak +
+               'ERROR ERROR ERROR Script was running with enableSvnCommits set to False, meaning that I did no svn commits!!!';
+            end;
 
-			{ Report if we have an error code from elsewhere in this script. }
-			if (rc <> 0) then
-			begin
-			   msg := msg + constLineBreak + constLineBreak +
-			   'Failed while running this operation: ' + formStatusBar1.SimpleText + constLineBreak + constLineBreak +
-			   'ERROR:  Script is exiting prematurely due to error!';
-			end;
-			
-		 end;
-		 
-		 { Display summary to screen. }
-		 ShowError(msg);
-		 
-	  end; { endelse }
+            { Report if we have an error code from elsewhere in this script. }
+            if (rc <> 0) then
+            begin
+               msg := msg + constLineBreak + constLineBreak +
+               'Failed while running this operation: ' + formStatusBar1.SimpleText + constLineBreak + constLineBreak +
+               'ERROR:  Script is exiting prematurely due to error!';
+            end;
+            
+         end;
+         
+         { Display summary to screen. }
+         ShowError(msg);
+         
+      end; { endelse }
 
    end { endif }
 
-   { Else we need to call a custom dialog box so that the user can scroll through all the
-	summary messages. }
+   { Else we need to call a custom dialog box in the UFD script so that the user can
+    scroll through all the summary messages. }
    else
    begin
 
-	  { Call UfdAtExit() to do all the real work. }
-	  UfdAtExit(rc);
+      { Call UfdAtExit() to do all the real work. }
+      UfdAtExit(rc);
 
    end; { endelse }
    
@@ -1893,7 +1950,7 @@ begin
 
    { Attempt to call script-specific AtExit() procedure. }
    if (whichScriptIsThis = constWhichScriptXrm) then
-	  XrmAtExit(1);
+      XrmAtExit(1);
    
 end; { end AtExit() }
    
@@ -1960,9 +2017,9 @@ end; { end IssueDialogBoxWithOkOrCancel() }
  *  If user clicks OK, optionally display "ok" message and return to caller.
  *  If user clicks Cancel, then abort script with "cancel" message.
  ***************************************************************************}
-procedure IssueConfirmationWithOkOrCancel(msg      : TDynamicString;
-                                     okMsg     : TDynamicString;
-                                     cancelMsg : TDynamicString);
+procedure IssueConfirmationWithOkOrCancel(msg       : TDynamicString;
+                                          okMsg     : TDynamicString;
+                                          cancelMsg : TDynamicString);
 begin
 
    { Call IssueDialogBoxWithOkOrCancel() to do all the real work. }
@@ -1998,7 +2055,7 @@ end; { end IssueWarningWithOkOrCancel() }
                                     
 {***************************************************************************
  * function CleanupSvnRcFile()
- *  Try to delete rc file and/or output file from external svn command.
+ *  Try to delete rc file from external svn command.
  *
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
@@ -2021,14 +2078,14 @@ begin
    { Loop and repeatedly try to delete this file. }
    repeat
    begin
-	  
+      
       { Attempt to delete the file from disk, now that we've read it in. }
       DeleteFile(svnRcPath);
 
       { Delay for 100 us. }
       Sleep(100);
 
-	  { Increment loop counter. }
+      { Increment loop counter. }
       i := i + 1;
    end;
    until ( (not FileExists(svnRcPath)) or (i > constStandardTimeoutLimit) );
@@ -2170,14 +2227,14 @@ begin
 
    { Use (projectPath + "svn_rc.txt") as the file with which the external script will
     communicate back to us the return code from svn.exe. }
-   svnRcPath := (projectPath + '\svn_rc.txt');
+   svnRcPath := (projectPath + '\svn' + constExtBatScriptRcFile);
 
    { Attempt to delete any old version of this file from disk. }
    DeleteFileWithVerify(svnRcPath);
    
    { Use (projectPath + "svn_out.txt") as the file with which the external script will
     communicate back to us the output from svn.exe. }
-   svnOutPath := (projectPath + '\svn_out.txt');
+   svnOutPath := (projectPath + '\svn' + constExtBatScriptOutFile);
 
    { Attempt to delete any old version of this file from disk. }
    DeleteFileWithVerify(svnOutPath);
@@ -2197,17 +2254,17 @@ begin
    { Use /k to keep window open after running.  Use /c to close after running. }
    { Add one layer of double quotes around everything after /c. }
    { Add double quote protection to pathSubDir since this is assumed to contain spaces in it. }
-   cmdLine := 'cmd.exe /c "' + scriptsPath + '\' + constBatFileSvn + '.bat ' + projectDrive + ' "' + projectPath + '" "' + svnRcPath + '" "' + svnOutPath + '" ' + command + ' ';
+   cmdLine := 'cmd.exe /c "' + scriptsPath + '\' + constBatFileSvn + constExtBatScript + ' ' + projectDrive + ' "' + projectPath + '" "' + svnRcPath + '" "' + svnOutPath + '" ' + command + ' ';
 
    { Add all parms to cmdLine. }
    for i := 0 to parms.Count - 1 do
    begin
 
-	  { Add this parameter to cmdLine with double quote protection. }
-	  { First, though, run parameter through StripTrailingBackslash() to remove any '\' chars at end of filename.
-	   The DOS version of svn.exe that we're using will barf with a "Cannot determine case of blah blah"
-	   error when presented with trailing backslashes in filenames.  This is very annoying. }
-	  cmdLine := cmdLine + '"' + StripTrailingBackslash(parms.Strings[i]) + '" ';
+      { Add this parameter to cmdLine with double quote protection. }
+      { First, though, run parameter through StripTrailingBackslash() to remove any '\' chars at end of filename.
+       The DOS version of svn.exe that we're using will barf with a "Cannot determine case of blah blah"
+       error when presented with trailing backslashes in filenames.  This is very annoying. }
+      cmdLine := cmdLine + '"' + StripTrailingBackslash(parms.Strings[i]) + '" ';
    end; { endfor }
 
    { Add final close double quote to cmdLine. }
@@ -2241,8 +2298,8 @@ begin
    for i := 0 to svnOut.Count - 1 do
    begin
 
-	  { Copy this line to debug file. }
-	  WriteToDebugFile(svnOut.Strings[i]);
+      { Copy this line to debug file. }
+      WriteToDebugFile(svnOut.Strings[i]);
    end; { endfor }
 
    { Cleanup (aka delete) out file from svn command. }
@@ -2271,17 +2328,17 @@ begin
 
          { Setup beginning of message to user. }
          msg := 'WARNING:  Svn reports errors as seen in this output below.' + constLineBreak +
-		 'Since this was an svn ' + command + ' command, this may be OK.' + constLineBreak +
-		 'I will not abort script and will keep running after you click OK.' + constLineBreak + constLineBreak;
+         'Since this was an svn ' + command + ' command, this may be OK.' + constLineBreak +
+         'I will not abort script and will keep running after you click OK.' + constLineBreak + constLineBreak;
 
          { Copy all lines from svnOut to DebugFile. }
-		 for i := 0 to svnOut.Count - 1 do
-		 begin
+         for i := 0 to svnOut.Count - 1 do
+         begin
 
-			{ Add this line to dialog box message. }
-			msg := msg + svnOut.Strings[i] + constLineBreak;
+            { Add this line to dialog box message. }
+            msg := msg + svnOut.Strings[i] + constLineBreak;
 
-		 end; { endfor }
+         end; { endfor }
 
          { Display warning dialog box to user. }
          ShowWarning(msg);
@@ -2335,10 +2392,10 @@ begin
    for i := 0 to svnOut.Count - 1 do
    begin
 
-	  { Look for a line in the output file containing a specific string we were given. }
-	  if (AnsiPos(lookForMe, svnOut.Strings[i]) <> 0) then
-		 foundInLine := svnOut.Strings[i];
-	  
+      { Look for a line in the output file containing a specific string we were given. }
+      if (AnsiPos(lookForMe, svnOut.Strings[i]) <> 0) then
+         foundInLine := svnOut.Strings[i];
+      
    end; { endfor }
 
    { Free svnOut list. }
@@ -2366,11 +2423,11 @@ begin
 
    { Call IssueSvnCommandLookForOutputLine() to do the real work. }
    result := IssueSvnCommandLookForOutputLine(scriptsPath,
-										  projectPath,
-										  command,
-										  parms,
-										  'foo',
-										  {var} foo);
+                                          projectPath,
+                                          command,
+                                          parms,
+                                          'foo',
+                                          {var} foo);
 
 end; { end IssueSvnCommand() }
    
@@ -2400,9 +2457,9 @@ begin
    
    { Issue command to svn revert. }
    result := IssueSvnCommand(scriptsPath,
-							 projectPath,
-							 constSvnCmdRevert,
-							 parms);
+                             projectPath,
+                             constSvnCmdRevert,
+                             parms);
    
    { Free list of parameters. }
    parms.Free;
@@ -2417,12 +2474,12 @@ end; { end DoSvnRevert() }
  *  Returns line we found in svn reply, not counting the header we were looking for.
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function DoSvnInfoAndGetOneLine(	scriptsPath	: TDynamicString;
-									projectPath	: TString;
-									fileOrDir	: TString;
-									findLine	: TString;
-								var foundLine	: TDynamicString;
-									)			: Integer;
+function DoSvnInfoAndGetOneLine(    scriptsPath : TDynamicString;
+                                    projectPath : TString;
+                                    fileOrDir   : TString;
+                                    findLine    : TString;
+                                var foundLine   : TDynamicString;
+                                    )           : Integer;
 var
    rc    : Integer;
    parms : TStringList;
@@ -2480,10 +2537,10 @@ begin
 
    { Call DoSvnInfoAndGetOneLine() to do the real work. }
    result := DoSvnInfoAndGetOneLine(scriptsPath,
-									projectPath,
-									fileOrDir,
-									constSvnRepInfoUrl,
-									{var} fileOrDirUrl);
+                                    projectPath,
+                                    fileOrDir,
+                                    constSvnRepInfoUrl,
+                                    {var} fileOrDirUrl);
 
 end; { end GetFileOrDirSvnServerUrl() }
 
@@ -2504,10 +2561,10 @@ begin
 
    { Call DoSvnInfoAndGetOneLine() to do the real work. }
    result := DoSvnInfoAndGetOneLine(scriptsPath,
-									projectPath,
-									filePath,
-									constSvnRepInfoLastChangedRev,
-									{var} fileRevNum);
+                                    projectPath,
+                                    filePath,
+                                    constSvnRepInfoLastChangedRev,
+                                    {var} fileRevNum);
 
 end; { end GetFileSvnRevNum() }
 
@@ -2520,12 +2577,12 @@ end; { end GetFileSvnRevNum() }
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
 function RunSomeSedBatFile(scriptsPath : TDynamicString;
-						   projectPath : TDynamicString;
-						   inputPath   : TDynamicString;
-						   outputPath  : TDynamicString;
-						   batFile	   : TDynamicString;
-						   command	   : TDynamicString;
-						   )		   : Integer;
+                           projectPath : TDynamicString;
+                           inputPath   : TDynamicString;
+                           outputPath  : TDynamicString;
+                           batFile     : TDynamicString;
+                           command     : TDynamicString;
+                           )           : Integer;
 var
    sedRcPath : TDynamicString;
    rc        : Integer;
@@ -2540,7 +2597,7 @@ begin
 
    { Use (projectPath + "sed_rc.txt") as the file with which the external script will
     communicate back to us the return code from sed.exe. }
-   sedRcPath := (projectPath + '\' + batFile + '_rc.txt');
+   sedRcPath := (projectPath + '\' + batFile + constExtBatScriptRcFile);
 
    { Attempt to delete any old version of this file from disk. }
    DeleteFileWithVerify(sedRcPath);
@@ -2559,7 +2616,7 @@ begin
    { Use /k to keep window open after running.  Use /c to close after running. }
    { Add one layer of double quotes around everything after /c. }
    { Add double quote protection to pathSubDir since this is assumed to contain spaces in it. }
-   cmdLine := 'cmd.exe /c "' + scriptsPath + '\' + batFile + '.bat ' + scriptsPath + ' "' + inputPath + '" "' + sedRcPath + '" "' + outputPath + '" ' + command + ' ';
+   cmdLine := 'cmd.exe /c "' + scriptsPath + '\' + batFile + constExtBatScript + ' ' + scriptsPath + ' "' + inputPath + '" "' + sedRcPath + '" "' + outputPath + '" ' + command + ' ';
 
    { Add final close double quote to cmdLine. }
    cmdLine := cmdLine + ' "';
@@ -2602,11 +2659,11 @@ begin
 
    { Call RunSomeSedBatFile() to do all the real work. }
    result := RunSomeSedBatFile(scriptsPath,
-							   projectPath,
-							   inputPath,
-							   outputPath,
-							   constBatFileStandardSed,
-							   command);
+                               projectPath,
+                               inputPath,
+                               outputPath,
+                               constBatFileStandardSed,
+                               command);
 
 end; { end RunSed() }
 
@@ -2619,21 +2676,21 @@ end; { end RunSed() }
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
 function RunPatchWithSed(scriptsPath : TDynamicString;
-						 projectPath : TDynamicString;
-						 inputPath	 : TDynamicString;
-						 outputPath	 : TDynamicString;
-						 command	 : TDynamicString;
-						 )			 : Integer;
+                         projectPath : TDynamicString;
+                         inputPath   : TDynamicString;
+                         outputPath  : TDynamicString;
+                         command     : TDynamicString;
+                         )           : Integer;
 
 begin
 
    { Call RunSomeSedBatFile() to do all the real work. }
    result := RunSomeSedBatFile(scriptsPath,
-							   projectPath,
-							   inputPath,
-							   outputPath,
-							   constBatFilePatchingSed,
-							   command);
+                               projectPath,
+                               inputPath,
+                               outputPath,
+                               constBatFilePatchingSed,
+                               command);
 
 end; { end RunPatchWithSed() }
 
@@ -2664,7 +2721,7 @@ begin
 
    { Use (projectPath + "sort_multi_rc.txt") as the file with which the external script will
     communicate back to us the return code from sort_multi.bat. }
-   sortMultiRcPath := (projectPath + '\' + constBatFileSortMulti + '_rc.txt');
+   sortMultiRcPath := (projectPath + '\' + constBatFileSortMulti + constExtBatScriptRcFile);
 
    { Attempt to delete any old version of this file from disk. }
    DeleteFileWithVerify(sortMultiRcPath);
@@ -2682,7 +2739,7 @@ begin
    { Use /k to keep window open after running.  Use /c to close after running. }
    { Add one layer of double quotes around everything after /c. }
    { Add double quote protection to pathSubDir since this is assumed to contain spaces in it. }
-   cmdLine := 'cmd.exe /c "' + scriptsPath + '\' + constBatFileSortMulti + '.bat ' + scriptsPath + ' "' + inputPath + '" "' + outputPath + '" "' + sortMultiRcPath + '" ';
+   cmdLine := 'cmd.exe /c "' + scriptsPath + '\' + constBatFileSortMulti + constExtBatScript + ' ' + scriptsPath + ' "' + inputPath + '" "' + outputPath + '" "' + sortMultiRcPath + '" ';
 
    { Add final close double quote to cmdLine. }
    cmdLine := cmdLine + ' "';
@@ -2698,7 +2755,7 @@ begin
                       {var} sortMultiRc);
 
    { Check return code from external sort_multi command. }
-   WriteToDebugFile('*Return code from ' + constBatFileSortMulti + '.bat was ' + sortMultiRc);
+   WriteToDebugFile('*Return code from ' + constBatFileSortMulti + constExtBatScript + ' was ' + sortMultiRc);
    if (StrToInt(sortMultiRc) <> 0) then
    begin
       MyAbort('External ' + constBatFileSortMulti + ' command reported error.  cmdLine was "' + cmdLine + '".  Return code was ' + sortMultiRc + '!');
@@ -2772,11 +2829,11 @@ end; { end CreateSubDir() }
  *
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function CreateOutputSubDir(scriptsPath	: TDynamicString;
-                            projectPath	: TDynamicString;
-                            projOutPath	: TString;
-                            subDir		: TString;
-                            )			: Integer;
+function CreateOutputSubDir(scriptsPath : TDynamicString;
+                            projectPath : TDynamicString;
+                            projOutPath : TString;
+                            subDir      : TString;
+                            )           : Integer;
 var
    pathSubDir : TString;
    rc         : Integer;
@@ -2832,16 +2889,16 @@ begin
    for i := 0 to projOutSubDirs.Count - 1 do
    begin
 
-	  { Extract name of desired subdir. }
-	  subDir := projOutSubDirs.Strings[i];
+      { Extract name of desired subdir. }
+      subDir := projOutSubDirs.Strings[i];
 
-	  WriteToDebugFile('*About to verify existence of ProjectOutputs subdir ' + subDir);
-	  
-	  { Create this output subdir if needed. }
-	  rc := rc | CreateOutputSubDir(scriptsPath,
-									projectPath,
-									projOutPath,
-									subDir);
+      WriteToDebugFile('*About to verify existence of ProjectOutputs subdir ' + subDir);
+      
+      { Create this output subdir if needed. }
+      rc := rc | CreateOutputSubDir(scriptsPath,
+                                    projectPath,
+                                    projOutPath,
+                                    subDir);
 
    end; { endfor }
    
@@ -2849,18 +2906,18 @@ begin
    for i := 0 to projOutIncludes.Count - 1 do
    begin
 
-	  { Extract name of desired subdir. }
-	  subDir := projOutIncludes.Strings[i];
+      { Extract name of desired subdir. }
+      subDir := projOutIncludes.Strings[i];
 
-	  { Create this output subdir if needed. }
-	  if (subDir <> '') then
-	  begin
-		 WriteToDebugFile('*About to verify existence of ProjectOutputs include ' + subDir);
-		 rc := rc | CreateOutputSubDir(scriptsPath,
-									   projectPath,
-									   projOutPath,
-									   subDir);
-	  end;
+      { Create this output subdir if needed. }
+      if (subDir <> '') then
+      begin
+         WriteToDebugFile('*About to verify existence of ProjectOutputs include ' + subDir);
+         rc := rc | CreateOutputSubDir(scriptsPath,
+                                       projectPath,
+                                       projOutPath,
+                                       subDir);
+      end;
 
    end; { endfor }
    
@@ -2906,30 +2963,30 @@ begin
    for i := 0 to fileList.Count - 1 do
    begin
 
-	  { Extract just the filename for this file (eg. strip off leading path). }
-	  fileName := ExtractFileName(fileList.Strings[i]);
-	  
-	  { Extract just the extension for this file (eg. ".TXT", ".XLS", etc.). }
-	  fileExt := ExtractFileExt(fileList.Strings[i]);
-	  //                 ShowMessage('Extracted filename is ' + fileName + '.');
+      { Extract just the filename for this file (eg. strip off leading path). }
+      fileName := ExtractFileName(fileList.Strings[i]);
+      
+      { Extract just the extension for this file (eg. ".TXT", ".XLS", etc.). }
+      fileExt := ExtractFileExt(fileList.Strings[i]);
+      //                 ShowMessage('Extracted filename is ' + fileName + '.');
 
-	  { Extend the file extension to "star dot fileExt" (eg. "*.zip"). }
-	  starDotFileExt := '*' + fileExt;
+      { Extend the file extension to "star dot fileExt" (eg. "*.zip"). }
+      starDotFileExt := '*' + fileExt;
 
-	  { Look for this filename in the excludes list.
-	   Look for this file extension (eg. ".zip") in the excludes list.
-	   Look for *.this file extension (eg. "*.zip") in the excludes list. }
-	  if ( (excludes.IndexOf(fileName) >= 0) or
-		  (excludes.IndexOf(fileExt) >= 0) or
-		  (excludes.IndexOf(starDotFileExt) >= 0) ) then
-	  begin
-		 WriteToDebugFile('*Found file ' + fileList.Strings[i] + ' that I will remove from the list.');
+      { Look for this filename in the excludes list.
+       Look for this file extension (eg. ".zip") in the excludes list.
+       Look for *.this file extension (eg. "*.zip") in the excludes list. }
+      if ( (excludes.IndexOf(fileName) >= 0) or
+          (excludes.IndexOf(fileExt) >= 0) or
+          (excludes.IndexOf(starDotFileExt) >= 0) ) then
+      begin
+         WriteToDebugFile('*Found file ' + fileList.Strings[i] + ' that I will remove from the list.');
 
-		 { Record the index of the file we will delete from the list.
-		  We can't do this right now, since we would screw up the for loop end condition. }
-		 deletions.Add(IntToStr(i));
+         { Record the index of the file we will delete from the list.
+          We can't do this right now, since we would screw up the for loop end condition. }
+         deletions.Add(IntToStr(i));
 
-	  end; { endif }
+      end; { endif }
 
    end; { endfor i }
 
@@ -2939,13 +2996,13 @@ begin
    for i := deletions.Count - 1 downto 0 do
    begin
 
-	  { Retrieve the index into fileList from deletions list. }
-	  idx := strToInt(deletions.Strings[i]);
-	  
-	  WriteToDebugFile('*Found file ' + fileList.Strings[idx] + ' that I am removing from the list.');
+      { Retrieve the index into fileList from deletions list. }
+      idx := strToInt(deletions.Strings[i]);
+      
+      WriteToDebugFile('*Found file ' + fileList.Strings[idx] + ' that I am removing from the list.');
 
-	  { Do the deletion. }
-	  fileList.Delete(idx);
+      { Do the deletion. }
+      fileList.Delete(idx);
 
    end; {endfor i}
 
@@ -2982,9 +3039,9 @@ begin
 
    { Fetch a list of all files in this subdirectory. }
    MyFindFiles(projOutPath,
-			   subDir,
-			   '*.*',
-			   {var} generatedFiles);
+               subDir,
+               '*.*',
+               {var} generatedFiles);
 
    { Exclude specified files from this list. }
    ExcludeFilesFromList({var} generatedFiles,
@@ -2994,11 +3051,11 @@ begin
    for i := 0 to generatedFiles.Count - 1 do
    begin
 
-	  //      ShowMessage(generatedFiles.Strings[i]);
+      //      ShowMessage(generatedFiles.Strings[i]);
 
-	  { Attempt to delete this file. }
-	  DeleteFileWithVerify(generatedFiles.Strings[i]);
-	  
+      { Attempt to delete this file. }
+      DeleteFileWithVerify(generatedFiles.Strings[i]);
+      
    end; { endfor }
 
    { Free list of generated files. }
@@ -3037,28 +3094,28 @@ begin
    for i := 0 to projOutSubDirs.Count - 1 do
    begin
 
-	  { Only delete files if we have been enabled to run this OutJob. }
-	  if (StrToBool(runOutJobs.Strings[i])) then
-	  begin
+      { Only delete files if we have been enabled to run this OutJob. }
+      if (StrToBool(runOutJobs.Strings[i])) then
+      begin
 
-		 { Extract name of desired subdir. }
-		 subDir := projOutSubDirs.Strings[i];
+         { Extract name of desired subdir. }
+         subDir := projOutSubDirs.Strings[i];
 
-		 { Extract list of excludes for this subdir. }
-		 excludes := TStringList.Create;
-		 SplitDelimitedStringIntoStringList(deleteExcludes.Strings[i],
-											constStringDelimiter,
-											{var} excludes);
+         { Extract list of excludes for this subdir. }
+         excludes := TStringList.Create;
+         SplitDelimitedStringIntoStringList(deleteExcludes.Strings[i],
+                                            constStringDelimiter,
+                                            {var} excludes);
 
-		 WriteToDebugFile('*About to delete old files from enabled ProjectOutputs subdir ' + subDir);
-		 
-		 { Delete files in this output subdir, subject to some exclusions. }
-		 rc := rc | DeleteOutputFiles(projOutPath, subDir, excludes);
+         WriteToDebugFile('*About to delete old files from enabled ProjectOutputs subdir ' + subDir);
+         
+         { Delete files in this output subdir, subject to some exclusions. }
+         rc := rc | DeleteOutputFiles(projOutPath, subDir, excludes);
 
-		 { Free list of excludes. }
-		 excludes.Free;
+         { Free list of excludes. }
+         excludes.Free;
 
-	  end; { endif }
+      end; { endif }
 
    end; { endfor }
 
@@ -3083,15 +3140,16 @@ end; { end DeleteAllOutputFiles() }
  *
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function CheckThatSvnScriptsWorkingCopyIsUpdated(	 scriptsPath : TDynamicString;
-													 )			 : Integer;
+function CheckThatSvnScriptsWorkingCopyIsUpdated(scriptsPath    : TDynamicString;
+                                                 thisScriptName : TString;
+                                                 )              : Integer;
 var
-   rc		 : Integer;
-   svnOut	 : TStringList;
-   i		 : Integer;
+   rc        : Integer;
+   svnOut    : TStringList;
+   i         : Integer;
    mustAbort : Boolean;
-   parms	 : TStringList;
-   msg		 : TDynamicString;
+   parms     : TStringList;
+   msg       : TDynamicString;
 
 begin
 
@@ -3127,46 +3185,46 @@ begin
    for i := 0 to (svnOut.Count - 1) do
    begin
 
-	  { Check for a special case of this script being modified (eg. during script development). }
-	  if ( (Copy(svnOut.Strings[i],1,1) = constSvnRepStatusModified) and
-		  (AnsiPos(constThisScriptName, svnOut.Strings[i]) <> 0) and
-		 (not mustAbort) ) then
-	  begin
+      { Check for a special case of this script being modified (eg. during script development). }
+      if ( (Copy(svnOut.Strings[i],1,1) = constSvnRepStatusModified) and
+          (AnsiPos(thisScriptName, svnOut.Strings[i]) <> 0) and
+         (not mustAbort) ) then
+      begin
 
          { Issue warning modal dialog box with specified warning message,
           no reply after clicking Ok, and specified reply after clicking Cancel. }
-		 IssueWarningWithOkOrCancel('It appears that this script itself has been modified with respect to svn server.' + constLineBreak +
-									'If you are actively developing this script, then click Ok.  Otherwise, click Cancel.' + constLineBreak + constLineBreak +
-									'Output line from svn.exe was:' + constLineBreak +
-									svnOut.Strings[i],
+         IssueWarningWithOkOrCancel('It appears that this script itself has been modified with respect to svn server.' + constLineBreak +
+                                    'If you are actively developing this script, then click Ok.  Otherwise, click Cancel.' + constLineBreak + constLineBreak +
+                                    'Output line from svn.exe was:' + constLineBreak +
+                                    svnOut.Strings[i],
                                     '',
-									'Aborting script at user request due to modifications to this script file.');
-		 
-	  end { endif }
+                                    'Aborting script at user request due to modifications to this script file.');
+         
+      end { endif }
 
-	  { If we're not otherwise going to abort, then we must ignore any line that
-	   begins "Status against revision:". }
-	  else if ( (Copy(svnOut.Strings[i],1,Length(constSvnRepStatusStatAgainstRev)) = constSvnRepStatusStatAgainstRev) and
-			   (not mustAbort) ) then
-	  begin
+      { If we're not otherwise going to abort, then we must ignore any line that
+       begins "Status against revision:". }
+      else if ( (Copy(svnOut.Strings[i],1,Length(constSvnRepStatusStatAgainstRev)) = constSvnRepStatusStatAgainstRev) and
+               (not mustAbort) ) then
+      begin
 
-		 { Do nothing. }
-		 
-	  end { endif }
-	  
-	  { Ignore lines that have a '?' char as the first char in a line of svn output.
-	   This indicates a file that exists locally, but not in the svn repo.  We ignore these. }
-	  else if (Copy(svnOut.Strings[i],1,1) <> constSvnRepStatusNotInSvn) then
-	  begin
-		 
-		 { Add this line of svn output to the abort message that we will display to screen. }
-		 msg := msg + svnOut.Strings[i] + constLineBreak;
-		 
-		 { Flag that we found differences between local working copy and svn server, and thus we will be aborting the script. }
-		 mustAbort := True;
+         { Do nothing. }
+         
+      end { endif }
+      
+      { Ignore lines that have a '?' char as the first char in a line of svn output.
+       This indicates a file that exists locally, but not in the svn repo.  We ignore these. }
+      else if (Copy(svnOut.Strings[i],1,1) <> constSvnRepStatusNotInSvn) then
+      begin
+         
+         { Add this line of svn output to the abort message that we will display to screen. }
+         msg := msg + svnOut.Strings[i] + constLineBreak;
+         
+         { Flag that we found differences between local working copy and svn server, and thus we will be aborting the script. }
+         mustAbort := True;
 
-	  end; { endif }
-		 
+      end; { endif }
+         
    end; { endfor }
 
    { Free svnOut list. }
@@ -3224,14 +3282,14 @@ begin
    for i := 0 to svnOut.Count - 1 do
    begin
 
-	  //      ShowMessage(svnOut.Strings[i]);
+      //      ShowMessage(svnOut.Strings[i]);
 
-	  { Add this line of svn output to the abort message that we will display to screen. }
-	  msg := msg + svnOut.Strings[i] + constLineBreak;
-	  
-	  { Flag that we found missing output files and thus we will be aborting the script. }
-	  mustAbort := True;
-	  
+      { Add this line of svn output to the abort message that we will display to screen. }
+      msg := msg + svnOut.Strings[i] + constLineBreak;
+      
+      { Flag that we found missing output files and thus we will be aborting the script. }
+      mustAbort := True;
+      
    end; { endfor }
 
    { Free svnOut list. }
@@ -3335,18 +3393,18 @@ begin
    for i := 0 to svnOut.Count - 1 do
    begin
 
-	  { Look for a '!' char in the first char of this svn output line.
-	   This indicates a file that exists in the svn repo, but is missing from the working copy. }
-	  if (Copy(svnOut.Strings[i],1,1) = constSvnRepStatusMissing) then
-	  begin
+      { Look for a '!' char in the first char of this svn output line.
+       This indicates a file that exists in the svn repo, but is missing from the working copy. }
+      if (Copy(svnOut.Strings[i],1,1) = constSvnRepStatusMissing) then
+      begin
 
-		 { Add this line of svn output to the abort message that we will display to screen. }
-		 msg := msg + svnOut.Strings[i] + constLineBreak;
+         { Add this line of svn output to the abort message that we will display to screen. }
+         msg := msg + svnOut.Strings[i] + constLineBreak;
 
-		 { Flag that we found missing output files and thus we will be aborting the script. }
-		 mustAbort := True;
-		 
-	  end; { endif }
+         { Flag that we found missing output files and thus we will be aborting the script. }
+         mustAbort := True;
+         
+      end; { endif }
 
    end; { endfor }
 
@@ -3393,9 +3451,9 @@ begin
    
    { Find all BOM .xls files in the purchasing/ subdirectory and add them to the assembly zipfile. }
    MyFindFiles(projOutPath,
-			   subDir,
-			   ('*' + constExtXls),
-			   {var} bomFiles);
+               subDir,
+               ('*' + constExtXls),
+               {var} bomFiles);
 
    { See if we found at least one BOM file.  If so, record name of first BOM file. }
    if (bomFiles.Count > 0) then
@@ -3460,56 +3518,58 @@ begin
    for i := 0 to sourceFilePaths.Count - 1 do
    begin
 
-	  { Get a reference to the current source file. }
-	  sourceFilePath := sourceFilePaths.Strings[i];
+      { Get a reference to the current source file. }
+      sourceFilePath := sourceFilePaths.Strings[i];
 
-	  { Retrieve server interface for this document from document's path. }
-	  AServerDocument := Client.GetDocumentByPath(sourceFilePath);
+      { Retrieve server interface for this document from document's path. }
+      AServerDocument := Client.GetDocumentByPath(sourceFilePath);
 
-	  { Retrieve document kind for this document. }
-	  kind := Client.GetDocumentKindFromDocumentPath(sourceFilePath);
+      { Retrieve document kind for this document. }
+      kind := Client.GetDocumentKindFromDocumentPath(sourceFilePath);
 
-	  { Exclude certain files from this check.  They do not have the "Modified" bit. }
-	  if ( (kind <> 'DATABASELIB') and (kind <> 'PCB') and
-		  (kind <> 'OUTPUTJOB') and (kind <> 'Harness') and
-		  (kind <> 'DATABASELINK') and (kind <> 'SCHLIB') and
-		  (kind <> 'PCBLIB') ) then 
-	  begin
+      { Exclude certain files from this check.  They do not have the "Modified" bit. }
+      { TODO:  We should probably invert this and check for the file types
+       that actually do have the "Modified" bit. }
+      if ( (kind <> constKindDbLib) and (kind <> constKindPcb) and
+          (kind <> constKindOutJob) and (kind <> constKindHarness) and
+          (kind <> constKindDbLink) and (kind <> constKindSchLib) and
+          (kind <> constKindPcbLib) ) then 
+      begin
 
-		 //          { Set  the  document  dirty. }
-		 //          AServerDocument.Modified := True;   
+         //          { Set  the  document  dirty. }
+         //          AServerDocument.Modified := True;   
 
-		 WriteToDebugFile('*Checking cleanliness of file at path ' + sourceFilePath + ' of kind ' + kind);
+         WriteToDebugFile('*Checking cleanliness of file at path ' + sourceFilePath + ' of kind ' + kind);
 
-		 { Get cleanliness status of this document. }
-		 modified := AServerDocument.GetModified;
-		 
-		 //          WriteToDebugFile('*File at path ' + sourceFilePath + ' reports modified as ' + BoolToStr(modified));
+         { Get cleanliness status of this document. }
+         modified := AServerDocument.GetModified;
+         
+         //          WriteToDebugFile('*File at path ' + sourceFilePath + ' reports modified as ' + BoolToStr(modified));
 
-		 { Examine cleanliness of this document. }
-		 { It's not at all clear why "if (modified = True) then" doesn't work, but it doesn't.  JWC 2011/09/02. }
-		 if (BoolToStr(modified) <> '0') then
-		 begin
+         { Examine cleanliness of this document. }
+         { It's not at all clear why "if (modified = True) then" doesn't work, but it doesn't.  JWC 2011/09/02. }
+         if (BoolToStr(modified) <> '0') then
+         begin
 
-			WriteToDebugFile('Found unclean document ' + sourceFilePath + '!!');
+            WriteToDebugFile('Found unclean document ' + sourceFilePath + '!!');
 
-			{ Flag that we have at least one unclean source document. }
-			allClean := False;
+            { Flag that we have at least one unclean source document. }
+            allClean := False;
 
-			{ Add this source file to the list of files that are unclean. }
-			msg := msg + sourceFilePath + constLineBreak;
-			
-		 end; { endif }
+            { Add this source file to the list of files that are unclean. }
+            msg := msg + sourceFilePath + constLineBreak;
+            
+         end; { endif }
 
-	  end { endif }
+      end { endif }
 
-	  { Else we were not able to check this file.  Note that. }
-	  else
-	  begin
-		 WriteToDebugFile('*UNABLE to check cleanliness of file at path ' + sourceFilePath + ' of kind ' + kind + '!');
-	  end;
-	  
-	  
+      { Else we were not able to check this file.  Note that. }
+      else
+      begin
+         WriteToDebugFile('*UNABLE to check cleanliness of file at path ' + sourceFilePath + ' of kind ' + kind + '!');
+      end;
+      
+      
    end; { endfor }
 
    { If we were flagged that we had unclean files, then abort script with error message detailing those files. }
@@ -3522,7 +3582,7 @@ begin
     brutally close all files in the project.  This should force popup windows warning of unsaved changes
     (if any).  If saved, those changes will still fail the next test, checking for svn cleanliness. }
    { TODO:  We may still have issues if there are generated files open that Altium doesn't think are
-	part of the project, but actually are.  Unfortunately, however, we cannot close All documents here. }
+    part of the project, but actually are.  Unfortunately, however, we cannot close All documents here. }
    ResetParameters;
    AddStringParameter('ObjectKind', 'FocusedProjectDocuments');
    RunProcess('WorkspaceManager:CloseObject');
@@ -3615,7 +3675,7 @@ begin
       sourceFilePaths.Add(docPath);
 
       { See if this document is a schematic page and is the top level schematic in the project. }
-      if ( (Document.DM_DocumentKind = 'SCH') and (Document.DM_IndentLevel = 1) ) then
+      if ( (Document.DM_DocumentKind = constKindSch) and (Document.DM_IndentLevel = 1) ) then
       begin
          WriteToDebugFile('*Found SCH document with full path ' + docPath + ', indent level ' + IntToStr(Document.DM_IndentLevel));
 
@@ -3652,22 +3712,22 @@ end; {end GetSourceFilesAndFindTopLevelSchDoc() }
  *  Returns PCBA version as string in var parm pcbaVersion.
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function GetPcbAndPcbaVersions(	   Project				: IProject;
-								   projOutSubDirs		: TStringList;
-                                   runPackager			: TStringList;
-							   var projectParms			: TStringList;
-                               var pcbPartNumAndVersion	: TDynamicString; 
-                               var pcbaVersion			: TDynamicString; 
-                                   )					: Integer;
+function GetPcbAndPcbaVersions(    Project              : IProject;
+                                   projOutSubDirs       : TStringList;
+                                   runPackager          : TStringList;
+                               var projectParms         : TStringList;
+                               var pcbPartNumAndVersion : TDynamicString; 
+                               var pcbaVersion          : TDynamicString; 
+                                   )                    : Integer;
 var
-   fabIndex	 : Integer;
+   fabIndex  : Integer;
    assyIndex : Integer;
    ParmCount : Integer;             { The number of parameters}
-   i		 : Integer;             { An index for the current parameter}
-   CurrParm	 : IParameter;          { The current parameter}
-   position	 : Integer;
-   name		 : TDynamicString;
-   value	 : TDynamicString;
+   i         : Integer;             { An index for the current parameter}
+   CurrParm  : IParameter;          { The current parameter}
+   position  : Integer;
+   name      : TDynamicString;
+   value     : TDynamicString;
                   
 begin
 
@@ -3700,67 +3760,67 @@ begin
       { Get current parameter. }
       CurrParm := Project.DM_Parameters(i);
 
-	  WriteToDebugFile('Examining project parameter index ' + IntToStr(i) + ' named "' + CurrParm.DM_Name + '", value is "' + CurrParm.DM_Value + '".');
+      WriteToDebugFile('Examining project parameter index ' + IntToStr(i) + ' named "' + CurrParm.DM_Name + '", value is "' + CurrParm.DM_Value + '".');
 
-	  { Make sure there are not any delimiter ('=') characters in parm name or parm value. }
-	  if (AnsiPos('=', CurrParm.DM_Name) <> 0) then
-		 MyAbort('Found illegal "=" char in project parameter named "' + CurrParm.DM_Name + '".');
-	  
-	  if (AnsiPos('=', CurrParm.DM_Value) <> 0) then
-		 MyAbort('Found illegal "=" char in project parameter valued "' + CurrParm.DM_Value + '".');
-	  
+      { Make sure there are not any delimiter ('=') characters in parm name or parm value. }
+      if (AnsiPos(constStringEquals, CurrParm.DM_Name) <> 0) then
+         MyAbort('Found illegal "=" char in project parameter named "' + CurrParm.DM_Name + '".');
+      
+      if (AnsiPos(constStringEquals, CurrParm.DM_Value) <> 0) then
+         MyAbort('Found illegal "=" char in project parameter valued "' + CurrParm.DM_Value + '".');
+      
 
-	  { Look for an existing project parameter with this same name. }
-	  position := projectParms.IndexOfName(CurrParm.DM_Name);
+      { Look for an existing project parameter with this same name. }
+      position := projectParms.IndexOfName(CurrParm.DM_Name);
 
-	  { See if we're seeing a duplicate parameter, as can happen
-	   (a) when re-running this release manager script without closing and re-opening a project, or
-	   (b) in degenerate cases with screwed up project files (including those generated by really old versions of this script!). }
-	  if (position >= 0) then
-	  begin
-		 
-		 { Our current dispute resolution policy is to use the stringily "greater" value of the old value and the new value. }
+      { See if we're seeing a duplicate parameter, as can happen
+       (a) when re-running this release manager script without closing and re-opening a project, or
+       (b) in degenerate cases with screwed up project files (including those generated by really old versions of this script!). }
+      if (position >= 0) then
+      begin
+         
+         { Our current dispute resolution policy is to use the stringily "greater" value of the old value and the new value. }
 
-		 { Split each project parameter into name and value. }
-		 { Use our home brewed function, so that we don't split on spaces as well. }
-		 SplitStringIntoLeftAndRight(projectParms.Strings[position],
-									 '=',
-									 {var} name,
-									 {var} value);
+         { Split each project parameter into name and value. }
+         { Use our home brewed function, so that we don't split on spaces as well. }
+         SplitStringIntoLeftAndRight(projectParms.Strings[position],
+                                     constStringEquals,
+                                     {var} name,
+                                     {var} value);
 
-		 { Compare value of the current parameter to previous value of this parameter. }
-		 if (CurrParm.DM_Value > value) then
-		 begin
+         { Compare value of the current parameter to previous value of this parameter. }
+         if (CurrParm.DM_Value > value) then
+         begin
 
-			{ Overwrite the previous value with the new value. }
-			projectParms.Strings[position] := (CurrParm.DM_Name + '=' + CurrParm.DM_Value);
-			WriteToDebugFile('WARNING:  Found duplicate project parameter named "' + CurrParm.DM_Name + '".  Old value was "' + value +
-							 '", new value is "' + CurrParm.DM_Value + '".  Using new (greater)!!');
+            { Overwrite the previous value with the new value. }
+            projectParms.Strings[position] := (CurrParm.DM_Name + constStringEquals + CurrParm.DM_Value);
+            WriteToDebugFile('WARNING:  Found duplicate project parameter named "' + CurrParm.DM_Name + '".  Old value was "' + value +
+                             '", new value is "' + CurrParm.DM_Value + '".  Using new (greater)!!');
 
-		 end
+         end
 
-		 { Else the old value was greater or equal.  Leave it alone and keep using the old value. }
-	     else
-		 begin
-		 
-			WriteToDebugFile('WARNING:  Found duplicate project parameter named "' + CurrParm.DM_Name + '".  Old value was "' + value +
-							 '", new value is "' + CurrParm.DM_Value + '".  Keeping old value!!');
+         { Else the old value was greater or equal.  Leave it alone and keep using the old value. }
+         else
+         begin
+         
+            WriteToDebugFile('WARNING:  Found duplicate project parameter named "' + CurrParm.DM_Name + '".  Old value was "' + value +
+                             '", new value is "' + CurrParm.DM_Value + '".  Keeping old value!!');
 
-		 end;
-		 
-	  end { endif }
+         end;
+         
+      end { endif }
 
-	  { Else we haven't seen this one before.  Add it to our list of project parameters. }
+      { Else we haven't seen this one before.  Add it to our list of project parameters. }
       else
-	  begin
+      begin
 
-		 WriteToDebugFile('Found new project parameter named "' + CurrParm.DM_Name + '".  New value is "' + CurrParm.DM_Value + '".');
+         WriteToDebugFile('Found new project parameter named "' + CurrParm.DM_Name + '".  New value is "' + CurrParm.DM_Value + '".');
 
-		 { Store current parameter in our list of project level parameters. }
-		 projectParms.Add(CurrParm.DM_Name + '=' + CurrParm.DM_Value);
-	  
-	  end;
-	  
+         { Store current parameter in our list of project level parameters. }
+         projectParms.Add(CurrParm.DM_Name + constStringEquals + CurrParm.DM_Value);
+      
+      end;
+      
    end; { endfor }
 
    
@@ -3771,13 +3831,13 @@ begin
    if (position >= 0) then
    begin
 
-	  { Make sure there are no space characters in parameter value. }
-	  if (AnsiPos(' ', projectParms.Strings(position)) <> 0) then
-		 MyAbort('Found illegal " " char in project parameter "' + projectParms.Strings(position) + '".');
+      { Make sure there are no space characters in parameter value. }
+      if (AnsiPos(' ', projectParms.Strings(position)) <> 0) then
+         MyAbort('Found illegal " " char in project parameter "' + projectParms.Strings(position) + '".');
 
-	  { Extract value of this parameter. }
-	  pcbPartNumAndVersion := projectParms.ValueFromIndex(position);
-	  WriteToDebugFile('*Found pcbPartNumAndVersion as ' + pcbPartNumAndVersion);
+      { Extract value of this parameter. }
+      pcbPartNumAndVersion := projectParms.ValueFromIndex(position);
+      WriteToDebugFile('*Found pcbPartNumAndVersion as ' + pcbPartNumAndVersion);
 
    end
 
@@ -3807,13 +3867,13 @@ begin
    if (position >= 0) then
    begin
 
-	  { Make sure there are no space characters in parameter value. }
-	  if (AnsiPos(' ', projectParms.Strings(position)) <> 0) then
-		 MyAbort('Found illegal " " char in project parameter "' + projectParms.Strings(position) + '".');
+      { Make sure there are no space characters in parameter value. }
+      if (AnsiPos(' ', projectParms.Strings(position)) <> 0) then
+         MyAbort('Found illegal " " char in project parameter "' + projectParms.Strings(position) + '".');
 
-	  { Extract value of this parameter. }
-	  pcbaVersion := projectParms.ValueFromIndex(position);
-	  WriteToDebugFile('*Found pcbaVersion as ' + pcbaVersion);
+      { Extract value of this parameter. }
+      pcbaVersion := projectParms.ValueFromIndex(position);
+      WriteToDebugFile('*Found pcbaVersion as ' + pcbaVersion);
 
    end
 
@@ -4003,7 +4063,7 @@ begin
    begin
       
       { See if we found "APCB1". }
-      if (AComponent.Designator.Text = 'APCB1') then
+      if (AComponent.Designator.Text = constApcb1RefDes) then
       begin
 
          { Extract Comment field from this component. }
@@ -4021,7 +4081,7 @@ begin
          begin
 
             { Look for parameter named "MFGNUMBER". }
-            if (Parameter.Name = 'MFGNUMBER') then
+            if (Parameter.Name = constDbParmMfgNumber) then
             begin
 
                { Record this text to return it to caller. }
@@ -4031,7 +4091,7 @@ begin
             end; { endif }
 
             { Look for parameter named "VALUE". }
-            if (Parameter.Name = 'VALUE') then
+            if (Parameter.Name = constDbParmValue) then
             begin
 
                { Record this text to return it to caller. }
@@ -4067,7 +4127,7 @@ begin
          while (Parameter <> nil) do
          begin
 
-            //          ShowMessage(Parameter.Name + '=' + Parameter.Text);
+            //          ShowMessage(Parameter.Name + constStringEquals + Parameter.Text);
             
             { Look for parameter named "CATEGORY". }
             if (Parameter.Name = 'CATEGORY') then
@@ -4172,10 +4232,10 @@ end; {end GetPcbVersionNumbersFromTopLevelSchDoc() }
  *  Returns full path to this project's PcbDoc file in var parm pcbDocPath.
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function FindProjectPcbDocFile(	   Project				 : IProject;
-								   flagRequirePcbDocFile : Boolean;
-                               var pcbDocPath			 : TDynamicString; 
-                               )						 : Integer;
+function FindProjectPcbDocFile(    Project               : IProject;
+                                   flagRequirePcbDocFile : Boolean;
+                               var pcbDocPath            : TDynamicString; 
+                               )                         : Integer;
 var
    Document   : IDocument;
    k          : Integer;
@@ -4199,7 +4259,7 @@ begin
       Document := Project.DM_LogicalDocuments(k);
       
       { See if this document is a PcbDoc file. }
-      if (Document.DM_DocumentKind = 'PCB') then
+      if (Document.DM_DocumentKind = constKindPcb) then
       begin
 
          { Increment number of PcbDoc files that we've found. }
@@ -4217,29 +4277,29 @@ begin
    if (numPcbDocs < 1) then
    begin
 
-	  { See if the user has requested operations that require a PcbDoc file. }
-	  if (flagRequirePcbDocFile) then
-	  begin
-		 MyAbort('Found ' + IntToStr(numPcbDocs) + ' PcbDoc files in your project.  This number should have been exactly 1!');
-	  end
+      { See if the user has requested operations that require a PcbDoc file. }
+      if (flagRequirePcbDocFile) then
+      begin
+         MyAbort('Found ' + IntToStr(numPcbDocs) + ' PcbDoc files in your project.  This number should have been exactly 1!');
+      end
 
-	  { Else just issue a warning. }
+      { Else just issue a warning. }
       else
-	  begin
-		 { Issue warning modal dialog box with specified warning message,
-		  no reply after clicking Ok, and specified reply after clicking Cancel. }
-		 IssueWarningWithOkOrCancel('Unable to find a PcbDoc file within this project.' + constLineBreak +
-									'However, since you have not requested operations that require a PcbDoc file, I will proceed to generate other OutJob outputs if you click OK.',
-									'',
-									'Aborting script at user request due to missing PcbDoc file ' + constPcbVersionParm + '.');
-	  end; { endelse }
-	  
+      begin
+         { Issue warning modal dialog box with specified warning message,
+          no reply after clicking Ok, and specified reply after clicking Cancel. }
+         IssueWarningWithOkOrCancel('Unable to find a PcbDoc file within this project.' + constLineBreak +
+                                    'However, since you have not requested operations that require a PcbDoc file, I will proceed to generate other OutJob outputs if you click OK.',
+                                    '',
+                                    'Aborting script at user request due to missing PcbDoc file ' + constPcbVersionParm + '.');
+      end; { endelse }
+      
    end; { endif }
 
    { Make sure there is no more than 1 PcbDoc file. }
    if (numPcbDocs > 1) then
    begin
-	  MyAbort('Found ' + IntToStr(numPcbDocs) + ' PcbDoc files in your project.  This script currently only supports having 1 PcbDoc file per project!');
+      MyAbort('Found ' + IntToStr(numPcbDocs) + ' PcbDoc files in your project.  This script currently only supports having 1 PcbDoc file per project!');
    end;
 
 //   ShowMessage('About to leave FindProjectPcbDocFile(), pcbDocPath is ' + pcbDocPath);
@@ -4266,12 +4326,12 @@ end; {end FindProjectPcbDocFile() }
  *  
  *  Returns : 0 on success, 1 if not successful.
  ***************************************************************************}
-function GetPcbVersionNumbersFromPcbDoc(	pcbDocPath					 : TDynamicString;
-                                            gtbRefDes					 : TDynamicString;
+function GetPcbVersionNumbersFromPcbDoc(    pcbDocPath                   : TDynamicString;
+                                            gtbRefDes                    : TDynamicString;
                                         var pcbApcb1PcbPartNumAndVersion : TDynamicString;  { PCB part number and version as reported by PCB component APCB1. }
-                                        var pcbGtbPcbPartNumAndVersion	 : TDynamicString;  { PCB part number and version as reported by PCB component gerber title block. }
-										var step						 : Integer;
-                                            )							 : Integer;
+                                        var pcbGtbPcbPartNumAndVersion   : TDynamicString;  { PCB part number and version as reported by PCB component gerber title block. }
+                                        var step                         : Integer;
+                                            )                            : Integer;
 var
    board      : IPCB_Board;
    iterator   : IPCB_BoardIterator;
@@ -4293,97 +4353,97 @@ begin
    if (pcbDocPath <> '') then
    begin
    
-	  UpdateGuiStatusMessage('Status:  Starting step 0-' + IntToStr(step) + ':  Extracting PCB version numbers from PcbDoc file.');
+      UpdateGuiStatusMessage('Status:  Starting step 0-' + IntToStr(step) + ':  Extracting PCB version numbers from PcbDoc file.');
 
-	  { Attempt to start PCB server. }
-	  Client.StartServer('PCB');
+      { Attempt to start PCB server. }
+      Client.StartServer(constKindPcb);
 
-	  { Check if PCB server is alive. }
-	  if (PCBServer = Nil) then
-		 MyAbort('PCBServer is Nil.  D''oh.');
-	  
-	  { Initialize the PCB editor. }
-	  PCBServer.PreProcess;
+      { Check if PCB server is alive. }
+      if (PCBServer = Nil) then
+         MyAbort('PCBServer is Nil.  D''oh.');
+      
+      { Initialize the PCB editor. }
+      PCBServer.PreProcess;
 
-	  { I cannot get PCBServer.GetPCBBoardByPath(pcbDocPath) to work, so I'm going
-	   to manually open the PCB document and then use PCBServer.GetCurrentPCBBoard. }
-	  ResetParameters;
-	  AddStringParameter('ObjectKind', 'Document');
-	  AddStringParameter('FileName', pcbDocPath);
-	  RunProcess('WorkspaceManager:OpenObject');
-	  
-	  { Attempt to open the project's PcbDoc file. }
-	  { FIXME:  Why does this not work?? GetPCBBoardByPath(pcbDocPath); }
-	  board := PCBServer.GetCurrentPCBBoard;
+      { I cannot get PCBServer.GetPCBBoardByPath(pcbDocPath) to work, so I'm going
+       to manually open the PCB document and then use PCBServer.GetCurrentPCBBoard. }
+      ResetParameters;
+      AddStringParameter('ObjectKind', 'Document');
+      AddStringParameter('FileName', pcbDocPath);
+      RunProcess('WorkspaceManager:OpenObject');
+      
+      { Attempt to open the project's PcbDoc file. }
+      { FIXME:  Why does this not work?? GetPCBBoardByPath(pcbDocPath); }
+      board := PCBServer.GetCurrentPCBBoard;
 
-	  { Sanity check }
-	  if (board = Nil) then
-		 MyAbort('Unable to open PcbDoc file ' + pcbDocPath);
+      { Sanity check }
+      if (board = Nil) then
+         MyAbort('Unable to open PcbDoc file ' + pcbDocPath);
 
-	  { Setup an iterator so that we can iterate over all PCB components. }
-	  iterator        := Board.BoardIterator_Create;
-	  iterator.AddFilter_ObjectSet(MkSet(eComponentObject));
-	  iterator.AddFilter_LayerSet(AllLayers);
-	  iterator.AddFilter_Method(eProcessAll);
+      { Setup an iterator so that we can iterate over all PCB components. }
+      iterator        := Board.BoardIterator_Create;
+      iterator.AddFilter_ObjectSet(MkSet(eComponentObject));
+      iterator.AddFilter_LayerSet(AllLayers);
+      iterator.AddFilter_Method(eProcessAll);
 
-	  { Get a reference to the first PCB object. }
-	  component := iterator.FirstPCBObject;
+      { Get a reference to the first PCB object. }
+      component := iterator.FirstPCBObject;
 
-	  { Panic if we can't find any components. }
-	  if (component = Nil) then
-	  begin
-		 board.BoardIterator_Destroy(iterator);
-		 MyAbort('Unable to find any PCB components!');
-	  end;
+      { Panic if we can't find any components. }
+      if (component = Nil) then
+      begin
+         board.BoardIterator_Destroy(iterator);
+         MyAbort('Unable to find any PCB components!');
+      end;
 
-	  { Loop over all objects in this PcbDoc file. }
-	  while (component <> nil) do
-	  begin
-		 
-		 WriteToDebugFile('*Found component ' + component.SourceDesignator);
+      { Loop over all objects in this PcbDoc file. }
+      while (component <> nil) do
+      begin
+         
+         WriteToDebugFile('*Found component ' + component.SourceDesignator);
 
-		 { See if we found "APCB1". }
-		 if (component.SourceDesignator = 'APCB1') then
-		 begin
+         { See if we found "APCB1". }
+         if (component.SourceDesignator = constApcb1RefDes) then
+         begin
 
-			{ Record the comment text from APCB1. }
-			pcbApcb1PcbPartNumAndVersion := component.Comment.Text;
-			
-			WriteToDebugFile('*APCB1 comment is ' + pcbApcb1PcbPartNumAndVersion);
-			
-		 end; { endif }
-		 
-		 { See if we found GTB (gerber title block) component. }
-		 if (component.SourceDesignator = gtbRefDes) then
-		 begin
+            { Record the comment text from APCB1. }
+            pcbApcb1PcbPartNumAndVersion := component.Comment.Text;
+            
+            WriteToDebugFile('*APCB1 comment is ' + pcbApcb1PcbPartNumAndVersion);
+            
+         end; { endif }
+         
+         { See if we found GTB (gerber title block) component. }
+         if (component.SourceDesignator = gtbRefDes) then
+         begin
 
-			{ Record the comment text from GTB. }
-			pcbGtbPcbPartNumAndVersion := component.Comment.Text;
-			
-			WriteToDebugFile('*GTB comment is ' + pcbGtbPcbPartNumAndVersion);
-			
-		 end; { endif }
+            { Record the comment text from GTB. }
+            pcbGtbPcbPartNumAndVersion := component.Comment.Text;
+            
+            WriteToDebugFile('*GTB comment is ' + pcbGtbPcbPartNumAndVersion);
+            
+         end; { endif }
 
-		 { Advance to next component in this PcbDoc file. }
-		 component := iterator.NextPCBObject;
+         { Advance to next component in this PcbDoc file. }
+         component := iterator.NextPCBObject;
 
-	  end;  { endwhile loop over all PCB components in this PcbDoc file. }
+      end;  { endwhile loop over all PCB components in this PcbDoc file. }
 
-	  { Free PCB component iterator. }
-	  board.BoardIterator_Destroy(iterator);
+      { Free PCB component iterator. }
+      board.BoardIterator_Destroy(iterator);
 
-	  { Close the PCB document. }
-	  ResetParameters;
-	  AddStringParameter('ObjectKind', 'Document');
-	  AddStringParameter('FileName', pcbDocPath);
-	  RunProcess('WorkspaceManager:CloseObject');
+      { Close the PCB document. }
+      ResetParameters;
+      AddStringParameter('ObjectKind', 'Document');
+      AddStringParameter('FileName', pcbDocPath);
+      RunProcess('WorkspaceManager:CloseObject');
 
-	  
-	  WriteToSummaryFile('0-' + IntToStr(StepPlusPlus(step)) + '.  Extracted PCB version numbers from PcbDoc file.');
+      
+      WriteToSummaryFile('0-' + IntToStr(StepPlusPlus(step)) + '.  Extracted PCB version numbers from PcbDoc file.');
 
-	  { Report various version numbers that we know have to debug file. }
-	  WriteToDebugFile('* pcbApcb1PcbPartNumAndVersion is    "' + pcbApcb1PcbPartNumAndVersion + '"');
-	  WriteToDebugFile('* pcbGtbPcbPartNumAndVersion is      "' + pcbGtbPcbPartNumAndVersion + '"');
+      { Report various version numbers that we know have to debug file. }
+      WriteToDebugFile('* pcbApcb1PcbPartNumAndVersion is    "' + pcbApcb1PcbPartNumAndVersion + '"');
+      WriteToDebugFile('* pcbGtbPcbPartNumAndVersion is      "' + pcbGtbPcbPartNumAndVersion + '"');
    
    end { endif }
 
@@ -4391,7 +4451,7 @@ begin
    else
    begin
 
-	  WriteToSummaryFile('0-' + IntToStr(StepPlusPlus(step)) + '.  SKIPPED Extracting PCB version numbers from PcbDoc file.');
+      WriteToSummaryFile('0-' + IntToStr(StepPlusPlus(step)) + '.  SKIPPED Extracting PCB version numbers from PcbDoc file.');
    end; { endelse }
    
 end; {end GetPcbVersionNumbersFromPcbDoc() }
@@ -4404,12 +4464,12 @@ end; {end GetPcbVersionNumbersFromPcbDoc() }
  *  Returns svn rev number (in string form) in var parm pcbDocRevNum.
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function GetPcbDocFileSvnRevNum(	scriptsPath	 : TDynamicString;
-									projectPath	 : TDynamicString;
-									pcbDocPath	 : TDynamicString;
-								var pcbDocRevNum : TDynamicString;
-								var step		 : Integer;
-									)			 : Integer;
+function GetPcbDocFileSvnRevNum(    scriptsPath  : TDynamicString;
+                                    projectPath  : TDynamicString;
+                                    pcbDocPath   : TDynamicString;
+                                var pcbDocRevNum : TDynamicString;
+                                var step         : Integer;
+                                    )            : Integer;
 begin
 
    { For now, assume/hope/pray that we will succeed. }
@@ -4424,22 +4484,22 @@ begin
    if (pcbDocPath <> '') then
    begin
    
-	  UpdateGuiStatusMessage('Status:  Starting step 0-' + IntToStr(step) + ':  Extracting PcbDoc file svn rev number.');
+      UpdateGuiStatusMessage('Status:  Starting step 0-' + IntToStr(step) + ':  Extracting PcbDoc file svn rev number.');
 
-	  { Call GetFileSvnRevNum() to do all the real work. }
-	  GetFileSvnRevNum(scriptsPath,
-					   projectPath,
-					   pcbDocPath,
-					   {var} pcbDocRevNum);
-	  
-	  WriteToSummaryFile('0-' + IntToStr(StepPlusPlus(step)) + '.  Extracted PcbDoc file svn rev number.');
-	  WriteToDebugFile('*PcbDoc file rev number is "' + pcbDocRevNum + '"');
+      { Call GetFileSvnRevNum() to do all the real work. }
+      GetFileSvnRevNum(scriptsPath,
+                       projectPath,
+                       pcbDocPath,
+                       {var} pcbDocRevNum);
+      
+      WriteToSummaryFile('0-' + IntToStr(StepPlusPlus(step)) + '.  Extracted PcbDoc file svn rev number.');
+      WriteToDebugFile('*PcbDoc file rev number is "' + pcbDocRevNum + '"');
    end { endif }
 
    { Else we don't have a PcbDoc file.  So don't actually do anything. }
    else
    begin
-	  WriteToSummaryFile('0-' + IntToStr(StepPlusPlus(step)) + '.  SKIPPED Extracting PcbDoc file svn rev number.');
+      WriteToSummaryFile('0-' + IntToStr(StepPlusPlus(step)) + '.  SKIPPED Extracting PcbDoc file svn rev number.');
    end; { endelse }
 
 end; { end GetPcbDocFileSvnRevNum() }
@@ -4470,45 +4530,45 @@ end; { end GetPcbDocFileSvnRevNum() }
  *  Returns pcba version number of project as var parm pcbaVersion.
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function GetPcbAndPcbaPartNumsVersionsAndRevs(	  Project				: IProject;
-												  projectName			: TDynamicString;
-												  scriptsPath			: TDynamicString;
-												  projectPath			: TDynamicString;
-												  projOutPath			: TDynamicString;
-												  projOutSubDirs		: TStringList;
-												  zipFileNames			: TStringList;
-												  flagRequirePcbDocFile	: Boolean;
-												  runPackager			: TStringList;
-												  topLevelSchDoc		: IDocument;
-											  var projectParms			: TStringList;
-											  var pcbPartNum			: TDynamicString;
-											  var pcbVersion			: TDynamicString;
-											  var pcbDocRevNum			: TDynamicString;
-											  var pcbaPartNum			: TDynamicString;
-											  var pcbaVersion			: TDynamicString;
-											  var step					: Integer;
-												  )						: Integer;
+function GetPcbAndPcbaPartNumsVersionsAndRevs(    Project               : IProject;
+                                                  projectName           : TDynamicString;
+                                                  scriptsPath           : TDynamicString;
+                                                  projectPath           : TDynamicString;
+                                                  projOutPath           : TDynamicString;
+                                                  projOutSubDirs        : TStringList;
+                                                  zipFileNames          : TStringList;
+                                                  flagRequirePcbDocFile : Boolean;
+                                                  runPackager           : TStringList;
+                                                  topLevelSchDoc        : IDocument;
+                                              var projectParms          : TStringList;
+                                              var pcbPartNum            : TDynamicString;
+                                              var pcbVersion            : TDynamicString;
+                                              var pcbDocRevNum          : TDynamicString;
+                                              var pcbaPartNum           : TDynamicString;
+                                              var pcbaVersion           : TDynamicString;
+                                              var step                  : Integer;
+                                                  )                     : Integer;
 var
-   rc							   : Integer;
-   pcbDocPath					   : TDynamicString;
-   bomPath						   : TDynamicString;
-   pcbPartNumAndVersion			   : TDynamicString;
+   rc                              : Integer;
+   pcbDocPath                      : TDynamicString;
+   bomPath                         : TDynamicString;
+   pcbPartNumAndVersion            : TDynamicString;
    schApcb1MnoPcbPartNumAndVersion : TDynamicString;    { PCB part number and version as reported by SCH component APCB1, MFGNUMBER field. }
    schApcb1ValPcbPartNumAndVersion : TDynamicString;    { PCB part number and version as reported by SCH component APCB1, VALUE field. }
    schApcb1ComPcbPartNumAndVersion : TDynamicString;    { PCB part number and version as reported by SCH component APCB1, Comment field. }
-   schApcb1MnoPcbRevNum			   : TDynamicString;    { PcbDoc file svn rev number as reported by SCH component APCB1, MFGNUMBER field. }
-   schGtbPcbPartNumAndVersion	   : TDynamicString;    { PCB part number and version as reported by SCH component gerber title block. }
-   gtbRefDes					   : TDynamicString;
-   pcbApcb1PcbPartNumAndVersion	   : TDynamicString;    { PCB part number and version as reported by PCB component APCB1. }
-   pcbGtbPcbPartNumAndVersion	   : TDynamicString;    { PCB part number and version as reported by PCB component gerber title block. }
-   schApcb1MnoPcbPartNum		   : TDynamicString;
-   schApcb1MnoPcbVersion		   : TDynamicString;
-   zipFileName					   : TDynamicString;
-   filePath						   : TDynamicString;
-   i							   : Integer;
-   fabIndex						   : Integer;
-   assyIndex					   : Integer;
-   bomRevNum					   : TDynamicString;	{ Placeholder only.  We don't know this information yet. }
+   schApcb1MnoPcbRevNum            : TDynamicString;    { PcbDoc file svn rev number as reported by SCH component APCB1, MFGNUMBER field. }
+   schGtbPcbPartNumAndVersion      : TDynamicString;    { PCB part number and version as reported by SCH component gerber title block. }
+   gtbRefDes                       : TDynamicString;
+   pcbApcb1PcbPartNumAndVersion    : TDynamicString;    { PCB part number and version as reported by PCB component APCB1. }
+   pcbGtbPcbPartNumAndVersion      : TDynamicString;    { PCB part number and version as reported by PCB component gerber title block. }
+   schApcb1MnoPcbPartNum           : TDynamicString;
+   schApcb1MnoPcbVersion           : TDynamicString;
+   zipFileName                     : TDynamicString;
+   filePath                        : TDynamicString;
+   i                               : Integer;
+   fabIndex                        : Integer;
+   assyIndex                       : Integer;
+   bomRevNum                       : TDynamicString;    { Placeholder only.  We don't know this information yet. }
 
 begin
 
@@ -4538,11 +4598,11 @@ begin
    {*** Get PCB & PCBA version numbers, extracted from project level parameter. ***}
    UpdateGuiStatusMessage('Status:  Starting step 0-' + IntToStr(step) + ':  Extracting PCB and PCBA version numbers from project properties.');
    GetPcbAndPcbaVersions(Project,
-						 projOutSubDirs,
-						 runPackager,
-						 {var} projectParms,
-						 {var} pcbPartNumAndVersion,
-						 {var} pcbaVersion);
+                         projOutSubDirs,
+                         runPackager,
+                         {var} projectParms,
+                         {var} pcbPartNumAndVersion,
+                         {var} pcbaVersion);
    WriteToSummaryFile('0-' + IntToStr(StepPlusPlus(step)) + '.  Extracted PCB and PCBA version numbers from project properties.');
 
    { Split combined pcbPartNumAndVersion into separate pcbPartNum and pcbVersion. }
@@ -4579,26 +4639,26 @@ begin
    { Find the full path to the 1 and only 1 PcbDoc file that should be part of this project. }
    UpdateGuiStatusMessage('Status:  Starting step 0-' + IntToStr(step) + ':  Identifying project''s PcbDoc file.');
    FindProjectPcbDocFile(Project,
-						 flagRequirePcbDocFile,
-						 {var} pcbDocPath);
+                         flagRequirePcbDocFile,
+                         {var} pcbDocPath);
    WriteToSummaryFile('0-' + IntToStr(StepPlusPlus(step)) + '.  Identified project''s PcbDoc file.');
 
    
    {*** Get pcb version numbers from PcbDoc file. ***}
    GetPcbVersionNumbersFromPcbDoc(pcbDocPath,
-								  gtbRefDes,
-								  {var} pcbApcb1PcbPartNumAndVersion,
-								  {var} pcbGtbPcbPartNumAndVersion,
-								  {var} step);
+                                  gtbRefDes,
+                                  {var} pcbApcb1PcbPartNumAndVersion,
+                                  {var} pcbGtbPcbPartNumAndVersion,
+                                  {var} step);
    
    
    {*** Get svn rev number for this project's PcbDoc file. ***}
    { Get the svn rev number for the PcbDoc file. }
    GetPcbDocFileSvnRevNum(scriptsPath,
-						  projectPath,
-						  pcbDocPath,
-						  {var} pcbDocRevNum,
-						  {var} step);
+                          projectPath,
+                          pcbDocPath,
+                          {var} pcbDocRevNum,
+                          {var} step);
 
    
    {*** Make sure version numbers and svn rev numbers match. ***}
@@ -4606,11 +4666,11 @@ begin
    if (StrToBool(runPackager.Strings[fabIndex])) then
    begin
 
-	  { Make a substitution where will will replace the sch component Comment field "=VALUE"
-	   with the contents of the VALUE field itself.  This mostly serves to make the error
-	   message when things don't match slightly less confusing. }
-	  schApcb1ComPcbPartNumAndVersion := StringReplace(schApcb1ComPcbPartNumAndVersion, '=VALUE', schApcb1ValPcbPartNumAndVersion, '');
-	  
+      { Make a substitution where will will replace the sch component Comment field "=VALUE"
+       with the contents of the VALUE field itself.  This mostly serves to make the error
+       message when things don't match slightly less confusing. }
+      schApcb1ComPcbPartNumAndVersion := StringReplace(schApcb1ComPcbPartNumAndVersion, '=VALUE', schApcb1ValPcbPartNumAndVersion, '');
+      
       { Make sure that all SCH and PCB components that specify the PCB version number match. }
       { Make sure that pcbPartNumAndVersion matches schApcb1MnoPcbPartNumAndVersion and schApcb1ValPcbPartNumAndVersion and schApcb1ComPcbPartNumAndVersion and
        schApcb1MnoPcbRevNum and schGtbPcbPartNumAndVersion and pcbApcb1PcbPartNumAndVersion and pcbGtbPcbPartNumAndVersion. }
@@ -4623,7 +4683,7 @@ begin
           (pcbPartNumAndVersion <> pcbGtbPcbPartNumAndVersion)  ) then
       begin
 
-		 UpdateGuiStatusMessage('Status:  Starting step 0-' + IntToStr(step) + ':  Checking agreement of version and rev numbers.');
+         UpdateGuiStatusMessage('Status:  Starting step 0-' + IntToStr(step) + ':  Checking agreement of version and rev numbers.');
 
          WriteToDebugFile('**Mismatch when checking PCB version numbers.  About to abort script.');
          WriteToDebugFile('* pcbPartNumAndVersion is            "' + pcbPartNumAndVersion + '"');
@@ -4644,8 +4704,8 @@ begin
                  'pcbApcb1PcbPartNumAndVersion    (from PCB APCB1 Comment parameter) is            "' + pcbApcb1PcbPartNumAndVersion + '"' + constLineBreak +
                  'pcbGtbPcbPartNumAndVersion      (from PCB XX* Comment parameter) is              "' + pcbGtbPcbPartNumAndVersion + '"' + constLineBreak);
 
-		 WriteToSummaryFile('0-' + IntToStr(StepPlusPlus(step)) + '.  Checked agreement of version and rev numbers.');
-		 
+         WriteToSummaryFile('0-' + IntToStr(StepPlusPlus(step)) + '.  Checked agreement of version and rev numbers.');
+         
       end; { endif }
 
    end { endif are we flagged to package fabrication zipfile }
@@ -4653,7 +4713,7 @@ begin
    { Else we are not flagged to package fabrication zipfile. }
    else
    begin
-	  WriteToSummaryFile('0-' + IntToStr(StepPlusPlus(step)) + '.  SKIPPED Checking agreement of version and rev numbers.');
+      WriteToSummaryFile('0-' + IntToStr(StepPlusPlus(step)) + '.  SKIPPED Checking agreement of version and rev numbers.');
    end;
 
    { See if we are flagged to package assembly zipfile. }
@@ -4676,7 +4736,7 @@ begin
 
          end;
 
-		 WriteToSummaryFile('0-' + IntToStr(StepPlusPlus(step)) + '.  Checked PcbDoc file svn rev number.');
+         WriteToSummaryFile('0-' + IntToStr(StepPlusPlus(step)) + '.  Checked PcbDoc file svn rev number.');
       end { endif }
 
       { Else we're just doing a package assembly operation.
@@ -4692,20 +4752,20 @@ begin
                                    {var} schApcb1MnoPcbVersion);
 
 
-		 { Retrieve existing string for fab zipFileName that contains a bunch of placeholders in need of substitution. }
-		 zipFileName := zipFileNames.Strings[fabIndex];
+         { Retrieve existing string for fab zipFileName that contains a bunch of placeholders in need of substitution. }
+         zipFileName := zipFileNames.Strings[fabIndex];
 
          { Determine what would be the name of this already-existing fabrication zipfile. }
-		 { TODO:  Clean up this mess.  It should be true that pcbPartNum = schApcb1MnoPcbPartNum, etc., right?? }
-		 CreateZipFileName(projectName,
-						   {pcbPartNum} schApcb1MnoPcbPartNum, 
-						   {pcbVersion} schApcb1MnoPcbVersion,
-						   {pcbDocRevNum} schApcb1MnoPcbRevNum,
-						   pcbaPartNum,
-						   pcbaVersion,
-						   bomRevNum,
-						   {var} zipFileName);
-		 
+         { TODO:  Clean up this mess.  It should be true that pcbPartNum = schApcb1MnoPcbPartNum, etc., right?? }
+         CreateZipFileName(projectName,
+                           {pcbPartNum} schApcb1MnoPcbPartNum, 
+                           {pcbVersion} schApcb1MnoPcbVersion,
+                           {pcbDocRevNum} schApcb1MnoPcbRevNum,
+                           pcbaPartNum,
+                           pcbaVersion,
+                           bomRevNum,
+                           {var} zipFileName);
+         
          { Construct full path to this alleged zipfile. }
          filePath := (projOutPath + '\' + projOutSubDirs.Strings[fabIndex] + '\' + zipFileName);
 
@@ -4715,7 +4775,7 @@ begin
                     'However, I could not find an existing fabrication zipfile named ' + constLineBreak +
                     '"' + filePath + '"!' + constLineBreak);
          
-		 WriteToSummaryFile('0-' + IntToStr(StepPlusPlus(step)) + '.  Checked existence of referenced fabrication zipfile.');
+         WriteToSummaryFile('0-' + IntToStr(StepPlusPlus(step)) + '.  Checked existence of referenced fabrication zipfile.');
       end; { endelse }
 
    end { endif are we flagged to package assembly zipfile }
@@ -4723,7 +4783,7 @@ begin
    { Else we are not flagged to package assembly zipfile. }
    else
    begin
-	  WriteToSummaryFile('0-' + IntToStr(StepPlusPlus(step)) + '.  SKIPPED Checking naming/existence of fabrication zipfile.');
+      WriteToSummaryFile('0-' + IntToStr(StepPlusPlus(step)) + '.  SKIPPED Checking naming/existence of fabrication zipfile.');
    end;
 
 end; { end GetPcbAndPcbaPartNumsVersionsAndRevs() }
@@ -4736,8 +4796,8 @@ end; { end GetPcbAndPcbaPartNumsVersionsAndRevs() }
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
 function SanityCheckRelAndTag(scriptsPath : TDynamicString;
-							  projectPath : TDynamicString;
-							  )			  : Integer;
+                              projectPath : TDynamicString;
+                              )           : Integer;
 var
    rc               : Integer;
 
@@ -4843,19 +4903,19 @@ end; { end ComputeIncrementedVersion() }
  *  
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function ModifyProjectFileWithNewParms(Project		: IProject;
-									   projFilePath	: TDynamicString;
-									   projectParms	: TStringList;
-									   )			: Integer;
+function ModifyProjectFileWithNewParms(Project      : IProject;
+                                       projFilePath : TDynamicString;
+                                       projectParms : TStringList;
+                                       )            : Integer;
 
 var
-   i			   : Integer;
-   k			   : Integer;
-   projFileStrs	   : TStringList;
-   state		   : Integer;
-   projFile		   : TextFile;
-   name			   : TDynamicString;
-   value		   : TDynamicString;
+   i               : Integer;
+   k               : Integer;
+   projFileStrs    : TStringList;
+   state           : Integer;
+   projFile        : TextFile;
+   name            : TDynamicString;
+   value           : TDynamicString;
    AServerDocument : IServerDocument;
 
 begin
@@ -4882,95 +4942,95 @@ begin
    for i := 0 to projFileStrs.Count - 1 do
    begin
 
-	  { Examine current state and act appropriately. }
-	  case state of
+      { Examine current state and act appropriately. }
+      case state of
 
-		{ State 0:  Project file before the project parameters section. }
-		{ In state 0, unconditionally copy line from input to output.
-		 Look for a line that looks like "[Parameter". When we find it, advance state. }
-		0 :
-		   begin
+        { State 0:  Project file before the project parameters section. }
+        { In state 0, unconditionally copy line from input to output.
+         Look for a line that looks like "[Parameter". When we find it, advance state. }
+        0 :
+           begin
 
-			  { Look for the line that signifies the start of the project parameters section. }
-			  if (AnsiPos('[Parameter', projFileStrs.Strings[i]) <> 0) then
-			  begin
+              { Look for the line that signifies the start of the project parameters section. }
+              if (AnsiPos('[Parameter', projFileStrs.Strings[i]) <> 0) then
+              begin
 
-				 { Advance state. }
-				 state := 1;
-				 WriteToDebugFile('*Found "[Parameter" marker.  Advancing state.');
+                 { Advance state. }
+                 state := 1;
+                 WriteToDebugFile('*Found "[Parameter" marker.  Advancing state.');
 
-				 {* Output all project parameters to output file now. *}
-				 { Loop over all the parameters backwards to preserve order in PrjPcb file. }
-				 for k := (projectParms.Count - 1) downto 0 do
-				 begin
+                 {* Output all project parameters to output file now. *}
+                 { Loop over all the parameters backwards to preserve order in PrjPcb file. }
+                 for k := (projectParms.Count - 1) downto 0 do
+                 begin
 
-					{ Split each project parameter into name and value. }
-					{ Use our home brewed function, so that we don't split on spaces as well. }
-					SplitStringIntoLeftAndRight(projectParms.Strings[k],
-												'=',
-												{var} name,
-												{var} value);
-					
-					{ For each parameter, write a 4 line sequence of
-					 [ParameterX]
-					 Name=foo
-					 Value=bar
-					 (blank line).
-					 }
-					WriteLn(projFile, '[Parameter' + IntToStr(projectParms.Count - k) + ']');
-					WriteLn(projFile, 'Name=' + name);
-					WriteLn(projFile, 'Value=' + value);
-					WriteLn(projFile, '');
-					
-				 end; { endfor }
+                    { Split each project parameter into name and value. }
+                    { Use our home brewed function, so that we don't split on spaces as well. }
+                    SplitStringIntoLeftAndRight(projectParms.Strings[k],
+                                                constStringEquals,
+                                                {var} name,
+                                                {var} value);
+                    
+                    { For each parameter, write a 4 line sequence of
+                     [ParameterX]
+                     Name=foo
+                     Value=bar
+                     (blank line).
+                     }
+                    WriteLn(projFile, '[Parameter' + IntToStr(projectParms.Count - k) + ']');
+                    WriteLn(projFile, 'Name=' + name);
+                    WriteLn(projFile, 'Value=' + value);
+                    WriteLn(projFile, '');
+                    
+                 end; { endfor }
 
-			  end { endif }
+              end { endif }
 
-			  { Else we didn't find "[Parameter".  Just copy this line from input to output. }
-			  else
-			  begin
+              { Else we didn't find "[Parameter".  Just copy this line from input to output. }
+              else
+              begin
 
-				 { Unconditionally copy this line of the original project file back out to the new project file. }
-				 WriteLn(projFile, projFileStrs.Strings[i]);
+                 { Unconditionally copy this line of the original project file back out to the new project file. }
+                 WriteLn(projFile, projFileStrs.Strings[i]);
 
-			  end; { endelse }
+              end; { endelse }
 
-		   end; { endcase 0 }
+           end; { endcase 0 }
 
-		{ State 1:  Project file during the project parameters section. }
-		{ In state 1, ignore all lines.  Look for a line that starts with "[" and does not
-		 contain "[Parameter".  When we find it, output current line and advance state. }
-		1 :
-		   begin
+        { State 1:  Project file during the project parameters section. }
+        { In state 1, ignore all lines.  Look for a line that starts with "[" and does not
+         contain "[Parameter".  When we find it, output current line and advance state. }
+        1 :
+           begin
 
-			  { Look for a line that begins with "[" and does not contain "[Parameter" }
-			  if ( (Copy(projFileStrs.Strings[i], 1, 1) = '[') and (AnsiPos('[Parameter', projFileStrs.Strings[i]) = 0) ) then
-			  begin
+              { Look for a line that begins with "[" and does not contain "[Parameter" }
+              if ( (Copy(projFileStrs.Strings[i], 1, 1) = '[') and (AnsiPos('[Parameter', projFileStrs.Strings[i]) = 0) ) then
+              begin
 
-				 { Copy this line of the original project file back out to the new project file. }
-				 WriteLn(projFile, projFileStrs.Strings[i]);
+                 { Copy this line of the original project file back out to the new project file. }
+                 WriteLn(projFile, projFileStrs.Strings[i]);
 
-				 { Advance state. }
-				 state := 2;
-				 WriteToDebugFile('*Found "[" with no "[Parameter".  Advancing state.');
+                 { Advance state. }
+                 state := 2;
+                 WriteToDebugFile('*Found "[" with no "[Parameter".  Advancing state.');
 
-			  end; { endif }
+              end; { endif }
 
-		   end; { endcase 1 }
+           end; { endcase 1 }
 
-		{ State 2:  Project file after the project parameters section. }
-		{ In state 2, copy all lines from input to output and remain in this state forever. }
-		2 :
-		   begin
+        { State 2:  Project file after the project parameters section. }
+        { In state 2, copy all lines from input to output and remain in this state forever. }
+        2 :
+           begin
 
-			  { Unconditionally copy this line of the original project file back out to the new project file. }
-			  WriteLn(projFile, projFileStrs.Strings[i]);
+              { Unconditionally copy this line of the original project file back out to the new project file. }
+              WriteLn(projFile, projFileStrs.Strings[i]);
 
-		   end; { endcase 2 }
+           end; { endcase 2 }
 
-	  else MyAbort('Unknown state ' + IntToStr(state));
-	  end; { endcase }          
-	  
+      else MyAbort('Unknown state ' + IntToStr(state));
+      end; { endcase }          
+      
    end; { endfor }
 
    { Close project file. }
@@ -4981,7 +5041,7 @@ begin
 
    { Sanity check. }
    if (state <> 2) then
-	  MyAbort('Encountered problem modifying project file.  Project file may be corrupted!');
+      MyAbort('Encountered problem modifying project file.  Project file may be corrupted!');
    
    { Notify Altium that we've changed the project file contents out from under it. }
    { TODO:  Is this really doing anything?  Is there a better way to do this? }
@@ -5004,16 +5064,16 @@ end; { end ModifyProjectFileWithNewParms() }
  *  Returns modified project parms list as var parm projectParms.
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function ModifyProjectParm(	   version		   : TDynamicString; 
-							   newVersion	   : TDynamicString; 
-							   versionParm	   : TDynamicString; 
-							   versionLastParm : TDynamicString;
-						   var projectParms	   : TStringList;
-							   )			   : Integer;
+function ModifyProjectParm(    version         : TDynamicString; 
+                               newVersion      : TDynamicString; 
+                               versionParm     : TDynamicString; 
+                               versionLastParm : TDynamicString;
+                           var projectParms    : TStringList;
+                               )               : Integer;
 
 var
-   i				: Integer;
-   position			: Integer;
+   i                : Integer;
+   position         : Integer;
 
 begin
 
@@ -5025,12 +5085,12 @@ begin
    position := projectParms.IndexOfName(versionParm);
 
    { We should have already verified the existence of this parameter, so
-	this sanity check _should_ be redundant. }
+    this sanity check _should_ be redundant. }
    if (position < 0) then
-	  MyAbort('In ModifyProjectParm(), unable to find requested parm named "' + versionParm + '".');
+      MyAbort('In ModifyProjectParm(), unable to find requested parm named "' + versionParm + '".');
 
    { Modify the value of this parameter. }
-   projectParms.Strings[position] := (versionParm + '=' + newVersion);
+   projectParms.Strings[position] := (versionParm + constStringEquals + newVersion);
    WriteToDebugFile('*Set value of "' + versionParm + '" parameter to be "' + newVersion + '".');
 
 
@@ -5042,9 +5102,9 @@ begin
    if (position < 0) then
    begin
 
-	  { Add this parameter to the list. }
-	  projectParms.Add(versionLastParm + '=' + version);
-	  WriteToDebugFile('*Added parameter "' + versionLastParm + '" with value "' + version + '".');
+      { Add this parameter to the list. }
+      projectParms.Add(versionLastParm + constStringEquals + version);
+      WriteToDebugFile('*Added parameter "' + versionLastParm + '" with value "' + version + '".');
 
    end
 
@@ -5052,9 +5112,9 @@ begin
    else
    begin
 
-	  { Modify the value of this parameter. }
-	  projectParms.Strings[position] := (versionLastParm + '=' + version);
-	  WriteToDebugFile('*Set value of "' + versionLastParm + '" parameter to be "' + version + '".');
+      { Modify the value of this parameter. }
+      projectParms.Strings[position] := (versionLastParm + constStringEquals + version);
+      WriteToDebugFile('*Set value of "' + versionLastParm + '" parameter to be "' + version + '".');
 
    end; { endelse }
    
@@ -5074,20 +5134,20 @@ end; { end ModifyProjectParm() }
  *
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function IncrementPcbAndPcbaVersions(	 Project			  : IProject;
-										 projOutSubDirs		  : TStringList;
-										 runPackager		  : TStringList;
-										 projFilePath		  : TDynamicString;
-									 var projectParms		  : TStringList;
-										 pcbPartNumAndVersion : TDynamicString; 
-										 pcbaVersion		  : TDynamicString; 
-									 var step				  : Integer;
-										 )					  : Integer;
+function IncrementPcbAndPcbaVersions(    Project              : IProject;
+                                         projOutSubDirs       : TStringList;
+                                         runPackager          : TStringList;
+                                         projFilePath         : TDynamicString;
+                                     var projectParms         : TStringList;
+                                         pcbPartNumAndVersion : TDynamicString; 
+                                         pcbaVersion          : TDynamicString; 
+                                     var step                 : Integer;
+                                         )                    : Integer;
 var
    newPcbPartNumAndVersion : TDynamicString;
-   newPcbaVersion		   : TDynamicString;
-   fabIndex				   : Integer;
-   assyIndex			   : Integer;
+   newPcbaVersion          : TDynamicString;
+   fabIndex                : Integer;
+   assyIndex               : Integer;
 
 begin
 
@@ -5114,16 +5174,16 @@ begin
          
          UpdateGuiStatusMessage('Status:  Starting step 2-' + IntToStr(step) + ':  Incrementing PCB version number by modifying project parameter in project file.');
 
-		 { Compute incremented PCB version number. }
+         { Compute incremented PCB version number. }
          ComputeIncrementedVersion(pcbPartNumAndVersion,
                                    {var} newPcbPartNumAndVersion);
 
          { Modify contents of project file string list with new PCB version number. }
-		 ModifyProjectParm(pcbPartNumAndVersion,
-						   newPcbPartNumAndVersion,
-						   constPcbVersionParm,
-						   constPcbVersionLastParm,
-						   {var} projectParms);
+         ModifyProjectParm(pcbPartNumAndVersion,
+                           newPcbPartNumAndVersion,
+                           constPcbVersionParm,
+                           constPcbVersionLastParm,
+                           {var} projectParms);
             
       end; { endif }
 
@@ -5138,33 +5198,33 @@ begin
                                    {var} newPcbaVersion);
 
          { Modify contents of project file string list with new PCBA version number. }
-		 ModifyProjectParm(pcbaVersion,
-						   newPcbaVersion,
-						   constPcbaVersionParm,
-						   constPcbaVersionLastParm,
-						   {var} projectParms);
+         ModifyProjectParm(pcbaVersion,
+                           newPcbaVersion,
+                           constPcbaVersionParm,
+                           constPcbaVersionLastParm,
+                           {var} projectParms);
             
-	  end; { endif }
+      end; { endif }
 
-	  { Modify the project file to update/add project parameters. }
-	  ModifyProjectFileWithNewParms(Project,
-									projFilePath,
-									projectParms);
+      { Modify the project file to update/add project parameters. }
+      ModifyProjectFileWithNewParms(Project,
+                                    projFilePath,
+                                    projectParms);
 
-	  { Report to summary file what we did. }
-	  if ( (StrToBool(runPackager.Strings[fabIndex])) and (StrToBool(runPackager.Strings[assyIndex])) ) then
-		 WriteToSummaryFile('2-' + IntToStr(StepPlusPlus(step)) + '.  Incremented PCB and PCBA version numbers by modifying project parameters in project file.') { no semi }
-	  else if (StrToBool(runPackager.Strings[fabIndex])) then
-		 WriteToSummaryFile('2-' + IntToStr(StepPlusPlus(step)) + '.  Incremented PCB version number by modifying project parameter in project file.') { no semi }
-	  else
-		 WriteToSummaryFile('2-' + IntToStr(StepPlusPlus(step)) + '.  Incremented PCBA version number by modifying project parameter in project file.');
+      { Report to summary file what we did. }
+      if ( (StrToBool(runPackager.Strings[fabIndex])) and (StrToBool(runPackager.Strings[assyIndex])) ) then
+         WriteToSummaryFile('2-' + IntToStr(StepPlusPlus(step)) + '.  Incremented PCB and PCBA version numbers by modifying project parameters in project file.') { no semi }
+      else if (StrToBool(runPackager.Strings[fabIndex])) then
+         WriteToSummaryFile('2-' + IntToStr(StepPlusPlus(step)) + '.  Incremented PCB version number by modifying project parameter in project file.') { no semi }
+      else
+         WriteToSummaryFile('2-' + IntToStr(StepPlusPlus(step)) + '.  Incremented PCBA version number by modifying project parameter in project file.');
   
    end { endif }
 
    { Else we had nothing to do. }
    else
    begin
-	  WriteToSummaryFile('2-' + IntToStr(StepPlusPlus(step)) + '.  SKIPPED Incrementing PCB and/or PCBA version numbers by modifying project parameter(s) in project file.');
+      WriteToSummaryFile('2-' + IntToStr(StepPlusPlus(step)) + '.  SKIPPED Incrementing PCB and/or PCBA version numbers by modifying project parameter(s) in project file.');
 
    end; { endelse }
    
@@ -5209,21 +5269,21 @@ begin
    else
    begin
 
-	  { Loop over all the files. }
-	  for i := 0 to fileA.Count - 1 do
-	  begin
+      { Loop over all the files. }
+      for i := 0 to fileA.Count - 1 do
+      begin
 
-		 { Compare the contents of this line from each file. }
-		 if (fileA.Strings[i] <> fileB.Strings[i]) then
-		 begin
+         { Compare the contents of this line from each file. }
+         if (fileA.Strings[i] <> fileB.Strings[i]) then
+         begin
 
-			{ Now we know that the files differ. }
-			{ TODO:  Abort out of loop to speed things up. }
-			rc := 1;
-			
-		 end; { endif }
-		 
-	  end; { endfor }
+            { Now we know that the files differ. }
+            { TODO:  Abort out of loop to speed things up. }
+            rc := 1;
+            
+         end; { endif }
+         
+      end; { endfor }
 
    end; { endelse }
       
@@ -5244,13 +5304,13 @@ end; { end DiffFiles() }
  *
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function AddGeneratedFileToProject(var Project	: IProject;
-									   filePath	: TString;
-								   var step		: Integer;
-									   )		: Integer;
+function AddGeneratedFileToProject(var Project  : IProject;
+                                       filePath : TString;
+                                   var step     : Integer;
+                                       )        : Integer;
 var                                                        
-   i	   : Integer;
-   rc	   : Integer;
+   i       : Integer;
+   rc      : Integer;
    genFile : TDynamicString;
    found   : Boolean;
                   
@@ -5269,43 +5329,43 @@ begin
    for i := 0 to (Project.DM_GeneratedDocumentCount - 1) do
    begin
 
-	  { Extract the full filename of this generated file. }
-	  genFile := Project.DM_GeneratedDocuments(i).DM_FullPath;
-	  
-	  WriteToDebugFile('*Examining generated file "' + genFile + '".');
+      { Extract the full filename of this generated file. }
+      genFile := Project.DM_GeneratedDocuments(i).DM_FullPath;
+      
+      WriteToDebugFile('*Examining generated file "' + genFile + '".');
 
-	  { See if we have now found our generated file among the list of known generated files. }
-	  { Note:  It's likely that the file we're looking for (filePath) will be in all
-	   upper case.  The known generated files are likely not so.  Convert both
-	   to all upper case before comparing. }
-	  if (AnsiUpperCase(genFile) = AnsiUpperCase(filePath)) then
-	  begin
+      { See if we have now found our generated file among the list of known generated files. }
+      { Note:  It's likely that the file we're looking for (filePath) will be in all
+       upper case.  The known generated files are likely not so.  Convert both
+       to all upper case before comparing. }
+      if (AnsiUpperCase(genFile) = AnsiUpperCase(filePath)) then
+      begin
 
-		 WriteToDebugFile('*This is a match to filePath!');
+         WriteToDebugFile('*This is a match to filePath!');
 
-		 { Flag that we have found our file in the list of known generated files. }
-		 found := True;
-		 
-	  end; { endif }
-	  
+         { Flag that we have found our file in the list of known generated files. }
+         found := True;
+         
+      end; { endif }
+      
    end; { endfor }
 
    {* See if we need to add this possibly new generated file to the project. *}
    if (not found) then
    begin
 
-	  UpdateGuiStatusMessage('Status:  Starting step 1-' + IntToStr(step) + ':  Adding new generated file to project.');
+      UpdateGuiStatusMessage('Status:  Starting step 1-' + IntToStr(step) + ':  Adding new generated file to project.');
 
-	  { Attempt to add sorted Multiwire netlist to project. }
-	  Project.DM_AddGeneratedDocument(filePath);
+      { Attempt to add sorted Multiwire netlist to project. }
+      Project.DM_AddGeneratedDocument(filePath);
 
-	  { Attempt to save modified project file. }
-	  ResetParameters;
-	  AddStringParameter('SaveMode', 'Standard');
-	  AddStringParameter('ObjectKind', 'Project');
-	  RunProcess('WorkspaceManager:SaveObject');	  
-	  
-	  WriteToSummaryFile('1-' + IntToStr(StepPlusPlus(step)) + ':  Added new generated file to project.');
+      { Attempt to save modified project file. }
+      ResetParameters;
+      AddStringParameter('SaveMode', 'Standard');
+      AddStringParameter('ObjectKind', 'Project');
+      RunProcess('WorkspaceManager:SaveObject');      
+      
+      WriteToSummaryFile('1-' + IntToStr(StepPlusPlus(step)) + ':  Added new generated file to project.');
 
    end { endif }
 
@@ -5313,7 +5373,7 @@ begin
    else
    begin
 
-	  WriteToSummaryFile('1-' + IntToStr(StepPlusPlus(step)) + ':  SKIPPED Adding new generated file to project.');
+      WriteToSummaryFile('1-' + IntToStr(StepPlusPlus(step)) + ':  SKIPPED Adding new generated file to project.');
 
    end; { endelse }
 
@@ -5333,20 +5393,20 @@ end; { end AddGeneratedFileToProject() }
  *
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function SortMultiwireNetlist(var Project	  : IProject;
-								  scriptsPath : TDynamicString;
-								  projectPath : TString;
-								  projOutPath : TString;
-								  subDir	  : TString;
-							  var step		  : Integer;
-								  )			  : Integer;
+function SortMultiwireNetlist(var Project     : IProject;
+                                  scriptsPath : TDynamicString;
+                                  projectPath : TString;
+                                  projOutPath : TString;
+                                  subDir      : TString;
+                              var step        : Integer;
+                                  )           : Integer;
 var                                                        
-   i			: Integer;
-   fileList		: TStringList;
-   unsortedPath	: TDynamicString;
-   sortedPath	: TDynamicString;
-   fooStr		: WideString;
-   rc			: Integer;
+   i            : Integer;
+   fileList     : TStringList;
+   unsortedPath : TDynamicString;
+   sortedPath   : TDynamicString;
+   fooStr       : WideString;
+   rc           : Integer;
                   
 begin
 
@@ -5362,47 +5422,47 @@ begin
    fileList := TStringList.Create;
 
    { Look for one or more files ending in ".NET".
-	These are the Multiwire netlist files produced by Altium. }
+    These are the Multiwire netlist files produced by Altium. }
    MyFindFiles(projOutPath,
-			   subDir,
-			   ('*' + constExtMultiWireNetlist),
-			   {var} fileList);
+               subDir,
+               ('*' + constExtMultiWireNetlist),
+               {var} fileList);
 
    { See if we found any Multiwire netlist files. }
    for i := 0 to fileList.Count - 1 do
    begin
 
-	  { Extract the filename of the unsorted Multiwire netlist file. }
-	  unsortedPath := fileList.Strings[i];
-	  
-	  WriteToDebugFile('*Examining net file ' + unsortedPath);
+      { Extract the filename of the unsorted Multiwire netlist file. }
+      unsortedPath := fileList.Strings[i];
+      
+      WriteToDebugFile('*Examining net file ' + unsortedPath);
 
-	  { Exclude any files that already have "_1.NET" in their filename. }
-	  { Here we have to be aware that all files returned by MyFindFiles() are in all upper case,
-	   and AnsiPos() is case sensitive. }
-	  if (AnsiPos(constExtMultiWireNetlistSorted, unsortedPath) = 0) then
-	  begin
+      { Exclude any files that already have "_1.NET" in their filename. }
+      { Here we have to be aware that all files returned by MyFindFiles() are in all upper case,
+       and AnsiPos() is case sensitive. }
+      if (AnsiPos(constExtMultiWireNetlistSorted, unsortedPath) = 0) then
+      begin
 
-		 { Construct the filename for the sorted version of this file that we will create. }
-		 sortedPath := StringReplace(unsortedPath, constExtMultiWireNetlist, constExtMultiWireNetlistSorted, '');
+         { Construct the filename for the sorted version of this file that we will create. }
+         sortedPath := StringReplace(unsortedPath, constExtMultiWireNetlist, constExtMultiWireNetlistSorted, '');
 
-		 WriteToDebugFile('*About to try to sort Multiwire netlist file ' + unsortedPath + ' as ' + sortedPath + '.');
+         WriteToDebugFile('*About to try to sort Multiwire netlist file ' + unsortedPath + ' as ' + sortedPath + '.');
 
-		 { Call external bat script to sort the Multiwire netlist. }
-		 RunSortMulti(scriptsPath,
-					  projectPath,
-					  unsortedPath,
-					  sortedPath);
+         { Call external bat script to sort the Multiwire netlist. }
+         RunSortMulti(scriptsPath,
+                      projectPath,
+                      unsortedPath,
+                      sortedPath);
 
-		 WriteToSummaryFile('1-' + IntToStr(StepPlusPlus(step)) + '.  Sorted Multiwire netlist.');
-		 
-		 { If needed, add sorted Multiwire netlist to project. }
-		 AddGeneratedFileToProject({var} Project,
-								   sortedPath, {filePath,}
-								   {var} step);
-		 
-	  end; { endif }
-	  
+         WriteToSummaryFile('1-' + IntToStr(StepPlusPlus(step)) + '.  Sorted Multiwire netlist.');
+         
+         { If needed, add sorted Multiwire netlist to project. }
+         AddGeneratedFileToProject({var} Project,
+                                   sortedPath, {filePath,}
+                                   {var} step);
+         
+      end; { endif }
+      
    end; { endfor }
 
    { Free the list of files. }
@@ -5440,20 +5500,20 @@ end; { end SortMultiwireNetlist() }
  *
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function FixIpc356Netlist(var Project	  : IProject;
-							  scriptsPath : TDynamicString;
-							  projectPath : TString;
-							  projOutPath : TString;
-							  subDir	  : TString;
-						  var step		  : Integer;
-                          )				  : Integer;
+function FixIpc356Netlist(var Project     : IProject;
+                              scriptsPath : TDynamicString;
+                              projectPath : TString;
+                              projOutPath : TString;
+                              subDir      : TString;
+                          var step        : Integer;
+                          )               : Integer;
 
 var                                                        
-   i		   : Integer;
-   fileList	   : TStringList;
+   i           : Integer;
+   fileList    : TStringList;
    unfixedPath : TDynamicString;
    fixedPath   : TDynamicString;
-   rc		   : Integer;
+   rc          : Integer;
                   
 begin
 
@@ -5464,75 +5524,75 @@ begin
    WriteToDebugFile('*Hello world from FixIpc356Netlist()');
 
    UpdateGuiStatusMessage('Status:  Starting step 1-' + IntToStr(step) + ':  Fixing IPC-356 netlist if needed.');
-			
+            
    { Create list of files. }
    fileList := TStringList.Create;
 
    { Look for one or more files ending in ".ipc".
-	These are the IPC-356 netlist files produced by Altium. }
+    These are the IPC-356 netlist files produced by Altium. }
    MyFindFiles(projOutPath,
-			   subDir,
-			   ('*' + constExtIpc356Netlist),
-			   {var} fileList);
+               subDir,
+               ('*' + constExtIpc356Netlist),
+               {var} fileList);
 
    { See if we found any IPC-356 netlist files. }
    for i := 0 to fileList.Count - 1 do
    begin
 
-	  { Extract the filename of the unfixed IPC-356 netlist file. }
-	  unfixedPath := fileList.Strings[i];
-	  
-	  WriteToDebugFile('*Examining ipc file ' + unfixedPath);
+      { Extract the filename of the unfixed IPC-356 netlist file. }
+      unfixedPath := fileList.Strings[i];
+      
+      WriteToDebugFile('*Examining ipc file ' + unfixedPath);
 
-	  { Exclude any files that already have "_fixed.ipc" in their filename. }
-	  { Here we have to be aware that all files returned by MyFindFiles() are in all upper case,
-	   and AnsiPos() is case sensitive. }
-	  if (AnsiPos(AnsiUpperCase(constExtIpc356NetlistFixed), unfixedPath) = 0) then
-	  begin
+      { Exclude any files that already have "_fixed.ipc" in their filename. }
+      { Here we have to be aware that all files returned by MyFindFiles() are in all upper case,
+       and AnsiPos() is case sensitive. }
+      if (AnsiPos(AnsiUpperCase(constExtIpc356NetlistFixed), unfixedPath) = 0) then
+      begin
 
-		 { Construct the filename for the fixed version of this file that we will create. }
-		 fixedPath := StringReplace(unfixedPath, constExtIpc356Netlist, constExtIpc356NetlistFixed, '');
+         { Construct the filename for the fixed version of this file that we will create. }
+         fixedPath := StringReplace(unfixedPath, constExtIpc356Netlist, constExtIpc356NetlistFixed, '');
 
-		 WriteToDebugFile('*About to try to fix IPC356 file ' + unfixedPath + ' as ' + fixedPath + '.');
+         WriteToDebugFile('*About to try to fix IPC356 file ' + unfixedPath + ' as ' + fixedPath + '.');
 
-		 { Call external sed script to fix the IPC-356 netlist file if needed. }
-		 RunSed(scriptsPath,
-				projectPath,
-				unfixedPath,
-				fixedPath,
-				'"s/\([0-9][0-9][0-9][0-9][0-9][0-9]\)X\([0-9][0-9][0-9][0-9][0-9]\)Y\([0-9][0-9][0-9][0-9]\)R\([0-9][0-9][0-9]\) S\([0-9]\)/\1X9999Y\3R\4 S\5/; s/\([0-9][0-9][0-9][0-9][0-9][0-9]\)X\([0-9][0-9][0-9][0-9]\)Y\([0-9][0-9][0-9][0-9][0-9]\)R\([0-9][0-9][0-9]\) S\([0-9]\)/\1X\2Y9999R\4 S\5/; "');
+         { Call external sed script to fix the IPC-356 netlist file if needed. }
+         RunSed(scriptsPath,
+                projectPath,
+                unfixedPath,
+                fixedPath,
+                '"s/\([0-9][0-9][0-9][0-9][0-9][0-9]\)X\([0-9][0-9][0-9][0-9][0-9]\)Y\([0-9][0-9][0-9][0-9]\)R\([0-9][0-9][0-9]\) S\([0-9]\)/\1X9999Y\3R\4 S\5/; s/\([0-9][0-9][0-9][0-9][0-9][0-9]\)X\([0-9][0-9][0-9][0-9]\)Y\([0-9][0-9][0-9][0-9][0-9]\)R\([0-9][0-9][0-9]\) S\([0-9]\)/\1X\2Y9999R\4 S\5/; "');
 
-		 { Examine unfixed file and fixed file and see if they are different. }
-		 rc := DiffFiles(unfixedPath, fixedPath);
+         { Examine unfixed file and fixed file and see if they are different. }
+         rc := DiffFiles(unfixedPath, fixedPath);
 
-		 { If they're the same, then delete the fixed file, since we didn't actually need to fix anything. }
-		 if (rc = 0) then
-		 begin
-			WriteToDebugFile('*These files ended up the same: ' + unfixedPath + ' ' + fixedPath + '.  I will delete the fixed file');
+         { If they're the same, then delete the fixed file, since we didn't actually need to fix anything. }
+         if (rc = 0) then
+         begin
+            WriteToDebugFile('*These files ended up the same: ' + unfixedPath + ' ' + fixedPath + '.  I will delete the fixed file');
 
-			WriteToSummaryFile('1-' + IntToStr(StepPlusPlus(step)) + '.  SKIPPED Fixing generated IPC-356 netlist file (not broken).');
+            WriteToSummaryFile('1-' + IntToStr(StepPlusPlus(step)) + '.  SKIPPED Fixing generated IPC-356 netlist file (not broken).');
 
-			{ Attempt to delete the fixed file from disk. }
-			DeleteFileWithVerify(fixedPath);
-			
-		 end
-		 
-		 { Else they were different.  Keep the fixed version. }
-	     else
-		 begin
-			WriteToDebugFile('*These files are different: ' + unfixedPath + ' ' + fixedPath + '.  Thus, keeping fixed file.');
-			
-			WriteToSummaryFile('1-' + IntToStr(StepPlusPlus(step)) + '.  Fixed generated IPC-356 netlist file.');
+            { Attempt to delete the fixed file from disk. }
+            DeleteFileWithVerify(fixedPath);
+            
+         end
+         
+         { Else they were different.  Keep the fixed version. }
+         else
+         begin
+            WriteToDebugFile('*These files are different: ' + unfixedPath + ' ' + fixedPath + '.  Thus, keeping fixed file.');
+            
+            WriteToSummaryFile('1-' + IntToStr(StepPlusPlus(step)) + '.  Fixed generated IPC-356 netlist file.');
 
-			{ If needed, add fixed IPC-356 netlist file to project. }
-			AddGeneratedFileToProject({var} Project,
-									  fixedPath, {filePath,}
-									  {var} step);
-			
-		 end; { endelse }
+            { If needed, add fixed IPC-356 netlist file to project. }
+            AddGeneratedFileToProject({var} Project,
+                                      fixedPath, {filePath,}
+                                      {var} step);
+            
+         end; { endelse }
 
-	  end; { endif did this file not have "fixed.ipc" in the filename? }
-	  
+      end; { endif did this file not have "fixed.ipc" in the filename? }
+      
    end; { endfor }
 
    { Free the list of files. }
@@ -5548,23 +5608,23 @@ end; { end FixIpc356Netlist() }
  *
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function GenerateAllOutputs(var	Project					   : IProject;
-								projectName				   : TDynamicString;
-                                scriptsPath				   : TDynamicString;
-                                projectPath				   : TString;
-                                projOutPath				   : TString;
-                                projOutSubDirs			   : TStringList;
-                                outJobFiles				   : TStringList;
-                                outJobPdfContainers		   : TStringList;
-                                outJobPdfEnableNets		   : TStringList;
-                                outJobGenContainers		   : TStringList;
-                                outJobStatusMsg			   : TStringList;
+function GenerateAllOutputs(var Project                    : IProject;
+                                projectName                : TDynamicString;
+                                scriptsPath                : TDynamicString;
+                                projectPath                : TString;
+                                projOutPath                : TString;
+                                projOutSubDirs             : TStringList;
+                                outJobFiles                : TStringList;
+                                outJobPdfContainers        : TStringList;
+                                outJobPdfEnableNets        : TStringList;
+                                outJobGenContainers        : TStringList;
+                                outJobStatusMsg            : TStringList;
                                 outJobDoSortMultiNetlist   : TStringList;
                                 outJobSetSvnKeywordsOnBoms : TStringList;
                                 outJobDoFixIpc356Netlist   : TStringList;
-                                runOutJobs				   : TStringList;
-                            var step					   : Integer;
-                                )						   : Integer;
+                                runOutJobs                 : TStringList;
+                            var step                       : Integer;
+                                )                          : Integer;
 var                                                        
    i    : Integer;
                   
@@ -5580,159 +5640,159 @@ begin
    for i := 0 to projOutSubDirs.Count - 1 do
    begin
 
-	  WriteToDebugFile('*Starting to generate outputs for projOutSubDir ' + IntToStr(i));
+      WriteToDebugFile('*Starting to generate outputs for projOutSubDir ' + IntToStr(i));
 
-	  { See if we have been enabled to run this OutJob file at all. }
-	  if (StrToBool(runOutJobs.Strings[i])) then
-	  begin
+      { See if we have been enabled to run this OutJob file at all. }
+      if (StrToBool(runOutJobs.Strings[i])) then
+      begin
 
-		 { Open the desired OutJob file. }
-		 ResetParameters;
-		 AddStringParameter('ObjectKind'              ,'Document');
-		 AddStringParameter('FileName', projectPath + outJobFiles.Strings[i]);
-		 RunProcess('WorkspaceManager:OpenObject');
+         { Open the desired OutJob file. }
+         ResetParameters;
+         AddStringParameter('ObjectKind'              ,'Document');
+         AddStringParameter('FileName', projectPath + outJobFiles.Strings[i]);
+         RunProcess('WorkspaceManager:OpenObject');
 
-		 UpdateGuiStatusMessage('Status:  Starting step 1-' + IntToStr(step) + ':  ' + outJobStatusMsg.Strings[i]);
+         UpdateGuiStatusMessage('Status:  Starting step 1-' + IntToStr(step) + ':  ' + outJobStatusMsg.Strings[i]);
 
-		 {* See if we have been enabled to run the PDF output container within this OutJob. *}
-		 if (outJobPdfContainers.Strings[i] <> '') then
-		 begin
+         {* See if we have been enabled to run the PDF output container within this OutJob. *}
+         if (outJobPdfContainers.Strings[i] <> '') then
+         begin
 
-			{ Prepare to run specific outputs that are setup under the "Publish_To_PDF" Container in this OutJob script. }
-			{ For now we have to trust that the user has enabled all desired outputs and associated
-			 them with this output container.  In other words, each output must still have a green dot
-			 and green arrow by it.  I can't figure out how to forcibly enable these in script land. }
-			ResetParameters;
-			AddStringParameter ('Action'                 ,'PublishToPDF');
-			AddStringParameter ('OutputMedium'           ,outJobPdfContainers.Strings[i]);
-			AddStringParameter ('ObjectKind'             ,'OutputBatch');
-			AddStringParameter ('OutputFilePath'         ,projOutPath); { This may or may not have any effect in OutputBatch mode. }
-			AddIntegerParameter('ReleaseManaged'         ,'False');
-			AddStringParameter ('OutputBasePath'         ,'foo38'); { This has no effect in OutputBatch mode.  Assume the user set this up in the Altium OutJob GUI.  //Project Outputs for MICROCAL_MAIN'); }
-			AddStringParameter ('OutputPathMedia'        ,'');
-			AddStringParameter ('OutputPathOutputer'     ,'[Output Type]');
-			AddStringParameter ('OutputFileName'         ,'foo37.pdf'); { This has no effect in OutputBatch mode.  Assume the user set this up in the Altium OutJob GUI.  //projectName + '_FOO_Schematic_and_Gerber_plots.PDF');}
-			AddStringParameter ('OpenOutput'             ,'True');
-			AddStringParameter ('PromptOverwrite'        ,'False');
-			AddIntegerParameter('PublishMethod'          ,0);
-			AddIntegerParameter('ZoomLevel'              ,90);
-			AddStringParameter ('FitSCHPrintSizeToDoc'   ,'False'); { Set to False to follow the Page Setup settings under the output. }
-			AddStringParameter ('FitPCBPrintSizeToDoc'   ,'False'); { Set to False to follow the Page Setup settings under the output. }
-			AddStringParameter ('GenerateNetsInfo'       ,outJobPdfEnableNets.Strings[i]);
-			AddStringParameter ('MarkPins'               ,'True');
-			AddStringParameter ('MarkNetLabels'          ,'True');
-			AddStringParameter ('MarkPortsId'            ,'True');
-			AddStringParameter ('GenerateTOC'            ,'True');
-			AddStringParameter ('DisableDialog'          ,'True'); { Set to False to get confirmation dialog box to pop up prior to PDF file generation. }
+            { Prepare to run specific outputs that are setup under the "Publish_To_PDF" Container in this OutJob script. }
+            { For now we have to trust that the user has enabled all desired outputs and associated
+             them with this output container.  In other words, each output must still have a green dot
+             and green arrow by it.  I can't figure out how to forcibly enable these in script land. }
+            ResetParameters;
+            AddStringParameter ('Action'                 ,'PublishToPDF');
+            AddStringParameter ('OutputMedium'           ,outJobPdfContainers.Strings[i]);
+            AddStringParameter ('ObjectKind'             ,'OutputBatch');
+            AddStringParameter ('OutputFilePath'         ,projOutPath); { This may or may not have any effect in OutputBatch mode. }
+            AddIntegerParameter('ReleaseManaged'         ,'False');
+            AddStringParameter ('OutputBasePath'         ,'foo38'); { This has no effect in OutputBatch mode.  Assume the user set this up in the Altium OutJob GUI.  //Project Outputs for MICROCAL_MAIN'); }
+            AddStringParameter ('OutputPathMedia'        ,'');
+            AddStringParameter ('OutputPathOutputer'     ,'[Output Type]');
+            AddStringParameter ('OutputFileName'         ,'foo37.pdf'); { This has no effect in OutputBatch mode.  Assume the user set this up in the Altium OutJob GUI.  //projectName + '_FOO_Schematic_and_Gerber_plots.PDF');}
+            AddStringParameter ('OpenOutput'             ,'True');
+            AddStringParameter ('PromptOverwrite'        ,'False');
+            AddIntegerParameter('PublishMethod'          ,0);
+            AddIntegerParameter('ZoomLevel'              ,90);
+            AddStringParameter ('FitSCHPrintSizeToDoc'   ,'False'); { Set to False to follow the Page Setup settings under the output. }
+            AddStringParameter ('FitPCBPrintSizeToDoc'   ,'False'); { Set to False to follow the Page Setup settings under the output. }
+            AddStringParameter ('GenerateNetsInfo'       ,outJobPdfEnableNets.Strings[i]);
+            AddStringParameter ('MarkPins'               ,'True');
+            AddStringParameter ('MarkNetLabels'          ,'True');
+            AddStringParameter ('MarkPortsId'            ,'True');
+            AddStringParameter ('GenerateTOC'            ,'True');
+            AddStringParameter ('DisableDialog'          ,'True'); { Set to False to get confirmation dialog box to pop up prior to PDF file generation. }
 
-			{ See if we are globally allowed to generate outputs. }
-			if (enableGenerateOutputs = True) then
-			begin
-			   WriteToDebugFile('*Running pdf container....');
-			   RunProcess('WorkspaceManager:Print');
-			end;
+            { See if we are globally allowed to generate outputs. }
+            if (enableGenerateOutputs = True) then
+            begin
+               WriteToDebugFile('*Running pdf container....');
+               RunProcess('WorkspaceManager:Print');
+            end;
 
-		 end; { endif enabled to run PDF output container. }
+         end; { endif enabled to run PDF output container. }
 
-		 
-		 {* See if we have been enabled to run the GEN output container within this OutJob. *}
-		 if (outJobGenContainers.Strings[i] <> '') then
-		 begin
+         
+         {* See if we have been enabled to run the GEN output container within this OutJob. *}
+         if (outJobGenContainers.Strings[i] <> '') then
+         begin
 
-			{ Attempt to run "Generate_files_XIA_reviews" as specified in the OutJob script. }
-			{ For now we have to trust that the user has enabled all desired outputs and associated
-			 them with this output container.  In other words, each output must still have a green dot
-			 and green arrow by it.  I can't figure out how to forcibly enable these in script land. }
-			ResetParameters;
-			AddStringParameter ('Action'                 ,'Run');
-			AddStringParameter ('OutputMedium'           ,outJobGenContainers.Strings[i]);
-			AddStringParameter ('ObjectKind'             ,'OutputBatch');
+            { Attempt to run "Generate_files_XIA_reviews" as specified in the OutJob script. }
+            { For now we have to trust that the user has enabled all desired outputs and associated
+             them with this output container.  In other words, each output must still have a green dot
+             and green arrow by it.  I can't figure out how to forcibly enable these in script land. }
+            ResetParameters;
+            AddStringParameter ('Action'                 ,'Run');
+            AddStringParameter ('OutputMedium'           ,outJobGenContainers.Strings[i]);
+            AddStringParameter ('ObjectKind'             ,'OutputBatch');
 
-			{ See if we are allowed to generate outputs. }
-			if (enableGenerateOutputs = True) then
-			begin
-			   WriteToDebugFile('*Running generate outputs container....');
-			   RunProcess('WorkspaceManager:GenerateReport');
-			end
+            { See if we are allowed to generate outputs. }
+            if (enableGenerateOutputs = True) then
+            begin
+               WriteToDebugFile('*Running generate outputs container....');
+               RunProcess('WorkspaceManager:GenerateReport');
+            end
 
-		 end; { endif enabled to run generate outputs output container. }
+         end; { endif enabled to run generate outputs output container. }
 
-		 
-		 {* Write appropriate summary message. *}
-		 if (enableGenerateOutputs) then
-		 begin
-			WriteToSummaryFile('1-' + IntToStr(StepPlusPlus(step)) + ':  ' + StringReplace(outJobStatusMsg.Strings[i], 'Generating', 'Generated', ''));
-		 end
+         
+         {* Write appropriate summary message. *}
+         if (enableGenerateOutputs) then
+         begin
+            WriteToSummaryFile('1-' + IntToStr(StepPlusPlus(step)) + ':  ' + StringReplace(outJobStatusMsg.Strings[i], 'Generating', 'Generated', ''));
+         end
 
-	     else
-		 begin
-			WriteToSummaryFile('1-' + IntToStr(StepPlusPlus(step)) + '.  ERROR!  In debug mode!  SKIPPED ' + outJobStatusMsg.Strings[i]);
-		 end;
-		 
+         else
+         begin
+            WriteToSummaryFile('1-' + IntToStr(StepPlusPlus(step)) + '.  ERROR!  In debug mode!  SKIPPED ' + outJobStatusMsg.Strings[i]);
+         end;
+         
 
-		 {* See if we've been flagged to sort the multiwire netlist at this time. *}
-		 if (StrToBool(outJobDoSortMultiNetlist.Strings[i])) then
-		 begin
-			
-			{ Sort Multiwire netlist. }
-			SortMultiwireNetlist({var} Project,
-								 scriptsPath,
-								 projectPath,
-								 projOutPath,
-								 projOutSubDirs.Strings[i],
-								 {var} step);
-			
-		 end; { endif enabled to sort multiwire netlist. }
+         {* See if we've been flagged to sort the multiwire netlist at this time. *}
+         if (StrToBool(outJobDoSortMultiNetlist.Strings[i])) then
+         begin
+            
+            { Sort Multiwire netlist. }
+            SortMultiwireNetlist({var} Project,
+                                 scriptsPath,
+                                 projectPath,
+                                 projOutPath,
+                                 projOutSubDirs.Strings[i],
+                                 {var} step);
+            
+         end; { endif enabled to sort multiwire netlist. }
 
-		 
-		 {* See if we've been flagged to set svn prop keywords on BOM outputs from this OutJob. *}
-		 { This code has been moved to after we do the svn add. }
-		 
-		 {* See if we've been flagged to fixup the IPC-356 netlist at this time. *}
-		 if (StrToBool(outJobDoFixIpc356Netlist.Strings[i])) then
-		 begin
-			
-			{ Fix up erroneous IPC-356 netlist file if needed. }
-			FixIpc356Netlist({var} Project,
-							 scriptsPath,
-							 projectPath,
-							 projOutPath,
-							 projOutSubDirs.Strings[i], {subDir,}
-							 {var} step);
+         
+         {* See if we've been flagged to set svn prop keywords on BOM outputs from this OutJob. *}
+         { This code has been moved to after we do the svn add. }
+         
+         {* See if we've been flagged to fixup the IPC-356 netlist at this time. *}
+         if (StrToBool(outJobDoFixIpc356Netlist.Strings[i])) then
+         begin
+            
+            { Fix up erroneous IPC-356 netlist file if needed. }
+            FixIpc356Netlist({var} Project,
+                             scriptsPath,
+                             projectPath,
+                             projOutPath,
+                             projOutSubDirs.Strings[i], {subDir,}
+                             {var} step);
 
-		 end; { endif enabled to fixup IPC-356 netlist. }
+         end; { endif enabled to fixup IPC-356 netlist. }
 
-//		 ShowMessage('About to close OutJob file "' + projectPath + outJobFiles.Strings[i] + '".');
-		 
-		 { Close the desired OutJob file. }
-//		 ResetParameters;
-//		 AddStringParameter('ObjectKind'              ,'Document');
-//		 AddStringParameter('FileName', projectPath + outJobFiles.Strings[i]);
-//		 RunProcess('WorkspaceManager:CloseObject');
+//       ShowMessage('About to close OutJob file "' + projectPath + outJobFiles.Strings[i] + '".');
+         
+         { Close the desired OutJob file. }
+//       ResetParameters;
+//       AddStringParameter('ObjectKind'              ,'Document');
+//       AddStringParameter('FileName', projectPath + outJobFiles.Strings[i]);
+//       RunProcess('WorkspaceManager:CloseObject');
 
-		 { The above doesn't work for some reason.  So try to close all project documents instead. }
-		 ResetParameters;
-		 AddStringParameter('ObjectKind', 'FocusedProjectDocuments');
-		 RunProcess('WorkspaceManager:CloseObject');
-		 
-		 { The above still doesn't close everything.  So try to close focused document. }
-		 { NOTE:  This assumes that there is only one document that remains open! }
-		 { FIXME:  Is this really safe to do in cases where there are 0 documents open?? }
-		 ResetParameters;
-		 AddStringParameter('ObjectKind', 'FocusedDocument');
-		 RunProcess('WorkspaceManager:CloseObject');
-		 
-	  end { endif enabled to run this OutJob }
+         { The above doesn't work for some reason.  So try to close all project documents instead. }
+         ResetParameters;
+         AddStringParameter('ObjectKind', 'FocusedProjectDocuments');
+         RunProcess('WorkspaceManager:CloseObject');
+         
+         { The above still doesn't close everything.  So try to close focused document. }
+         { NOTE:  This assumes that there is only one document that remains open! }
+         { FIXME:  Is this really safe to do in cases where there are 0 documents open?? }
+         ResetParameters;
+         AddStringParameter('ObjectKind', 'FocusedDocument');
+         RunProcess('WorkspaceManager:CloseObject');
+         
+      end { endif enabled to run this OutJob }
 
-	  { Else we're not enabled to run this OutJob.  But increment step number anyway. }
-	  else
-	  begin
+      { Else we're not enabled to run this OutJob.  But increment step number anyway. }
+      else
+      begin
 
-		 { Disclose what steps we skipped. }
-		 WriteToSummaryFile('1-' + IntToStr(StepPlusPlus(step)) + '.  SKIPPED ' + outJobStatusMsg.Strings[i]);
+         { Disclose what steps we skipped. }
+         WriteToSummaryFile('1-' + IntToStr(StepPlusPlus(step)) + '.  SKIPPED ' + outJobStatusMsg.Strings[i]);
 
-	  end; { endelse }
-	  
+      end; { endelse }
+      
    end; { endfor }
 
 end; { end GenerateAllOutputs() }
@@ -5744,11 +5804,11 @@ end; { end GenerateAllOutputs() }
  *
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function VerifyBomFilteringIsHappy(var step	: Integer;
-									   )	: Integer;
+function VerifyBomFilteringIsHappy(var step : Integer;
+                                       )    : Integer;
 
 var
-   button	   : Integer;
+   button      : Integer;
 
 begin
 
@@ -5759,7 +5819,7 @@ begin
    if (enableGenerateOutputs = True) then
    begin
 
-	  UpdateGuiStatusMessage('Status:  Waiting for user response.');
+      UpdateGuiStatusMessage('Status:  Waiting for user response.');
 
       { Ask the user what we should do. }
       { See http://www.delphibasics.co.uk/RTL.asp?Name=MessageDlg }
@@ -5768,7 +5828,7 @@ begin
       //   if (button = mrOk) then ShowMessage('Ok.  Click OK to proceed.');
       if (button = mrCancel) then MyAbort('User indicated that BOM filtering is not happy.');
 
-	  WriteToSummaryFile('1-' + IntToStr(StepPlusPlus(step)) + '.  Asked user to verify that xls BOM filtering was happy before proceeding.');
+      WriteToSummaryFile('1-' + IntToStr(StepPlusPlus(step)) + '.  Asked user to verify that xls BOM filtering was happy before proceeding.');
    
    end; { endif }
 
@@ -5783,16 +5843,16 @@ end; { end VerifyBomFilteringIsHappy() }
  *
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function VerifyBomsAndPdfsAreNotFlocked(	scriptsPath	   : TDynamicString;
-											projectPath	   : TDynamicString;
-											projOutPath	   : TString;
-											projOutSubDirs : TStringList;
-										var step		   : Integer;
-											)			   : Integer;
+function VerifyBomsAndPdfsAreNotFlocked(    scriptsPath    : TDynamicString;
+                                            projectPath    : TDynamicString;
+                                            projOutPath    : TString;
+                                            projOutSubDirs : TStringList;
+                                        var step           : Integer;
+                                            )              : Integer;
 var
-   possiblyFlockedFiles	: TStringList;
-   i					: Integer;
-   k					: Integer;
+   possiblyFlockedFiles : TStringList;
+   i                    : Integer;
+   k                    : Integer;
 
 begin
 
@@ -5814,23 +5874,23 @@ begin
    for i := 0 to projOutSubDirs.Count - 1 do
    begin
 
-	  { Find any csv BOM file(s) in this ProjectOutputs/ subdir. }
-	  MyFindFiles(projOutPath,
-				  projOutSubDirs.Strings[i],
-				  ('*' + constExtCsv),
-				  {var} possiblyFlockedFiles);
+      { Find any csv BOM file(s) in this ProjectOutputs/ subdir. }
+      MyFindFiles(projOutPath,
+                  projOutSubDirs.Strings[i],
+                  ('*' + constExtCsv),
+                  {var} possiblyFlockedFiles);
 
-	  { Find any xls BOM file(s) in this ProjectOutputs/ subdir. }
-	  MyFindFiles(projOutPath,
-				  projOutSubDirs.Strings[i],
-				  ('*' + constExtXls),
-				  {var} possiblyFlockedFiles);
+      { Find any xls BOM file(s) in this ProjectOutputs/ subdir. }
+      MyFindFiles(projOutPath,
+                  projOutSubDirs.Strings[i],
+                  ('*' + constExtXls),
+                  {var} possiblyFlockedFiles);
 
-	  { Find any pdf documentation file(s) in this ProjectOutputs/ subdir. }
-	  MyFindFiles(projOutPath,
-				  projOutSubDirs.Strings[i],
-				  ('*' + constExtPdf),
-				  {var} possiblyFlockedFiles);
+      { Find any pdf documentation file(s) in this ProjectOutputs/ subdir. }
+      MyFindFiles(projOutPath,
+                  projOutSubDirs.Strings[i],
+                  ('*' + constExtPdf),
+                  {var} possiblyFlockedFiles);
 
    end; { endfor i }
 
@@ -5840,9 +5900,9 @@ begin
    for k := 0 to possiblyFlockedFiles.Count - 1 do
    begin
 
-	  { Verify that this particular file is writeable (eg. not flocked). }
-	  WriteToDebugFile('*Verifying that file "' + possiblyFlockedFiles.Strings[k] + '" is not flocked.');
-	  VerifyFileIsWriteable(possiblyFlockedFiles.Strings[k]);
+      { Verify that this particular file is writeable (eg. not flocked). }
+      WriteToDebugFile('*Verifying that file "' + possiblyFlockedFiles.Strings[k] + '" is not flocked.');
+      VerifyFileIsWriteable(possiblyFlockedFiles.Strings[k]);
 
    end; { endfor k }
 
@@ -5851,7 +5911,7 @@ begin
    
    { Free lists of possiblyFlockedFiles. }
    possiblyFlockedFiles.Free;
-	  
+      
 end; { end VerifyBomsAndPdfsAreNotFlocked() }
       
       
@@ -5863,14 +5923,14 @@ end; { end VerifyBomsAndPdfsAreNotFlocked() }
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
 function MarkXlsBomFileForAssemblyRelease(scriptsPath : TDynamicString;
-										  projectPath : TDynamicString;
-										  pcbaVersion : TDynamicString; 
-										  xlsBomPath  : TString;
-										  )			  : Integer;
+                                          projectPath : TDynamicString;
+                                          pcbaVersion : TDynamicString; 
+                                          xlsBomPath  : TString;
+                                          )           : Integer;
 var
-   i				   : Integer;
-   len				   : Integer;
-   xlsBomTemp		   : TDynamicString;
+   i                   : Integer;
+   len                 : Integer;
+   xlsBomTemp          : TDynamicString;
    oldPcbaVerAndRevStr : TDynamicString;
    newPcbaVerAndRevStr : TDynamicString;
 
@@ -5883,7 +5943,7 @@ begin
    
    { Create the name of the temp xls BOM file. }
    { Here we must be mindful that xlsBomPath was originally created by FindFiles(),
-	which has the nasty habit of converting everything to all upper case. }
+    which has the nasty habit of converting everything to all upper case. }
    xlsBomTemp := StringReplace(xlsBomPath, constExtXlsUpper, constExtXlsTemp, '');
 
    { Explicitly delete the temp xls BOM file, and make sure it has been deleted from filesystem. }
@@ -5892,18 +5952,18 @@ begin
    WriteToDebugFile('*About to mark xls BOM file for assembly release.  BOM file is "' + xlsBomPath + '", temp BOM file will be "' +xlsBomTemp + '".');
 
    { Contruct replacement PCBA version + svn rev # string to put into modified xls BOM file. }
-   newPcbaVerAndRevStr	:= pcbaVersion + ' ' + constXlsBomRevStr;
+   newPcbaVerAndRevStr  := pcbaVersion + ' ' + constXlsBomRevStr;
 
    { Make sure the replacement PCBA version + svn rev # string is shorter than the original one. }
    len := Length(newPcbaVerAndRevStr);
    if (len > Length(constXlsBomPcbaVerAndRevStr)) then
-	  MyAbort('The replacement PCBA version + svn rev # string is longer than the original one!  Probably the PCBA version string is ridiculously long.');
+      MyAbort('The replacement PCBA version + svn rev # string is longer than the original one!  Probably the PCBA version string is ridiculously long.');
    
    { Append enough ' ' (space) chars to newPcbaVerAndRevStr to equal the original length of constXlsBomPcbaVerAndRevStr
-	(which is intentionally quite long). }
+    (which is intentionally quite long). }
    for i:=1 to (Length(constXlsBomPcbaVerAndRevStr) - len) do
    begin
-	  newPcbaVerAndRevStr := newPcbaVerAndRevStr + ' ';
+      newPcbaVerAndRevStr := newPcbaVerAndRevStr + ' ';
    end;
 
    WriteToDebugFile('*Original PCBA version + svn rev # string was "' + constXlsBomPcbaVerAndRevStr + '".');
@@ -5914,14 +5974,14 @@ begin
 
    { Call external sed script to copy xls BOM file to temp file and then modify it and overwrite original xls BOM file. }
    { Note:  Because we're using this with a DOS cmd.exe shell, we must use double quotes around
-	our s/ expression below.  However, if you want to test this from within a cygwin or real
-	unix shell, you want to use single quotes instead.  Otherwise, the shell will want
-	to interpret "$Rev" as a shell variable. }
+    our s/ expression below.  However, if you want to test this from within a cygwin or real
+    unix shell, you want to use single quotes instead.  Otherwise, the shell will want
+    to interpret "$Rev" as a shell variable. }
    RunPatchWithSed(scriptsPath,
-				   projectPath,
-				   xlsBomPath,
-				   xlsBomTemp,
-				   '"s/' + oldPcbaVerAndRevStr + '/' + newPcbaVerAndRevStr + '/; "');
+                   projectPath,
+                   xlsBomPath,
+                   xlsBomTemp,
+                   '"s/' + oldPcbaVerAndRevStr + '/' + newPcbaVerAndRevStr + '/; "');
 
    { Explicitly delete the temp xls BOM file, and make sure it has been deleted from filesystem. }
    DeleteFileWithVerify(xlsBomTemp);
@@ -5935,18 +5995,18 @@ end; { end MarkXlsBomFileForAssemblyRelease() }
  *
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function MarkXlsBomFilesForAssemblyRelease(	   scriptsPath	  : TDynamicString;
-											   projectPath	  : TDynamicString;
-											   projOutPath	  : TString;
-											   projOutSubDirs : TStringList;
-											   runPackager	  : TStringList;
-											   pcbaVersion	  : TDynamicString; 
-										   var step			  : Integer;
-											   )			  : Integer;
+function MarkXlsBomFilesForAssemblyRelease(    scriptsPath    : TDynamicString;
+                                               projectPath    : TDynamicString;
+                                               projOutPath    : TString;
+                                               projOutSubDirs : TStringList;
+                                               runPackager    : TStringList;
+                                               pcbaVersion    : TDynamicString; 
+                                           var step           : Integer;
+                                               )              : Integer;
 var
    xlsBomFiles : TStringList;
-   i		   : Integer;
-   k		   : Integer;
+   i           : Integer;
+   k           : Integer;
    assyIndex   : Integer;
 
 begin
@@ -5963,66 +6023,66 @@ begin
    if (enableGenerateOutputs = True) then
    begin
 
-	  { Initialize lists of xlsBomFiles. }
-	  xlsBomFiles := TStringList.Create;
+      { Initialize lists of xlsBomFiles. }
+      xlsBomFiles := TStringList.Create;
 
-	  {** Look for .xls BOM files that we need to modify to report that they are part of a valid assembly release. **}
-	  { Loop over all ProjectOutputs output subdirs. }
+      {** Look for .xls BOM files that we need to modify to report that they are part of a valid assembly release. **}
+      { Loop over all ProjectOutputs output subdirs. }
       for i := 0 to projOutSubDirs.Count - 1 do
       begin
 
          { Only modify xls BOM file(s) if we are flagged to package assembly files.
-		  Otherwise, leave them alone, so that they end up reporting PCBA version as
-		  "NOT-AN-ASSEMBLY-RELEASE! DO-NOT-BUILD-OR-PROGRAM-TO-THIS-BOM!". }
+          Otherwise, leave them alone, so that they end up reporting PCBA version as
+          "NOT-AN-ASSEMBLY-RELEASE! DO-NOT-BUILD-OR-PROGRAM-TO-THIS-BOM!". }
          if (StrToBool(runPackager.Strings[assyIndex])) then
          begin
 
-			{ Find any xls BOM file(s) in this ProjectOutputs/ subdir. }
-			MyFindFiles(projOutPath,
-						projOutSubDirs.Strings[i],
-						('*' + constExtXls),
-						{var} xlsBomFiles);
+            { Find any xls BOM file(s) in this ProjectOutputs/ subdir. }
+            MyFindFiles(projOutPath,
+                        projOutSubDirs.Strings[i],
+                        ('*' + constExtXls),
+                        {var} xlsBomFiles);
 
-		 end; { endif }
+         end; { endif }
                
 
       end; { endfor i }
 
-	  
-	  {** See if there are any .xls BOM files that we need to modify. **}
-	  if (xlsBomFiles.Count > 0) then
-	  begin
-	  
-		 UpdateGuiStatusMessage('Status:  Starting step 1-' + IntToStr(step) + ':  Marking xls BOM files that they are part of a valid assembly release.');
-	  
-		 { Loop over all xls BOM files found in all ProjectOutputs output subdirs. }
-		 for k := 0 to xlsBomFiles.Count - 1 do
-		 begin
+      
+      {** See if there are any .xls BOM files that we need to modify. **}
+      if (xlsBomFiles.Count > 0) then
+      begin
+      
+         UpdateGuiStatusMessage('Status:  Starting step 1-' + IntToStr(step) + ':  Marking xls BOM files that they are part of a valid assembly release.');
+      
+         { Loop over all xls BOM files found in all ProjectOutputs output subdirs. }
+         for k := 0 to xlsBomFiles.Count - 1 do
+         begin
 
-			{ Call MarkXlsBomFileForAssemblyRelease() to do the actual work of "marking" this xls BOM file. }
-			WriteToDebugFile('*About to mark xls BOM file "' + xlsBomFiles.Strings[k] + '" for assembly release "');
-			MarkXlsBomFileForAssemblyRelease(scriptsPath,
-											 projectPath,
-											 pcbaVersion,
-											 xlsBomFiles.Strings[k]);
+            { Call MarkXlsBomFileForAssemblyRelease() to do the actual work of "marking" this xls BOM file. }
+            WriteToDebugFile('*About to mark xls BOM file "' + xlsBomFiles.Strings[k] + '" for assembly release "');
+            MarkXlsBomFileForAssemblyRelease(scriptsPath,
+                                             projectPath,
+                                             pcbaVersion,
+                                             xlsBomFiles.Strings[k]);
 
-		 end; { endfor k }
+         end; { endfor k }
 
-		 WriteToSummaryFile('1-' + IntToStr(StepPlusPlus(step)) + '.  Marked xls BOM files that they are part of a valid assembly release.');
-		 
-	  end { endif }
+         WriteToSummaryFile('1-' + IntToStr(StepPlusPlus(step)) + '.  Marked xls BOM files that they are part of a valid assembly release.');
+         
+      end { endif }
 
-	  { Else we have no xls BOM files to mark (probably because we're not doing an assembly release). }
-	  else
-	  begin
-		  
-		 WriteToSummaryFile('1-' + IntToStr(StepPlusPlus(step)) + '.  SKIPPED Marking xls BOM files that they are part of a valid assembly release.');
+      { Else we have no xls BOM files to mark (probably because we're not doing an assembly release). }
+      else
+      begin
+          
+         WriteToSummaryFile('1-' + IntToStr(StepPlusPlus(step)) + '.  SKIPPED Marking xls BOM files that they are part of a valid assembly release.');
 
-	  end; { endelse }
-	  
-	  { Free lists of xlsBomFiles. }
-	  xlsBomFiles.Free;
-	  
+      end; { endelse }
+      
+      { Free lists of xlsBomFiles. }
+      xlsBomFiles.Free;
+      
    end; { endif (enableGenerateOutputs = True) }
 
 end; { end MarkXlsBomFilesForAssemblyRelease() }
@@ -6036,19 +6096,19 @@ end; { end MarkXlsBomFilesForAssemblyRelease() }
  *
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function AlterSvnPropsForXlsBomFiles(	 scriptsPath				: TDynamicString;
-										 projOutPath				: TString;
-										 projOutSubDirs				: TStringList;
-										 outJobSetSvnKeywordsOnBoms	: TStringList;
-										 runOutJobs					: TStringList;
-										 svnCmd						: TString;
-										 alterVerbProgressive		: TString;
-										 alterVerbPast				: TString;
-									 var xlsBomFiles				: TStringList;
-									 var step						: Integer;
-										 )							: Integer;
+function AlterSvnPropsForXlsBomFiles(    scriptsPath                : TDynamicString;
+                                         projOutPath                : TString;
+                                         projOutSubDirs             : TStringList;
+                                         outJobSetSvnKeywordsOnBoms : TStringList;
+                                         runOutJobs                 : TStringList;
+                                         svnCmd                     : TString;
+                                         alterVerbProgressive       : TString;
+                                         alterVerbPast              : TString;
+                                     var xlsBomFiles                : TStringList;
+                                     var step                       : Integer;
+                                         )                          : Integer;
 var
-   i		   : Integer;
+   i           : Integer;
 
 begin
 
@@ -6060,54 +6120,54 @@ begin
    for i := 0 to projOutSubDirs.Count - 1 do
    begin
 
-	  WriteToDebugFile('*Examining projOutSubDir ' + IntToStr(i) + ' to look for xls BOM files that we need to alter svn props on.');
+      WriteToDebugFile('*Examining projOutSubDir ' + IntToStr(i) + ' to look for xls BOM files that we need to alter svn props on.');
 
-	  { See if we have been enabled to run this OutJob file at all. }
-	  if (StrToBool(runOutJobs.Strings[i])) then
-	  begin
+      { See if we have been enabled to run this OutJob file at all. }
+      if (StrToBool(runOutJobs.Strings[i])) then
+      begin
 
-		 { See if we've been flagged to set svn keywords on BOM outputs from this OutJob. }
-		 if (StrToBool(outJobSetSvnKeywordsOnBoms.Strings[i])) then
-		 begin
-			
-			{ Find any xls BOM file(s) in this ProjectOutputs/ subdir. }
-			{ Note:  Here we assume that the only files for which we want to alter
-			 svn properties are Excel (.xls) files. }
-			MyFindFiles(projOutPath,
-						projOutSubDirs.Strings[i],
-						('*' + constExtXls),
-						{var} xlsBomFiles);
+         { See if we've been flagged to set svn keywords on BOM outputs from this OutJob. }
+         if (StrToBool(outJobSetSvnKeywordsOnBoms.Strings[i])) then
+         begin
+            
+            { Find any xls BOM file(s) in this ProjectOutputs/ subdir. }
+            { Note:  Here we assume that the only files for which we want to alter
+             svn properties are Excel (.xls) files. }
+            MyFindFiles(projOutPath,
+                        projOutSubDirs.Strings[i],
+                        ('*' + constExtXls),
+                        {var} xlsBomFiles);
 
-		 end; { endif }
-			
-	  end; { endif }
-	  
+         end; { endif }
+            
+      end; { endif }
+      
    end; { endfor i }
 
    
    {** See if there are any .xls BOM files that we need to modify. **}
    if (xlsBomFiles.Count > 0) then
    begin
-	  
-	  UpdateGuiStatusMessage('Status:  Starting step 1-' + IntToStr(step) + ':  ' + alterVerbProgressive + ' svn property svn:keywords on xls BOM file(s).');
+      
+      UpdateGuiStatusMessage('Status:  Starting step 1-' + IntToStr(step) + ':  ' + alterVerbProgressive + ' svn property svn:keywords on xls BOM file(s).');
 
-	  {* Get ready to do the actual svn propset or propdel command. *}
+      {* Get ready to do the actual svn propset or propdel command. *}
    
-	  { Issue command to add svn:keywords properties to generated .xls BOM files. }
-	  IssueSvnCommand(scriptsPath,
-					  projOutPath,
-					  svnCmd,
-					  xlsBomFiles);
+      { Issue command to add svn:keywords properties to generated .xls BOM files. }
+      IssueSvnCommand(scriptsPath,
+                      projOutPath,
+                      svnCmd,
+                      xlsBomFiles);
    
-	  WriteToSummaryFile('1-' + IntToStr(StepPlusPlus(step)) + '.  ' + alterVerbPast + ' svn property svn:keywords on xls BOM file(s).');
+      WriteToSummaryFile('1-' + IntToStr(StepPlusPlus(step)) + '.  ' + alterVerbPast + ' svn property svn:keywords on xls BOM file(s).');
 
    end { endif }
 
    { Else we have no xls BOM files to alter. }
    else
    begin
-	  
-	  WriteToSummaryFile('1-' + IntToStr(StepPlusPlus(step)) + '.  SKIPPED ' + alterVerbProgressive + ' svn property svn:keywords on xls BOM file(s).');
+      
+      WriteToSummaryFile('1-' + IntToStr(StepPlusPlus(step)) + '.  SKIPPED ' + alterVerbProgressive + ' svn property svn:keywords on xls BOM file(s).');
 
    end; { endelse }
    
@@ -6121,13 +6181,13 @@ end; { end AlterSvnPropsForXlsBomFiles() }
  *
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function SetSvnPropsForXlsBomFiles(	   scriptsPath				  : TDynamicString;
-									   projOutPath				  : TString;
-									   projOutSubDirs			  : TStringList;
-									   outJobSetSvnKeywordsOnBoms : TStringList;
-									   runOutJobs				  : TStringList;
-								   var step						  : Integer;
-									   )						  : Integer;
+function SetSvnPropsForXlsBomFiles(    scriptsPath                : TDynamicString;
+                                       projOutPath                : TString;
+                                       projOutSubDirs             : TStringList;
+                                       outJobSetSvnKeywordsOnBoms : TStringList;
+                                       runOutJobs                 : TStringList;
+                                   var step                       : Integer;
+                                       )                          : Integer;
 var
    xlsBomFiles : TStringList;
 
@@ -6141,15 +6201,15 @@ begin
 
    { Call AlterSvnPropsForXlsBomFiles() to do all the real work. }
    result := AlterSvnPropsForXlsBomFiles(scriptsPath,
-										 projOutPath,
-										 projOutSubDirs,
-										 outJobSetSvnKeywordsOnBoms,
-										 runOutJobs,
-										 constSvnCmdPropSetKeywords,
-										 'Setting',
-										 'Set',
-										 {var} xlsBomFiles,
-										 {var} step);
+                                         projOutPath,
+                                         projOutSubDirs,
+                                         outJobSetSvnKeywordsOnBoms,
+                                         runOutJobs,
+                                         constSvnCmdPropSetKeywords,
+                                         'Setting',
+                                         'Set',
+                                         {var} xlsBomFiles,
+                                         {var} step);
   
    { Free lists of xlsBomFiles. }
    xlsBomFiles.Free;
@@ -6162,7 +6222,7 @@ end; { end SetSvnPropsForXlsBomFiles() }
  *  Del svn:keywords properties on all Excel (.xls) BOM files that were
  *  generated in all ProjectOutputs/ output subdirs.
  *
- *  We will also use sed to replace "$Rev:: 21062         $:" with "Rev 12345              ".
+ *  We will also use sed to replace "$Rev::               $:" with "Rev 12345              ".
  *  This is purely a cosmetic change to make the text less cryptic for techs
  *  at the board assembly house trying to make labels for our boards, etc.
  *  Of course, the obvious thing is to have Excel do this substitution as part
@@ -6178,18 +6238,18 @@ end; { end SetSvnPropsForXlsBomFiles() }
  *  Report whether any changes were made to svn controlled files as var parm changesMade.
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function DelSvnPropsForXlsBomFiles(	   scriptsPath				  : TDynamicString;
-									   projOutPath				  : TString;
-									   projOutSubDirs			  : TStringList;
-									   outJobSetSvnKeywordsOnBoms : TStringList;
-									   runOutJobs				  : TStringList;
-								   var changesMade				  : Boolean;
-								   var step						  : Integer;
-									   )						  : Integer;
+function DelSvnPropsForXlsBomFiles(    scriptsPath                : TDynamicString;
+                                       projOutPath                : TString;
+                                       projOutSubDirs             : TStringList;
+                                       outJobSetSvnKeywordsOnBoms : TStringList;
+                                       runOutJobs                 : TStringList;
+                                   var changesMade                : Boolean;
+                                   var step                       : Integer;
+                                       )                          : Integer;
 var
    xlsBomFiles : TStringList;
    xlsBomTemp  : TDynamicString;
-   i		   : Integer;
+   i           : Integer;
    
 begin
 
@@ -6201,71 +6261,71 @@ begin
 
    { Call AlterSvnPropsForXlsBomFiles() to do the real work of deleting svn properties. }
    result := AlterSvnPropsForXlsBomFiles(scriptsPath,
-										 projOutPath,
-										 projOutSubDirs,
-										 outJobSetSvnKeywordsOnBoms,
-										 runOutJobs,
-										 constSvnCmdPropDelKeywords,
-										 'Deleting',
-										 'Deleted',
-										 {var} xlsBomFiles,
-										 {var} step);
+                                         projOutPath,
+                                         projOutSubDirs,
+                                         outJobSetSvnKeywordsOnBoms,
+                                         runOutJobs,
+                                         constSvnCmdPropDelKeywords,
+                                         'Deleting',
+                                         'Deleted',
+                                         {var} xlsBomFiles,
+                                         {var} step);
   
    {** See if there are any .xls BOM files that we need to modify with sed. **}
    if (xlsBomFiles.Count > 0) then
    begin
-	  
-	  UpdateGuiStatusMessage('Status:  Starting step 1-' + IntToStr(step) + ':  Tweaking $' + 'Rev$ text in .xls BOM file(s).');
+      
+      UpdateGuiStatusMessage('Status:  Starting step 1-' + IntToStr(step) + ':  Tweaking $' + 'Rev$ text in .xls BOM file(s).');
 
-	  { Loop over all .xls BOM files }
-	  for i := 0 to (xlsBomFiles.Count - 1) do
-	  begin
-		 
-		 { Create the name of the temp xls BOM file. }
-		 { Here we must be mindful that xlsBomFiles was originally created by FindFiles(),
-		  which has the nasty habit of converting everything to all upper case. }
-		 xlsBomTemp := StringReplace(xlsBomFiles.Strings[i], constExtXlsUpper, constExtXlsTemp, '');
+      { Loop over all .xls BOM files }
+      for i := 0 to (xlsBomFiles.Count - 1) do
+      begin
+         
+         { Create the name of the temp xls BOM file. }
+         { Here we must be mindful that xlsBomFiles was originally created by FindFiles(),
+          which has the nasty habit of converting everything to all upper case. }
+         xlsBomTemp := StringReplace(xlsBomFiles.Strings[i], constExtXlsUpper, constExtXlsTemp, '');
 
-		 { Explicitly delete the temp xls BOM file, and make sure it has been deleted from filesystem. }
-		 DeleteFileWithVerify(xlsBomTemp);
+         { Explicitly delete the temp xls BOM file, and make sure it has been deleted from filesystem. }
+         DeleteFileWithVerify(xlsBomTemp);
 
-		 { Call external sed script to copy xls BOM file to temp file and then modify it and overwrite original xls BOM file. }
-		 { Note:  Because we're using this with a DOS cmd.exe shell, we must use double quotes around
-		  our s/ expression below.  However, if you want to test this from within a cygwin or real
-		  unix shell, you want to use single quotes instead.  Otherwise, the shell will want
-		  to interpret "$Rev" as a shell variable. }
-		 { The regex in sed will replace "$Rev::" with "Rev" and the ending "$:" with "".  Plus it will carry
-		  through the digits and spaces following them, and then add in exactly 5 spaces to make up for the
-		  3 chars lost around "$Rev::" and the 2 chars lost with "$:". }
-		 { We split this string into 2 delphi strings to prevent svn from doing a replacement around $Rev upon
-		  checkin of this script file. }
-		 RunPatchWithSed(scriptsPath,
-						 projOutPath,
-						 xlsBomFiles.Strings[i],
-						 xlsBomTemp,
-						 '"s/\$' + 'Rev:: \([0-9]\+\)\([ ]\+\)\$:/Rev \1\2     /g; "');
+         { Call external sed script to copy xls BOM file to temp file and then modify it and overwrite original xls BOM file. }
+         { Note:  Because we're using this with a DOS cmd.exe shell, we must use double quotes around
+          our s/ expression below.  However, if you want to test this from within a cygwin or real
+          unix shell, you want to use single quotes instead.  Otherwise, the shell will want
+          to interpret "$Rev" as a shell variable. }
+         { The regex in sed will replace "$Rev::" with "Rev" and the ending "$:" with "".  Plus it will carry
+          through the digits and spaces following them, and then add in exactly 5 spaces to make up for the
+          3 chars lost around "$Rev::" and the 2 chars lost with "$:". }
+         { We split this string into 2 delphi strings to prevent svn from doing a replacement around $Rev upon
+          checkin of this script file. }
+         RunPatchWithSed(scriptsPath,
+                         projOutPath,
+                         xlsBomFiles.Strings[i],
+                         xlsBomTemp,
+                         '"s/\$' + 'Rev:: \([0-9]\+\)\([ ]\+\)\$:/Rev \1\2     /g; "');
 
-		 { Explicitly delete the temp xls BOM file, and make sure it has been deleted from filesystem. }
-		 DeleteFileWithVerify(xlsBomTemp);
+         { Explicitly delete the temp xls BOM file, and make sure it has been deleted from filesystem. }
+         DeleteFileWithVerify(xlsBomTemp);
 
-		 { Flag that changes were made to xls BOM files. }
-		 changesMade := True;
+         { Flag that changes were made to xls BOM files. }
+         changesMade := True;
 
-	  end; { endfor }
-	  
-	  WriteToSummaryFile('1-' + IntToStr(StepPlusPlus(step)) + '.  Tweaked $' + 'Rev$ text in .xls BOM file(s).');
+      end; { endfor }
+      
+      WriteToSummaryFile('1-' + IntToStr(StepPlusPlus(step)) + '.  Tweaked $' + 'Rev$ text in .xls BOM file(s).');
 
    end { endif }
 
    { Else we have no xls BOM files to alter. }
    else
    begin
-	  
-	  WriteToSummaryFile('1-' + IntToStr(StepPlusPlus(step)) + '.  SKIPPED Tweaking $' + 'Rev$ text in .xls BOM file(s).');
+      
+      WriteToSummaryFile('1-' + IntToStr(StepPlusPlus(step)) + '.  SKIPPED Tweaking $' + 'Rev$ text in .xls BOM file(s).');
 
-	  { Flag that no changes were made to xls BOM files. }
-	  changesMade := False;
-	  
+      { Flag that no changes were made to xls BOM files. }
+      changesMade := False;
+      
    end; { endelse }
    
    { Free lists of xlsBomFiles. }
@@ -6294,11 +6354,11 @@ function ExcludeUnfixedIpc356(projOutPath : TString;
                               excludes    : TStringList;
                               )           : Integer;
 var
-   fileList	   : TStringList;
-   i		   : Integer;
-   fileExt	   : TString;
+   fileList    : TStringList;
+   i           : Integer;
+   fileExt     : TString;
    unfixedFile : TDynamicString;
-   position	   : Integer;
+   position    : Integer;
                   
 begin
 
@@ -6312,46 +6372,46 @@ begin
     to patch the IPC-356 netlist file.  If that happens, we want to include the "_fixed." file and
     exclude the "unfixed" file of the similar name. }
    MyFindFiles(projOutPath,
-			   subDir,
-			   ('*' + constExtIpc356NetlistFixed),
-			   {var} fileList);
+               subDir,
+               ('*' + constExtIpc356NetlistFixed),
+               {var} fileList);
 
    { See if we found any files. }
    for i := 0 to fileList.Count - 1 do
    begin
-	  
-	  WriteToDebugFile('*Found a filename containing "' + constExtIpc356NetlistFixed + '"! ' + fileList.Strings[i]);
+      
+      WriteToDebugFile('*Found a filename containing "' + constExtIpc356NetlistFixed + '"! ' + fileList.Strings[i]);
 
-	  { Extract just the extension for future use. }
-	  fileExt := ExtractFileExt(fileList.Strings[i]);
+      { Extract just the extension for future use. }
+      fileExt := ExtractFileExt(fileList.Strings[i]);
 
-	  { Find the position of "_fixed.ipc" within the filename. }
-	  { Note that AnsiPos() is case sensitive, and thus we must be mindful of the fact that
-	   all results from MyFindFiles() are in all upper case. }
-	  position := AnsiPos(AnsiUpperCase(constExtIpc356NetlistFixed), fileList.Strings[i]);
+      { Find the position of "_fixed.ipc" within the filename. }
+      { Note that AnsiPos() is case sensitive, and thus we must be mindful of the fact that
+       all results from MyFindFiles() are in all upper case. }
+      position := AnsiPos(AnsiUpperCase(constExtIpc356NetlistFixed), fileList.Strings[i]);
 
-	  if (position > 0) then
-	  begin
+      if (position > 0) then
+      begin
 
-		 { Replace the fixed version of the file extension with the unfixed version of the file extension. }
-		 { Also, we want just the final filename, without the leading drive and path. }
-		 unfixedFile := ExtractFileName(StringReplace(fileList.Strings[i], AnsiUpperCase(constExtIpc356NetlistFixed), AnsiUpperCase(constExtIpc356Netlist), ''));
+         { Replace the fixed version of the file extension with the unfixed version of the file extension. }
+         { Also, we want just the final filename, without the leading drive and path. }
+         unfixedFile := ExtractFileName(StringReplace(fileList.Strings[i], AnsiUpperCase(constExtIpc356NetlistFixed), AnsiUpperCase(constExtIpc356Netlist), ''));
 
-	  end
+      end
 
-	  { This else condition should never happen. }
+      { This else condition should never happen. }
       else
-	  begin
-		 MyAbort('Problem finding "' + constExtIpc356NetlistFixed + '" in filename!!!');
+      begin
+         MyAbort('Problem finding "' + constExtIpc356NetlistFixed + '" in filename!!!');
 
-		 { Report error. }
-		 result := 1;
-	  end;
-	  
-	  WriteToDebugFile('*About to add this to list of excludes: ' + unfixedFile);
-	  
-	  { Add the "unfixed" version of the file to our excludes list. }
-	  excludes.Add(unfixedFile);
+         { Report error. }
+         result := 1;
+      end;
+      
+      WriteToDebugFile('*About to add this to list of excludes: ' + unfixedFile);
+      
+      { Add the "unfixed" version of the file to our excludes list. }
+      excludes.Add(unfixedFile);
 
    end;
 
@@ -6369,17 +6429,17 @@ end; { end ExcludeUnfixedIpc356() }
  *
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function AddAllOutputsToSvn(scriptsPath		: TDynamicString;
-                            projectPath		: TDynamicString;
-                            projOutPath		: TString;
-                            projLogPath		: TString;
-							projOutSubDirs	: TStringList;
-                            projOutIncludes	: TStringList;
-							)				: Integer;
+function AddAllOutputsToSvn(scriptsPath     : TDynamicString;
+                            projectPath     : TDynamicString;
+                            projOutPath     : TString;
+                            projLogPath     : TString;
+                            projOutSubDirs  : TStringList;
+                            projOutIncludes : TStringList;
+                            )               : Integer;
 var
-   rc		   : Integer;
-   i		   : Integer;
-   subDirs	   : TStringList;
+   rc          : Integer;
+   i           : Integer;
+   subDirs     : TStringList;
       
 begin 
 
@@ -6401,20 +6461,20 @@ begin
    { Attempt to add all ProjectOutputs output subdirs to svn.}
    for i := 0 to projOutSubDirs.Count - 1 do
    begin
-	  subDirs.Add(projOutPath + '\' + projOutSubDirs.Strings[i]);
-	  subDirs.Add(projOutPath + '\' + projOutSubDirs.Strings[i] + '\*.*');
+      subDirs.Add(projOutPath + '\' + projOutSubDirs.Strings[i]);
+      subDirs.Add(projOutPath + '\' + projOutSubDirs.Strings[i] + '\*.*');
    end; { endfor }
    
    { Attempt to add all ProjectOutputs include subdirs to svn.}
    for i := 0 to projOutIncludes.Count - 1 do
    begin
 
-	  { Make sure we filter out null entries in projOutIncludes list. }
-	  if (projOutIncludes.Strings[i] <> '') then
-	  begin
-		 subDirs.Add(projOutPath + '\' + projOutIncludes.Strings[i]);
-		 subDirs.Add(projOutPath + '\' + projOutIncludes.Strings[i] + '\*.*');
-	  end;
+      { Make sure we filter out null entries in projOutIncludes list. }
+      if (projOutIncludes.Strings[i] <> '') then
+      begin
+         subDirs.Add(projOutPath + '\' + projOutIncludes.Strings[i]);
+         subDirs.Add(projOutPath + '\' + projOutIncludes.Strings[i] + '\*.*');
+      end;
 
    end; { endfor }
 
@@ -6439,18 +6499,18 @@ end; { end AddAllOutputsToSvn() }
  *  Returns svn rev number from this checkin as var parm newRevNum.
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function CheckinGeneratedFiles(	   Project	   : IProject;
-								   scriptsPath : TDynamicString;
-								   projectPath : TDynamicString;
+function CheckinGeneratedFiles(    Project     : IProject;
+                                   scriptsPath : TDynamicString;
+                                   projectPath : TDynamicString;
                                    projLogPath : TString;
                                    projOutPath : TString;
                                    commitMsg   : TString;
                                var newRevNum   : TDynamicString;
-                                   )		   : Integer;
+                                   )           : Integer;
 var
-   rc		   : Integer;
+   rc          : Integer;
    projectFile : TString;
-   parms	   : TStringList;
+   parms       : TStringList;
 
 begin
 
@@ -6511,8 +6571,8 @@ end; { end CheckinGeneratedFiles() }
  *
  *  Returns index for Fabrication subDir.
  ***************************************************************************}
-function GetFabIndex(projOutSubDirs	: TStringList;
-					 )				: Integer;
+function GetFabIndex(projOutSubDirs : TStringList;
+                     )              : Integer;
 begin
 
    {* Get index of fabrication ProjectOutputs/ subdir. *}
@@ -6520,7 +6580,7 @@ begin
 
    { Sanity check.  IndexOf method fails with -1 return code. }
    if (result = -1) then
-	  MyAbort('Unable to find fabrication subdir!');
+      MyAbort('Unable to find fabrication subdir!');
 
    WriteToDebugFile('*GetFabIndex() is returning ' + IntToStr(result) + '.');
 
@@ -6534,7 +6594,7 @@ end; { end GetFabIndex() }
  *  Returns index for Assembly subDir.
  ***************************************************************************}
 function GetAssyIndex(projOutSubDirs : TStringList;
-					  )				 : Integer;
+                      )              : Integer;
 begin
    
    {* Get index of assembly ProjectOutputs/ subdir. *}
@@ -6542,7 +6602,7 @@ begin
 
    { Sanity check.  IndexOf method fails with -1 return code. }
    if (result = -1) then
-	  MyAbort('Unable to find assembly subdir!');
+      MyAbort('Unable to find assembly subdir!');
 
    WriteToDebugFile('*GetAssyIndex() is returning ' + IntToStr(result) + '.');
 
@@ -6558,15 +6618,15 @@ end; { end GetAssyIndex() }
  *  Returns zipFile name into var parm zipFileName.
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function CreateZipFileName(	   projectName	: TDynamicString;
-							   pcbPartNum	: TDynamicString;
-							   pcbVersion	: TDynamicString;
-							   pcbDocRevNum	: TDynamicString;
-							   pcbaPartNum	: TDynamicString;
-							   pcbaVersion	: TDynamicString;
-							   bomRevNum	: TDynamicString;
-						   var zipFileName	: TDynamicString;
-							   )			: Integer;
+function CreateZipFileName(    projectName  : TDynamicString;
+                               pcbPartNum   : TDynamicString;
+                               pcbVersion   : TDynamicString;
+                               pcbDocRevNum : TDynamicString;
+                               pcbaPartNum  : TDynamicString;
+                               pcbaVersion  : TDynamicString;
+                               bomRevNum    : TDynamicString;
+                           var zipFileName  : TDynamicString;
+                               )            : Integer;
 begin 
    
    { For now, assume/hope/pray that we will succeed. }
@@ -6584,9 +6644,9 @@ begin
    zipFileName := StringReplace(zipFileName, '$bomRevNum$', bomRevNum, MkSet(rfReplaceAll));
 
    { Do a sanity check to make sure there are no error markers indicating uninitialized
-	variables that made it into the final zipFileName. }
+    variables that made it into the final zipFileName. }
    if (AnsiPos(constSubUninitMarker, zipFileName) > 0) then
-	  MyAbort('Found uninitialized variable marker "' + constSubUninitMarker + '" in proposed zipFile / rel-and-tag-subdir name "' + zipFileName + '"!');
+      MyAbort('Found uninitialized variable marker "' + constSubUninitMarker + '" in proposed zipFile / rel-and-tag-subdir name "' + zipFileName + '"!');
    
    WriteToDebugFile('*New zipFile/rel-and-tag-subdir name is "' + zipFileName + '".');
 
@@ -6602,16 +6662,16 @@ end; { end CreateZipFileName() }
  *  Returns zipFile name into var parm zipFileNames.
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function CreateAndStoreZipFileName(	   projectName	: TDynamicString;
-									   pcbPartNum	: TDynamicString;
-									   pcbVersion	: TDynamicString;
-									   pcbDocRevNum	: TDynamicString;
-									   pcbaPartNum	: TDynamicString;
-									   pcbaVersion	: TDynamicString;
-									   bomRevNum	: TDynamicString;
-									   currIndex	: Integer;
-								   var zipFileNames	: TStringList;
-									   )			: Integer;
+function CreateAndStoreZipFileName(    projectName  : TDynamicString;
+                                       pcbPartNum   : TDynamicString;
+                                       pcbVersion   : TDynamicString;
+                                       pcbDocRevNum : TDynamicString;
+                                       pcbaPartNum  : TDynamicString;
+                                       pcbaVersion  : TDynamicString;
+                                       bomRevNum    : TDynamicString;
+                                       currIndex    : Integer;
+                                   var zipFileNames : TStringList;
+                                       )            : Integer;
 var
    zipFileName : TDynamicString;
 
@@ -6627,13 +6687,13 @@ begin
 
    { Call CreateZipFileName() to do all the various substitutions. }
    result := CreateZipFileName(projectName,
-							   pcbPartNum,
-							   pcbVersion,
-							   pcbDocRevNum,
-							   pcbaPartNum,
-							   pcbaVersion,
-							   bomRevNum,
-							   {var} zipFileName);
+                               pcbPartNum,
+                               pcbVersion,
+                               pcbDocRevNum,
+                               pcbaPartNum,
+                               pcbaVersion,
+                               bomRevNum,
+                               {var} zipFileName);
    
    { Store newly constructed zipFileName back to zipFileNames string list for later use. }
    zipFileNames.Strings[currIndex] := zipFileName;
@@ -6650,29 +6710,29 @@ end; { end CreateAndStoreZipFileName() }
  *  Returns zipFile name into var parm relAndTagSubDir.
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function CreateAndStoreRelTagSubDirName(	projectName		: TDynamicString;
-											pcbPartNum		: TDynamicString;
-											pcbVersion		: TDynamicString;
-											pcbDocRevNum	: TDynamicString;
-											pcbaPartNum		: TDynamicString;
-											pcbaVersion		: TDynamicString;
-											bomRevNum		: TDynamicString;
-											currIndex		: Integer;
-										var relAndTagSubDir	: TStringList;
-											)				: Integer;
+function CreateAndStoreRelTagSubDirName(    projectName     : TDynamicString;
+                                            pcbPartNum      : TDynamicString;
+                                            pcbVersion      : TDynamicString;
+                                            pcbDocRevNum    : TDynamicString;
+                                            pcbaPartNum     : TDynamicString;
+                                            pcbaVersion     : TDynamicString;
+                                            bomRevNum       : TDynamicString;
+                                            currIndex       : Integer;
+                                        var relAndTagSubDir : TStringList;
+                                            )               : Integer;
 begin
 
    { Cheat and use CreateAndStoreZipFileName() to do the real work.
-	All we need to do is feed it relAndTagSubDir instead of zipFileNames. }
+    All we need to do is feed it relAndTagSubDir instead of zipFileNames. }
    result := CreateAndStoreZipFileName(projectName,
-									   pcbPartNum,
-									   pcbVersion,
-									   pcbDocRevNum,
-									   pcbaPartNum,
-									   pcbaVersion,
-									   bomRevNum,
-									   currIndex,
-									   {var} {zipFileNames} relAndTagSubDir);
+                                       pcbPartNum,
+                                       pcbVersion,
+                                       pcbDocRevNum,
+                                       pcbaPartNum,
+                                       pcbaVersion,
+                                       bomRevNum,
+                                       currIndex,
+                                       {var} {zipFileNames} relAndTagSubDir);
    
 end; { end CreateAndStoreRelTagSubDirName() }
 
@@ -6689,21 +6749,21 @@ end; { end CreateAndStoreRelTagSubDirName() }
  *  Returns modified rel-and-tag subdir names in var parm relAndTagSubDir.
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function CreateAllZipFileNames(	   projectName	   : TDynamicString;
-                                   projOutPath	   : TString;
-								   projOutSubDirs  : TStringList;
-                               var zipFileNames	   : TStringList;
+function CreateAllZipFileNames(    projectName     : TDynamicString;
+                                   projOutPath     : TString;
+                                   projOutSubDirs  : TStringList;
+                               var zipFileNames    : TStringList;
                                var relAndTagSubDir : TStringList;
-								   runPackager	   : TStringList;
-                                   pcbPartNum	   : TDynamicString;
-                                   pcbVersion	   : TDynamicString;
-                                   pcbDocRevNum	   : TDynamicString;
-								   pcbaPartNum	   : TDynamicString;
-                                   pcbaVersion	   : TDynamicString;
-                                   bomRevNum	   : TDynamicString;
-                                   )			   : Integer;
+                                   runPackager     : TStringList;
+                                   pcbPartNum      : TDynamicString;
+                                   pcbVersion      : TDynamicString;
+                                   pcbDocRevNum    : TDynamicString;
+                                   pcbaPartNum     : TDynamicString;
+                                   pcbaVersion     : TDynamicString;
+                                   bomRevNum       : TDynamicString;
+                                   )               : Integer;
 var
-   rc		 : Integer;
+   rc        : Integer;
    currIndex : Integer;
    assyIndex : Integer;
 
@@ -6723,7 +6783,7 @@ begin
    { The svn rev number for the BOM file was already obtained and given to us. }
    { TODO:  If we ever want to be able to package files, but not re-generate them, then
     we would again need to get the BOM rev number.  Except we actually want the rev number
-	of the next-to-last checkin, unlike what this function currently does. }
+    of the next-to-last checkin, unlike what this function currently does. }
    { TODO:  If we do resurrect this, we should not hardcode for constPurchasingSubDir! }
 //   UpdateGuiStatusMessage('Status:  Starting step 0-' + IntToStr(step) + ':  Extracting xls BOM file svn rev number.');
 //   FindProjectBomFile(projOutPath,
@@ -6736,52 +6796,52 @@ begin
    for currIndex := 0 to zipFileNames.Count - 1 do
    begin
 
-	  { Suppress doing this for assembly operation if the user didn't check that
-	   he/she wanted to do package assembly. }
-	  { TODO:  Is this really an issue any more?? }
-	  if ( (currIndex <> assyIndex) or (StrToBool(runPackager.Strings[assyIndex])) ) then
-	  begin
-	  
-		 { Construct and store the name of this particular zipFile. }
-		 CreateAndStoreZipFileName(projectName,
-								   pcbPartNum,
-								   pcbVersion,
-								   pcbDocRevNum,
-								   pcbaPartNum,
-								   pcbaVersion,
-								   bomRevNum,
-								   currIndex,
-								   {var} zipFileNames);
+      { Suppress doing this for assembly operation if the user didn't check that
+       he/she wanted to do package assembly. }
+      { TODO:  Is this really an issue any more?? }
+      if ( (currIndex <> assyIndex) or (StrToBool(runPackager.Strings[assyIndex])) ) then
+      begin
+      
+         { Construct and store the name of this particular zipFile. }
+         CreateAndStoreZipFileName(projectName,
+                                   pcbPartNum,
+                                   pcbVersion,
+                                   pcbDocRevNum,
+                                   pcbaPartNum,
+                                   pcbaVersion,
+                                   bomRevNum,
+                                   currIndex,
+                                   {var} zipFileNames);
 
-	  end; { endif }
-	  
-	  WriteToDebugFile('* zipFileNames[' + IntToStr(currIndex) + '] is "' + zipFileNames.Strings[currIndex] + '"');
+      end; { endif }
+      
+      WriteToDebugFile('* zipFileNames[' + IntToStr(currIndex) + '] is "' + zipFileNames.Strings[currIndex] + '"');
    end;
 
    {* Construct the names of all releases/ and tags/ subdirs, and store in relAndTagSubDir. *}
    for currIndex := 0 to relAndTagSubDir.Count - 1 do
    begin
 
-	  { Suppress doing this for assembly operation if the user didn't check that
-	   he/she wanted to do package assembly. }
-	  { TODO:  Is this really an issue any more?? }
-	  if ( (currIndex <> assyIndex) or (StrToBool(runPackager.Strings[assyIndex])) ) then
-	  begin
-		 
-		 { Construct and store the name of this particular rel-and-tag-subdir. }
-		 CreateAndStoreRelTagSubDirName(projectName,
-										pcbPartNum,
-										pcbVersion,
-										pcbDocRevNum,
-										pcbaPartNum,
-										pcbaVersion,
-										bomRevNum,
-										currIndex,
-										{var} relAndTagSubDir);
+      { Suppress doing this for assembly operation if the user didn't check that
+       he/she wanted to do package assembly. }
+      { TODO:  Is this really an issue any more?? }
+      if ( (currIndex <> assyIndex) or (StrToBool(runPackager.Strings[assyIndex])) ) then
+      begin
+         
+         { Construct and store the name of this particular rel-and-tag-subdir. }
+         CreateAndStoreRelTagSubDirName(projectName,
+                                        pcbPartNum,
+                                        pcbVersion,
+                                        pcbDocRevNum,
+                                        pcbaPartNum,
+                                        pcbaVersion,
+                                        bomRevNum,
+                                        currIndex,
+                                        {var} relAndTagSubDir);
 
-	  end; { endif }
-	  
-	  WriteToDebugFile('* relAndTagSubDir[' + IntToStr(currIndex) + '] is "' + relAndTagSubDir.Strings[currIndex] + '"');
+      end; { endif }
+      
+      WriteToDebugFile('* relAndTagSubDir[' + IntToStr(currIndex) + '] is "' + relAndTagSubDir.Strings[currIndex] + '"');
    end;
    
 end; { end CreateAllZipFileNames() }
@@ -6800,9 +6860,9 @@ end; { end CreateAllZipFileNames() }
  *  Returns:  0 on success, 1 if unable to delete one or more files
  ***************************************************************************}
 function CheckForExistingZipFile(projOutPath : TString;
-								 subDir		 : TString;
-								 zipFileName : TString;
-								 )			 : Integer;
+                                 subDir      : TString;
+                                 zipFileName : TString;
+                                 )           : Integer;
 var
    fileList        : TStringList;
    strippedName    : TDynamicString;
@@ -6835,9 +6895,9 @@ begin
 
    { Look for a zipfile with the same version number, but possibly a different svn rev number. }
    MyFindFiles(projOutPath,
-			   subDir,
-			   strippedName,
-			   {var} fileList);
+               subDir,
+               strippedName,
+               {var} fileList);
 
    { Init error message in case we need it. }
    msg := 'Before creating zipfile "' + subDir + '\' + zipFileName + '",' + constLineBreak +
@@ -6919,35 +6979,35 @@ begin
 
       { Fetch a list of all files in this subdirectory. }
       MyFindFiles(projOutPath,
-				  subDir,
-				  '*.*',
-				  {var} fileList);
+                  subDir,
+                  '*.*',
+                  {var} fileList);
 
       { Exclude specified files from this list. }
       ExcludeFilesFromList({var} fileList,
                            excludes);
       
       { Loop over the non-excluded files in this ProjectOutputs/ subdir. }
-	  for i := 0 to fileList.Count - 1 do
-	  begin
+      for i := 0 to fileList.Count - 1 do
+      begin
 
-		 WriteToDebugFile('*Attempting to add file ' + fileList.Strings[i] + ' to zipfile....');
-		 
-		 { Add this file to the pending zip file that we will create. }
-		 Zip.AddFilesToProcess(fileList.Strings[i]);
-		 
-	  end; { endfor i }
+         WriteToDebugFile('*Attempting to add file ' + fileList.Strings[i] + ' to zipfile....');
+         
+         { Add this file to the pending zip file that we will create. }
+         Zip.AddFilesToProcess(fileList.Strings[i]);
+         
+      end; { endfor i }
       
       { See if we have any additional files we're supposed to add to the zipfile. }
-	  for i := 0 to addlIncludes.Count - 1 do
-	  begin
+      for i := 0 to addlIncludes.Count - 1 do
+      begin
 
-		 WriteToDebugFile('*Attempting to add additional file ' + addlIncludes.Strings[i] + ' to zipfile....');
-		 
-		 { Add this file to the pending zip file that we will create. }
-		 Zip.AddFilesToProcess(addlIncludes.Strings[i]);
-		 
-	  end; { endfor i }
+         WriteToDebugFile('*Attempting to add additional file ' + addlIncludes.Strings[i] + ' to zipfile....');
+         
+         { Add this file to the pending zip file that we will create. }
+         Zip.AddFilesToProcess(addlIncludes.Strings[i]);
+         
+      end; { endfor i }
       
       { Create the zip file, now that we've identified all the files we want added. }
       WriteToDebugFile('*About to create zipfile ' + zipPathFileName);
@@ -6973,18 +7033,18 @@ end; { end CreateZipFile() }
  *  Returns list of new zipfiles created as var parm newZipFiles.
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function CreateAllZipFiles(	   scriptsPath				: TDynamicString;
-                               projOutPath				: TString;
-                               projOutSubDirs			: TStringList;
-                               projOutIncludes			: TStringList;
-                               outJobDoFixIpc356Netlist	: TStringList;
-							   zipDoCheckForExisting	: TStringList;
-                               zipExcludes				: TStringList;
-                               zipFindAddlFiles			: TStringList;
-                               zipFileNames				: TStringList;
-                               runPackager				: TStringList;
-                           var newZipFiles				: TStringList;
-                               )						: Integer;
+function CreateAllZipFiles(    scriptsPath              : TDynamicString;
+                               projOutPath              : TString;
+                               projOutSubDirs           : TStringList;
+                               projOutIncludes          : TStringList;
+                               outJobDoFixIpc356Netlist : TStringList;
+                               zipDoCheckForExisting    : TStringList;
+                               zipExcludes              : TStringList;
+                               zipFindAddlFiles         : TStringList;
+                               zipFileNames             : TStringList;
+                               runPackager              : TStringList;
+                           var newZipFiles              : TStringList;
+                               )                        : Integer;
 var
    rc              : Integer;
    excludes        : TStringList;
@@ -7004,96 +7064,96 @@ begin
    for i := 0 to projOutSubDirs.Count - 1 do
    begin
 
-	  { Only create a zipfile if the zipFileName is non-NULL,
-	   and if we've been flagged to do so from GUI form. }
-	  if ( (zipFileNames.Strings[i] <> '') and
-		  (StrToBool(runPackager.Strings[i])) )then
-	  begin
-		 
-		 { Initialize lists of excludes and additional includes. }
-		 excludes := TStringList.Create;
-		 addlIncludes := TStringList.Create;
-		 findParms := TStringList.Create;
+      { Only create a zipfile if the zipFileName is non-NULL,
+       and if we've been flagged to do so from GUI form. }
+      if ( (zipFileNames.Strings[i] <> '') and
+          (StrToBool(runPackager.Strings[i])) )then
+      begin
+         
+         { Initialize lists of excludes and additional includes. }
+         excludes := TStringList.Create;
+         addlIncludes := TStringList.Create;
+         findParms := TStringList.Create;
 
-		 { Split this entry in zipExcludes into a string list named "excludes". }
-		 SplitDelimitedStringIntoStringList(zipExcludes.Strings[i],
-											constStringDelimiter,
-											{var} excludes);
+         { Split this entry in zipExcludes into a string list named "excludes". }
+         SplitDelimitedStringIntoStringList(zipExcludes.Strings[i],
+                                            constStringDelimiter,
+                                            {var} excludes);
 
-		 { If we had been instructed to fixup the IPC-356 netlist in this subdir,
-		  then look for the unfixed file to exclude from the zipfile. }
-		 if (StrToBool(outJobDoFixIpc356Netlist.Strings[i])) then
-		 begin
-			
-			{ Look for a file containing "_fixed.".  If found, this indicates that earlier on we had
-			 to patch the IPC-356 netlist file.  If that happens, we want to include the "_fixed." file and
-			 then add the "unfixed" file of the similar name to the excludes list. }
-			ExcludeUnfixedIpc356(projOutPath, projOutSubDirs.Strings[i], excludes);
+         { If we had been instructed to fixup the IPC-356 netlist in this subdir,
+          then look for the unfixed file to exclude from the zipfile. }
+         if (StrToBool(outJobDoFixIpc356Netlist.Strings[i])) then
+         begin
+            
+            { Look for a file containing "_fixed.".  If found, this indicates that earlier on we had
+             to patch the IPC-356 netlist file.  If that happens, we want to include the "_fixed." file and
+             then add the "unfixed" file of the similar name to the excludes list. }
+            ExcludeUnfixedIpc356(projOutPath, projOutSubDirs.Strings[i], excludes);
 
-		 end;
+         end;
 
-		 { See if this ProjectOutputs subdir has an associated include subdir. }
-		 if (projOutIncludes.Strings[i] <> '') then
-		 begin
-			
-			{ Find any documentation, etc. files in include_whatever/ that we should be adding to our zipfile. }
-			MyFindFiles(projOutPath,
-						projOutIncludes.Strings[i],
-						'*.*',
-						{var} addlIncludes);
-			
-		 end;
+         { See if this ProjectOutputs subdir has an associated include subdir. }
+         if (projOutIncludes.Strings[i] <> '') then
+         begin
+            
+            { Find any documentation, etc. files in include_whatever/ that we should be adding to our zipfile. }
+            MyFindFiles(projOutPath,
+                        projOutIncludes.Strings[i],
+                        '*.*',
+                        {var} addlIncludes);
+            
+         end;
 
-		 { See if we've been asked to find files in other ProjectOutputs/ subdirs that we should include in this zipfile. }
-		 if (zipFindAddlFiles.Strings[i] <> '') then
-		 begin
+         { See if we've been asked to find files in other ProjectOutputs/ subdirs that we should include in this zipfile. }
+         if (zipFindAddlFiles.Strings[i] <> '') then
+         begin
 
-			{ Split this entry in zipFindAddlFiles into a string list named "findParms". }
-			SplitDelimitedStringIntoStringList(zipFindAddlFiles.Strings[i],
-											   constStringDelimiter,
-											   {var} findParms);
+            { Split this entry in zipFindAddlFiles into a string list named "findParms". }
+            SplitDelimitedStringIntoStringList(zipFindAddlFiles.Strings[i],
+                                               constStringDelimiter,
+                                               {var} findParms);
 
-			{ Make sure we have both an output subdir and a file mask. }
-			if (findParms.Count <> 2) then
-			   MyAbort('In CreateAllZipFiles(), was expecting exactly 2 strings after splitting entry in zipFindAddlFiles.  Found ' + IntToStr(findParms.Count) + ' parms.');
+            { Make sure we have both an output subdir and a file mask. }
+            if (findParms.Count <> 2) then
+               MyAbort('In CreateAllZipFiles(), was expecting exactly 2 strings after splitting entry in zipFindAddlFiles.  Found ' + IntToStr(findParms.Count) + ' parms.');
 
-			{ Launch a find files with the specified ProjectOutputs output subdir and file mask. }
-			MyFindFiles(projOutPath,
-						findParms.Strings[0],
-						findParms.Strings[1],
-						{var} addlIncludes);
-			
-		 end; { endif }
+            { Launch a find files with the specified ProjectOutputs output subdir and file mask. }
+            MyFindFiles(projOutPath,
+                        findParms.Strings[0],
+                        findParms.Strings[1],
+                        {var} addlIncludes);
+            
+         end; { endif }
 
-		 { See if we need to check for presence of existing zipfile in this subDir. }
-		 if (StrToBool(zipDoCheckForExisting.Strings[i])) then
-		 begin
-			
-			{ Check for presence of an existing zipfile with the same version number
-			 (though possibly different svn rev #) in this subDir. }
-			CheckForExistingZipFile(projOutPath,
-									projOutSubDirs.Strings[i],
-									zipFileNames.Strings[i])
+         { See if we need to check for presence of existing zipfile in this subDir. }
+         if (StrToBool(zipDoCheckForExisting.Strings[i])) then
+         begin
+            
+            { Check for presence of an existing zipfile with the same version number
+             (though possibly different svn rev #) in this subDir. }
+            CheckForExistingZipFile(projOutPath,
+                                    projOutSubDirs.Strings[i],
+                                    zipFileNames.Strings[i])
 
-		 end; { endif }
-		 
-		 { Attempt to zip up the files in this ProjectOutputs/ subdir. }
-		 rc := rc | CreateZipFile(projOutPath,
-								  projOutSubDirs.Strings[i],
-								  zipFileNames.Strings[i],
-								  excludes,
-								  addlIncludes,
-								  {var} zipPathFileName);
+         end; { endif }
+         
+         { Attempt to zip up the files in this ProjectOutputs/ subdir. }
+         rc := rc | CreateZipFile(projOutPath,
+                                  projOutSubDirs.Strings[i],
+                                  zipFileNames.Strings[i],
+                                  excludes,
+                                  addlIncludes,
+                                  {var} zipPathFileName);
 
-		 { Add this file to the list of new zipfiles created. }
-		 newZipFiles.Add(zipPathFileName);           
+         { Add this file to the list of new zipfiles created. }
+         newZipFiles.Add(zipPathFileName);           
 
-		 { Free lists of excludes and additional includes. }
-		 excludes.Free;
-		 addlIncludes.Free;
-		 findParms.Free;
+         { Free lists of excludes and additional includes. }
+         excludes.Free;
+         addlIncludes.Free;
+         findParms.Free;
 
-	  end; { endif }
+      end; { endif }
 
    end; { endfor }
    
@@ -7120,16 +7180,16 @@ function CreateRelOrTagSubDirs(    scriptsPath      : TDynamicString;
                                var newSubDirs       : TStringList;
                                    )                : Integer;
 var
-   rc					: Integer;
-   basePath				: TDynamicString;
-   strippedRelOrTagPath	: TDynamicString;
-   projRelOrTagPath		: TDynamicString;
-   position				: Integer;
-   subDir				: TDynamicString;
-   subDirPath			: TDynamicString;
-   subDirs				: TStringList;
-   i					: Integer;
-   oldNumNewSubDirs		: Integer;
+   rc                   : Integer;
+   basePath             : TDynamicString;
+   strippedRelOrTagPath : TDynamicString;
+   projRelOrTagPath     : TDynamicString;
+   position             : Integer;
+   subDir               : TDynamicString;
+   subDirPath           : TDynamicString;
+   subDirs              : TStringList;
+   i                    : Integer;
+   oldNumNewSubDirs     : Integer;
 
 begin 
 
@@ -7183,11 +7243,11 @@ begin
 
       { Enumerate full path to this subDir }
       subDirPath := (basePath + '\' + subDir);
-//	  WriteToDebugFile('Need to make this subDir: "' + subDir + '", as "' + subDirPath + '"');
+//    WriteToDebugFile('Need to make this subDir: "' + subDir + '", as "' + subDirPath + '"');
 
-	  { Add this subdir to the running list of subDirs to verify / create. }
-	  subDirs.Add(subDirPath);
-	  
+      { Add this subdir to the running list of subDirs to verify / create. }
+      subDirs.Add(subDirPath);
+      
       { Strip this subDir off of running strippedRelOrTagPath. }
       strippedRelOrTagPath := StringReplace(strippedRelOrTagPath, (subDir + '\'), '', '');
 
@@ -7202,32 +7262,32 @@ begin
 
    { Attempt to restore / update some or all of these subDirs from svn repo. }
    { WARNING:  This is funky usage of svn update and will result in the working
-	copy having an incomplete copy of either releases/ or tags/!  This is
-	being done in order to minimize disk space used by a user's working copy,
-	particularly in a situation where 2 or more users are working on (and
-	making releases of) a given project.
-	Moreover, this "depth=empty" property will stick around and an ordinary
-	svn update command will NOT result in pulling down the missing subdirs and
-	files to the working copy.
-	If you wish to have releases/ and tags/ all the way updated in your working
-	copy, you will need to manually issue a command like:
-	svn update --set-depth=infinity h:/projects/spiffy_widget/releases h:/projects/spiffy_widget/tags
-	}
+    copy having an incomplete copy of either releases/ or tags/!  This is
+    being done in order to minimize disk space used by a user's working copy,
+    particularly in a situation where 2 or more users are working on (and
+    making releases of) a given project.
+    Moreover, this "depth=empty" property will stick around and an ordinary
+    svn update command will NOT result in pulling down the missing subdirs and
+    files to the working copy.
+    If you wish to have releases/ and tags/ all the way updated in your working
+    copy, you will need to manually issue a command like:
+    svn update --set-depth=infinity h:/projects/spiffy_widget/releases h:/projects/spiffy_widget/tags
+    }
    IssueSvnCommand(scriptsPath,
-				   projectPath,
+                   projectPath,
                    constSvnCmdUpdateDepthEmpty,
                    subDirs);
    
    { Loop over all the subDirs that we need to verify / create. }
    { If any of these didn't already exist or were not restored by the above
-	svn update command, then we'll create them now. }
+    svn update command, then we'll create them now. }
    for i := 0 to subDirs.Count - 1 do
    begin
 
-	  { Call CreateSubDir() to do the actual verify / create of this subDir. }
+      { Call CreateSubDir() to do the actual verify / create of this subDir. }
       CreateSubDir(scriptsPath,
                    projectPath,
-				   subDirs.Strings[i],
+                   subDirs.Strings[i],
                    {var} newSubDirs);
 
    end; { endfor }
@@ -7307,36 +7367,36 @@ begin
    for i := 0 to relAndTagSubDir.Count - 1 do
    begin
 
-	  { Extract name of desired final rel and tag subdir for this OutJob. }
-	  finalSubDir := relAndTagSubDir.Strings[i];
+      { Extract name of desired final rel and tag subdir for this OutJob. }
+      finalSubDir := relAndTagSubDir.Strings[i];
 
-	  { Only create rel and tag subdirs for this OutJob if the finalSubDir is non-NULL,
-	   and if we've been flagged to do so from GUI form. }
-	  if ( (finalSubDir <> '') and 
-		  (StrToBool(runRelAndTag[i])) ) then
-	  begin
+      { Only create rel and tag subdirs for this OutJob if the finalSubDir is non-NULL,
+       and if we've been flagged to do so from GUI form. }
+      if ( (finalSubDir <> '') and 
+          (StrToBool(runRelAndTag[i])) ) then
+      begin
 
-		 WriteToDebugFile('*About to create final relAndTagSubDir ' + finalSubDir + ' in both ' + constSvnDirReleases + '/ and ' + constSvnDirTags + '/.');
+         WriteToDebugFile('*About to create final relAndTagSubDir ' + finalSubDir + ' in both ' + constSvnDirReleases + '/ and ' + constSvnDirTags + '/.');
 
-		 { We must append a '\' to finalSubDir so that simplistic parsing code actually works. }
-		 finalSubDir := (finalSubDir + '\');
-		 
-		 {** Make subdirectories in releases/. **}
-		 CreateRelOrTagSubDirs(scriptsPath,
-							   projectPath,
-							   finalSubDir,
-							   constSvnDirReleases,
-							   {var} newSubDirs);
+         { We must append a '\' to finalSubDir so that simplistic parsing code actually works. }
+         finalSubDir := (finalSubDir + '\');
+         
+         {** Make subdirectories in releases/. **}
+         CreateRelOrTagSubDirs(scriptsPath,
+                               projectPath,
+                               finalSubDir,
+                               constSvnDirReleases,
+                               {var} newSubDirs);
 
-		 
-		 {** Make subdirectories in tags/. **}
-		 CreateRelOrTagSubDirs(scriptsPath,
-							   projectPath,
-							   finalSubDir,
-							   constSvnDirTags,
-							   {var} newSubDirs);
+         
+         {** Make subdirectories in tags/. **}
+         CreateRelOrTagSubDirs(scriptsPath,
+                               projectPath,
+                               finalSubDir,
+                               constSvnDirTags,
+                               {var} newSubDirs);
 
-	  end; { endif }
+      end; { endif }
 
    end; { endfor }
    
@@ -7382,44 +7442,44 @@ begin
    for i := 0 to relAndTagSubDir.Count - 1 do
    begin
 
-	  { Extract name of ProjectOutputs subdir for this OutJob. }
-	  subDir := projOutSubDirs.Strings[i];
-	  
-	  { Extract name of zipfile for this OutJob. }
-	  zipName := zipFileNames.Strings[i];
-	  
-	  { Extract name of desired final rel and tag subdir for this OutJob. }
-	  finalSubDir := relAndTagSubDir.Strings[i];
+      { Extract name of ProjectOutputs subdir for this OutJob. }
+      subDir := projOutSubDirs.Strings[i];
+      
+      { Extract name of zipfile for this OutJob. }
+      zipName := zipFileNames.Strings[i];
+      
+      { Extract name of desired final rel and tag subdir for this OutJob. }
+      finalSubDir := relAndTagSubDir.Strings[i];
 
-	  { Only copy zipfile for this OutJob if the finalSubDir is non-NULL,
-	   and if we've been flagged to do so from GUI form. }
-	  if ( (finalSubDir <> '') and 
-		  (StrToBool(runRelAndTag[i])) ) then
-	  begin
+      { Only copy zipfile for this OutJob if the finalSubDir is non-NULL,
+       and if we've been flagged to do so from GUI form. }
+      if ( (finalSubDir <> '') and 
+          (StrToBool(runRelAndTag[i])) ) then
+      begin
 
-		 WriteToDebugFile('*About to copy zipfile ' + zipName + ' to relAndTagSubDir ' + finalSubDir + ' in ' + constSvnDirReleases + '/.');
+         WriteToDebugFile('*About to copy zipfile ' + zipName + ' to relAndTagSubDir ' + finalSubDir + ' in ' + constSvnDirReleases + '/.');
 
-		 { Initialize list of svn parms. }
-		 parms := TStringList.Create;
+         { Initialize list of svn parms. }
+         parms := TStringList.Create;
 
-		 { Specify zipfile as the source for this svn copy. }
-		 { Note that this will be a relative path with respect to ProjectOutputs\, but this is ok,
-		  since we will specify projOutPath as the working directory when doing the svn copy command. }
-		 parms.Add(subDir + '\' + zipName);
+         { Specify zipfile as the source for this svn copy. }
+         { Note that this will be a relative path with respect to ProjectOutputs\, but this is ok,
+          since we will specify projOutPath as the working directory when doing the svn copy command. }
+         parms.Add(subDir + '\' + zipName);
 
-		 { Specify new subdir in releases/ as the destination for this svn copy. }
-		 parms.Add(projTopRelPath + '\' + finalSubDir);
-		 
-		 { Issue svn copy command to copy new zipfiles to releases directory. }
-		 IssueSvnCommand(scriptsPath,
-						 projOutPath,
-						 constSvnCmdCopy,
-						 parms);
+         { Specify new subdir in releases/ as the destination for this svn copy. }
+         parms.Add(projTopRelPath + '\' + finalSubDir);
+         
+         { Issue svn copy command to copy new zipfiles to releases directory. }
+         IssueSvnCommand(scriptsPath,
+                         projOutPath,
+                         constSvnCmdCopy,
+                         parms);
 
-		 { Free list of parms to svn copy. }
-		 parms.Free;
+         { Free list of parms to svn copy. }
+         parms.Free;
 
-	  end; { endif }
+      end; { endif }
 
    end; { endfor }
 
@@ -7472,56 +7532,56 @@ begin
    for i := 0 to relAndTagSubDir.Count - 1 do
    begin
 
-	  { Extract name of desired final tag subdir for this OutJob. }
-	  finalSubDir := relAndTagSubDir.Strings[i];
+      { Extract name of desired final tag subdir for this OutJob. }
+      finalSubDir := relAndTagSubDir.Strings[i];
 
-	  { Only copy zipfile for this OutJob if the finalSubDir is non-NULL,
-	   and if we've been flagged to do so from GUI form. }
-	  if ( (finalSubDir <> '') and 
-		  (StrToBool(runRelAndTag[i])) ) then
-	  begin
+      { Only copy zipfile for this OutJob if the finalSubDir is non-NULL,
+       and if we've been flagged to do so from GUI form. }
+      if ( (finalSubDir <> '') and 
+          (StrToBool(runRelAndTag[i])) ) then
+      begin
 
-		 WriteToDebugFile('*About to copy project snapshot to relAndTagSubDir ' + finalSubDir + ' in ' + constSvnDirTags + '/.');
+         WriteToDebugFile('*About to copy project snapshot to relAndTagSubDir ' + finalSubDir + ' in ' + constSvnDirTags + '/.');
 
-		 { Construct full path of final tag subdir for this OutJob. }
-		 projTagPath := (projTopTagPath + '\' + finalSubDir);
-		 
-		 {** Determine svn server URL for new directory we just created in tags/. **}
-		 { Issue svn info command to query for svn server URL for project directory. }
-		 GetFileOrDirSvnServerUrl(scriptsPath,
-								  projectPath,
-								  projTagPath,
-								  {var} projTagPathUrl);
-		 
-		 {** Prepare to do server side svn-copy-with-commit. **}
-		 { Initialize list of svn parms. }
-		 parms := TStringList.Create;
+         { Construct full path of final tag subdir for this OutJob. }
+         projTagPath := (projTopTagPath + '\' + finalSubDir);
+         
+         {** Determine svn server URL for new directory we just created in tags/. **}
+         { Issue svn info command to query for svn server URL for project directory. }
+         GetFileOrDirSvnServerUrl(scriptsPath,
+                                  projectPath,
+                                  projTagPath,
+                                  {var} projTagPathUrl);
+         
+         {** Prepare to do server side svn-copy-with-commit. **}
+         { Initialize list of svn parms. }
+         parms := TStringList.Create;
 
-		 { Specify URL of project trunk/ directory as the source for this svn copy. }
-		 parms.Add(projectPathUrl);
+         { Specify URL of project trunk/ directory as the source for this svn copy. }
+         parms.Add(projectPathUrl);
 
-		 { Specify new subdir in tags/ as the destination for this svn copy. }
-		 parms.Add(projTagPathUrl);
-		 
-		 { Set commit message. }
-		 parms.Add('-m');
-		 parms.Add('Performing server side copy-with-commit to copy snapshot of ' + constSvnDirTrunk + '/ working directory to new subdir in ' + constSvnDirTags + '/.  This is an automated checkin performed by script ' + constThisScriptName + '.');
-		 
-		 {** Issue svn server side copy-with-commit command to copy project snapshot to new subdir in tags/. **}
-		 { Make sure we're not in a debugging mode where we aren't allowed to do the svn commits. }
-		 { Note that since this is a server side copy, it includes the commit operation as well. }
-		 if (enableSvnCommits = True) then
-		 begin
-			IssueSvnCommand(scriptsPath,
-							projectPath,
-							constSvnCmdCopy,
-							parms);
-		 end;
-		 
-		 { Free list of parms to svn copy. }
-		 parms.Free;
-		 
-	  end; { endif }
+         { Specify new subdir in tags/ as the destination for this svn copy. }
+         parms.Add(projTagPathUrl);
+         
+         { Set commit message. }
+         parms.Add('-m');
+         parms.Add('Performing server side copy-with-commit to copy snapshot of ' + constSvnDirTrunk + '/ working directory to new subdir in ' + constSvnDirTags + '/.  This is an automated checkin performed by script ' + constThisScriptName + '.');
+         
+         {** Issue svn server side copy-with-commit command to copy project snapshot to new subdir in tags/. **}
+         { Make sure we're not in a debugging mode where we aren't allowed to do the svn commits. }
+         { Note that since this is a server side copy, it includes the commit operation as well. }
+         if (enableSvnCommits = True) then
+         begin
+            IssueSvnCommand(scriptsPath,
+                            projectPath,
+                            constSvnCmdCopy,
+                            parms);
+         end;
+         
+         { Free list of parms to svn copy. }
+         parms.Free;
+         
+      end; { endif }
 
    end; { endfor }
 
@@ -7538,19 +7598,19 @@ end; { end PopulateAllSubDirsInTags() }
  *  Returns various objects and pathnames in var parms listed below.
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function InitScript(var Workspace	: IWorkspace;
-                    var Project		: IProject;
-					var scriptsPath	: TDynamicString;
-                    var projectName	: TDynamicString;
-                    var projectPath	: TDynamicString;
-                    var projOutPath	: TDynamicString;
-                    var projLogPath	: TDynamicString;
-                        )			: Integer;
+function InitScript(var Workspace   : IWorkspace;
+                    var Project     : IProject;
+                    var scriptsPath : TDynamicString;
+                    var projectName : TDynamicString;
+                    var projectPath : TDynamicString;
+                    var projOutPath : TDynamicString;
+                    var projLogPath : TDynamicString;
+                        )           : Integer;
 
 var
-   projectCount	: Integer;
-   i			: Integer;
-   rc			: Integer;
+   projectCount : Integer;
+   i            : Integer;
+   rc           : Integer;
 
 begin 
 
@@ -7661,59 +7721,59 @@ end; { end InitScript() }
  *  Now that we have presented the user with a dialog box full of checkboxes,
  *  we know what operations he/she wishes us to perform.  Proceed to do so.
  ***************************************************************************}
-procedure DoGenerateAndPackageOutputs(runOutJobs			: TStringList;
-                                      runPackager			: TStringList;
-                                      runRelAndTag			: TStringList;
-									  flagRequirePcbDocFile	: Boolean;
-                                      flagCreateZipFiles	: Boolean;
-                                      flagDoReleaseAndTag	: Boolean;
+procedure DoGenerateAndPackageOutputs(runOutJobs            : TStringList;
+                                      runPackager           : TStringList;
+                                      runRelAndTag          : TStringList;
+                                      flagRequirePcbDocFile : Boolean;
+                                      flagCreateZipFiles    : Boolean;
+                                      flagDoReleaseAndTag   : Boolean;
                                       );
                                       
 var
-   Workspace				  : IWorkspace;
-   Project					  : IProject;
-   Document					  : IDocument;
-   projectName				  : TDynamicString;
-//   projectPath			  : TDynamicString;
-   projOutPath				  : TDynamicString;
-   projLogPath				  : TDynamicString;
-   projFilePath				  : TDynamicString;
-   projOutSubDirs			  : TStringList;
-   projOutIncludes			  : TStringList;
-   outJobFiles				  : TStringList;
-   outJobPdfContainers		  : TStringList;
-   outJobPdfEnableNets		  : TStringList;
-   outJobGenContainers		  : TStringList;
-   outJobStatusMsg			  : TStringList;
-   outJobDoSortMultiNetlist	  : TStringList;
+   Workspace                  : IWorkspace;
+   Project                    : IProject;
+   Document                   : IDocument;
+   projectName                : TDynamicString;
+//   projectPath              : TDynamicString;
+   projOutPath                : TDynamicString;
+   projLogPath                : TDynamicString;
+   projFilePath               : TDynamicString;
+   projOutSubDirs             : TStringList;
+   projOutIncludes            : TStringList;
+   outJobFiles                : TStringList;
+   outJobPdfContainers        : TStringList;
+   outJobPdfEnableNets        : TStringList;
+   outJobGenContainers        : TStringList;
+   outJobStatusMsg            : TStringList;
+   outJobDoSortMultiNetlist   : TStringList;
    outJobSetSvnKeywordsOnBoms : TStringList;
-   outJobDoFixIpc356Netlist	  : TStringList;
-   deleteExcludes			  : TStringList;
-   zipDoCheckForExisting	  : TStringList;
-   zipExcludes				  : TStringList;
-   zipFindAddlFiles			  : TStringList;
-   zipFileNames				  : TStringList;
-   relAndTagSubDir			  : TStringList;
-   sourceFilePaths			  : TStringList;
-   topLevelSchDoc			  : IDocument;
-   i						  : Integer;
-   scriptsPath				  : TDynamicString;
-   rc						  : Integer;
-   foo						  : TDynamicString;
-   bomPath					  : TDynamicString;
-   pcbDocPath				  : TDynamicString;
-   pcbPartNumAndVersion		  : TDynamicString; 
-   pcbPartNum				  : TDynamicString; 
-   pcbVersion				  : TDynamicString; 
-   pcbDocRevNum				  : TDynamicString;
-   pcbaPartNum				  : TDynamicString;
-   pcbaVersion				  : TDynamicString; 
-   bomRevNum				  : TDynamicString;
-   newZipFiles				  : TStringList;
-   newSubDirs				  : TStringList;
-   step						  : Integer;
-   changesMade				  : Boolean;
-   projectParms				  : TStringList;
+   outJobDoFixIpc356Netlist   : TStringList;
+   deleteExcludes             : TStringList;
+   zipDoCheckForExisting      : TStringList;
+   zipExcludes                : TStringList;
+   zipFindAddlFiles           : TStringList;
+   zipFileNames               : TStringList;
+   relAndTagSubDir            : TStringList;
+   sourceFilePaths            : TStringList;
+   topLevelSchDoc             : IDocument;
+   i                          : Integer;
+   scriptsPath                : TDynamicString;
+   rc                         : Integer;
+   foo                        : TDynamicString;
+   bomPath                    : TDynamicString;
+   pcbDocPath                 : TDynamicString;
+   pcbPartNumAndVersion       : TDynamicString; 
+   pcbPartNum                 : TDynamicString; 
+   pcbVersion                 : TDynamicString; 
+   pcbDocRevNum               : TDynamicString;
+   pcbaPartNum                : TDynamicString;
+   pcbaVersion                : TDynamicString; 
+   bomRevNum                  : TDynamicString;
+   newZipFiles                : TStringList;
+   newSubDirs                 : TStringList;
+   step                       : Integer;
+   changesMade                : Boolean;
+   projectParms               : TStringList;
 
 begin
 
@@ -7727,7 +7787,7 @@ begin
    enableSvnCommits      := True; //False;
 
    { Specify that we are running the XIA_Release_Manager script. }
-   whichScriptIsThis	 := constWhichScriptXrm;
+   whichScriptIsThis     := constWhichScriptXrm;
    
 
    {*** Run standard script initialization routine. ***}
@@ -7754,21 +7814,21 @@ begin
 
    { Populate the strings lists that tell us what OutJob files to run, what subdirs to create, etc. }
    PopulateStringLists({var} projOutSubDirs,
-					   {var} projOutIncludes,
-					   {var} outJobFiles,
-					   {var} outJobPdfContainers,
-					   {var} outJobPdfEnableNets,
-					   {var} outJobGenContainers,
-					   {var} outJobStatusMsg,
-					   {var} outJobDoSortMultiNetlist,
-					   {var} outJobSetSvnKeywordsOnBoms,
-					   {var} outJobDoFixIpc356Netlist,
-					   {var} deleteExcludes,
-					   {var} zipDoCheckForExisting,
-					   {var} zipExcludes,
-					   {var} zipFindAddlFiles,
-					   {var} zipFileNames,
-					   {var} relAndTagSubDir);
+                       {var} projOutIncludes,
+                       {var} outJobFiles,
+                       {var} outJobPdfContainers,
+                       {var} outJobPdfEnableNets,
+                       {var} outJobGenContainers,
+                       {var} outJobStatusMsg,
+                       {var} outJobDoSortMultiNetlist,
+                       {var} outJobSetSvnKeywordsOnBoms,
+                       {var} outJobDoFixIpc356Netlist,
+                       {var} deleteExcludes,
+                       {var} zipDoCheckForExisting,
+                       {var} zipExcludes,
+                       {var} zipFindAddlFiles,
+                       {var} zipFileNames,
+                       {var} relAndTagSubDir);
 
    { Perform basic sanity check to make sure that there are the same number of entries in
     all our string lists. }
@@ -7796,17 +7856,17 @@ begin
    { Tell debug file what operations we've been requested to do. }
    for i := 0 to runOutJobs.Count - 1 do
    begin
-	  WriteToDebugFile('* runOutJobs[' + IntToStr(i) + '] is ' + runOutJobs.Strings[i]);
+      WriteToDebugFile('* runOutJobs[' + IntToStr(i) + '] is ' + runOutJobs.Strings[i]);
    end;
 
    for i := 0 to runPackager.Count - 1 do
    begin
-	  WriteToDebugFile('* runPackager[' + IntToStr(i) + '] is ' + runPackager.Strings[i]);
+      WriteToDebugFile('* runPackager[' + IntToStr(i) + '] is ' + runPackager.Strings[i]);
    end;
 
    for i := 0 to runRelAndTag.Count - 1 do
    begin
-	  WriteToDebugFile('* runRelAndTag[' + IntToStr(i) + '] is ' + runRelAndTag.Strings[i]);
+      WriteToDebugFile('* runRelAndTag[' + IntToStr(i) + '] is ' + runRelAndTag.Strings[i]);
    end;
    
    WriteToDebugFile('* flagRequirePcbDocFile is ' + BoolToStr(flagRequirePcbDocFile));
@@ -7824,7 +7884,8 @@ begin
 
    {*** Verify that scripts and libraries global working copy is up-to-date. ***}
    UpdateGuiStatusMessage('Status:  Starting step 0-' + IntToStr(step) + ':  Checking that scripts and libraries global working copy is up-to-date.');
-   CheckThatSvnScriptsWorkingCopyIsUpdated(scriptsPath);
+   CheckThatSvnScriptsWorkingCopyIsUpdated(scriptsPath,
+                                           constThisScriptName);
    WriteToSummaryFile('0-' + IntToStr(StepPlusPlus(step)) + '.  Checked that scripts and libraries global working copy is up-to-date.');
    
    
@@ -7854,35 +7915,35 @@ begin
    
    {*** Get all version numbers and svn revs.  These will later be used to construct zipfile names, etc. ***}
    projectParms := TStringList.Create;
-   projectParms.Delimiter := '=';
+   projectParms.Delimiter := constStringEquals;
    GetPcbAndPcbaPartNumsVersionsAndRevs(Project,
-										projectName,
-										scriptsPath,
-										projectPath,
-										projOutPath,
-										projOutSubDirs,
-										zipFileNames,
-										flagRequirePcbDocFile,
-										runPackager,
-										topLevelSchDoc,
-										{var} projectParms,
-										{var} pcbPartNum,
-										{var} pcbVersion,
-										{var} pcbDocRevNum,
-										{var} pcbaPartNum,
-										{var} pcbaVersion,
-										{var} step);
+                                        projectName,
+                                        scriptsPath,
+                                        projectPath,
+                                        projOutPath,
+                                        projOutSubDirs,
+                                        zipFileNames,
+                                        flagRequirePcbDocFile,
+                                        runPackager,
+                                        topLevelSchDoc,
+                                        {var} projectParms,
+                                        {var} pcbPartNum,
+                                        {var} pcbVersion,
+                                        {var} pcbDocRevNum,
+                                        {var} pcbaPartNum,
+                                        {var} pcbaVersion,
+                                        {var} step);
    
 
    { Only do these next steps if the user has requested release-and-tag operations. }
    if (flagDoReleaseAndTag = True) then
    begin
       
-	  {*** Perform any sanity checks for release and tag operations that we can in advance, so that we fail now rather than later. ***}
-	  UpdateGuiStatusMessage('Status:  Starting step 0-' + IntToStr(step) + ':  Performing sanity checks for release-and-tag.');
-	  SanityCheckRelAndTag(scriptsPath,
-						   projectPath);
-	  WriteToSummaryFile('0-' + IntToStr(StepPlusPlus(step)) + '.  Performed sanity checks for release-and-tag.');
+      {*** Perform any sanity checks for release and tag operations that we can in advance, so that we fail now rather than later. ***}
+      UpdateGuiStatusMessage('Status:  Starting step 0-' + IntToStr(step) + ':  Performing sanity checks for release-and-tag.');
+      SanityCheckRelAndTag(scriptsPath,
+                           projectPath);
+      WriteToSummaryFile('0-' + IntToStr(StepPlusPlus(step)) + '.  Performed sanity checks for release-and-tag.');
 
    end; { endif }
    
@@ -7937,7 +7998,7 @@ begin
    
    {*** Run all OutJobs scripts to generate all output files. ***}
    GenerateAllOutputs({var} Project,
-					  projectName,
+                      projectName,
                       scriptsPath,
                       projectPath,
                       projOutPath,
@@ -7986,29 +8047,29 @@ begin
    WriteToDebugFile('');
    WriteToDebugFile('**About to ask user to close files open in Excel and Acroread, and then verify that this was done...');
    VerifyBomsAndPdfsAreNotFlocked(scriptsPath,
-								  projectPath,
-								  projOutPath,
-								  projOutSubDirs,
-								  {var} step);
+                                  projectPath,
+                                  projOutPath,
+                                  projOutSubDirs,
+                                  {var} step);
    
    { Mark all xls BOM files if we're doing an assembly release. }
    WriteToDebugFile('');
    WriteToDebugFile('**About to mark xls BOM files if we''re doing an assembly release...');
    MarkXlsBomFilesForAssemblyRelease(scriptsPath,
-									 projectPath,
-									 projOutPath,
-									 projOutSubDirs,
-									 runPackager,
-									 pcbaVersion,
-									 {var} step);
+                                     projectPath,
+                                     projOutPath,
+                                     projOutSubDirs,
+                                     runPackager,
+                                     pcbaVersion,
+                                     {var} step);
 
    { Set svn property svn:keywords on all xls BOM files. }
    SetSvnPropsForXlsBomFiles(scriptsPath,
-							 projOutPath,
-							 projOutSubDirs,
-							 outJobSetSvnKeywordsOnBoms,
-							 runOutJobs,
-							 {var} step);
+                             projOutPath,
+                             projOutSubDirs,
+                             outJobSetSvnKeywordsOnBoms,
+                             runOutJobs,
+                             {var} step);
    
    {*** Commit all generated files to svn. ***}
 
@@ -8017,14 +8078,14 @@ begin
    WriteToDebugFile('**About to commit generated files to svn...');
 
    { Make sure we're not in a debugging mode where we aren't allowed to do the svn commits. }
-   bomRevNum := constSubUninitMarker;	{ Set BOM svn rev number to be our uninitialized variable marker. }
+   bomRevNum := constSubUninitMarker;   { Set BOM svn rev number to be our uninitialized variable marker. }
    if (enableSvnCommits = True) then
    begin
       UpdateGuiStatusMessage('Status:  Starting step 1-' + IntToStr(step) + ':  Committing all outputs in ProjectOutputs subdirectories to svn.');
       CheckinGeneratedFiles(Project,
-							scriptsPath,
+                            scriptsPath,
                             projectPath,
-							projLogPath,
+                            projLogPath,
                             projOutPath,
                             'Automated checkin of Altium generated output files, performed by script ' + constThisScriptName + '.',
                             {var} bomRevNum);
@@ -8037,12 +8098,12 @@ begin
    
    {*** Turn off svn properties for all generated .xls BOM files so that svn rev num embedded in generated xls BOM(s) will no longer change. }
    DelSvnPropsForXlsBomFiles(scriptsPath,
-							 projOutPath,
-							 projOutSubDirs,
-							 outJobSetSvnKeywordsOnBoms,
-							 runOutJobs,
-							 {var} changesMade,
-							 {var} step);
+                             projOutPath,
+                             projOutSubDirs,
+                             outJobSetSvnKeywordsOnBoms,
+                             runOutJobs,
+                             {var} changesMade,
+                             {var} step);
    
    
    {*** Re-commit generated .xls BOM files to svn. ***}
@@ -8053,7 +8114,7 @@ begin
       
       UpdateGuiStatusMessage('Status:  Starting step 1-' + IntToStr(step) + ':  Re-committing .xls BOM file(s) to svn.');
       CheckinGeneratedFiles(Project,
-							scriptsPath,
+                            scriptsPath,
                             projectPath,
                             projLogPath,
                             projOutPath,
@@ -8082,18 +8143,18 @@ begin
    
       {*** Create names for all zipfiles ***}
       UpdateGuiStatusMessage('Status:  Starting step 2-' + IntToStr(step) + ':  Creating names for selected zipfiles.');
-	  CreateAllZipFileNames(projectName,
-							projOutPath,
-							projOutSubDirs,
-							{var} zipFileNames,
-							{var} relAndTagSubDir,
-							runPackager,
-							pcbPartNum,
-							pcbVersion,
-							pcbDocRevNum,
-							pcbaPartNum,
-							pcbaVersion,
-							bomRevNum);
+      CreateAllZipFileNames(projectName,
+                            projOutPath,
+                            projOutSubDirs,
+                            {var} zipFileNames,
+                            {var} relAndTagSubDir,
+                            runPackager,
+                            pcbPartNum,
+                            pcbVersion,
+                            pcbDocRevNum,
+                            pcbaPartNum,
+                            pcbaVersion,
+                            bomRevNum);
       WriteToSummaryFile('');
       WriteToSummaryFile('2-' + IntToStr(StepPlusPlus(step)) + '.  Created names for selected zipfiles.');
 
@@ -8106,8 +8167,8 @@ begin
                         projOutSubDirs,
                         projOutIncludes,
                         outJobDoFixIpc356Netlist,
-						zipDoCheckForExisting,
-						zipExcludes,
+                        zipDoCheckForExisting,
+                        zipExcludes,
                         zipFindAddlFiles,
                         zipFileNames,
                         runPackager,
@@ -8126,25 +8187,25 @@ begin
 
          WriteToSummaryFile('2-' + IntToStr(StepPlusPlus(step)) + '.  Added zipfiles to svn.');
 
-	  end;
+      end;
 
       {*** If needed, bump PCB and PCBA version numbers by modifying project parameter in project file. ***}
       { Make sure we're not in a debugging mode where we aren't allowed to do the svn commits. }
       if (enableSvnCommits = True) then
       begin
-		 { Combine PCB part number with PCB version number. }
-		 pcbPartNumAndVersion := (pcbPartNum + '-' + pcbVersion);
+         { Combine PCB part number with PCB version number. }
+         pcbPartNumAndVersion := (pcbPartNum + '-' + pcbVersion);
 
-		 { Call IncrementPcbAndPcbaVersions() to do the real work. }
-		 IncrementPcbAndPcbaVersions(Project,
-									 projOutSubDirs,
-									 runPackager,
-									 projFilePath,
-									 {var} projectParms,
-									 pcbPartNumAndVersion,
-									 pcbaVersion,
-									 {var} step);
-	  end { endif }   
+         { Call IncrementPcbAndPcbaVersions() to do the real work. }
+         IncrementPcbAndPcbaVersions(Project,
+                                     projOutSubDirs,
+                                     runPackager,
+                                     projFilePath,
+                                     {var} projectParms,
+                                     pcbPartNumAndVersion,
+                                     pcbaVersion,
+                                     {var} step);
+      end { endif }   
       
       else
          WriteToSummaryFile('2-' + IntToStr(StepPlusPlus(step)) + '.  ERROR!  In debug mode!  SKIPPED Incrementing PCB and/or PCBA version numbers by modifying project parameter(s) in project file.');
@@ -8174,8 +8235,8 @@ begin
       else
          WriteToSummaryFile('2-' + IntToStr(StepPlusPlus(step)) + '.  ERROR!  In debug mode!  SKIPPED Committing zipfiles to svn (in ' + constSvnDirTrunk + '/).');
 
-	  { Free newZipFiles string list. }
-	  newZipFiles.Free;
+      { Free newZipFiles string list. }
+      newZipFiles.Free;
 
    end; { endif if (flagCreateZipFiles = True) }
    
@@ -8280,21 +8341,21 @@ begin
    {****** Wrap things up ******}
    { Free the strings lists that were created by PopulateStringLists(). }
    FreeStringLists({var} projOutSubDirs,
-				   {var} projOutIncludes,
-				   {var} outJobFiles,
-				   {var} outJobPdfContainers,
-				   {var} outJobPdfEnableNets,
-				   {var} outJobGenContainers,
-				   {var} outJobStatusMsg,
-				   {var} outJobDoSortMultiNetlist,
-				   {var} outJobSetSvnKeywordsOnBoms,
-				   {var} outJobDoFixIpc356Netlist,
-				   {var} deleteExcludes,
-				   {var} zipDoCheckForExisting,
-				   {var} zipExcludes,
-				   {var} zipFindAddlFiles,
-				   {var} zipFileNames,
-				   {var} relAndTagSubDir);
+                   {var} projOutIncludes,
+                   {var} outJobFiles,
+                   {var} outJobPdfContainers,
+                   {var} outJobPdfEnableNets,
+                   {var} outJobGenContainers,
+                   {var} outJobStatusMsg,
+                   {var} outJobDoSortMultiNetlist,
+                   {var} outJobSetSvnKeywordsOnBoms,
+                   {var} outJobDoFixIpc356Netlist,
+                   {var} deleteExcludes,
+                   {var} zipDoCheckForExisting,
+                   {var} zipExcludes,
+                   {var} zipFindAddlFiles,
+                   {var} zipFileNames,
+                   {var} relAndTagSubDir);
    
    { Free remaining string lists that we created in this function. }
    sourceFilePaths.Free;
@@ -8314,12 +8375,12 @@ end; { end DoGenerateAndPackageOutputs() }
 procedure TGenerateAndPackageOutputsForm.clickedOk(Sender : TPanel);
 
 var
-   runOutJobs			 : TStringList;
-   runPackager			 : TStringList;
-   runRelAndTag			 : TStringList;
+   runOutJobs            : TStringList;
+   runPackager           : TStringList;
+   runRelAndTag          : TStringList;
    flagRequirePcbDocFile : Boolean;
-   flagCreateZipFiles	 : Boolean;
-   flagDoReleaseAndTag	 : Boolean;
+   flagCreateZipFiles    : Boolean;
+   flagDoReleaseAndTag   : Boolean;
 
 begin
 
@@ -8379,7 +8440,7 @@ begin
 
 
    { See if the user has selected to do any steps that require the existence of a PcbDoc (layout) file. }
-   flagRequirePcbDocFile  := (formCbFlagOp1_3.Checked); 	{ "Generate XIA_Layout_Review outputs" }
+   flagRequirePcbDocFile  := (formCbFlagOp1_3.Checked);     { "Generate XIA_Layout_Review outputs" }
 
    
    { See if the user has selected to do any Packaging at all. }
@@ -8780,9 +8841,9 @@ begin
    else
    begin
       
-	  { Handle dependencies that depend on this operation. }
+      { Handle dependencies that depend on this operation. }
       GuiHandleUncheckOfGenerateAssemblyPrereq(0);
-	  GuiHandleUncheckOfPackagePurchasingPrereq(0);
+      GuiHandleUncheckOfPackagePurchasingPrereq(0);
       
    end; { endelse }
       
@@ -8857,8 +8918,8 @@ begin
       { Force pre-requisites to be checked. }
       formCbFlagOp1_4.Checked := True;
 
-	  { Force conflicting operations to be un-checked. }
-	  GuiHandleUncheckOfPackageAssemblyPrereq(0);
+      { Force conflicting operations to be un-checked. }
+      GuiHandleUncheckOfPackageAssemblyPrereq(0);
    end
    
    { Else the user just unchecked this box. }
@@ -8917,10 +8978,10 @@ begin
       { Force pre-requisites to be checked. }
       formCbFlagOp1_6.Checked := True;
 
-	  { Force conflicting operations to be un-checked. }
-	  GuiHandleUncheckOfPackagePurchasingPrereq(0);
+      { Force conflicting operations to be un-checked. }
+      GuiHandleUncheckOfPackagePurchasingPrereq(0);
 
-	  { Turn on text describing preconditions for running package assembly. }
+      { Turn on text describing preconditions for running package assembly. }
       GuiEnablePackageAssemblyPreconditions(0);
       
    end
@@ -8952,8 +9013,8 @@ begin
       { Force pre-requisites to be checked. }
       formCbFlagOp2_4.Checked := True;
 
-	  { Force conflicting operations to be un-checked. }
-	  GuiHandleUncheckOfPackageAssemblyPrereq(0);
+      { Force conflicting operations to be un-checked. }
+      GuiHandleUncheckOfPackageAssemblyPrereq(0);
    end
    
    { Else the user just unchecked this box. }
@@ -9001,8 +9062,8 @@ begin
       { Force pre-requisites to be checked. }
       formCbFlagOp2_6.Checked := True;
 
-	  { Force conflicting operations to be un-checked. }
-	  GuiHandleUncheckOfPackagePurchasingPrereq(0);   
+      { Force conflicting operations to be un-checked. }
+      GuiHandleUncheckOfPackagePurchasingPrereq(0);   
    end
    
    { Else the user just unchecked this box. }
