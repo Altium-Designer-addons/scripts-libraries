@@ -90,9 +90,9 @@ Configuration6_Item3=Comment=True|Footprint=True
 Configuration6_Name4=OutputConfigurationParameter1
 Configuration6_Item4=Record=BOMPrintView|ShowNoERC=True|ShowParamSet=True|ShowProbe=True|ExpandDesignator=True|ExpandNetLabel=False|ExpandPort=False|ExpandSheetNum=False|ExpandDocNum=False
 Configuration6_Name5=SortOrder
-Configuration6_Item5=ESP PN=Up
+Configuration6_Item5=DB_KEY=Up
 Configuration6_Name6=VisibleOrder
-Configuration6_Item6=Quantity=100|Designator=100|ESP PN=100|Comment=100|VALUE=100|Tolerance=100|Rating=100|PACKAGE SIZE=100|MFGNAME=100|MFGNUMBER=100|MFGNAME2=100|MFGNUMBER2=100|MFGNAME3=100|MFGNUMBER3=100|Description=100|Supplier 1=100|Supplier Part Number 1=100|Supplier 2=100|Supplier Part Number 2=100|Supplier 3=100|Supplier Part Number 3=100|Supplier 4=100|Supplier Part Number 4=100|Supplier 5=100|Supplier Part Number 5=100|Marking_on_Component=100|APPROVED=100|FOOTPRT CHECK=100|MFG CHECK=100|ROHS_COMPLIANT=100|STATUS=100|SYMBOL CHECK=100|TEMPERATURE=100|SOLDERING SPEC=100|Footprint=100
+Configuration6_Item6=Quantity=100|Designator=100|DB_KEY=100|Comment=100|VALUE=100|Tolerance=100|Rating=100|PACKAGE SIZE=100|MFGNAME=100|MFGNUMBER=100|MFGNAME2=100|MFGNUMBER2=100|MFGNAME3=100|MFGNUMBER3=100|Description=100|Supplier 1=100|Supplier Part Number 1=100|Supplier 2=100|Supplier Part Number 2=100|Supplier 3=100|Supplier Part Number 3=100|Supplier 4=100|Supplier Part Number 4=100|Supplier 5=100|Supplier Part Number 5=100|Marking_on_Component=100|APPROVED=100|FOOTPRT CHECK=100|MFG CHECK=100|ROHS_COMPLIANT=100|STATUS=100|SYMBOL CHECK=100|TEMPERATURE=100|SOLDERING SPEC=100|Footprint=100
 OutputType7=Differences Report
 OutputName7=Differences Report
 OutputCategory7=Validation
