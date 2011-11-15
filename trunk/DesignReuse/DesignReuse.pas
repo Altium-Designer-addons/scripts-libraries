@@ -209,7 +209,7 @@ begin
    AddStringParameter('Scope', 'All');
    RunProcess('PCB:DeSelect');
 
-   ASetOfObjects := MkSet(ePadObject, eViaObject, eTrackObject, eTextObject, eFillObject, eComponentObject, ePolyObject,
+   ASetOfObjects := MkSet(ePadObject, eViaObject, eTrackObject, eArcObject, eTextObject, eFillObject, eComponentObject, ePolyObject,
                           eRegionObject, eComponentBodyObject, eDimensionObject, eCoordinateObject);
 
    Try
