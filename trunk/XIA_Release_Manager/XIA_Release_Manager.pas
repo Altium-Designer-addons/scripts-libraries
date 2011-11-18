@@ -676,7 +676,7 @@ function CreateZipFileName(    projectName  : TDynamicString;
  ***************************************************************************}
 const
 {* Declare the version and name of this script. *}
-   constScriptVersion            = 'v1.8.13_gc $Revision$';
+   constScriptVersion            = 'v1.8.14_gc $Revision$';
    constThisScriptNameNoExt      = 'XIA_Release_Manager';
    constThisScriptName           = constThisScriptNameNoExt + '.pas';
 
@@ -1714,13 +1714,32 @@ end; { end TruncateFileWithVerify() }
 procedure OpenDebugFile(fileName :  TDynamicString);
 begin
 
-//   ShowMessage('In OpenDebugFile(), fileName is ' + fileName);
-   
-   { Truncate old version of debug file and verify that we succeeded. }
-   TruncateFileWithVerify(fileName);
-   
-   { Try to open debug file for writing. }
-   AssignFile(DebugFile, fileName);
+// ShowMessage('In OpenDebugFile(), fileName is ' + fileName);
+
+   { See if the file already exists. }
+   if (FileExists(fileName)) then
+   begin
+      
+      { Truncate old version of debug file and verify that we succeeded. }
+      TruncateFileWithVerify(fileName);
+      
+      { Try to open debug file for writing. }
+      AssignFile(DebugFile, fileName);
+      
+   end { endif }
+
+   { Else it doesn't yet exist.  Create it. }
+   else
+   begin
+
+      { Try to open debug file for writing. }
+      AssignFile(DebugFile, fileName);
+      ReWrite(DebugFile);
+
+      { Close debug file. }
+      CloseFile(DebugFile);
+      
+   end; { endelse }
    
 end; { end OpenDebugFile() }
 
@@ -1775,12 +1794,31 @@ end; { end CloseDebugFile() }
 procedure OpenSummaryFile(fileName :  TDynamicString);
 begin
 
-   { Truncate old version of summary file and verify that we succeeded. }
-   TruncateFileWithVerify(fileName);
-   
-   { Try to open summary file for writing. }
-   AssignFile(SummaryFile, fileName);
+   { See if the file already exists. }
+   if (FileExists(fileName)) then
+   begin
+      
+      { Truncate old version of summary file and verify that we succeeded. }
+      TruncateFileWithVerify(fileName);
+      
+      { Try to open summary file for writing. }
+      AssignFile(SummaryFile, fileName);
 
+   end { endif }
+
+   { Else it doesn't yet exist.  Create it. }
+   else
+   begin
+
+      { Try to open summary file for writing. }
+      AssignFile(SummaryFile, fileName);
+      ReWrite(SummaryFile);
+
+      { Close summary file. }
+      CloseFile(SummaryFile);
+      
+   end; { endelse }
+   
    { Create string lists that will later be written as the summary file. }
    SummaryMessages := TStringList.Create;
    
@@ -1820,7 +1858,7 @@ end; { end WriteToSummaryFile() }
  *  Note:  Since we're now operating in append-write-close mode, there's
  *  very little that we actually have to do here.
  *  
- *  Note:  foo is a dummy parameter that exists only to keep CloseDebugFile()
+ *  Note:  foo is a dummy parameter that exists only to keep CloseSummaryFile()
  *  from being offered as the script entry point in Altium.
  ***************************************************************************}
 procedure CloseSummaryFile(foo : Integer);
