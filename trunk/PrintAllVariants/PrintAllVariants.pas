@@ -74,6 +74,7 @@ begin
    // Here I need to cycle through all Parts and see what component parameters
    // are selected.
 
+
    SaveDialog        := TSaveDialog.Create(Application);
    SaveDialog.Title  := 'Save Variants to CSV';
    SaveDialog.Filter := 'CSV file (*.csv)|*.csv';
@@ -82,6 +83,7 @@ begin
    if (not Flag) then exit;
 
    FileName := SaveDialog.FileName;
+
 
    // Set file extension
    FileName := ChangeFileExt(FileName, '.csv');
