@@ -198,12 +198,18 @@ begin
    RunProcess('WorkspaceManager:Compile');
 
    // So now we have Compile mask over everithing. We just need to update document
+
    ResetParameters;
    AddStringParameter('ObjectKind','Project');
    AddStringParameter('Action',Destination);
-   if (indeks <> 0) then
+   if indeks > 0 then
       AddStringParameter('Index',IntToStr(Indeks));
-   RunProcess('WorkspaceManager:Compare');
+
+
+   if (indeks < 0) then
+      RunProcess('WorkspaceManager:DocumentOptions')
+   else
+      RunProcess('WorkspaceManager:Compare');
 
    // Now delete all compile masks
    for DocNum := 0 to PcbProject.DM_LogicalDocumentCount - 1 do
@@ -261,12 +267,6 @@ begin
          Sheet.GraphicallyInvalidate;
       end;
    end;
-
-   // Recompile
-   ResetParameters;
-   AddStringParameter('Action','Compile');
-   AddStringParameter('ObjectKind','Project');
-   RunProcess('WorkspaceManager:Compile');
 end;
 
 
@@ -316,9 +316,9 @@ begin
    Begin
        // First try compiling the project
        ResetParameters;
-       AddStringParameter( 'Action', 'Compile' );
-       AddStringParameter( 'ObjectKind', 'Project' );
-       RunProcess( 'WorkspaceManager:Compile' );
+       AddStringParameter('Action','Compile');
+       AddStringParameter('ObjectKind','Project');
+       RunProcess('WorkspaceManager:Compile');
 
        // Try Again to open the flattened document
        If (PCBProject.DM_DocumentFlattened = Nil) Then
@@ -334,7 +334,7 @@ end;
 {..............................................................................}
 {                                                                              }
 {  SCHUpdateSinglePcbDocument - you call this procedure if you want to update  }
-{                               Single PCB document from SCH.                  }
+{                               Single PCB document from current (focused) SCH.}
 {                               This procedure opens up a form in which you    }
 {                               choose PCB Document to update.                 }
 {                                                                              }
@@ -367,7 +367,7 @@ end;
 {..............................................................................}
 {                                                                              }
 {  SCHUpdateAllPcbDocuments - you call this procedure if you want to update    }
-{                             All PCB documents from SCH.                      }
+{                             All PCB documents from current (focused) SCH.    }
 {                                                                              }
 {..............................................................................}
 Procedure SCHUpdateAllPcbDocuments;
@@ -394,6 +394,11 @@ begin
    for i := 0 to PcbDocs.Count - 1 do
       UpdateOther(i + 1, PcbDocs.Get(i), 'UpdateOther');
 
+   // Recompile
+   ResetParameters;
+   AddStringParameter('Action','Compile');
+   AddStringParameter('ObjectKind','Project');
+   RunProcess('WorkspaceManager:Compile');
 end;
 
 
@@ -401,13 +406,19 @@ end;
 {..............................................................................}
 {                                                                              }
 {  PCBUpdateSchematic - you call this procedure if you want to update          }
-{                       schematic from PCB document.                           }
+{                       schematic from current (focused) PCB document.                           }
 {                                                                              }
 {..............................................................................}
 Procedure PCBUpdateSchematic;
 begin
    if (TestsOnCreate('PCB') = False) then exit;
    UpdateOther(0, GetWorkspace.DM_FocusedDocument.DM_FileName, 'UpdateOther');
+
+   // Recompile
+   ResetParameters;
+   AddStringParameter('Action','Compile');
+   AddStringParameter('ObjectKind','Project');
+   RunProcess('WorkspaceManager:Compile');
 end;
 
 
@@ -422,6 +433,32 @@ Procedure PCBImportChangesFromSch;
 begin
    if (TestsOnCreate('PCB') = False) then exit;
    UpdateOther(0, GetWorkspace.DM_FocusedDocument.DM_FileName, 'UpdateMe');
+
+   // Recompile
+   ResetParameters;
+   AddStringParameter('Action','Compile');
+   AddStringParameter('ObjectKind','Project');
+   RunProcess('WorkspaceManager:Compile');
+end;
+
+
+
+{..............................................................................}
+{                                                                              }
+{  PCBComponentLinks - you call this procedure if you want to set "Component   }
+{                      Links" for current (focused) PCB document.              }
+{                                                                              }
+{..............................................................................}
+Procedure PCBComponentLinks;
+begin
+   if (TestsOnCreate('PCB') = False) then exit;
+   UpdateOther(-1, GetWorkspace.DM_FocusedDocument.DM_FileName, 'ComponentLinking');
+
+   // Recompile
+   ResetParameters;
+   AddStringParameter('Action','Compile');
+   AddStringParameter('ObjectKind','Project');
+   RunProcess('WorkspaceManager:Compile');
 end;
 
 
@@ -450,6 +487,12 @@ begin
    else
       SCHUpdateAllPcbDocuments;
 
+   // Recompile
+   ResetParameters;
+   AddStringParameter('Action','Compile');
+   AddStringParameter('ObjectKind','Project');
+   RunProcess('WorkspaceManager:Compile');
+
    Close;
 end;
 
@@ -459,14 +502,3 @@ begin
 end;
 
 
-Procedure Test;
-var
-   str1 : String;
-   str2 : String;
-begin
-   str1 := 'Test';
-   str2 := 'Test';
-
-   if str1 = 'Test' Then ShowMessage('equal')
-   else                  ShowMessage('not equal');
-end;
