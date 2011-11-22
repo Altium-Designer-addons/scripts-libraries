@@ -7,8 +7,13 @@
 {           It then shows small dialog in which user should choose Vendor      }
 {           tool, and choose weather he will do import or export.              }
 {                                                                              }
-{           It currently supports Altera, but soon I will try to support       }
-{           Xilinx, Lattice and Actel.                                         }
+{           It currently supports Altera and Xilinx, but soon I will try to    }
+{           support Lattice and Actel.                                         }
+{                                                                              }
+{           - Altera export generates .tcl file                                }
+{           - Altera Import needs .pin file                                    }
+{           - Xilinx export generates .ucf file                                }
+{           - Xilinx Import needs .ucf file                                    }
 {                                                                              }
 {           Known issues (on import only):                                     }
 {           - If you place wire stub shorter than the one already on the PCB,  }
