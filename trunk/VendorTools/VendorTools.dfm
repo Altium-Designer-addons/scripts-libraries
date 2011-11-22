@@ -68,7 +68,6 @@ object VendorToolsForm: TVendorToolsForm
       Width = 56
       Height = 17
       Caption = 'Xilinx'
-      Enabled = False
       TabOrder = 3
     end
   end

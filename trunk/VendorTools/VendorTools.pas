@@ -91,8 +91,10 @@ begin
    i:=0;
    StringLen := Length(Tekst);
    while i<=StringLen do
-      if ((Tekst[i]=' ') And (Tekst[i+1]=' ')) then Delete(Tekst, i, 1)
-      else Inc(i);
+      if ((Tekst[i]=' ') And (Tekst[i+1]=' ')) then
+         Delete(Tekst, i, 1)
+      else
+         Inc(i);
    Result := Trim(Tekst);
 end;
 
@@ -250,6 +252,7 @@ begin
    While i < PinFile.Count do
    begin
       Line := PinFile[i];
+      Line := StringReplace(Line, Chr(9), ' ', MkSet(rfReplaceAll));
       Line := Trim(Line);
 
       if Line <> '' then
@@ -349,8 +352,94 @@ begin
 end;
 
 Procedure ImportFromXilinx(dummy : string);
+var
+   i, j     : Integer;
+   Flag     : Integer;
+   FileName : String;
+   PinFile  : TstringList;
+   Line     : String;
+
+   Indeks   : Integer;
+   Name     : String;
+   Value    : String;
+
+   AsciiCode : Integer;
+   PosValue  : String;
+
+   TempLine : String;
+
 begin
-   close;
+   OpenDialog.Title  := 'Import pin info from *.ucf file for Component ' + ComboBoxDesignator.Text;
+   OpenDialog.Filter := 'UCF file (*.ucf)|*.ucf';
+
+   Flag := OpenDialog.Execute;
+   if (not Flag) then exit;
+
+   FileName := OpenDialog.FileName;
+
+   // Load ucf file to PinFile
+   PinFile := TStringList.Create;
+   PinFile.LoadFromFile(Filename);
+
+   i := 0;
+
+   While i < PinFile.Count do
+   begin
+      Line := PinFile[i];
+      Line := Trim(Line);
+
+      if (Length(Line) > 3) then
+         if (AnsiUpperCase(Line[1]) = 'N') and (AnsiUpperCase(Line[2]) = 'E') and (AnsiUpperCase(Line[3]) = 'T') then
+         Begin
+            Line := StringReplace(Line, Chr(9), ' ', MkSet(rfReplaceAll));
+            Line := RemoveMultipleSpaces(Line);
+            Value := Trim(GetToken(Line,2,' '));
+
+            // Check if we have " at the start or end
+            if (Value[1] = '"') then
+               Delete(Value,1,1);
+
+            if (Value[Length(Value)] = '"') then
+               SetLength(Value, Length(Value) - 1);
+
+            // Remove brackets in busses
+            if (LastDelimiter('(', Value) <> 0) then
+            begin
+               Delete(Value, LastDelimiter('(', Value), 1);
+               Delete(Value, LastDelimiter(')', Value), 1);
+            end;
+
+            if (LastDelimiter('[', Value) <> 0) then
+            begin
+               Delete(Value, LastDelimiter('[', Value), 1);
+               Delete(Value, LastDelimiter(']', Value), 1);
+            end;
+
+            Name := Trim(GetToken(Line,3,' '));
+
+            if Length(Name) < 5 then
+               Name := Trim(GetToken(Line,5,' '))
+            else
+               Delete(Name, 1, 4);
+
+            // If there is trailing ';' - remove it
+            if (Name[Length(Name)] = ';') then
+               SetLength(Name, Length(Name) - 1);
+
+            // Check if we have " at the start or end
+            if (Name[1] = '"') then
+               Delete(Name,1,1);
+
+            if (Name[Length(Name)] = '"') then
+               SetLength(Name, Length(Name) - 1);
+
+            // Write all down
+            PinInfo.Add(Name + '=' + Value);
+         end;
+
+      Inc(i);
+   end;
+   // PinInfo.SaveToFile('C:\Users\Petar\Desktop\Report3.Txt');
 end;
 
 
@@ -461,42 +550,6 @@ begin
    close;
 end;
 
-
-                        (*
-procedure TVendorToolsForm.RadioButtonImportClick(Sender: TObject);
-begin
-   if RadioButtonImport.Checked then
-   begin
-      CheckBoxPorts.Enabled := True;
-      CheckBoxPins.Enabled  := True;
-   end
-   else
-   begin
-      CheckBoxPorts.Enabled := False;
-      CheckBoxPins.Enabled  := False;
-      CheckBoxPorts.Checked := False;
-      CheckBoxPins.Checked  := False;
-   end;
-end;
-
-
-
-procedure TVendorToolsForm.RadioButtonExportClick(Sender: TObject);
-begin
-   if RadioButtonImport.Checked then
-   begin
-      CheckBoxPorts.Enabled := True;
-      CheckBoxPins.Enabled  := True;
-   end
-   else
-   begin
-      CheckBoxPorts.Enabled := False;
-      CheckBoxPins.Enabled  := False;
-      CheckBoxPorts.Checked := False;
-      CheckBoxPins.Checked  := False;
-   end;
-end;
-               *)
 
 
 procedure TVendorToolsForm.ButtonCancelClick(Sender: TObject);
