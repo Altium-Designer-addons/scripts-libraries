@@ -548,9 +548,9 @@ begin
          NetName := NetName + '_N';
 
       if NetIndex <> '' then
-         NetName := NetName + '(' + NetIndex + ')';
+         NetName := NetName + '<' + NetIndex + '>';
 
-      Line := 'NET ' + NetName + ' LOC = ' + PinName + ';';
+      Line := 'NET "' + NetName + '"      LOC = "' + PinName + '";';
       Lista.Add(Line);
    end;
 
