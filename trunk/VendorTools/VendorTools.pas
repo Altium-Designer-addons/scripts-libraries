@@ -524,6 +524,8 @@ var
    Line     : String;
    PinName  : String;
    NetName  : String;
+   NetIndex : String;
+   DiffPair : String;
    i        : Integer;
    FileName : String;
 begin
@@ -534,15 +536,26 @@ begin
    begin
       Line := PinInfo[i];
 
-      PinName := GetPinName(Line);
-      NetName := GetNetName(Line);
+      PinName  := GetPinName(Line);
+      NetName  := GetNetText(Line);
+      NetIndex := GetNetIndex(Line);
+      DiffPair := IsDiffPair(Line);
+      
+      if DiffPair = 'Positive' then
+         NetName := NetName + '_P';
+
+      if DiffPair = 'Negative' then
+         NetName := NetName + '_N';
+
+      if NetIndex <> '' then
+         NetName := NetName + '(' + NetIndex + ')';
 
       Line := 'NET ' + NetName + ' LOC = ' + PinName + ';';
       Lista.Add(Line);
    end;
 
    SaveDialog.Title  := 'Export pin info to *.UCF file for Component ' + ComboBoxDesignator.Text;
-   SaveDialog.Filter := 'TCL file (*.ucf)|*.ucf';
+   SaveDialog.Filter := 'UCF file (*.ucf)|*.ucf';
 
    i := SaveDialog.Execute;
    if (not i) then exit;
