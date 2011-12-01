@@ -2,7 +2,7 @@ object ThievingPads: TThievingPads
   Left = 32
   Top = 18
   Caption = 'Thieving Pads'
-  ClientHeight = 393
+  ClientHeight = 458
   ClientWidth = 289
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -15,7 +15,7 @@ object ThievingPads: TThievingPads
   TextHeight = 13
   object ButtonOK: TButton
     Left = 112
-    Top = 360
+    Top = 416
     Width = 75
     Height = 25
     Caption = 'OK'
@@ -25,7 +25,7 @@ object ThievingPads: TThievingPads
   end
   object ButtonCancel: TButton
     Left = 200
-    Top = 360
+    Top = 416
     Width = 75
     Height = 25
     Caption = 'Cancel'
@@ -228,9 +228,9 @@ object ThievingPads: TThievingPads
     object CheckBoxCompClearRule: TCheckBox
       Left = 16
       Top = 24
-      Width = 192
+      Width = 144
       Height = 17
-      Caption = 'Create Component Clearence Rule'
+      Caption = 'Create Important Rules'
       Checked = True
       State = cbChecked
       TabOrder = 8
@@ -240,7 +240,7 @@ object ThievingPads: TThievingPads
     Left = 8
     Top = 280
     Width = 272
-    Height = 72
+    Height = 120
     Caption = 'Note:'
     TabOrder = 4
     object Label6: TLabel
@@ -263,6 +263,20 @@ object ThievingPads: TThievingPads
       Width = 97
       Height = 13
       Caption = 'calculated correctly.'
+    end
+    object Label11: TLabel
+      Left = 8
+      Top = 96
+      Width = 173
+      Height = 13
+      Caption = ' Clearance and Routing Width rules.'
+    end
+    object Label5: TLabel
+      Left = 8
+      Top = 80
+      Width = 218
+      Height = 13
+      Caption = '"Create Important Rules" creates Component'
     end
   end
 end
