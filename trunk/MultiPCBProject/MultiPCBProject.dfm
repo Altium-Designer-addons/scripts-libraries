@@ -25,7 +25,7 @@ object FormMultiPCBProject: TFormMultiPCBProject
   object RadioButtonSingle: TRadioButton
     Left = 16
     Top = 16
-    Width = 113
+    Width = 96
     Height = 17
     Caption = 'Update only:'
     Checked = True

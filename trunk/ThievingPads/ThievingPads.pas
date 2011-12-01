@@ -133,7 +133,7 @@ procedure TThievingPads.ButtonOKClick(Sender: TObject);
 var
 
    BoardShapeRect : TCoordRect;
-   NewPad         : IPCB_Pad2;
+   NewPad         : IPCB_Arc;
    PosX, PosY     : Integer;
    TheLayerStack  : IPCB_LayerStack;
    LayerObj       : IPCB_LayerObject;
@@ -147,6 +147,7 @@ var
    RuleElectrical : IPCB_ClearanceConstraint;
    RuleBetween    : IPCB_ClearanceConstraint;
    RuleCompClear  : IPCB_ComponentClearanceConstraint;
+   RuleWidth      : IPCB_MaxMinWidthConstraint;
 
    MaxGap         : Integer;
    PadRect        : TCoordRect;
@@ -155,8 +156,27 @@ var
    Violation      : IPCB_Violation;
    ViolationFlag  : Integer;
    SetOfLayers    : IPCB_LayerSet;
+   TempString     : String;
 
 begin
+
+   // Fix numbers based on local settings
+   TempString := EditSize.Text;
+   if LastDelimiter(',.', TempString) <> 0 then TempString[LastDelimiter(',.', TempString)] := DecimalSeparator;
+   EditSize.Text := TempString;
+
+   TempString := EditBetween.Text;
+   if LastDelimiter(',.', TempString) <> 0 then TempString[LastDelimiter(',.', TempString)] := DecimalSeparator;
+   EditBetween.Text := TempString;
+
+   TempString := EditElectrical.Text;
+   if LastDelimiter(',.', TempString) <> 0 then TempString[LastDelimiter(',.', TempString)] := DecimalSeparator; 
+   EditElectrical.Text := TempString;
+
+   TempString := EditOutline.Text;
+   if LastDelimiter(',.', TempString) <> 0 then TempString[LastDelimiter(',.', TempString)] := DecimalSeparator;
+   EditOutline.Text := TempString;
+
 
    // Distance
    Distance := StrToFloat(EditSize.Text) + StrToFloat(EditBetween.Text);
@@ -220,6 +240,7 @@ begin
    RuleElectrical := Nil;
    RuleBetween    := Nil;
    RuleCompClear  := Nil;
+   RuleWidth      := Nil;
 
    While (Rule <> Nil) Do
    Begin
@@ -239,6 +260,10 @@ begin
           if (Rule.Scope1Expression = 'InComponent(''Venting'')') and (Rule.Scope2Expression = 'All') then
              RuleCompClear := Rule;
 
+       if Rule.RuleKind = eRule_MaxMinWidth then
+          if (Rule.Scope1Expression = 'InComponent(''Venting'')') then
+             RuleWidth := Rule;
+
        Rule :=  Iterator.NextPCBObject;
    End;
    Board.BoardIterator_Destroy(Iterator);
@@ -254,21 +279,17 @@ begin
 
       RuleOutline.NetScope  := eNetScope_AnyNet;
 
-      if RadioButtonMM.Checked then RuleOutline.Gap := MMsToCoord(StrToFloat(EditOutline.Text))
-      else                          RuleOutline.Gap := MilsToCoord(StrToFloat(EditOutline.Text));
-
       RuleOutline.Name    := 'Venting-Board';
       RuleOutline.Comment := 'Clearance between Venting Pads and Board Outline';
 
       // Add the rule into the Board
       Board.AddPCBObject(RuleOutline);
 
-   end
-   else
-   begin
-      if RadioButtonMM.Checked then RuleOutline.Gap := MMsToCoord(StrToFloat(EditOutline.Text))
-      else                          RuleOutline.Gap := MilsToCoord(StrToFloat(EditOutline.Text));
    end;
+
+   if RadioButtonMM.Checked then RuleOutline.Gap := MMsToCoord(StrToFloat(EditOutline.Text))
+   else                          RuleOutline.Gap := MilsToCoord(StrToFloat(EditOutline.Text));
+
 
    // Check rule to other electrical objects
    if RuleElectrical = Nil then
@@ -290,12 +311,10 @@ begin
       // Add the rule into the Board
       Board.AddPCBObject(RuleElectrical);
 
-   end
-   else
-   begin
-      if RadioButtonMM.Checked then RuleElectrical.Gap := MMsToCoord(StrToFloat(EditElectrical.Text))
-      else                          RuleElectrical.Gap := MilsToCoord(StrToFloat(EditElectrical.Text));
    end;
+
+   if RadioButtonMM.Checked then RuleElectrical.Gap := MMsToCoord(StrToFloat(EditElectrical.Text))
+   else                          RuleElectrical.Gap := MilsToCoord(StrToFloat(EditElectrical.Text));
 
    // Check rule between pads
    if RuleBetween = Nil then
@@ -308,24 +327,21 @@ begin
 
       RuleBetween.NetScope  := eNetScope_AnyNet;
 
-      if RadioButtonMM.Checked then RuleBetween.Gap := MMsToCoord(StrToFloat(EditBetween.Text))
-      else                          RuleBetween.Gap := MilsToCoord(StrToFloat(EditBetween.Text));
-
       RuleBetween.Name    := 'Venting-Internal';
       RuleBetween.Comment := 'Clearance between Venting Pads';
 
       // Add the rule into the Board
       Board.AddPCBObject(RuleBetween);
 
-   end
-   else
-   begin
-      if RadioButtonMM.Checked then RuleBetween.Gap := MMsToCoord(StrToFloat(EditBetween.Text))
-      else                          RuleBetween.Gap := MilsToCoord(StrToFloat(EditBetween.Text));
    end;
+
+   if RadioButtonMM.Checked then RuleBetween.Gap := MMsToCoord(StrToFloat(EditBetween.Text))
+   else                          RuleBetween.Gap := MilsToCoord(StrToFloat(EditBetween.Text));
+
 
    // Check component clearence rule
    if CheckBoxCompClearRule.Checked then
+   begin
       if RuleCompClear = Nil then
       begin
          RuleCompClear := PCBServer.PCBRuleFactory(eRule_ComponentClearance);
@@ -336,27 +352,57 @@ begin
 
          RuleCompClear.NetScope := eNetScope_AnyNet;
 
-         RuleCompClear.Gap         := 0;
-         RuleCompClear.VerticalGap := 0;
-
          RuleCompClear.Name     := 'Venting-Comp';
          RuleCompClear.Comment  := 'Clearance between "Venting" Component and other Components';
 
          // Add the rule into the Board
          Board.AddPCBObject(RuleCompClear);
 
-      end
-      else
-      begin
-         RuleCompClear.Gap         := 0;
-         RuleCompClear.VerticalGap := 0;
       end;
+
+      RuleCompClear.Gap         := 0;
+      RuleCompClear.VerticalGap := 0;
+
+      If TheLayerStack = Nil Then Exit;
+
+      if RuleWidth = Nil then
+      begin
+         RuleWidth := PCBServer.PCBRuleFactory(eRule_MaxMinWidth);
+
+         // Set values
+         RuleWidth.Scope1Expression := 'InComponent(''Venting'')';
+
+         RuleWidth.NetScope := eNetScope_AnyNet;
+
+         RuleWidth.Name     := 'Venting-Width';
+         RuleWidth.Comment  := 'Width Constraint for Arcs in "Venting" Component';
+
+         // Add the rule into the Board
+         Board.AddPCBObject(RuleWidth);
+
+      end;
+
+      // Use MaxGap to temporary store Width
+      if RadioButtonMM.Checked then MaxGap := MMsToCoord(StrToFloat(EditSize.Text)) / 2
+      else                          MaxGap := MilsToCoord(StrToFloat(EditSize.Text)) / 2;
+
+      LayerObj := TheLayerStack.FirstLayer;
+      Repeat
+         // we check if this is a signal layer
+         if ILayer.IsSignalLayer(LayerObj.V7_LayerID) then
+         begin
+            RuleWidth.MinWidth[LayerObj.V7_LayerID]     := MaxGap;
+            RuleWidth.MaxWidth[LayerObj.V7_LayerID]     := MaxGap;
+            RuleWidth.FavoredWidth[LayerObj.V7_LayerID] := MaxGap;
+         end;
+         LayerObj := TheLayerStack.NextLayer(LayerObj); ;
+      Until LayerObj = Nil;
+
+   end;
 
    // We will save MaxGap value for further testing
    if RuleElectrical.Gap > RuleOutline.Gap then MaxGap := RuleElectrical.Gap
    else                                         MaxGap := RuleOutline.Gap;
-
-   If TheLayerStack = Nil Then Exit;
 
    LayerNum := 1;
 
@@ -380,25 +426,20 @@ begin
                   Begin
                      Try
                         PCBServer.PreProcess;
-                        NewPad := PcbServer.PCBObjectFactory(ePadObject,eNoDimension,eCreate_Default);
+                        NewPad := PcbServer.PCBObjectFactory(eArcObject,eNoDimension,eCreate_Default);
                         If NewPad = Nil Then Exit;
 
                         NewPad.BeginModify;
-                        NewPad.Mode := ePadMode_Simple;
-                        NewPad.X    := PosX;
-                        NewPad.Y    := PosY;
+                        NewPad.StartAngle := 0;
+                        NewPad.EndAngle   := 360;
+                        NewPad.XCenter    := PosX;
+                        NewPad.YCenter    := PosY;
 
-                        if RadioButtonMM.Checked then NewPad.TopXSize := MMsToCoord(StrToFloat(EditSize.Text))
-                        else                          NewPad.TopXSize := MilsToCoord(StrToFloat(EditSize.Text));
+                        if RadioButtonMM.Checked then NewPad.LineWidth := MMsToCoord(StrToFloat(EditSize.Text)) / 2
+                        else                          NewPad.LineWidth := MilsToCoord(StrToFloat(EditSize.Text)) / 2;
 
-                        if RadioButtonMM.Checked then NewPad.TopYSize := MMsToCoord(StrToFloat(EditSize.Text))
-                        else                          NewPad.TopYSize := MilsToCoord(StrToFloat(EditSize.Text));
-
-                        NewPad.TopShape  := eRounded;
-                        NewPad.HoleSize  := 0;
+                        NewPad.Radius    := NewPad.LineWidth / 2;
                         NewPad.Layer     := LayerObj.V7_LayerID;
-                        NewPad.Name      := 'TP';
-                        NewPad.IsTenting := True;
 
                      Finally
                         PCBServer.PostProcess;

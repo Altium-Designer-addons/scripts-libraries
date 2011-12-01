@@ -164,8 +164,30 @@ var
    SetOfLayers    : IPCB_LayerSet;
 
    ConditionFlag  : Integer;
+   TempString     : String;
 
 begin
+
+   // Fix numbers based on local settings
+   TempString := EditSize.Text;
+   if LastDelimiter(',.', TempString) <> 0 then TempString[LastDelimiter(',.', TempString)] := DecimalSeparator;
+   EditSize.Text := TempString;
+
+   TempString := EditHoleSize.Text;
+   if LastDelimiter(',.', TempString) <> 0 then TempString[LastDelimiter(',.', TempString)] := DecimalSeparator;
+   EditHoleSize.Text := TempString;
+
+   TempString := EditBetween.Text;
+   if LastDelimiter(',.', TempString) <> 0 then TempString[LastDelimiter(',.', TempString)] := DecimalSeparator;
+   EditBetween.Text := TempString;
+
+   TempString := EditElectrical.Text;
+   if LastDelimiter(',.', TempString) <> 0 then TempString[LastDelimiter(',.', TempString)] := DecimalSeparator;
+   EditElectrical.Text := TempString;
+
+   TempString := EditOutline.Text;
+   if LastDelimiter(',.', TempString) <> 0 then TempString[LastDelimiter(',.', TempString)] := DecimalSeparator;
+   EditOutline.Text := TempString;
 
    // Distance
    Distance := StrToFloat(EditSize.Text) + StrToFloat(EditBetween.Text);
