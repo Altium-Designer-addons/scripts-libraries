@@ -1,8 +1,8 @@
 object ThievingPads: TThievingPads
-  Left = 32
-  Top = 18
+  Left = 8
+  Top = 8
   Caption = 'Thieving Pads'
-  ClientHeight = 458
+  ClientHeight = 497
   ClientWidth = 289
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -15,7 +15,7 @@ object ThievingPads: TThievingPads
   TextHeight = 13
   object ButtonOK: TButton
     Left = 112
-    Top = 416
+    Top = 464
     Width = 75
     Height = 25
     Caption = 'OK'
@@ -25,7 +25,7 @@ object ThievingPads: TThievingPads
   end
   object ButtonCancel: TButton
     Left = 200
-    Top = 416
+    Top = 464
     Width = 75
     Height = 25
     Caption = 'Cancel'
@@ -34,10 +34,10 @@ object ThievingPads: TThievingPads
   end
   object GroupBoxDistances: TGroupBox
     Left = 8
-    Top = 176
+    Top = 200
     Width = 272
-    Height = 96
-    Caption = 'Distances:'
+    Height = 176
+    Caption = 'Rules and Distances:'
     TabOrder = 1
     object Label1: TLabel
       Left = 16
@@ -120,57 +120,94 @@ object ThievingPads: TThievingPads
       State = cbChecked
       TabOrder = 5
     end
+    object CheckBoxRoutingWidthRule: TCheckBox
+      Left = 16
+      Top = 120
+      Width = 184
+      Height = 17
+      Caption = 'Create Routing Width Rule'
+      Checked = True
+      State = cbChecked
+      TabOrder = 6
+    end
+    object CheckBoxCompClearRule: TCheckBox
+      Left = 16
+      Top = 96
+      Width = 216
+      Height = 17
+      Caption = 'Create Component Clearance Rule'
+      Checked = True
+      State = cbChecked
+      TabOrder = 7
+    end
+    object CheckBoxShortCircuitRule: TCheckBox
+      Left = 16
+      Top = 144
+      Width = 232
+      Height = 17
+      Caption = 'Create Short Circuit rule (for board cutout)'
+      Checked = True
+      State = cbChecked
+      TabOrder = 8
+    end
   end
   object GroupBoxOptions: TGroupBox
     Left = 8
     Top = 8
     Width = 272
-    Height = 168
+    Height = 184
     Caption = 'Options:'
     TabOrder = 0
     object Label4: TLabel
       Left = 16
-      Top = 126
+      Top = 142
       Width = 28
       Height = 13
       Caption = 'Units:'
     end
     object Label9: TLabel
       Left = 16
-      Top = 101
+      Top = 117
       Width = 44
       Height = 13
       Caption = 'Pad Size:'
     end
     object Label10: TLabel
       Left = 16
-      Top = 146
+      Top = 162
       Width = 36
       Height = 13
       Caption = 'Layers:'
     end
-    object CheckBoxObjectsOutside: TCheckBox
+    object Label12: TLabel
       Left = 16
-      Top = 48
-      Width = 192
+      Top = 20
+      Width = 98
+      Height = 13
+      Caption = 'Place Thieving Pads:'
+    end
+    object CheckBoxObjectsOutside: TCheckBox
+      Left = 40
+      Top = 40
+      Width = 160
       Height = 17
-      Caption = 'Place Thieving Pads Outside Board'
+      Caption = 'Outside Board Shape'
       Checked = True
       State = cbChecked
       TabOrder = 0
     end
     object CheckBoxObjectsInside: TCheckBox
-      Left = 16
-      Top = 72
-      Width = 192
+      Left = 40
+      Top = 64
+      Width = 160
       Height = 17
-      Caption = 'Place Thieving Pads Inside Board'
+      Caption = 'Inside Board Shape'
       TabOrder = 1
       OnClick = CheckBoxObjectsInsideClick
     end
     object RadioButtonmm: TRadioButton
       Left = 72
-      Top = 124
+      Top = 140
       Width = 32
       Height = 17
       Caption = 'mm'
@@ -180,7 +217,7 @@ object ThievingPads: TThievingPads
     end
     object RadioButtonmil: TRadioButton
       Left = 120
-      Top = 124
+      Top = 140
       Width = 32
       Height = 17
       Caption = 'mil'
@@ -188,7 +225,7 @@ object ThievingPads: TThievingPads
     end
     object EditSize: TEdit
       Left = 72
-      Top = 99
+      Top = 115
       Width = 32
       Height = 21
       TabOrder = 4
@@ -197,7 +234,7 @@ object ThievingPads: TThievingPads
     end
     object CheckBoxTop: TCheckBox
       Left = 72
-      Top = 144
+      Top = 160
       Width = 40
       Height = 17
       Caption = 'Top'
@@ -207,7 +244,7 @@ object ThievingPads: TThievingPads
     end
     object CheckBoxMid: TCheckBox
       Left = 120
-      Top = 144
+      Top = 160
       Width = 40
       Height = 17
       Caption = 'Mid'
@@ -217,7 +254,7 @@ object ThievingPads: TThievingPads
     end
     object CheckBoxBottom: TCheckBox
       Left = 168
-      Top = 144
+      Top = 160
       Width = 56
       Height = 17
       Caption = 'Bottom'
@@ -225,22 +262,20 @@ object ThievingPads: TThievingPads
       State = cbChecked
       TabOrder = 7
     end
-    object CheckBoxCompClearRule: TCheckBox
-      Left = 16
-      Top = 24
-      Width = 144
+    object CheckBoxCutouts: TCheckBox
+      Left = 40
+      Top = 88
+      Width = 160
       Height = 17
-      Caption = 'Create Important Rules'
-      Checked = True
-      State = cbChecked
+      Caption = 'In Board Cutouts'
       TabOrder = 8
     end
   end
   object GroupBoxNote: TGroupBox
     Left = 8
-    Top = 280
+    Top = 384
     Width = 272
-    Height = 120
+    Height = 72
     Caption = 'Note:'
     TabOrder = 4
     object Label6: TLabel
@@ -263,20 +298,6 @@ object ThievingPads: TThievingPads
       Width = 97
       Height = 13
       Caption = 'calculated correctly.'
-    end
-    object Label11: TLabel
-      Left = 8
-      Top = 96
-      Width = 173
-      Height = 13
-      Caption = ' Clearance and Routing Width rules.'
-    end
-    object Label5: TLabel
-      Left = 8
-      Top = 80
-      Width = 218
-      Height = 13
-      Caption = '"Create Important Rules" creates Component'
     end
   end
 end

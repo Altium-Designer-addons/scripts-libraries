@@ -148,6 +148,7 @@ var
    RuleBetween    : IPCB_ClearanceConstraint;
    RuleCompClear  : IPCB_ComponentClearanceConstraint;
    RuleWidth      : IPCB_MaxMinWidthConstraint;
+   RuleCutout     : IPCB_ShortCircuitConstraint;
 
    MaxGap         : Integer;
    PadRect        : TCoordRect;
@@ -155,8 +156,10 @@ var
    Primitive      : IPCB_Primitive;
    Violation      : IPCB_Violation;
    ViolationFlag  : Integer;
+   CutoutFlag     : Integer;
    SetOfLayers    : IPCB_LayerSet;
    TempString     : String;
+   TempInt        : Integer;
 
 begin
 
@@ -241,6 +244,7 @@ begin
    RuleBetween    := Nil;
    RuleCompClear  := Nil;
    RuleWidth      := Nil;
+   RuleCutout     := Nil;
 
    While (Rule <> Nil) Do
    Begin
@@ -263,6 +267,10 @@ begin
        if Rule.RuleKind = eRule_MaxMinWidth then
           if (Rule.Scope1Expression = 'InComponent(''Venting'')') then
              RuleWidth := Rule;
+
+       if Rule.RuleKind = eRule_ShortCircuit then
+          if (Rule.Scope1Expression = 'InComponent(''Venting'')') and (Rule.Scope2Expression = 'IsBoardCutoutRegion') then
+             RuleCutout := Rule;
 
        Rule :=  Iterator.NextPCBObject;
    End;
@@ -338,7 +346,6 @@ begin
    if RadioButtonMM.Checked then RuleBetween.Gap := MMsToCoord(StrToFloat(EditBetween.Text))
    else                          RuleBetween.Gap := MilsToCoord(StrToFloat(EditBetween.Text));
 
-
    // Check component clearence rule
    if CheckBoxCompClearRule.Checked then
    begin
@@ -362,9 +369,13 @@ begin
 
       RuleCompClear.Gap         := 0;
       RuleCompClear.VerticalGap := 0;
+   end;
 
-      If TheLayerStack = Nil Then Exit;
+   If TheLayerStack = Nil Then Exit;
 
+   // Check Routing Width rule
+   if CheckBoxRoutingWidthRule.Checked then
+   begin
       if RuleWidth = Nil then
       begin
          RuleWidth := PCBServer.PCBRuleFactory(eRule_MaxMinWidth);
@@ -397,7 +408,33 @@ begin
          end;
          LayerObj := TheLayerStack.NextLayer(LayerObj); ;
       Until LayerObj = Nil;
+   end;
 
+   // Check short circuit rule (needed for board cutout)
+   if CheckBoxShortcircuitRule.Checked then
+   begin
+      if RuleCutout = Nil then
+      begin
+         RuleCutout := PCBServer.PCBRuleFactory(eRule_ShortCircuit);
+
+         // Set values
+         RuleCutout.Scope1Expression := 'InComponent(''Venting'')';
+         RuleCutout.Scope2Expression := 'IsBoardCutoutRegion';
+
+         RuleCutout.NetScope := eNetScope_AnyNet;
+
+         RuleCutout.Name    := 'Venting-Cutout';
+         RuleCutout.Comment := 'Allow short between Board Cutout and Venting Pads';
+
+         // Add the rule into the Board
+         Board.AddPCBObject(RuleCutout);
+
+      end;
+
+      if CheckBoxCutouts.Checked then
+         RuleCutout.Allowed := True
+      else
+         RuleCutout.Allowed := False;
    end;
 
    // We will save MaxGap value for further testing
@@ -421,7 +458,7 @@ begin
             while ((PosY > BoardShapeRect.Bottom)) do
             begin
 
-               if ((Board.BoardOutline.PointInPolygon(PosX, PosY) and (CheckBoxObjectsInside.Checked)) or
+               if ((Board.BoardOutline.PointInPolygon(PosX, PosY) and (CheckBoxObjectsInside.Checked or CheckBoxCutouts.Checked)) or
                   ((not(Board.BoardOutline.PointInPolygon(PosX, PosY))) and (CheckBoxObjectsOutside.Checked))) then
                   Begin
                      Try
@@ -465,15 +502,33 @@ begin
                      Spatial.AddFilter_Area(PadRect.Left - MaxGap, PadRect.Bottom - MaxGap, PadRect.Right + MaxGap, PadRect.Top + MaxGap);
 
                      ViolationFlag := 0;
+                     CutoutFlag    := 0;
                      Primitive := Spatial.FirstPCBObject;
 
                      while (Primitive <> nil) do
                      begin
-                        Violation := RuleElectrical.ActualCheck(Primitive, NewPad);
-                        if Violation <> nil then ViolationFlag := 1;
+                        if (Primitive.ObjectId = eRegionObject) and (Primitive.Kind = eRegionkind_BoardCutout) and (CheckBoxCutouts.Checked) then
+                        begin
+                           // Here we will do trick to see if this one is inside board cutout
+                           TempInt := RuleElectrical.Gap;
+                           RuleElectrical.Gap := 0;
 
-                        Violation := RuleOutline.ActualCheck(Primitive, NewPad);
-                        if Violation <> nil then ViolationFlag := 1;
+                           Violation := RuleElectrical.ActualCheck(Primitive, NewPad);
+                           if Violation <> nil then
+                              CutOutFlag := 1;
+
+                           RuleElectrical.Gap := TempInt;
+                        end
+                        else
+                        begin
+                           Violation := RuleElectrical.ActualCheck(Primitive, NewPad);
+                           if Violation <> nil then
+                              ViolationFlag := 1;
+
+                           Violation := RuleOutline.ActualCheck(Primitive, NewPad);
+                           if Violation <> nil then
+                              ViolationFlag := 1;
+                        end;
 
                         Primitive := Spatial.NextPCBObject;
                      end;
@@ -481,7 +536,7 @@ begin
 
                      SetOfLayers := nil;
 
-                     If ViolationFlag = 1 then
+                     If (ViolationFlag = 1) or (Board.BoardOutline.PointInPolygon(PosX, PosY) and ((not CheckBoxObjectsInside.Checked) and (CutOutflag = 0))) then
                         Board.RemovePCBObject(NewPad);
 
                   end;
@@ -503,9 +558,9 @@ begin
       LayerObj := TheLayerStack.NextLayer(LayerObj);
    Until LayerObj = Nil;
 
-   if not CheckBoxBetween.Checked    then Board.RemovePCBObject(RuleBetween);
-   if not CheckBoxElectrical.Checked then Board.RemovePCBObject(RuleElectrical);
-   if not CheckBoxOutline.Checked    then Board.RemovePCBObject(RuleOutline);
+   if not CheckBoxBetween.Checked       then Board.RemovePCBObject(RuleBetween);
+   if not CheckBoxElectrical.Checked    then Board.RemovePCBObject(RuleElectrical);
+   if not CheckBoxOutline.Checked       then Board.RemovePCBObject(RuleOutline);
 
    Comp.PrimitiveLock := False;
    Comp.Moveable := False;
