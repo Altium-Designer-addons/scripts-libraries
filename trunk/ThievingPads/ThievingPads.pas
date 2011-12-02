@@ -105,6 +105,14 @@ begin
 end;
 
 
+procedure TThievingPads.CheckBoxCutoutsClick(Sender: TObject);
+begin
+   if CheckBoxCutouts.Checked then
+      CheckBoxShortCircuitRule.Enabled := True
+   else
+      CheckBoxShortCircuitRule.Enabled := False;
+end;
+
 
 procedure TThievingPads.ButtonCancelClick(Sender: TObject);
 begin
@@ -411,7 +419,7 @@ begin
    end;
 
    // Check short circuit rule (needed for board cutout)
-   if CheckBoxShortcircuitRule.Checked then
+   if (CheckBoxShortCircuitRule.Checked and CheckBoxCutouts.Checked) then
    begin
       if RuleCutout = Nil then
       begin
@@ -436,6 +444,9 @@ begin
       else
          RuleCutout.Allowed := False;
    end;
+
+   if (not CheckBoxObjectsInside.Checked) then
+      RuleElectrical.Gap := RuleOutline.Gap;
 
    // We will save MaxGap value for further testing
    if RuleElectrical.Gap > RuleOutline.Gap then MaxGap := RuleElectrical.Gap
@@ -503,7 +514,7 @@ begin
 
                      ViolationFlag := 0;
                      CutoutFlag    := 0;
-                     Primitive := Spatial.FirstPCBObject;
+                     Primitive := Spatial.FirstPCBObject;   
 
                      while (Primitive <> nil) do
                      begin
@@ -559,8 +570,8 @@ begin
    Until LayerObj = Nil;
 
    if not CheckBoxBetween.Checked       then Board.RemovePCBObject(RuleBetween);
-   if not CheckBoxElectrical.Checked    then Board.RemovePCBObject(RuleElectrical);
    if not CheckBoxOutline.Checked       then Board.RemovePCBObject(RuleOutline);
+   if not (CheckBoxObjectsInside.Checked and CheckBoxElectrical.Checked) then Board.RemovePCBObject(RuleElectrical);
 
    Comp.PrimitiveLock := False;
    Comp.Moveable := False;
@@ -583,5 +594,6 @@ begin
 
    ThievingPads.ShowModal;
 end;
+
 
 

@@ -1,8 +1,8 @@
 object StitchingVias: TStitchingVias
   Left = 32
   Top = 18
-  Caption = 'Thieving Pads'
-  ClientHeight = 440
+  Caption = 'Stitching Vias'
+  ClientHeight = 479
   ClientWidth = 289
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -16,7 +16,7 @@ object StitchingVias: TStitchingVias
   TextHeight = 13
   object ButtonOK: TButton
     Left = 120
-    Top = 408
+    Top = 440
     Width = 75
     Height = 25
     Caption = 'OK'
@@ -26,7 +26,7 @@ object StitchingVias: TStitchingVias
   end
   object ButtonCancel: TButton
     Left = 208
-    Top = 408
+    Top = 440
     Width = 75
     Height = 25
     Caption = 'Cancel'
@@ -35,10 +35,10 @@ object StitchingVias: TStitchingVias
   end
   object GroupBoxDistances: TGroupBox
     Left = 8
-    Top = 224
-    Width = 272
-    Height = 96
-    Caption = 'Distances:'
+    Top = 136
+    Width = 280
+    Height = 200
+    Caption = 'Rules and Distances:'
     TabOrder = 1
     object Label1: TLabel
       Left = 16
@@ -119,12 +119,52 @@ object StitchingVias: TStitchingVias
       State = cbChecked
       TabOrder = 4
     end
+    object CheckBoxCompClearRule: TCheckBox
+      Left = 16
+      Top = 119
+      Width = 232
+      Height = 17
+      Caption = 'Create "Component Clearence" Rule'
+      Checked = True
+      State = cbChecked
+      TabOrder = 6
+    end
+    object CheckBoxPolyConnRule: TCheckBox
+      Left = 16
+      Top = 167
+      Width = 240
+      Height = 17
+      Caption = 'Create "Polygon Connect Style" Rule'
+      Checked = True
+      State = cbChecked
+      TabOrder = 7
+    end
+    object CheckBoxPlaneConnRule: TCheckBox
+      Left = 16
+      Top = 143
+      Width = 248
+      Height = 17
+      Caption = 'Create "Power Plane Connect Style" Rule'
+      Checked = True
+      State = cbChecked
+      TabOrder = 8
+    end
+    object CheckBoxViaStyleRule: TCheckBox
+      Left = 16
+      Top = 96
+      Width = 208
+      Height = 17
+      Caption = 'Create "Routing Via Style" Rule'
+      Checked = True
+      State = cbChecked
+      TabOrder = 9
+    end
   end
   object GroupBoxOptions: TGroupBox
     Left = 8
     Top = 8
     Width = 272
-    Height = 208
+    Height = 120
     Caption = 'Options:'
     TabOrder = 0
     object Label9: TLabel
@@ -173,43 +213,13 @@ object StitchingVias: TStitchingVias
       Height = 21
       TabOrder = 2
     end
-    object CheckBoxViaStyleRule: TCheckBox
-      Left = 16
-      Top = 112
-      Width = 208
-      Height = 17
-      Caption = 'Create/modify "Routing Via Style" Rule'
-      Checked = True
-      State = cbChecked
-      TabOrder = 3
-    end
-    object CheckBoxPlaneConnRule: TCheckBox
-      Left = 16
-      Top = 136
-      Width = 248
-      Height = 17
-      Caption = 'Create/modify "Power Plane Connect Style" Rule'
-      Checked = True
-      State = cbChecked
-      TabOrder = 4
-    end
-    object CheckBoxCompClearRule: TCheckBox
-      Left = 16
-      Top = 184
-      Width = 232
-      Height = 17
-      Caption = 'Create/modify "Component Clearence" Rule'
-      Checked = True
-      State = cbChecked
-      TabOrder = 5
-    end
     object GroupBoxUnits: TGroupBox
       Left = 200
       Top = 8
       Width = 64
       Height = 56
       Caption = 'Units'
-      TabOrder = 6
+      TabOrder = 3
       object RadioButtonmm: TRadioButton
         Left = 9
         Top = 16
@@ -229,28 +239,28 @@ object StitchingVias: TStitchingVias
         TabOrder = 1
       end
     end
-    object CheckBoxPolyConnRule: TCheckBox
-      Left = 16
-      Top = 160
-      Width = 240
-      Height = 17
-      Caption = 'Create/modify "Polygon Connect Style" Rule'
-      Checked = True
-      State = cbChecked
-      TabOrder = 7
-    end
-    object CheckBoxPoly: TCheckBox
-      Left = 16
+    object RadioButtonAllPolygons: TRadioButton
+      Left = 32
       Top = 72
-      Width = 240
+      Width = 224
       Height = 17
-      Caption = 'Place Vias Over Polygons with Different Net'
-      TabOrder = 8
+      Caption = 'Place Vias over all Polygons and Split Planes'
+      Checked = True
+      TabOrder = 4
+      TabStop = True
+    end
+    object RadioButtonSelectedPolygons: TRadioButton
+      Left = 32
+      Top = 96
+      Width = 224
+      Height = 17
+      Caption = 'Avoid Selected Polygons and Split Planes'
+      TabOrder = 5
     end
   end
   object GroupBoxNote: TGroupBox
     Left = 8
-    Top = 328
+    Top = 344
     Width = 272
     Height = 72
     Caption = 'Note:'

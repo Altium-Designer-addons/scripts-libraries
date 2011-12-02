@@ -19,6 +19,8 @@ var
 begin
    Result := True;
 
+   if Tekst = '' then Result := False;
+
    // Test weather we have number, dot or comma
    for i := 1 to Length(Tekst) do
       if not(((ord(Tekst[i]) > 47) and (ord(Tekst[i]) < 58)) or (ord(Tekst[i]) = 44) or (ord(Tekst[i]) = 46)) then
@@ -90,6 +92,10 @@ end;
 
 
 procedure TStitchingVias.EditSizeChange(Sender: TObject);
+var
+   tempString : String;
+   Size       : Float;
+   Holesize   : Float;
 begin
    if not IsStringANum(EditSize.Text) then
    begin
@@ -102,22 +108,77 @@ begin
       if (IsStringANum(EditOutline.Text) and IsStringANum(EditElectrical.Text) and IsStringANum(EditBetween.Text) and IsStringANum(EditHoleSize.Text)) then
          ButtonOK.Enabled := True;
    end;
+
+
+   if (IsStringANum(EditSize.Text)) and (IsStringANum(EditHoleSize.Text)) then
+   begin
+      TempString := Editsize.Text;
+      if LastDelimiter(',.', TempString) <> 0 then TempString[LastDelimiter(',.', TempString)] := DecimalSeparator;
+      Size := StrToFloat(TempString);
+
+      TempString := EditHoleSize.Text;
+      if LastDelimiter(',.', TempString) <> 0 then TempString[LastDelimiter(',.', TempString)] := DecimalSeparator;
+      HoleSize := StrToFloat(TempString);
+
+      if Holesize > Size then
+      begin
+         ButtonOK.Enabled := False;
+         EditHoleSize.Font.Color := clRed;
+         EditSize.Font.Color := clRed;
+      end
+      else
+      begin
+         EditHoleSize.Font.Color := clWindowText;
+         EditSize.Font.Color := clWindowText;
+         if (IsStringANum(EditOutline.Text) and IsStringANum(EditElectrical.Text) and IsStringANum(EditBetween.Text)) then
+            ButtonOK.Enabled := True;
+      end;
+   end;
 end;
 
 
 
 procedure TStitchingVias.EditHoleSizeChange(Sender: TObject);
+var
+   tempString : String;
+   Size       : Float;
+   Holesize   : Float;
 begin
    if not IsStringANum(EditHoleSize.Text) then
    begin
       ButtonOK.Enabled := False;
-      EditSize.Font.Color := clRed;
+      EditHoleSize.Font.Color := clRed;
    end
    else
    begin
-      EditSize.Font.Color := clWindowText;
+      EditHoleSize.Font.Color := clWindowText;
       if (IsStringANum(EditOutline.Text) and IsStringANum(EditElectrical.Text) and IsStringANum(EditBetween.Text) and IsStringANum(EditSize.Text)) then
          ButtonOK.Enabled := True;
+   end;
+
+   if (IsStringANum(EditSize.Text)) and (IsStringANum(EditHoleSize.Text)) then
+   begin
+      TempString := Editsize.Text;
+      if LastDelimiter(',.', TempString) <> 0 then TempString[LastDelimiter(',.', TempString)] := DecimalSeparator;
+      Size := StrToFloat(TempString);
+
+      TempString := EditHoleSize.Text;
+      if LastDelimiter(',.', TempString) <> 0 then TempString[LastDelimiter(',.', TempString)] := DecimalSeparator;
+      HoleSize := StrToFloat(TempString);
+
+      if Holesize > Size then
+      begin
+         ButtonOK.Enabled := False;
+         EditHoleSize.Font.Color := clRed;
+         EditSize.Font.Color := clRed;
+      end
+      else
+      begin
+         EditHoleSize.Font.Color := clWindowText;
+         EditSize.Font.Color := clWindowText;
+         if (IsStringANum(EditOutline.Text) and IsStringANum(EditElectrical.Text) and IsStringANum(EditBetween.Text)) then
+            ButtonOK.Enabled := True;
+      end;
    end;
 end;
 
@@ -158,6 +219,7 @@ var
    MaxGap         : Integer;
    PadRect        : TCoordRect;
    Spatial        : IPCB_SpatialIterator;
+   Group          : IPCB_GroupIterator;
    Primitive      : IPCB_Primitive;
    Violation      : IPCB_Violation;
    ViolationFlag  : Integer;
@@ -304,21 +366,17 @@ begin
 
       RuleOutline.NetScope  := eNetScope_AnyNet;
 
-      if RadioButtonMM.Checked then RuleOutline.Gap := MMsToCoord(StrToFloat(EditOutline.Text))
-      else                          RuleOutline.Gap := MilsToCoord(StrToFloat(EditOutline.Text));
-
       RuleOutline.Name    := 'StitchingVias-Board';
       RuleOutline.Comment := 'Clearance between Stitching Vias and Board Outline';
 
       // Add the rule into the Board
       Board.AddPCBObject(RuleOutline);
 
-   end
-   else
-   begin
-      if RadioButtonMM.Checked then RuleOutline.Gap := MMsToCoord(StrToFloat(EditOutline.Text))
-      else                          RuleOutline.Gap := MilsToCoord(StrToFloat(EditOutline.Text));
    end;
+
+   if RadioButtonMM.Checked then RuleOutline.Gap := MMsToCoord(StrToFloat(EditOutline.Text))
+   else                          RuleOutline.Gap := MilsToCoord(StrToFloat(EditOutline.Text));
+
 
    // Check rule from via to electrical primitive
    if RuleElectrical = Nil then
@@ -331,21 +389,17 @@ begin
 
       RuleElectrical.NetScope  := eNetScope_AnyNet;
 
-      if RadioButtonMM.Checked then RuleElectrical.Gap := MMsToCoord(StrToFloat(EditElectrical.Text))
-      else                          RuleElectrical.Gap := MilsToCoord(StrToFloat(EditElectrical.Text));
-
       RuleElectrical.Name    := 'StitchingVias-Electrical';
       RuleElectrical.Comment := 'Clearance between Stitching Vias and Electrical Objects';
 
       // Add the rule into the Board
       Board.AddPCBObject(RuleElectrical);
 
-   end
-   else
-   begin
-      if RadioButtonMM.Checked then RuleElectrical.Gap := MMsToCoord(StrToFloat(EditElectrical.Text))
-      else                          RuleElectrical.Gap := MilsToCoord(StrToFloat(EditElectrical.Text));
    end;
+
+   if RadioButtonMM.Checked then RuleElectrical.Gap := MMsToCoord(StrToFloat(EditElectrical.Text))
+   else                          RuleElectrical.Gap := MilsToCoord(StrToFloat(EditElectrical.Text));
+
 
    // Check Rule Between vias
    if RuleBetween = Nil then
@@ -358,24 +412,21 @@ begin
 
       RuleBetween.NetScope  := eNetScope_AnyNet;
 
-      if RadioButtonMM.Checked then RuleBetween.Gap := MMsToCoord(StrToFloat(EditBetween.Text))
-      else                          RuleBetween.Gap := MilsToCoord(StrToFloat(EditBetween.Text));
-
       RuleBetween.Name    := 'StitchingVias-Internal';
       RuleBetween.Comment := 'Clearance between Stitching Vias';
 
       // Add the rule into the Board
       Board.AddPCBObject(RuleBetween);
 
-   end
-   else
-   begin
-      if RadioButtonMM.Checked then RuleBetween.Gap := MMsToCoord(StrToFloat(EditBetween.Text))
-      else                          RuleBetween.Gap := MilsToCoord(StrToFloat(EditBetween.Text));
    end;
 
-   // Check Via style rule
+   if RadioButtonMM.Checked then RuleBetween.Gap := MMsToCoord(StrToFloat(EditBetween.Text))
+   else                          RuleBetween.Gap := MilsToCoord(StrToFloat(EditBetween.Text));
+
+
+   // Check "Routing Via Style" Rule
    if CheckBoxViaStyleRule.Checked then
+   begin
       if RuleViaStyle = Nil then
       begin
          RuleViaStyle := PCBServer.PCBRuleFactory(eRule_RoutingViaStyle);
@@ -385,55 +436,36 @@ begin
 
          RuleViaStyle.NetScope  := eNetScope_AnyNet;
 
-         if RadioButtonMM.Checked then
-         begin
-            RuleViaStyle.MinHoleWidth      := MMsToCoord(StrToFloat(EditHoleSize.Text));
-            RuleViaStyle.MaxHoleWidth      := MMsToCoord(StrToFloat(EditHoleSize.Text));
-            RuleViaStyle.PreferedHoleWidth := MMsToCoord(StrToFloat(EditHoleSize.Text));
-            RuleViaStyle.MinWidth          := MMsToCoord(StrToFloat(EditSize.Text));
-            RuleViaStyle.MaxWidth          := MMsToCoord(StrToFloat(EditSize.Text));
-            RuleViaStyle.PreferedWidth     := MMsToCoord(StrToFloat(EditSize.Text));
-         end
-         else
-         begin
-            RuleViaStyle.MinHoleWidth      := MilsToCoord(StrToFloat(EditHoleSize.Text));
-            RuleViaStyle.MaxHoleWidth      := MilsToCoord(StrToFloat(EditHoleSize.Text));
-            RuleViaStyle.PreferedHoleWidth := MilsToCoord(StrToFloat(EditHoleSize.Text));
-            RuleViaStyle.MinWidth          := MilsToCoord(StrToFloat(EditSize.Text));
-            RuleViaStyle.MaxWidth          := MilsToCoord(StrToFloat(EditSize.Text));
-            RuleViaStyle.PreferedWidth     := MilsToCoord(StrToFloat(EditSize.Text));
-         end;
-
          RuleViaStyle.Name    := 'StitchingVias-ViaStyle';
          RuleViaStyle.Comment := 'Via style rule for Stitching Vias';
 
          // Add the rule into the Board
          Board.AddPCBObject(RuleViaStyle);
+      end;
+
+      if RadioButtonMM.Checked then
+      begin
+         RuleViaStyle.MinHoleWidth      := MMsToCoord(StrToFloat(EditHoleSize.Text));
+         RuleViaStyle.MaxHoleWidth      := MMsToCoord(StrToFloat(EditHoleSize.Text));
+         RuleViaStyle.PreferedHoleWidth := MMsToCoord(StrToFloat(EditHoleSize.Text));
+         RuleViaStyle.MinWidth          := MMsToCoord(StrToFloat(EditSize.Text));
+         RuleViaStyle.MaxWidth          := MMsToCoord(StrToFloat(EditSize.Text));
+         RuleViaStyle.PreferedWidth     := MMsToCoord(StrToFloat(EditSize.Text));
       end
       else
       begin
-         if RadioButtonMM.Checked then
-         begin
-            RuleViaStyle.MinHoleWidth      := MMsToCoord(StrToFloat(EditHoleSize.Text));
-            RuleViaStyle.MaxHoleWidth      := MMsToCoord(StrToFloat(EditHoleSize.Text));
-            RuleViaStyle.PreferedHoleWidth := MMsToCoord(StrToFloat(EditHoleSize.Text));
-            RuleViaStyle.MinWidth          := MMsToCoord(StrToFloat(EditSize.Text));
-            RuleViaStyle.MaxWidth          := MMsToCoord(StrToFloat(EditSize.Text));
-            RuleViaStyle.PreferedWidth     := MMsToCoord(StrToFloat(EditSize.Text));
-         end
-         else
-         begin
-            RuleViaStyle.MinHoleWidth      := MilsToCoord(StrToFloat(EditHoleSize.Text));
-            RuleViaStyle.MaxHoleWidth      := MilsToCoord(StrToFloat(EditHoleSize.Text));
-            RuleViaStyle.PreferedHoleWidth := MilsToCoord(StrToFloat(EditHoleSize.Text));
-            RuleViaStyle.MinWidth          := MilsToCoord(StrToFloat(EditSize.Text));
-            RuleViaStyle.MaxWidth          := MilsToCoord(StrToFloat(EditSize.Text));
-            RuleViaStyle.PreferedWidth     := MilsToCoord(StrToFloat(EditSize.Text));
-         end;
+         RuleViaStyle.MinHoleWidth      := MilsToCoord(StrToFloat(EditHoleSize.Text));
+         RuleViaStyle.MaxHoleWidth      := MilsToCoord(StrToFloat(EditHoleSize.Text));
+         RuleViaStyle.PreferedHoleWidth := MilsToCoord(StrToFloat(EditHoleSize.Text));
+         RuleViaStyle.MinWidth          := MilsToCoord(StrToFloat(EditSize.Text));
+         RuleViaStyle.MaxWidth          := MilsToCoord(StrToFloat(EditSize.Text));
+         RuleViaStyle.PreferedWidth     := MilsToCoord(StrToFloat(EditSize.Text));
       end;
+   end;
 
    // Check plane connect style rule
    if CheckBoxPlaneConnRule.Checked then
+   begin
       if RulePlaneConn = Nil then
       begin
          RulePlaneConn := PCBServer.PCBRuleFactory(eRule_PowerPlaneConnectStyle);
@@ -443,22 +475,20 @@ begin
 
          RulePlaneConn.NetScope  := eNetScope_AnyNet;
 
-         RulePlaneConn.PlaneConnectStyle := eDirectConnectToPlane;
-
          RulePlaneConn.Name    := 'StitchingVias-Plane';
          RulePlaneConn.Comment := 'Power plane connect style rule for Stitching Vias';
 
          // Add the rule into the Board
          Board.AddPCBObject(RulePlaneConn);
 
-      end
-      else
-      begin
-         RulePlaneConn.PlaneConnectStyle := eDirectConnectToPlane;
       end;
+
+      RulePlaneConn.PlaneConnectStyle := eDirectConnectToPlane;
+   end;
 
    // Check polygon connect style rule
    if CheckBoxPolyConnRule.Checked then
+   begin
       if RulePolyConn = Nil then
       begin
          RulePolyConn := PCBServer.PCBRuleFactory(eRule_PolygonConnectStyle);
@@ -468,22 +498,19 @@ begin
 
          RulePolyConn.NetScope  := eNetScope_AnyNet;
 
-         RulePolyConn.ConnectStyle := eDirectConnectToPlane;
-
          RulePolyConn.Name    := 'StitchingVias-Poly';
          RulePolyConn.Comment := 'Polygon connect style rule for Stitching Vias';
 
          // Add the rule into the Board
          Board.AddPCBObject(RulePolyConn);
 
-      end
-      else
-      begin
-         RulePolyConn.ConnectStyle := eDirectConnectToPlane;
       end;
+      RulePolyConn.ConnectStyle := eDirectConnectToPlane;
+   end;
 
    // Check component clearence rule
    if CheckBoxCompClearRule.Checked then
+   begin
       if RuleCompClear = Nil then
       begin
          RuleCompClear := PCBServer.PCBRuleFactory(eRule_ComponentClearance);
@@ -494,21 +521,17 @@ begin
 
          RuleCompClear.NetScope := eNetScope_AnyNet;
 
-         RuleCompClear.Gap         := 0;
-         RuleCompClear.VerticalGap := 0;
-
          RuleCompClear.Name     := 'StitchingVias-Comp';
          RuleCompClear.Comment  := 'Clearance between "StitchingVias" Component and other Components';
 
          // Add the rule into the Board
          Board.AddPCBObject(RuleCompClear);
 
-      end
-      else
-      begin
-         RuleCompClear.Gap         := 0;
-         RuleCompClear.VerticalGap := 0;
       end;
+
+      RuleCompClear.Gap         := 0;
+      RuleCompClear.VerticalGap := 0;
+   end;
 
 
    // We will save MaxGap value for further testing
@@ -570,9 +593,28 @@ begin
          Spatial.AddFilter_Area(PadRect.Left - MaxGap, PadRect.Bottom - MaxGap, PadRect.Right + MaxGap, PadRect.Top + MaxGap);
 
          ViolationFlag := 0;
+
+         if RadioButtonSelectedPolygons.Checked then
+            for i := 0 to Board.SelectecObjectCount - 1 do
+               if Board.SelectecObject[i].ObjectId = eSplitPlaneObject then
+               begin
+                  Group := Board.SelectecObject[i].GroupIterator_Create;
+                  Primitive := Group.FirstPCBObject;
+
+                  while (Primitive <> nil) and (ViolationFlag = 0) do
+                  begin
+
+                     if Board.PrimPrimDistance(Primitive, NewVia) = 0 then
+                        ViolationFlag := 1;
+
+                      Primitive := Group.NextPCBObject;
+                  end;
+                  Board.SelectecObject[i].GroupIterator_Destroy(Group);
+               end;
+
          Primitive := Spatial.FirstPCBObject;
 
-         while (Primitive <> nil) do
+         while (Primitive <> nil) and (ViolationFlag = 0) do
          begin
             // We test this primitive
             ConditionFlag := 1;
@@ -580,12 +622,11 @@ begin
             // Poly primitives are special case
             if (Primitive.InPolygon) then
                // if checkbox is checked - we never test
-               if (CheckBoxPoly.Checked) then
+               if (RadioButtonAllPolygons.Checked) then
                   ConditionFlag := 0
                // If CheckBox is not checked - we do not test only if poly and via are on same net
-               else if (Primitive.Polygon.Net <> nil) then
-                  if (Primitive.Polygon.Net.Name = NewVia.Net.Name) then
-                     ConditionFlag := 0;
+               else if (Primitive.Polygon.Selected = False) then
+                  ConditionFlag := 0;
 
             if ConditionFlag = 1 then
             begin
@@ -596,7 +637,8 @@ begin
                if Violation <> nil then ViolationFlag := 1;
             end;
 
-            If ViolationFlag = 1 then Break;
+            // We will search through selected objects to see weather via is within
+            // a split plane
 
             Primitive := Spatial.NextPCBObject;
          end;
@@ -622,6 +664,8 @@ begin
    if not CheckBoxBetween.Checked    then Board.RemovePCBObject(RuleBetween);
    if not CheckBoxElectrical.Checked then Board.RemovePCBObject(RuleElectrical);
    if not CheckBoxOutline.Checked    then Board.RemovePCBObject(RuleOutline);
+
+   // Now we need to delete visa that are inside
 
    Comp.PrimitiveLock := False;
    Comp.Moveable := False;
@@ -669,8 +713,3 @@ begin
 
    StitchingVias.ShowModal;
 end;
-
-
-
-
-
