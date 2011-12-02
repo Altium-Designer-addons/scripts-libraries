@@ -145,8 +145,9 @@ object ThievingPads: TThievingPads
       Top = 144
       Width = 232
       Height = 17
-      Caption = 'Create Short Circuit rule (for board cutout)'
+      Caption = 'Create Short Circuit Rule (for board cutout)'
       Checked = True
+      Enabled = False
       State = cbChecked
       TabOrder = 8
     end
@@ -269,6 +270,7 @@ object ThievingPads: TThievingPads
       Height = 17
       Caption = 'In Board Cutouts'
       TabOrder = 8
+      OnClick = CheckBoxCutoutsClick
     end
   end
   object GroupBoxNote: TGroupBox
