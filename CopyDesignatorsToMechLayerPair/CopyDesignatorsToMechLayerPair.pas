@@ -166,12 +166,14 @@ end;
 
 procedure TFormMechLayerDesignators.ButtonOKClick(Sender: TObject);
 var
-   MechTop       : IPCB_LayerObject;
-   MechBot       : IPCB_LayerObject;
-   i, flag       : Integer;
-   Primitive     : IPCB_Primitive;
-   NewDesignator : IPCB_Text;
-   CompIterator  : IPCB_BoardIterator;
+   MechTop         : IPCB_LayerObject;
+   MechBot         : IPCB_LayerObject;
+   i, flag         : Integer;
+   Primitive       : IPCB_Primitive;
+   NewPrim         : IPCB_Primitive;
+   CompIterator    : IPCB_BoardIterator;
+   OverlayIterator : IPCB_GroupIterator;
+   Component       : IPCB_Component;
 begin
    // This is the main one. This was hard to set up.
    // I hope it will not be so hard to finish.
@@ -202,27 +204,69 @@ begin
    // Now I need to cycle through all components, or only selected ones, and
    // I need to copy their designators to the mech layers defined.
 
-   flag := 0;
-
-   for i := 0 to Board.SelectecObjectCount - 1 do
-   begin
-      Primitive := Board.SelectecObject[i];
-      if Primitive.ObjectID = eComponentObject then
+   if RadioButtonSelected.Checked then
+      for i := 0 to Board.SelectecObjectCount - 1 do
       begin
-         flag := 1;
-         NewDesignator := Primitive.Name.Replicate;
+         Primitive := Board.SelectecObject[i];
+         if Primitive.ObjectID = eComponentObject then
+         begin
+            Component := Primitive;
 
-         if Primitive.Layer = eTopLayer then NewDesignator.Layer := MechTop
-         else                                NewDesignator.Layer := MechBot;
+            NewPrim := Component.Name.Replicate;
 
-         NewDesignator.Text := '.Designator';
+            if Component.Layer = eTopLayer then NewPrim.Layer := MechTop
+            else                                NewPrim.Layer := MechBot;
 
-         Board.AddPCBObject(NewDesignator);
-         Primitive.AddPCBObject(NewDesignator);
-      end;
-   end;
+            NewPrim.Text := '.Designator';
 
-   if flag = 0 then
+            Board.AddPCBObject(NewPrim);
+            Component.AddPCBObject(NewPrim);
+
+            if CheckBoxOverlayPrims.Checked then
+            begin
+               // Copy comment first
+               if Component.CommentOn then
+               begin
+                  NewPrim := Component.Comment.Replicate;
+
+                  if Component.Layer = eTopLayer then NewPrim.Layer := MechTop
+                  else                                NewPrim.Layer := MechBot;
+
+                  NewPrim.Text := '.Comment';
+
+                  Board.AddPCBObject(NewPrim);
+                  Component.AddPCBObject(NewPrim);
+               end;
+
+               // Here we copy all other overlay primitives to mechLayer -
+
+               OverlayIterator := Component.GroupIterator_Create;
+               OverlayIterator.AddFilter_LayerSet(MkSet(eTopOverlay, eBottomOverlay));
+
+               Primitive := OverlayIterator.FirstPCBObject;
+               while (Primitive <> nil) do
+               begin
+               if (Primitive.Layer = eTopOverlay) or (Primitive.Layer = eBottomOverlay) then
+                  begin
+                     NewPrim := Primitive.Replicate;
+
+                     if Primitive.Layer = eTopOverlay then NewPrim.Layer := MechTop
+                     else                                  NewPrim.Layer := MechBot;
+
+                     if Primitive = Component.Comment then
+                        NewPrim.Text := '.Comment';
+
+                     Board.AddPCBObject(NewPrim);
+                     Component.AddPCBObject(NewPrim);
+                  end;
+
+                  Primitive := OverlayIterator.NextPCBObject;
+               end;
+               Component.GroupIterator_Destroy(OverlayIterator);
+            end;
+         end;
+      end
+   else
    begin
       // No selected components - make it for all components
 
@@ -232,21 +276,63 @@ begin
       CompIterator.AddFilter_Method(eProcessAll);
 
 
-      Primitive := CompIterator.FirstPCBObject;
-      While (Primitive <> Nil) Do
+      Component := CompIterator.FirstPCBObject;
+      While (Component <> Nil) Do
       Begin
-         NewDesignator := Primitive.Name.Replicate;
+         NewPrim := Component.Name.Replicate;
 
-         if Primitive.Layer = eTopLayer then NewDesignator.Layer := MechTop
-         else                                NewDesignator.Layer := MechBot;
+         if Component.Layer = eTopLayer then NewPrim.Layer := MechTop
+         else                                NewPrim.Layer := MechBot;
 
-         NewDesignator.Text := '.Designator';
+         NewPrim.Text := '.Designator';
 
-         Board.AddPCBObject(NewDesignator);
-         Primitive.AddPCBObject(NewDesignator);
+         Board.AddPCBObject(NewPrim);
+         Component.AddPCBObject(NewPrim);
 
+         if CheckBoxOverlayPrims.Checked then
+            begin
 
-         Primitive := CompIterator.NextPCBObject;
+               // Copy comment first
+               if Component.CommentOn then
+               begin
+                  NewPrim := Component.Comment.Replicate;
+
+                  if Component.Layer = eTopLayer then NewPrim.Layer := MechTop
+                  else                                NewPrim.Layer := MechBot;
+
+                  NewPrim.Text := '.Comment';
+
+                  Board.AddPCBObject(NewPrim);
+                  Component.AddPCBObject(NewPrim);
+               end;
+
+               // Here we copy all other overlay primitives to mechLayer -
+
+               OverlayIterator := Component.GroupIterator_Create;
+
+               Primitive := OverlayIterator.FirstPCBObject;
+               while (Primitive <> nil) do
+               begin
+                  if (Primitive.Layer = eTopOverlay) or (Primitive.Layer = eBottomOverlay) then
+                  begin
+                     NewPrim := Primitive.Replicate;
+
+                     if Primitive.Layer = eTopOverlay then NewPrim.Layer := MechTop
+                     else                                  NewPrim.Layer := MechBot;
+
+                     if Primitive = Component.Comment then
+                        NewPrim.Text := '.Comment';
+
+                     Board.AddPCBObject(NewPrim);
+                     Component.AddPCBObject(NewPrim);
+                  end;
+
+                  Primitive := OverlayIterator.NextPCBObject;
+               end;
+               Component.GroupIterator_Destroy(OverlayIterator);
+            end;
+
+         Component := CompIterator.NextPCBObject;
       End;
       Board.BoardIterator_Destroy(CompIterator);
    end;

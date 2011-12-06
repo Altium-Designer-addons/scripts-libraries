@@ -1,8 +1,8 @@
 object FormMechLayerDesignators: TFormMechLayerDesignators
-  Left = 0
-  Top = 0
+  Left = 21
+  Top = 16
   Caption = 'Designators to Mech Layer'
-  ClientHeight = 248
+  ClientHeight = 377
   ClientWidth = 321
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -16,7 +16,7 @@ object FormMechLayerDesignators: TFormMechLayerDesignators
   TextHeight = 13
   object GroupBoxTop: TGroupBox
     Left = 16
-    Top = 144
+    Top = 136
     Width = 288
     Height = 56
     Caption = 'Designators for Components on Top will be placed on'
@@ -68,7 +68,7 @@ object FormMechLayerDesignators: TFormMechLayerDesignators
   end
   object ButtonOK: TButton
     Left = 144
-    Top = 208
+    Top = 344
     Width = 75
     Height = 25
     Caption = 'OK'
@@ -77,7 +77,7 @@ object FormMechLayerDesignators: TFormMechLayerDesignators
   end
   object ButtonCancel: TButton
     Left = 232
-    Top = 208
+    Top = 344
     Width = 75
     Height = 25
     Caption = 'Cancel'
@@ -103,5 +103,46 @@ object FormMechLayerDesignators: TFormMechLayerDesignators
     Caption = 'Single Layer'
     TabOrder = 5
     OnClick = RadioButtonSingleClick
+  end
+  object GroupBoxOptions: TGroupBox
+    Left = 16
+    Top = 200
+    Width = 288
+    Height = 128
+    Caption = 'Aditional Options'
+    TabOrder = 8
+    object Label1: TLabel
+      Left = 16
+      Top = 56
+      Width = 91
+      Height = 13
+      Caption = 'Component Scope:'
+    end
+    object RadioButtonAll: TRadioButton
+      Left = 32
+      Top = 72
+      Width = 113
+      Height = 17
+      Caption = 'All Components'
+      Checked = True
+      TabOrder = 0
+      TabStop = True
+    end
+    object RadioButtonSelected: TRadioButton
+      Left = 32
+      Top = 96
+      Width = 152
+      Height = 17
+      Caption = 'Selected Components only'
+      TabOrder = 1
+    end
+    object CheckBoxOverlayPrims: TCheckBox
+      Left = 16
+      Top = 24
+      Width = 224
+      Height = 17
+      Caption = 'Copy all primitives from Overlay Layers'
+      TabOrder = 2
+    end
   end
 end
