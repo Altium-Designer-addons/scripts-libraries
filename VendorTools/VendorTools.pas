@@ -7,19 +7,26 @@
 {           It then shows small dialog in which user should choose Vendor      }
 {           tool, and choose weather he will do import or export.              }
 {                                                                              }
-{           It currently supports Altera and Xilinx, but soon I will try to    }
-{           support Lattice and Actel.                                         }
+{           It currently supports Altera, Lattice and Xilinx, but soon I will  }
+{            try to support Actel (but I need help from Actel user for this).  }
 {                                                                              }
-{           - Altera export generates .tcl file                                }
-{           - Altera Import needs .pin file                                    }
-{           - Xilinx export generates .ucf file                                }
-{           - Xilinx Import needs .ucf file                                    }
+{           - Altera  export generates .tcl file                               }
+{           - Altera  import needs .pin file                                   }
+{           - Xilinx  export generates .ucf file                               }
+{           - Xilinx  import needs .ucf file                                   }
+{           - Lattice export generates .csv file                               }
+{           - Lattice import needs .pad file                                   }
+{                                                                              }
+{           Aditionally ther is custom import-export that works with simple    }
+{           csv files that contain only "PinName, NetName" data. On import     }
+{           data can be separated with '=', ',' or ';'                         }
 {                                                                              }
 {           Known issues (on import only):                                     }
 {           - If you place wire stub shorter than the one already on the PCB,  }
 {             maybe script will not be able to remove positioned netlabel.     }
 {             But anyway, this netlabel will always be floating, so ERC        }
-{             should catch it. This is very rare case.                         }
+{             should catch it. This is very rare case. To avoid this best      }
+{             practice is to use default value.                                }
 {                                                                              }
 {                                                                              }
 { Created by:    Petar Perisin                                                 }
@@ -42,9 +49,34 @@ var
 {    PinName2=NetName2                                                         }
 {    PinName3=NetName3                                                         }
 {                                                                              }
-{    if pin should be unconnected, his name should be: 'DoNotConnectOnSCH'     }
+{    if pin should be unconnected, his net name is: 'DoNotConnectOnSCH'        }
 {..............................................................................}
    PinInfo       : TStringList;
+
+
+
+
+
+
+
+// Two procedures to modify the form
+procedure TVendorToolsForm.RadioButtonImportClick(Sender: TObject);
+begin
+   if RadioButtonImport.Checked then
+      EditLength.Enabled := True
+   else
+      EditLength.Enabled := False;
+end;
+
+
+
+procedure TVendorToolsForm.RadioButtonExportClick(Sender: TObject);
+begin
+   if RadioButtonImport.Checked then
+      EditLength.Enabled := True
+   else
+      EditLength.Enabled := False;
+end;
 
 
 // GetToken - Function that returns
@@ -217,12 +249,12 @@ end;
 
 
 // Here we have functions that imports from vendor tools
-Procedure ImportFromActel(dummy : string);
+Procedure ImportFromActel(extension : string);
 begin
    close;
 end;
 
-Procedure ImportFromAltera(dummy : string);
+Procedure ImportFromAltera(extension : string);
 var
    i, j     : Integer;
    Flag     : Integer;
@@ -240,8 +272,9 @@ var
    TempLine : String;
 
 begin
-   OpenDialog.Title  := 'Import pin info from *.pin file for Component ' + ComboBoxDesignator.Text;
-   OpenDialog.Filter := 'PIN file (*.pin)|*.pin';
+
+   SaveDialog.Title  := 'Import pin info from *.' + extension + ' file for Component ' + ComboBoxDesignator.Text;
+   SaveDialog.Filter := AnsiUpperCase(extension) + ' file (*.' + extension + ')|*.' + extension;
 
    Flag := OpenDialog.Execute;
    if (not Flag) then exit;
@@ -351,12 +384,89 @@ begin
    // PinInfo.SaveToFile('C:\Users\Petar\Desktop\Report3.Txt');
 end;
 
-Procedure ImportFromLattice(dummy : string);
+Procedure ImportFromLattice(extension : string);
+var
+   i, j     : Integer;
+   Flag     : Integer;
+   FileName : String;
+   PinFile  : TstringList;
+   Line     : String;
+
+   PinName  : String;
+   NetName  : String;
+
+   NetText  : String;
+   NetIndex : String;
 begin
-   close;
+
+   SaveDialog.Title  := 'Import pin info from *.' + extension + ' file for Component ' + ComboBoxDesignator.Text;
+   SaveDialog.Filter := AnsiUpperCase(extension) + ' file (*.' + extension + ')|*.' + extension;
+
+   Flag := OpenDialog.Execute;
+   if (not Flag) then exit;
+
+   FileName := OpenDialog.FileName;
+
+   // Load ucf file to PinFile
+   PinFile := TStringList.Create;
+   PinFile.LoadFromFile(Filename);
+
+   i := 0;
+
+   While i < PinFile.Count do
+   begin
+      Line := PinFile[i];
+      Inc(i);
+      if Line = 'Pinout by Pin Number:' then break;
+   end;
+
+   i := i + 3;
+   while Line[1] <> '+' do
+   begin
+      Line := PinFile[i];
+
+      // Delete first character - |
+      if Line[1] = '|' then Delete(Line, 1, 1);
+
+      PinName := GetToken(Line, 1, '|');
+      NetName := GetToken(Line, 2, '|');
+
+      PinName := Trim(PinName);
+      NetName := Trim(NetName);
+
+      // Delete bank info from pin name
+      Delete(PinName, LastDelimiter('/', PinName), Length(PinName) - LastDelimiter('/', PinName) + 1);
+
+      if (NetName = '') or (NetName = 'unused, PULL:UP') or (NetName = 'unused, PULL:DOWN') then
+         NetName := 'DoNotConnectOnSCH';
+
+      if NetName[Length(NetName)] = '+' then
+      begin
+         SetLength(NetName, Length(NetName) - 1);
+    
+         NetText  := GetNetText('=' + NetName);
+         NetIndex := GetNetIndex('=' + NetName);
+
+         NetName := NetText + '_P' + NetIndex;
+      end;
+
+      if NetName[Length(NetName)] = '-' then
+      begin
+         SetLength(NetName, Lenght(NetName) - 1);
+
+         NetText  := GetNetText('=' + NetName);
+         NetIndex := GetNetIndex('=' + NetName);
+
+         NetName := NetText + '_N' + NetIndex;
+      end;
+
+      PinInfo.Add(PinName + '=' + NetName);
+
+      Inc(i);
+   end;
 end;
 
-Procedure ImportFromXilinx(dummy : string);
+Procedure ImportFromXilinx(extension : string);
 var
    i, j     : Integer;
    Flag     : Integer;
@@ -374,8 +484,8 @@ var
    TempLine : String;
 
 begin
-   OpenDialog.Title  := 'Import pin info from *.ucf file for Component ' + ComboBoxDesignator.Text;
-   OpenDialog.Filter := 'UCF file (*.ucf)|*.ucf';
+   SaveDialog.Title  := 'Import pin info from *.' + extension + ' file for Component ' + ComboBoxDesignator.Text;
+   SaveDialog.Filter := AnsiUpperCase(extension) + ' file (*.' + extension + ')|*.' + extension;
 
    Flag := OpenDialog.Execute;
    if (not Flag) then exit;
@@ -444,18 +554,81 @@ begin
 
       Inc(i);
    end;
-   // PinInfo.SaveToFile('C:\Users\Petar\Desktop\Report3.Txt');
+end;
+
+Procedure ImportFromCustom(extension : String);
+var
+   i, j     : Integer;
+   Flag     : Integer;
+   FileName : String;
+   PinFile  : TstringList;
+   Line     : String;
+
+   PinName  : String;
+   NetName  : String;
+
+   AsciiCode : Integer;
+   PosValue  : String;
+
+   TempLine : String;
+
+begin
+
+   SaveDialog.Title  := 'Import pin info from *.' + extension + ' or *.csv file for Component ' + ComboBoxDesignator.Text;
+   SaveDialog.Filter := AnsiUpperCase(extension) + ' file (*.' + extension + ')|*.' + extension + 'CSV file (*.csv)|*.csv';
+
+   Flag := OpenDialog.Execute;
+   if (not Flag) then exit;
+
+   FileName := OpenDialog.FileName;
+
+   // Load ucf file to PinFile
+   PinFile := TStringList.Create;
+   PinFile.LoadFromFile(Filename);
+
+   for i := 0 to Pinfile.Count - 1 do
+   begin
+      Line := PinFile[i];  
+
+      // delete delimiter characters at the beginning of the line
+      While (Line[1] = '=') or (Line[1] = ',') or (Line[1] = ';') do
+         Delete(Line,1,1);
+
+      // delete delimiter characters at the end of the line
+      j := LastDelimiter('=,;',Line);
+
+      while (j = Length(Line)) do
+      begin
+         Delete(Line,Length(Line),1);
+         j := LastDelimiter('=,;',Line);
+      end;
+
+      if (j <> 0) then
+      begin
+         PinName := Line;
+         Netname := Line;
+
+         Delete(PinName, j, Length(PinName) - j + 1);
+         Delete(NetName, 1, j);
+
+         PinName := Trim(PinName);
+         NetName := Trim(NetName);
+
+         if (PinName <> '') and (NetName <> '') then
+            PinInfo.Add(PinName + '=' + NetName);
+      end;
+   end;
 end;
 
 
 
 // Here we have functions that generate files to export To Vendor Tools
-Procedure ExportToActel(dummy : string);
+Procedure ExportToActel(extension : string);
 begin
    close;
 end;
 
-Procedure ExportToAltera(dummy : string);
+Procedure ExportToAltera(extension : string);
 var
    Lista    : TStringList;
    Line     : String;
@@ -495,30 +668,21 @@ begin
          Lista.Add(Line);
    end;
 
-   SaveDialog.Title  := 'Export pin info to *.TCL file for Component ' + ComboBoxDesignator.Text;
-   SaveDialog.Filter := 'TCL file (*.tcl)|*.tcl';
+   SaveDialog.Title  := 'Export pin info to *.' + extension + ' file for Component ' + ComboBoxDesignator.Text;
+   SaveDialog.Filter := AnsiUpperCase(extension) + ' file (*.' + extension + ')|*.' + extension;
 
    i := SaveDialog.Execute;
    if (not i) then exit;
 
    FileName := SaveDialog.FileName;
-   FileName := ChangeFileExt(FileName, '.tcl');
+   FileName := ChangeFileExt(FileName, '.' + extension);
 
    Lista.SaveToFile(FileName);
 
    close;
 end;
 
-
-
-Procedure ExportToLattice(dummy : string);
-begin
-   close;
-end;
-
-
-
-Procedure ExportToXilinx(dummy : string);
+Procedure ExportToLattice(extension : string);
 var
    Lista    : TStringList;
    Line     : String;
@@ -530,7 +694,6 @@ var
    FileName : String;
 begin
    Lista := TStringList.Create;
-   // set_location_assignment -to "ADC_CAL" PIN_F29
 
    for i := 0 to PinInfo.Count - 1 do
    begin
@@ -540,7 +703,56 @@ begin
       NetName  := GetNetText(Line);
       NetIndex := GetNetIndex(Line);
       DiffPair := IsDiffPair(Line);
-      
+
+      if NetIndex <> '' then
+         NetName := NetName + NetIndex;
+
+      if DiffPair <> 'Negative' then
+      begin
+         Line := 'LOCATE COMP "' + NetName + '" SITE "' + PinName + '" ;';
+         Lista.Add(Line);
+      end;
+
+      if DiffPair = 'Positive' then
+         Lista.Add('IOBUF PORT "' + NetName + '" IO_TYPE=LVPECL33 ;');
+   end;
+
+   SaveDialog.Title  := 'Export pin info to *.' + extension + ' file for Component ' + ComboBoxDesignator.Text;
+   SaveDialog.Filter := AnsiUpperCase(extension) + ' file (*.' + extension + ')|*.' + extension;
+
+   i := SaveDialog.Execute;
+   if (not i) then exit;
+
+   FileName := SaveDialog.FileName;
+   FileName := ChangeFileExt(FileName, '.' + extension);
+
+   Lista.SaveToFile(FileName);
+
+   close;
+end;
+
+Procedure ExportToXilinx(extension : string);
+var
+   Lista    : TStringList;
+   Line     : String;
+   PinName  : String;
+   NetName  : String;
+   NetIndex : String;
+   DiffPair : String;
+   i        : Integer;
+   FileName : String;
+begin
+   Lista := TStringList.Create;
+
+   for i := 0 to PinInfo.Count - 1 do
+   begin
+      Line := PinInfo[i];
+
+      PinName  := GetPinName(Line);
+      NetName  := GetNetText(Line);
+      NetIndex := GetNetIndex(Line);
+      DiffPair := IsDiffPair(Line);
+
       if DiffPair = 'Positive' then
          NetName := NetName + '_P';
 
@@ -554,14 +766,46 @@ begin
       Lista.Add(Line);
    end;
 
-   SaveDialog.Title  := 'Export pin info to *.UCF file for Component ' + ComboBoxDesignator.Text;
-   SaveDialog.Filter := 'UCF file (*.ucf)|*.ucf';
+   SaveDialog.Title  := 'Export pin info to *.' + extension + ' file for Component ' + ComboBoxDesignator.Text;
+   SaveDialog.Filter := AnsiUpperCase(extension) + ' file (*.' + extension + ')|*.' + extension;
 
    i := SaveDialog.Execute;
    if (not i) then exit;
 
    FileName := SaveDialog.FileName;
-   FileName := ChangeFileExt(FileName, '.ucf');
+   FileName := ChangeFileExt(FileName, '.' + extension);
+
+   Lista.SaveToFile(FileName);
+
+   close;
+end;
+
+Procedure ExportToCsv(extension : string);
+var
+   Lista    : TStringList;
+   PinName  : String;
+   NetName  : String;
+   i        : Integer;
+   FileName : String;
+begin
+   Lista := TStringList.Create;
+
+   for i := 0 to PinInfo.Count - 1 do
+   begin
+      PinName := PinInfo.Names[i];
+      NetName := PinInfo.ValueFromIndex[i];
+
+      Lista.Add(PinName + ',' + NetName);
+   end;
+
+   SaveDialog.Title  := 'Export pin info to *.' + extension + ' file for Component ' + ComboBoxDesignator.Text;
+   SaveDialog.Filter := AnsiUpperCase(extension) + ' file (*.' + extension + ')|*.' + extension;
+
+   i := SaveDialog.Execute;
+   if (not i) then exit;
+
+   FileName := SaveDialog.FileName;
+   FileName := ChangeFileExt(FileName, '.'+ extension);
 
    Lista.SaveToFile(FileName);
 
@@ -637,10 +881,11 @@ begin
    if RadioButtonImport.Checked then
    begin
       // Here we are importing info to PinInfo StringList
-      if RadioButtonActel.Checked   then ImportFromActel(Component);
-      if RadioButtonAltera.Checked  then ImportFromAltera(Component);
-      if RadioButtonLattice.Checked then ImportFromLattice(Component);
-      if RadioButtonXilinx.Checked  then ImportFromXilinx(Component);
+      if      RadioButtonActel.Checked   then ImportFromActel('')
+      else if RadioButtonAltera.Checked  then ImportFromAltera('pin')
+      else if RadioButtonLattice.Checked then ImportFromLattice('pad')
+      else if RadioButtonXilinx.Checked  then ImportFromXilinx('ucf')
+      else if RadioButtonCustom.Checked  then ImportFromCustom('txt');
 
       if PinInfo.Count = 0 then exit;
 
@@ -1103,10 +1348,11 @@ begin
       end;
 
       // Now that we have set up PinInfo StringList, we need to generate the file
-      if RadioButtonActel.Checked   then ExportToActel(Component);
-      if RadioButtonAltera.Checked  then ExportToAltera(Component);
-      if RadioButtonLattice.Checked then ExportToLattice(Component);
-      if RadioButtonXilinx.Checked  then ExportToXilinx(Component);
+      if      RadioButtonActel.Checked   then ExportToActel('')
+      else if RadioButtonAltera.Checked  then ExportToAltera('tcl')
+      else if RadioButtonLattice.Checked then ExportToLattice('lpf')
+      else if RadioButtonXilinx.Checked  then ExportToXilinx('ucf')
+      else if RadioButtonCustom.Checked  then ExportToCsv('csv');
    end;
    close;
 end;
@@ -1134,25 +1380,16 @@ begin
    end;
 
    // Compile project
-   FlatHierarchy := PCBProject.DM_DocumentFlattened;
 
-   // If we couldn't get the flattened sheet, then most likely the project has
-   // not been compiled recently
+   // First try compiling the project
+   PcbProject.DM_Compile;
+
+   // Try to open the flattened document
+   FlatHierarchy := PCBProject.DM_DocumentFlattened;
    if (FlatHierarchy = nil) then
    begin
-       // First try compiling the project
-       ResetParameters;
-       AddStringParameter( 'Action', 'Compile' );
-       AddStringParameter( 'ObjectKind', 'Project' );
-       RunProcess( 'WorkspaceManager:Compile' );
-
-       // Try Again to open the flattened document
-       FlatHierarchy := PCBProject.DM_DocumentFlattened;
-       if (FlatHierarchy = nil) then
-       begin
-           ShowMessage('NOTICE: Compile the Project before Running this script.');
-           Exit;
-       end;
+       ShowMessage('NOTICE: Compile the Project before Running this script.');
+       Exit;
    end;
 
    For ComponentNum := 0 to FlatHierarchy.DM_ComponentCount - 1 do
@@ -1160,3 +1397,6 @@ begin
 
    VendorToolsForm.ShowModal;
 end;
+
+
+

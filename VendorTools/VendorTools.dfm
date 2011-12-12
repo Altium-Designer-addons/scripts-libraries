@@ -2,7 +2,7 @@ object VendorToolsForm: TVendorToolsForm
   Left = 0
   Top = 0
   Caption = 'Vendor Tools'
-  ClientHeight = 218
+  ClientHeight = 227
   ClientWidth = 289
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -23,7 +23,7 @@ object VendorToolsForm: TVendorToolsForm
   object ComboBoxDesignator: TComboBox
     Left = 184
     Top = 21
-    Width = 88
+    Width = 96
     Height = 21
     TabOrder = 0
   end
@@ -31,7 +31,7 @@ object VendorToolsForm: TVendorToolsForm
     Left = 16
     Top = 56
     Width = 80
-    Height = 112
+    Height = 128
     Caption = 'Vendor'
     TabOrder = 1
     object RadioButtonActel: TRadioButton
@@ -59,7 +59,6 @@ object VendorToolsForm: TVendorToolsForm
       Width = 56
       Height = 17
       Caption = 'Lattice'
-      Enabled = False
       TabOrder = 2
     end
     object RadioButtonXilinx: TRadioButton
@@ -70,23 +69,31 @@ object VendorToolsForm: TVendorToolsForm
       Caption = 'Xilinx'
       TabOrder = 3
     end
+    object RadioButtonCustom: TRadioButton
+      Left = 8
+      Top = 104
+      Width = 113
+      Height = 17
+      Caption = 'Custom'
+      TabOrder = 4
+    end
   end
   object GroupBoxOptions: TGroupBox
-    Left = 112
+    Left = 104
     Top = 56
-    Width = 160
-    Height = 112
+    Width = 176
+    Height = 104
     Caption = 'Options'
     TabOrder = 2
     object Label2: TLabel
-      Left = 24
+      Left = 16
       Top = 59
-      Width = 59
+      Width = 62
       Height = 13
-      Caption = 'Wire length:'
+      Caption = 'Wire Length:'
     end
     object Label3: TLabel
-      Left = 24
+      Left = 16
       Top = 80
       Width = 120
       Height = 13
@@ -101,6 +108,7 @@ object VendorToolsForm: TVendorToolsForm
       Checked = True
       TabOrder = 0
       TabStop = True
+      OnClick = RadioButtonImportClick
     end
     object RadioButtonExport: TRadioButton
       Left = 80
@@ -109,20 +117,20 @@ object VendorToolsForm: TVendorToolsForm
       Height = 17
       Caption = 'Export'
       TabOrder = 1
+      OnClick = RadioButtonExportClick
     end
     object EditLength: TEdit
       Left = 104
       Top = 56
       Width = 41
       Height = 21
-      Enabled = False
       TabOrder = 2
       Text = '5'
     end
   end
   object ButtonCancel: TButton
     Left = 192
-    Top = 184
+    Top = 192
     Width = 75
     Height = 25
     Caption = 'Cancel'
@@ -131,7 +139,7 @@ object VendorToolsForm: TVendorToolsForm
   end
   object ButtonOK: TButton
     Left = 104
-    Top = 184
+    Top = 192
     Width = 75
     Height = 25
     Caption = 'OK'
@@ -141,10 +149,10 @@ object VendorToolsForm: TVendorToolsForm
   end
   object OpenDialog: TOpenDialog
     Left = 16
-    Top = 184
+    Top = 192
   end
   object SaveDialog: TSaveDialog
     Left = 48
-    Top = 184
+    Top = 192
   end
 end
