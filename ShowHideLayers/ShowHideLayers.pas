@@ -18,8 +18,9 @@
 
 {..............................................................................}
 var
-   Board         : IPCB_Board;
-   TheLayerStack : IPCB_LayerStack;
+   Board           : IPCB_Board;
+   TheLayerStack   : IPCB_LayerStack;
+   CB2LayerControl : Boolean;
 
 
 
@@ -80,39 +81,42 @@ var
    i         : Integer;
 begin
 
-   if TabControlLayers.TabIndex = 0 then
+   if CB2LayerControl then
    begin
-
-      LayerObj := TheLayerStack.FirstLayer;
-      i := 0;
-      while (LayerObj <> nil) do
+      if TabControlLayers.TabIndex = 0 then
       begin
-         if (i = ((CheckBoxa.Top - 30) / 20)) then break;
-         Inc(i);
-         LayerObj := TheLayerStack.NextLayer(LayerObj);
+
+         LayerObj := TheLayerStack.FirstLayer;
+         i := 0;
+         while (LayerObj <> nil) do
+         begin
+            if (i = ((CheckBoxa.Top - 30) / 20)) then break;
+            Inc(i);
+            LayerObj := TheLayerStack.NextLayer(LayerObj);
+         end;
+
+         LayerObj.IsDisplayed[Board] := CheckBoxa.Checked;
+      end
+      else if TabControlLayers.TabIndex = 1 then
+      begin
+         for i := 1 to 32 do
+         begin
+            MechLayer := TheLayerStack.LayerObject_V7[ILayer.MechanicalLayer(i)];
+
+            if (MechLayer.MechanicalLayerEnabled) and (MechLayer.Name = CheckBoxa.Caption) then
+               MechLayer.IsDisplayed[Board] := CheckBoxa.Checked;
+         end;
+      end
+      else
+      begin
+         LayerObj := Board.LayerStack.LayerObject_V7[String2Layer(CheckBoxa.Caption)];
+
+         LayerObj.IsDisplayed[Board] := CheckBoxa.Checked;
       end;
 
-      LayerObj.IsDisplayed[Board] := CheckBoxa.Checked;
-   end
-   else if TabControlLayers.TabIndex = 1 then
-   begin
-      for i := 1 to 32 do
-      begin
-         MechLayer := TheLayerStack.LayerObject_V7[ILayer.MechanicalLayer(i)];
-
-         if (MechLayer.MechanicalLayerEnabled) and (MechLayer.Name = CheckBoxa.Caption) then
-            MechLayer.IsDisplayed[Board] := CheckBoxa.Checked;
-      end;
-   end
-   else
-   begin
-      LayerObj := Board.LayerStack.LayerObject_V7[String2Layer(CheckBoxa.Caption)];
-
-      LayerObj.IsDisplayed[Board] := CheckBoxa.Checked;
+      Board.ViewManager_UpdateLayerTabs;
+      Board.ViewManager_FullUpdate;
    end;
-
-   Board.ViewManager_UpdateLayerTabs;
-   Board.ViewManager_FullUpdate;
 end;
 
 
@@ -145,6 +149,8 @@ var
    GetCB     : TCheckBox;
 begin
 
+
+   CB2LayerControl := False;
    for i := 1 to 32 do
    begin
       GetCB := CBFromInt(i);
@@ -152,6 +158,7 @@ begin
       GetCB.Enabled := False;
       GetCB.Visible := False;
    end;
+   CB2LayerControl := True;
 
    if TabControlLayers.TabIndex = 0 then
    begin
@@ -477,6 +484,8 @@ begin
 
    TheLayerStack := Board.LayerStack;
    if TheLayerStack = nil then exit;
+
+   CB2LayerControl := True;
 
    ShowHideLayers.Show;
 end;
