@@ -1,19 +1,16 @@
 {******************************************************************************}
-{ TweakAPDesignators Script - Taken from AdjustDesignators script              }
+{ Man2APDesignators Script - Taken from AdjustDesignators script              }
 {   - written by Mattias Ericson, Omnisys Instruments AB                       }
 {   - Modified by Tony Chilco, Yorkville Sound                                 }
 {                                                                              }
 { Written for Altium Designer 10                                               }
 {                                                                              }
-{ This script will change auto-positioned designators to manual and move them  }
-{ by a user-defined amount. Will operate on all or selected components  }
-{ The direction of the movement depends on the current autoposition status     }
+{ This script will change manual designators to auto-positioned Will operate   }
+{ on all or selected components  }
 {                                                                              }
-{ Note: Only works in millimeters at the moment.                               }
 {                                                                              }
 { Change log:                                                                  }
 { Ver 1.0 - Initial release                                                    }
-{ Ver 1.1 - Corrected post process position so undo will work                  }
 {                                                                              }
 
 {******************************************************************************}
@@ -22,15 +19,20 @@ Var
      UnHideDesignators, AbortScript : Boolean;
 
 {..............................................................................}
-Procedure TweakDesignators;
+Procedure Man2AutoDesignators;
 Var
     Component               : IPCB_Component;
     ComponentIteratorHandle : IPCB_BoardIterator;
     Designator              : IPCB_Text;
     PCBSystemOptions        : IPCB_SystemOptions;
     DRCSetting              : boolean;
-    tc_AutoPos              : TTextAutoposition; // Current AP setting
-    DesignatorXmove         : Integer;           // Distance to move
+    tc_AutoPos              : TTextAutoposition;       // Current AP setting
+    DesignatorXoffset, DesignatorYoffset : Integer;    // Distance from origin
+    AutoX, AutoY, AutoSet   : Integer;
+    SomeText : String;
+    CenterX, CenterY        : Long;
+    CenterDX, CenterDY      : Long;
+    R                       : TCoordRect;
 begin
      // Verify that the document is a PcbDoc
      if PCBServer.GetCurrentPCBBoard = Nil Then  Begin
@@ -54,15 +56,15 @@ begin
         ComponentIteratorHandle.AddFilter_Method(eProcessAll);
 
         AbortScript:= False;
-        TweakDesForm.ShowModal;      // Show the settings dialogue
+        APDesForm.ShowModal;      // Show the settings dialogue
         If AbortScript Then Exit;
 
-        IF TweakDesForm.UnHideDesignatorsCheckBox.Checked Then UnHideDesignators:= True
+        IF APDesForm.UnHideDesignatorsCheckBox.Checked Then UnHideDesignators:= True
         else UnHideDesignators:= False;
 
         Component := ComponentIteratorHandle.FirstPCBObject;
 
-        If TweakDesForm.SelectedCheckbox.Checked Then  while (Component <> Nil) Do
+        If APDesForm.SelectedCheckbox.Checked Then  while (Component <> Nil) Do
           If NOT Component.Selected Then Component := ComponentIteratorHandle.NextPCBObject
           else break;    // Find the first selected comp if select only checked
 
@@ -76,39 +78,60 @@ begin
             // Get the designator handle
             Designator := Component.Name;
 
+            tc_AutoPos:= Component.GetState_NameAutoPos; // Get current AP state
+            If tc_AutoPos = eAutoPos_Manual Then Begin
+
+            // Determine Designator position relative to the part origin
+            R := Component.BoundingRectangleNoNameComment;
+            CenterX:=  (R.right - R.left)/2 + R.left;
+            CenterY:=  (R.top - R.bottom)/2 + R.bottom;
+
+            R := Designator.BoundingRectangle;
+            CenterDX:=  (R.right - R.left)/2 + R.left;
+            CenterDY:=  (R.top - R.bottom)/2 + R.bottom;
+
+            DesignatorXoffset:= CenterX - CenterDX;
+            DesignatorYoffset:= CenterY - CenterDY;
+
+            (*ShowMessage(Designator.Text);
+            ShowMessage(Designator.Size);
+            ShowMessage(DesignatorXoffset);
+            ShowMessage(DesignatorYoffset);
+              *)
+            If Abs(DesignatorXoffset)<Designator.Size Then AutoX:= 20
+              else If DesignatorXoffset>0 Then AutoX:= 10
+                else AutoX:= 30;
+            If Abs(DesignatorYoffset)<Designator.Size Then AutoY:= 2
+              else If DesignatorYoffset>0 Then AutoY:= 1
+                else AutoY:= 3;
+            AutoSet:=  AutoX + AutoY;
+            //ShowMessage(AutoSet);
+
             // notify that the pcb object is going to be modified
             PCBServer.SendMessageToRobots(Designator.I_ObjectAddress, c_Broadcast, PCBM_BeginModify, c_NoEventData);
 
-            // Set the move distance to DB units converted from mils or mm
-            If TweakDesForm.MMmilButton.Caption = 'MM' then   DesignatorXmove := MMsToCoord(TweakDesForm.AdjustAmtEdit.Text)
-            else DesignatorXmove := MilsToCoord(TweakDesForm.AdjustAmtEdit.Text);
-
-
-           tc_AutoPos:= Component.GetState_NameAutoPos; // Get current AP state
-
-            // Set AP to manual
-            Component.ChangeNameAutoposition  :=   eAutoPos_Manual;
-
             // Move designator depending on current AP setting
-            Case tc_AutoPos of
-              eAutoPos_Manual:;
-              eAutoPos_TopLeft:Designator.Ylocation := Designator.Ylocation - DesignatorXmove;
-              eAutoPos_CenterLeft:Designator.xlocation := Designator.xlocation + DesignatorXmove;
-              eAutoPos_BottomLeft:Designator.Ylocation := Designator.Ylocation + DesignatorXmove;
-              eAutoPos_TopCenter:Designator.Ylocation := Designator.Ylocation - DesignatorXmove;
-              eAutoPos_BottomCenter:Designator.Ylocation := Designator.Ylocation + DesignatorXmove;
-              eAutoPos_TopRight:Designator.Ylocation := Designator.Ylocation - DesignatorXmove;
-              eAutoPos_CenterRight:Designator.xlocation := Designator.xlocation - DesignatorXmove;
-              eAutoPos_BottomRight:Designator.Ylocation := Designator.Ylocation + DesignatorXmove;
-              eAutoPos_CenterCenter:;
-            End; {case tc_AutoPos}
+            Case AutoSet of
+              13:tc_AutoPos:= eAutoPos_TopLeft;
+              12:tc_AutoPos:= eAutoPos_CenterLeft;
+              11:tc_AutoPos:= eAutoPos_BottomLeft;
+              23:tc_AutoPos:= eAutoPos_TopCenter;
+              21:tc_AutoPos:= eAutoPos_BottomCenter;
+              33:tc_AutoPos:= eAutoPos_TopRight;
+              32:tc_AutoPos:= eAutoPos_CenterRight;
+              31:tc_AutoPos:= eAutoPos_BottomRight;
+              22:tc_AutoPos:= eAutoPos_CenterCenter;
+            End; {case AutoSet}
 
-           // notify that the pcb object is modified
+           // Set AP to manual
+            Component.ChangeNameAutoposition  :=   tc_AutoPos;
+          // notify that the pcb object is modified
             PCBServer.SendMessageToRobots(Designator.I_ObjectAddress, c_Broadcast, PCBM_EndModify , c_NoEventData);
 
+            End;
           // Get the next component handle
             Component := ComponentIteratorHandle.NextPCBObject;
-            If TweakDesForm.SelectedCheckbox.Checked Then  while (Component <> Nil) Do
+            If APDesForm.SelectedCheckbox.Checked Then  while (Component <> Nil) Do
               If NOT Component.Selected Then Component := ComponentIteratorHandle.NextPCBObject
               else break;  // Find the next selected comp if select only checked
 
@@ -118,7 +141,7 @@ begin
         // Notify the pcbserver that all changes have been made
         PCBServer.PostProcess;
 
-        //Refresh the screen
+       //Refresh the screen
         Client.SendMessage('PCB:Zoom', 'Action=Redraw' , 255, Client.CurrentView);
 
         // Destroy the component handle
