@@ -128,41 +128,7 @@ end;
 
 
 
-procedure TShowHideLayers.ShowHideLayersShow(Sender: TObject);
-var
-   LayerObj : IPCB_LayerObject;
-   i        : Integer;
-   Enabled   : Boolean;
-   Disabled  : Boolean;
-begin
-
-   CB2LayerControl := False;
-
-   Enabled  := False;
-   Disabled := False;
-
-   LayerObj := TheLayerStack.FirstLayer;
-   i := 1;
-   while (LayerObj <> nil) and (i <= 32) do
-   begin
-      if LayerObj.IsDisplayed[Board] then Enabled := True
-      else                                Disabled := True;
-
-      Layer2CB(CBFromInt(i),  LayerObj.Name, LayerObj.IsDisplayed[Board]);
-
-      Inc(i);
-      LayerObj := TheLayerStack.NextLayer(LayerObj);
-   end;
-
-   if Enabled = False then  CheckBoxAll.Checked := False;
-   if Disabled = False then CheckBoxAll.Checked := True;
-
-   CB2LayerControl := True;
-end;
-
-
-
-procedure TShowHideLayers.TabControlLayersChange(Sender: TObject);
+Procedure OnLayerChange(dummy : String);
 var
    LayerObj  : IPCB_LayerObject;
    MechLayer : IPCB_MechanicalLayer;
@@ -297,6 +263,17 @@ begin
 end;
 
 
+procedure TShowHideLayers.TabControlLayersChange(Sender: TObject);
+begin
+   OnLayerChange('');
+end;
+
+procedure TShowHideLayers.ShowHideLayersShow(Sender: TObject);   
+begin
+   OnLayerChange('');
+end;
+
+
 
 procedure TShowHideLayers.CheckBoxAllClick(Sender: TObject);
 var
@@ -326,7 +303,7 @@ begin
 end;
 
 
-Procedure CheckConditions;
+Procedure CheckConditions(dummy : String);
 var
    i        : Integer;
    Enabled  : Boolean;
@@ -368,193 +345,193 @@ end;
 procedure TShowHideLayers.CheckBox1Click(Sender: TObject);
 begin
    CB2Layer(CheckBox1);
-   CheckConditions;
+   CheckConditions('');
 end;
 
 procedure TShowHideLayers.CheckBox2Click(Sender: TObject);
 begin
    CB2Layer(CheckBox2);
-   CheckConditions;
+   CheckConditions('');
 end;
 
 procedure TShowHideLayers.CheckBox3Click(Sender: TObject);
 begin
    CB2Layer(CheckBox3);
-   CheckConditions;
+   CheckConditions('');
 end;
 
 procedure TShowHideLayers.CheckBox4Click(Sender: TObject);
 begin
    CB2Layer(CheckBox4);
-   CheckConditions;
+   CheckConditions('');
 end;
 
 procedure TShowHideLayers.CheckBox5Click(Sender: TObject);
 begin
    CB2Layer(CheckBox5);
-   CheckConditions;
+   CheckConditions('');
 end;
 
 procedure TShowHideLayers.CheckBox6Click(Sender: TObject);
 begin
    CB2Layer(CheckBox6);
-   CheckConditions;
+   CheckConditions('');
 end;
 
 procedure TShowHideLayers.CheckBox7Click(Sender: TObject);
 begin
    CB2Layer(CheckBox7);
-   CheckConditions;
+   CheckConditions('');
 end;
 
 procedure TShowHideLayers.CheckBox8Click(Sender: TObject);
 begin
    CB2Layer(CheckBox8);
-   CheckConditions;
+   CheckConditions('');
 end;
 
 procedure TShowHideLayers.CheckBox9Click(Sender: TObject);
 begin
    CB2Layer(CheckBox9);
-   CheckConditions;
+   CheckConditions('');
 end;
 
 procedure TShowHideLayers.CheckBox10Click(Sender: TObject);
 begin
    CB2Layer(CheckBox10);
-   CheckConditions;
+   CheckConditions('');
 end;
 
 procedure TShowHideLayers.CheckBox11Click(Sender: TObject);
 begin
    CB2Layer(CheckBox11);
-   CheckConditions;
+   CheckConditions('');
 end;
 
 procedure TShowHideLayers.CheckBox12Click(Sender: TObject);
 begin
    CB2Layer(CheckBox12);
-   CheckConditions;
+   CheckConditions('');
 end;
 
 procedure TShowHideLayers.CheckBox13Click(Sender: TObject);
 begin
    CB2Layer(CheckBox13);
-   CheckConditions;
+   CheckConditions('');
 end;
 
 procedure TShowHideLayers.CheckBox14Click(Sender: TObject);
 begin
    CB2Layer(CheckBox14);
-   CheckConditions;
+   CheckConditions('');
 end;
 
 procedure TShowHideLayers.CheckBox15Click(Sender: TObject);
 begin
    CB2Layer(CheckBox15);
-   CheckConditions;
+   CheckConditions('');
 end;
 
 procedure TShowHideLayers.CheckBox16Click(Sender: TObject);
 begin
    CB2Layer(CheckBox16);
-   CheckConditions;
+   CheckConditions('');
 end;
 
 procedure TShowHideLayers.CheckBox17Click(Sender: TObject);
 begin
    CB2Layer(CheckBox17);
-   CheckConditions;
+   CheckConditions('');
 end;
 
 procedure TShowHideLayers.CheckBox18Click(Sender: TObject);
 begin
    CB2Layer(CheckBox18);
-   CheckConditions;
+   CheckConditions('');
 end;
 
 procedure TShowHideLayers.CheckBox19Click(Sender: TObject);
 begin
    CB2Layer(CheckBox19);
-   CheckConditions;
+   CheckConditions('');
 end;
 
 procedure TShowHideLayers.CheckBox20Click(Sender: TObject);
 begin
    CB2Layer(CheckBox20);
-   CheckConditions;
+   CheckConditions('');
 end;
 
 procedure TShowHideLayers.CheckBox21Click(Sender: TObject);
 begin
    CB2Layer(CheckBox21);
-   CheckConditions;
+   CheckConditions('');
 end;
 
 procedure TShowHideLayers.CheckBox22Click(Sender: TObject);
 begin
    CB2Layer(CheckBox22);
-   CheckConditions;
+   CheckConditions('');
 end;
 
 procedure TShowHideLayers.CheckBox23Click(Sender: TObject);
 begin
    CB2Layer(CheckBox23);
-   CheckConditions;
+   CheckConditions('');
 end;
 
 procedure TShowHideLayers.CheckBox24Click(Sender: TObject);
 begin
    CB2Layer(CheckBox24);
-   CheckConditions;
+   CheckConditions('');
 end;
 
 procedure TShowHideLayers.CheckBox25Click(Sender: TObject);
 begin
    CB2Layer(CheckBox25);
-   CheckConditions;
+   CheckConditions('');
 end;
 
 procedure TShowHideLayers.CheckBox26Click(Sender: TObject);
 begin
    CB2Layer(CheckBox26);
-   CheckConditions;
+   CheckConditions('');
 end;
 
 procedure TShowHideLayers.CheckBox27Click(Sender: TObject);
 begin
    CB2Layer(CheckBox27);
-   CheckConditions;
+   CheckConditions('');
 end;
 
 procedure TShowHideLayers.CheckBox28Click(Sender: TObject);
 begin
    CB2Layer(CheckBox28);
-   CheckConditions;
+   CheckConditions('');
 end;
 
 procedure TShowHideLayers.CheckBox29Click(Sender: TObject);
 begin
    CB2Layer(CheckBox29);
-   CheckConditions;
+   CheckConditions('');
 end;
 
 procedure TShowHideLayers.CheckBox30Click(Sender: TObject);
 begin
    CB2Layer(CheckBox30);
-   CheckConditions;
+   CheckConditions('');
 end;
 
 procedure TShowHideLayers.CheckBox31Click(Sender: TObject);
 begin
    CB2Layer(CheckBox31);
-   CheckConditions;
+   CheckConditions('');
 end;
 
 procedure TShowHideLayers.CheckBox32Click(Sender: TObject);
 begin
    CB2Layer(CheckBox32);
-   CheckConditions;
+   CheckConditions('');
 end;
 
 
@@ -565,10 +542,11 @@ Var
 Begin
     IniFile := TIniFile.Create(AFileName);
 
-    IniFile.WriteInteger('Window', 'DialogueTop', ShowHideLayers.Top);
+    IniFile.WriteInteger('Window', 'DialogueTop',    ShowHideLayers.Top);
     IniFile.WriteInteger('Window', 'DialogueHeight', ShowHideLayers.Height);
-    IniFile.WriteInteger('Window', 'DialogueLeft', ShowHideLayers.Left);
-    IniFile.WriteInteger('Window', 'DialogueWidth', ShowHideLayers.Width);
+    IniFile.WriteInteger('Window', 'DialogueLeft',   ShowHideLayers.Left);
+    IniFile.WriteInteger('Window', 'DialogueWidth',  ShowHideLayers.Width);
+    IniFile.WriteInteger('Tabs',   'Current',        TabControlLayers.TabIndex);
 
     IniFile.Free;
 End;
@@ -581,10 +559,11 @@ var
 begin
     IniFile := TIniFile.Create(ClientAPI_SpecialFolder_AltiumApplicationData + '\ShowHideLayersScriptData');
 
-    ShowHideLayers.Top    := IniFile.ReadInteger('Window', 'DialogueTop',    ShowHideLayers.Top);
-    ShowHideLayers.Height := IniFile.ReadInteger('Window', 'DialogueHeight', ShowHideLayers.Height);
-    ShowHideLayers.Left   := IniFile.ReadInteger('Window', 'DialogueLeft',   ShowHideLayers.Left);
-    ShowHideLayers.Width  := IniFile.ReadInteger('Window', 'DialogueWidth',  ShowHideLayers.Width);
+    ShowHideLayers.Top        := IniFile.ReadInteger('Window', 'DialogueTop',    ShowHideLayers.Top);
+    ShowHideLayers.Height     := IniFile.ReadInteger('Window', 'DialogueHeight', ShowHideLayers.Height);
+    ShowHideLayers.Left       := IniFile.ReadInteger('Window', 'DialogueLeft',   ShowHideLayers.Left);
+    ShowHideLayers.Width      := IniFile.ReadInteger('Window', 'DialogueWidth',  ShowHideLayers.Width);
+    TabControlLayers.TabIndex := IniFile.ReadInteger('Tabs',   'Current',        TabControlLayers.TabIndex);
 
     IniFile.Free;
 end;
@@ -615,9 +594,11 @@ begin
 
    CB2LayerControl := True;
    Refresh := True;
-   ReadFromIniFile(ClientAPI_SpecialFolder_AltiumApplicationData + '\ShowHideLayersScriptData');
 
+   ReadFromIniFile(ClientAPI_SpecialFolder_AltiumApplicationData + '\ShowHideLayersScriptData');
    ShowHideLayers.Show;
+
+
 
 end;
 
