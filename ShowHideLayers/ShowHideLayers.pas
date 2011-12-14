@@ -553,23 +553,6 @@ End;
 
 
 
-procedure ReadFromIniFile(AFileName : String);
-var
-    IniFile : TIniFile;
-begin
-    IniFile := TIniFile.Create(ClientAPI_SpecialFolder_AltiumApplicationData + '\ShowHideLayersScriptData');
-
-    ShowHideLayers.Top        := IniFile.ReadInteger('Window', 'DialogueTop',    ShowHideLayers.Top);
-    ShowHideLayers.Height     := IniFile.ReadInteger('Window', 'DialogueHeight', ShowHideLayers.Height);
-    ShowHideLayers.Left       := IniFile.ReadInteger('Window', 'DialogueLeft',   ShowHideLayers.Left);
-    ShowHideLayers.Width      := IniFile.ReadInteger('Window', 'DialogueWidth',  ShowHideLayers.Width);
-    TabControlLayers.TabIndex := IniFile.ReadInteger('Tabs',   'Current',        TabControlLayers.TabIndex);
-
-    IniFile.Free;
-end;
-
-
-
 procedure TShowHideLayers.ShowHideLayersClose(Sender: TObject; var Action: TCloseAction);
 begin
      WriteToIniFile(ClientAPI_SpecialFolder_AltiumApplicationData + '\ShowHideLayersScriptData');
@@ -585,6 +568,8 @@ end;
 
 
 Procedure Start;
+var
+    IniFile : TIniFile;
 begin
    Board := PCBServer.GetCurrentPCBBoard;
    if Board = nil then exit;
@@ -595,11 +580,18 @@ begin
    CB2LayerControl := True;
    Refresh := True;
 
-   ReadFromIniFile(ClientAPI_SpecialFolder_AltiumApplicationData + '\ShowHideLayersScriptData');
+   IniFile := TIniFile.Create(ClientAPI_SpecialFolder_AltiumApplicationData + '\ShowHideLayersScriptData');
+
+   TabControlLayers.TabIndex := IniFile.ReadInteger('Tabs',   'Current',        TabControlLayers.TabIndex);
+
    ShowHideLayers.Show;
 
+   ShowHideLayers.Top        := IniFile.ReadInteger('Window', 'DialogueTop',    ShowHideLayers.Top);
+   ShowHideLayers.Height     := IniFile.ReadInteger('Window', 'DialogueHeight', ShowHideLayers.Height);
+   ShowHideLayers.Left       := IniFile.ReadInteger('Window', 'DialogueLeft',   ShowHideLayers.Left);
+   ShowHideLayers.Width      := IniFile.ReadInteger('Window', 'DialogueWidth',  ShowHideLayers.Width);
 
-
+   IniFile.Free;
 end;
 
 
