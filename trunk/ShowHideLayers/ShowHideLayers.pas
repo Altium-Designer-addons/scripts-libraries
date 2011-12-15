@@ -293,6 +293,7 @@ var
    CB : TCheckBox;
    i  : Integer;
 begin
+   Refresh := False;
 
    if CB2LayerControl then
    begin
