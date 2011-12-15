@@ -100,6 +100,9 @@ begin
          end;
 
          LayerObj.IsDisplayed[Board] := CheckBoxa.Checked;
+
+         if Refresh and CheckBoxa.Checked then
+            Board.CurrentLayer := LayerObj.LayerID;
       end
       else if TabControlLayers.TabIndex = 1 then
       begin
@@ -108,7 +111,14 @@ begin
             MechLayer := TheLayerStack.LayerObject_V7[ILayer.MechanicalLayer(i)];
 
             if (MechLayer.MechanicalLayerEnabled) and (MechLayer.Name = CheckBoxa.Caption) then
+            begin
                MechLayer.IsDisplayed[Board] := CheckBoxa.Checked;
+
+               if Refresh and CheckBoxa.Checked then
+                  Board.CurrentLayer := MechLayer.V7_LayerID;
+
+               break;
+            end;
          end;
       end
       else
@@ -116,6 +126,9 @@ begin
          LayerObj := Board.LayerStack.LayerObject_V7[String2Layer(CheckBoxa.Caption)];
 
          LayerObj.IsDisplayed[Board] := CheckBoxa.Checked;
+
+         if Refresh and CheckBoxa.Checked then
+            Board.CurrentLayer := LayerObj.LayerID;
       end;
 
       if Refresh then
@@ -280,7 +293,7 @@ var
    CB : TCheckBox;
    i  : Integer;
 begin
-   Refresh := false;
+
    if CB2LayerControl then
    begin
       for i := 1 to 32 do
@@ -294,6 +307,11 @@ begin
          end
          else if TabControlLayers.TabIndex <> 2 then break
          else if i > 15 then break;
+
+         if (TabControlLayers.TabIndex = 2) and (i = 3) then
+            Refresh := True
+         else
+            Refresh := False;
       end;
 
       Board.ViewManager_UpdateLayerTabs;
@@ -555,7 +573,7 @@ End;
 
 procedure TShowHideLayers.ShowHideLayersClose(Sender: TObject; var Action: TCloseAction);
 begin
-     WriteToIniFile(ClientAPI_SpecialFolder_AltiumApplicationData + '\ShowHideLayersScriptData');
+     WriteToIniFile(ClientAPI_SpecialFolder_AltiumApplicationData + '\ShowHideLayersScriptData.ini');
 end;
 
 
@@ -580,7 +598,7 @@ begin
    CB2LayerControl := True;
    Refresh := True;
 
-   IniFile := TIniFile.Create(ClientAPI_SpecialFolder_AltiumApplicationData + '\ShowHideLayersScriptData');
+   IniFile := TIniFile.Create(ClientAPI_SpecialFolder_AltiumApplicationData + '\ShowHideLayersScriptData.ini');
 
    TabControlLayers.TabIndex := IniFile.ReadInteger('Tabs',   'Current',        TabControlLayers.TabIndex);
 

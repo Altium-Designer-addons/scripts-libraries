@@ -34,7 +34,9 @@ object ShowHideLayers: TShowHideLayers
       Width = 150
       Height = 17
       Caption = 'CheckBox1'
+      Color = clRed
       Enabled = False
+      ParentColor = False
       TabOrder = 0
       Visible = False
       OnClick = CheckBox1Click
