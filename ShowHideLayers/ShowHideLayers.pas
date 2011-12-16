@@ -68,6 +68,46 @@ end;
 
 
 
+function ShapeFromInt(i : Integer) : TShape;
+begin
+   case i of
+       1 : Result := Shape1;
+       2 : Result := Shape2;
+       3 : Result := Shape3;
+       4 : Result := Shape4;
+       5 : Result := Shape5;
+       6 : Result := Shape6;
+       7 : Result := Shape7;
+       8 : Result := Shape8;
+       9 : Result := Shape9;
+      10 : Result := Shape10;
+      11 : Result := Shape11;
+      12 : Result := Shape12;
+      13 : Result := Shape13;
+      14 : Result := Shape14;
+      15 : Result := Shape15;
+      16 : Result := Shape16;
+      17 : Result := Shape17;
+      18 : Result := Shape18;
+      19 : Result := Shape19;
+      20 : Result := Shape20;
+      21 : Result := Shape21;
+      22 : Result := Shape22;
+      23 : Result := Shape23;
+      24 : Result := Shape24;
+      25 : Result := Shape25;
+      26 : Result := Shape26;
+      27 : Result := Shape27;
+      28 : Result := Shape28;
+      29 : Result := Shape29;
+      30 : Result := Shape30;
+      31 : Result := Shape31;
+      32 : Result := Shape32;
+   end;
+end;
+
+
+
 Procedure Layer2CB(CheckBox : TCheckBox, Tekst : String, Display : Boolean);
 begin
    CheckBox.Enabled := True;
@@ -149,6 +189,7 @@ var
    GetCB     : TCheckBox;
    Enabled   : Boolean;
    Disabled  : Boolean;
+   Shape     : TShape;
 begin
    CB2LayerControl := False;
 
@@ -165,6 +206,11 @@ begin
          else                                Disabled := True;
 
          Layer2CB(CBFromInt(i),  LayerObj.Name, LayerObj.IsDisplayed[Board]);
+
+         Shape := ShapeFromInt(i);
+         Shape.Visible := True;
+         Shape.Brush.Color := Board.LayerColor[LayerObj.LayerID];
+
          Inc(i);
          LayerObj := TheLayerStack.NextLayer(LayerObj);
       end;
@@ -180,6 +226,7 @@ begin
          GetCB.Enabled := False;
          GetCB.Visible := False;
 
+         ShapeFromInt(i).Visible := False;
          Inc(i);
       end;
    end
@@ -198,6 +245,10 @@ begin
 
             inc(j);
             Layer2CB(CBFromInt(j), MechLayer.Name, MechLayer.IsDisplayed[Board]);
+
+            Shape := ShapeFromInt(j);
+            Shape.Visible := True;
+            Shape.Brush.Color := Board.LayerColor[MechLayer.LayerID];
          end;
       end;
 
@@ -214,6 +265,7 @@ begin
          GetCB.Enabled := False;
          GetCB.Visible := False;
 
+         ShapeFromInt(i).Visible := False;
          Inc(i);
       end;
    end
@@ -231,28 +283,59 @@ begin
          GetCB.Enabled := False;
          GetCB.Visible := False;
 
+         ShapeFromInt(i).Visible := False;
+
          if i < 15 then
             i := i + 3
          else
             Inc(i);
       end;
 
-      Layer2CB(CBFromInt(1) , 'Multi Layer',        Board.LayerIsDisplayed[String2Layer('Multi Layer')]);
-      Layer2CB(CBFromInt(2),  'Keep Out Layer',     Board.LayerIsDisplayed[String2Layer('Keep Out Layer')]);
+      Layer2CB(CheckBox1 , 'Multi Layer',        Board.LayerIsDisplayed[String2Layer('Multi Layer')]);
+      Shape1.Visible := True;
+      Shape1.Brush.Color := Board.LayerColor[String2Layer('Multi Layer')];
+
+      Layer2CB(CheckBox2,  'Keep Out Layer',     Board.LayerIsDisplayed[String2Layer('Keep Out Layer')]);
+      Shape2.Visible := True;
+      Shape2.Brush.Color := Board.LayerColor[String2Layer('Keep Out Layer')];
+
 
       // Overlay
-      Layer2CB(CBFromInt(4),  'Top Overlay',        Board.LayerIsDisplayed[String2Layer('Top Overlay')]);
-      Layer2CB(CBFromInt(5),  'Bottom Overlay',     Board.LayerIsDisplayed[String2Layer('Bottom Overlay')]);
+      Layer2CB(CheckBox4,  'Top Overlay',        Board.LayerIsDisplayed[String2Layer('Top Overlay')]);
+      Shape4.Visible := True;
+      Shape4.Brush.Color := Board.LayerColor[String2Layer('Top Overlay')];
+
+      Layer2CB(CheckBox5,  'Bottom Overlay',     Board.LayerIsDisplayed[String2Layer('Bottom Overlay')]);
+      Shape5.Visible := True;
+      Shape5.Brush.Color := Board.LayerColor[String2Layer('Bottom Overlay')];
+
 
       // Masks
-      Layer2CB(CBFromInt(7),  'Top Solder Mask',    Board.LayerIsDisplayed[String2Layer('Top Solder Mask')]);
-      Layer2CB(CBFromInt(8),  'Bottom Solder Mask', Board.LayerIsDisplayed[String2Layer('Bottom Solder Mask')]);
+      Layer2CB(CheckBox7,  'Top Solder Mask',    Board.LayerIsDisplayed[String2Layer('Top Solder Mask')]);
+      Shape7.Visible := True;
+      Shape7.Brush.Color := Board.LayerColor[String2Layer('Top Solder Mask')];
 
-      Layer2CB(CBFromInt(10), 'Top Paste',          Board.LayerIsDisplayed[String2Layer('Top Paste')]);
-      Layer2CB(CBFromInt(11), 'Bottom Paste',       Board.LayerIsDisplayed[String2Layer('Bottom Paste')]);
+      Layer2CB(CheckBox8,  'Bottom Solder Mask', Board.LayerIsDisplayed[String2Layer('Bottom Solder Mask')]);
+      Shape8.Visible := True;
+      Shape8.Brush.Color := Board.LayerColor[String2Layer('Bottom Solder Mask')];
 
-      Layer2CB(CBFromInt(13), 'Drill Guide',        Board.LayerIsDisplayed[String2Layer('Drill Guide')]);
-      Layer2CB(CBFromInt(14), 'Drill Drawing',      Board.LayerIsDisplayed[String2Layer('Drill Drawing')]);
+
+      Layer2CB(CheckBox10, 'Top Paste',          Board.LayerIsDisplayed[String2Layer('Top Paste')]);
+      Shape10.Visible := True;
+      Shape10.Brush.Color := Board.LayerColor[String2Layer('Top Paste')];
+
+      Layer2CB(CheckBox11, 'Bottom Paste',       Board.LayerIsDisplayed[String2Layer('Bottom Paste')]);
+      Shape11.Visible := True;
+      Shape11.Brush.Color := Board.LayerColor[String2Layer('Bottom Paste')];
+
+
+      Layer2CB(CheckBox13, 'Drill Guide',        Board.LayerIsDisplayed[String2Layer('Drill Guide')]);
+      Shape13.Visible := True;
+      Shape13.Brush.Color := Board.LayerColor[String2Layer('Drill Guide')];
+
+      Layer2CB(CheckBox14, 'Drill Drawing',      Board.LayerIsDisplayed[String2Layer('Drill Drawing')]);
+      Shape14.Visible := True;
+      Shape14.Brush.Color := Board.LayerColor[String2Layer('Drill Drawing')];
 
 
       i := 1;
@@ -284,6 +367,8 @@ end;
 procedure TShowHideLayers.ShowHideLayersShow(Sender: TObject);   
 begin
    OnLayerChange('');
+
+
 end;
 
 
@@ -612,6 +697,3 @@ begin
 
    IniFile.Free;
 end;
-
-
-
