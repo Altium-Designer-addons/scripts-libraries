@@ -89,20 +89,20 @@ begin
    begin
       if TabControlLayers.TabIndex = 0 then
       begin
-
          LayerObj := TheLayerStack.FirstLayer;
-         i := 0;
          while (LayerObj <> nil) do
          begin
-            if (i = ((CheckBoxa.Top - 46) / 20)) then break;
-            Inc(i);
+            if LayerObj.Name = CheckBoxa.Caption then
+            begin
+               LayerObj.IsDisplayed[Board] := CheckBoxa.Checked;
+
+               if Refresh and CheckBoxa.Checked then
+                  Board.CurrentLayer := LayerObj.LayerID;
+
+               break;
+            end;
             LayerObj := TheLayerStack.NextLayer(LayerObj);
          end;
-
-         LayerObj.IsDisplayed[Board] := CheckBoxa.Checked;
-
-         if Refresh and CheckBoxa.Checked then
-            Board.CurrentLayer := LayerObj.LayerID;
       end
       else if TabControlLayers.TabIndex = 1 then
       begin
@@ -293,7 +293,7 @@ var
    CB : TCheckBox;
    i  : Integer;
 begin
-   Refresh := False;
+   Refresh := True;
 
    if CB2LayerControl then
    begin
