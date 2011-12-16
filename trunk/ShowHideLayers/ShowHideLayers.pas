@@ -241,14 +241,15 @@ begin
          begin
 
             if MechLayer.IsDisplayed[Board] then Enabled := True
-            else                                Disabled := True;
+            else                                 Disabled := True;
 
             inc(j);
             Layer2CB(CBFromInt(j), MechLayer.Name, MechLayer.IsDisplayed[Board]);
 
             Shape := ShapeFromInt(j);
             Shape.Visible := True;
-            Shape.Brush.Color := Board.LayerColor[MechLayer.LayerID];
+
+            Shape.Brush.Color := PCBServer.SystemOptions.LayerColors[MechLayer.V7_LayerID];
          end;
       end;
 
