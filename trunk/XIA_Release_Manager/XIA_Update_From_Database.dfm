@@ -2,7 +2,7 @@ object UpdateFromDatabaseForm: TUpdateFromDatabaseForm
   Left = 5
   Top = 4
   Caption = 'foo'
-  ClientHeight = 900
+  ClientHeight = 800
   ClientWidth = 1000
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -198,9 +198,18 @@ object UpdateFromDatabaseForm: TUpdateFromDatabaseForm
     Height = 13
     Caption = 'foo'
   end
+  object formCbFlagOp0_1: TCheckBox
+    Left = 14
+    Top = 520
+    Width = 950
+    Height = 17
+    Caption = 'Operation0_1'
+    TabOrder = 2
+    OnClick = bCheck0_1
+  end
   object formButtonOk: TButton
     Left = 350
-    Top = 800
+    Top = 700
     Width = 100
     Height = 25
     Caption = 'OK'
@@ -209,7 +218,7 @@ object UpdateFromDatabaseForm: TUpdateFromDatabaseForm
   end
   object formButtonCancel: TButton
     Left = 550
-    Top = 800
+    Top = 700
     Width = 100
     Height = 25
     Caption = 'Cancel'
@@ -218,7 +227,7 @@ object UpdateFromDatabaseForm: TUpdateFromDatabaseForm
   end
   object formButtonsLabel1: TLabel
     Left = 14
-    Top = 830
+    Top = 730
     Width = 19
     Height = 13
     Caption = 'foo'
@@ -231,7 +240,7 @@ object UpdateFromDatabaseForm: TUpdateFromDatabaseForm
   end
   object formStatusBar1: TXStatusBar
     Left = 0
-    Top = 850
+    Top = 750
     Width = 800
     Height = 25
     Enabled = False

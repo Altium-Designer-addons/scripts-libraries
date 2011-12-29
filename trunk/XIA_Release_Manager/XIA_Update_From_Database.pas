@@ -4,9 +4,14 @@
  1.  Update user parameters with respect to database (Update Parameters from Database operation).
  2.  Update system parameters (footprints) with respect to database (Update from Libraries operation).
  3.  Make sure that most components have a Comment parameter set to "=VALUE" (former UpdateComments script).
- 4.  Check, and if necessary, fix path to DBLib file.
- 5.  Check, and if necessary, fix path to DBLink file.
- 6.  Update database link on any components still pointing to old DBLib file Old_database_library_file.DBLib.
+ 4.  Syncronize Description fields between database and schematic components.
+ 5.  Check, and if necessary, fix path to DBLib file.
+ 6.  Check, and if necessary, fix path to DBLink file.
+ 7.  Update database link on any components still pointing to old DBLib files
+     Previous1_database_library_file.DBLib or Previous2_database_library_file.DBLib.
+ 8.  Check that the schematic symbol in use on schematic pages matches the one specified
+     by the database.  If not, don't fix anything, but report the error to user.
+ 9.  Synchronize varied database components with respect to database.
  
  ***************************************************************************}
 
@@ -75,9 +80,14 @@
  *  1.  Update user parameters with respect to database (Update Parameters from Database operation).
  *  2.  Update system parameters (footprints) with respect to database (Update from Libraries operation).
  *  3.  Make sure that most components have a Comment parameter set to "=VALUE" (former UpdateComments script).
- *  4.  Check, and if necessary, fix path to DBLib file.
- *  5.  Check, and if necessary, fix path to DBLink file.
- *  6.  Update database link on any components still pointing to old DBLib file Old_database_library_file.DBLib.
+ *  4.  Syncronize Description fields between database and schematic components.
+ *  5.  Check, and if necessary, fix path to DBLib file.
+ *  6.  Check, and if necessary, fix path to DBLink file.
+ *  7.  Update database link on any components still pointing to old DBLib files
+ *  Previous1_database_library_file.DBLib or Previous2_database_library_file.DBLib.
+ *  8.  Check that the schematic symbol in use on schematic pages matches the one specified
+ *   by the database.  If not, don't fix anything, but report the error to user.
+ *  9.  Synchronize varied database components with respect to database.
  
  * WHAT THIS SCRIPT WILL *NOT* DO:
  *  1.  Create an ECO screeen to allow user to approve database-to-schematic changes.  It is assumed
@@ -188,13 +198,16 @@
  *  See CheckUserParametersForComp().
  *  
  *  2.  The standard method to link a schematic component to the database is to use our DBLib file
- *  'Current_database_library_file.DBLib'.  This script will verify that the standard DBLib file
+ *  'Customary_database_library_file.DBLib'.  This script will verify that the standard DBLib file
  *  is part of the project.  
  *  See InitDatabaseInfo().
  *
- *  3.  XIA's current DBLib file is 'Current_database_library_file.DBLib'.
- *  3a.  When migrating older designs that were linked to the older 'Old_database_library_file.DBLib'
+ *  3.  XIA's current DBLib file is 'Customary_database_library_file.DBLib'.
+ *  3a.  When migrating older designs that were linked to the older 'Previous1_database_library_file.DBLib'
  *  file, it is necessary to append a "$" char to the database table name.
+ *  See CheckAndCorrectDatabaseLibraryName().
+ *  3b.  When migrating more recent designs that were linked to 'Previous2_database_library_file.DBLib',
+ *  there are no changes to database table names that need to be made.
  *  See CheckAndCorrectDatabaseLibraryName().
  *
  *  4.  While the standard method for using database components at XIA is to link a component
@@ -217,6 +230,9 @@
  *  (c) A versioning number.
  *  Example footprint name:  "CAP_SM_0402/I2".
  *  See StripVersionNumbersFromFootprintName().
+ *
+ *  7.  A database field made available to Altium that contains a duplicate copy of the
+ *  desired schematic symbol name.  This field is currently called 'DBSCHSYMBOL'.
  *
  * NOTES RE/ SCRIPT PROBLEMS:
  *  1.  This script will always generate both _Debug.txt and _Report.txt files.
@@ -271,12 +287,15 @@ type
    formText24 : TLabel;           
    formText25 : TLabel;           
 
+   formCbFlagOp0_1 : TCheckBox;
+
    formButtonOk: TButton;                 
    formButtonCancel: TButton;             
    formButtonsLabel1 :TLabel;         
    formStatusBar1: TXStatusBar;   
    procedure TUpdateFromDatabaseForm.clickedOk(Sender : TPanel);
    procedure TUpdateFromDatabaseForm.clickedCancel(Sender : TPanel);
+   procedure TUpdateFromDatabaseForm.bCheck0_1(Sender : TPanel);
 end;
 
 
@@ -285,7 +304,7 @@ end;
  ***************************************************************************}
 const
 {* Declare the version and name of this script. *}
-   constScriptVersion          = 'v1.9.8_gc $Revision$';
+   constScriptVersion          = 'v1.12.2_gc $Revision$';
    constThisScriptNameNoExt    = 'XIA_Update_From_Database';
    constThisScriptName         = constThisScriptNameNoExt + '.pas';
 
@@ -299,6 +318,7 @@ const
  ***************************************************************************}
 var
    UpdateFromDatabaseForm : TUpdateFromDatabaseForm;
+   enableFootprintUpdates : Boolean;	{ Are we allowed to update/modify/add/delete footprints? }
 
 
 {***************************************************************************
@@ -378,7 +398,10 @@ begin
    UpdateFromDatabaseForm.listBox1.Left := 14;
    UpdateFromDatabaseForm.listBox1.Top := 40;
    UpdateFromDatabaseForm.listBox1.Width := 972;
-   UpdateFromDatabaseForm.listBox1.Height := 740;
+   UpdateFromDatabaseForm.listBox1.Height := 640;
+
+   { Nuke Sync footprints checkbox. }
+   UpdateFromDatabaseForm.formCbFlagOp0_1.Free;
 
    { Move Ok button to center. }
    UpdateFromDatabaseForm.formButtonOk.Left := 450;
@@ -549,67 +572,85 @@ function InitDatabaseInfo(    Project      : IProject;
                               )            : Integer;
 
 var
-   k                  : Integer;
-   document           : IDocument;
-   tableIndex         : Integer;
-   dbTableName        : TDynamicString;
-   hasDbLink          : Boolean;
-   hasCorrectDbLink   : Boolean;
+   k                : Integer;
+   document         : IDocument;
+   tableIndex       : Integer;
+   dbTableName      : TDynamicString;
+   hasCorrectDbLib  : Boolean;
+   hasDbLink        : Boolean;
+   hasCorrectDbLink : Boolean;
    
 begin
 
    { Assume success. }
    result := 0;
 
-   {* Verify that correct DBLib file is attached to project. *}
-   { Attempt to open DBLib file, with specifying full path. }
-   dbLibDoc := IntegratedLibraryManager.GetAvailableDBLibDocAtPath(constRequiredDbLibFilePath);
+   WriteToDebugFile('Hello from InitDatabaseInfo()');
 
-   { Sanity check. }
-   if (dbLibDoc = Nil) then
+   {* Verify that the project the correct DBLib file attached. *}
+   UfdUpdateGuiStatusMessage('Status:  Checking DBLib files.');
+   hasCorrectDbLib := False;
+
+   { Look over all project documents and see if we find a DBLib file. }
+   {** Loop over all logical documents in the project (counting backwards). **}
+   for k := (Project.DM_LogicalDocumentCount - 1) downto 0 do
    begin
-
-      { Update status message. }
-      UfdUpdateGuiStatusMessage('Status:  Attempting to fix problem with DBLib file attached to project.');
+      document := Project.DM_LogicalDocuments(k);
+      WriteToDebugFile('Examining project document ' + document.DM_FullPath);
       
-      {** Loop over all logical documents in the project (counting backwards). **}
-      for k := (Project.DM_LogicalDocumentCount - 1) downto 0 do
+      { See if this document is a DBLib file. }
+      if (document.DM_DocumentKind = constKindDbLib) then
       begin
-         document := Project.DM_LogicalDocuments(k);
-         WriteToDebugFile('Examining project document ' + document.DM_FullPath);
-         
-         { See if this document is a DBLib file. }
-         if (document.DM_DocumentKind = constKindDbLib) then
+
+         { Determine if the project has the required DBLib file. }
+         if (document.DM_FullPath = constRequiredDbLibFilePath) then
          begin
 
-//          ShowMessage('Found DBLib file at ' + document.DM_FullPath);
+            { Flag that the project has the required DBLib file. }
+            hasCorrectDbLib    := True;
+            
+         end
 
-            { Attempt to remove this DBLib file (presumably our
-             Current_database_library_file.DBLib file, but with a funky or relative path). }
+         { Else this is some other DBLib file, or possibly the correct one but with a relative path. }
+         else
+         begin
+
+            { Attempt to remove this DBLib file. }
             WriteToDebugFile('Removing DBLib file "' + document.DM_FullPath + '" from project.');
             WriteToSummaryFile('INFO:     ' + 'Removing DBLib file "' + document.DM_FullPath + '" from project.');
             Project.DM_RemoveSourceDocument(document.DM_FullPath);
+            
+            { Add project file to the list of changed files. }
+            changedFiles.Add(Project.DM_ProjectFileName);
+      
+         end;
+         
+      end; { endif }
 
-         end; { endif }
+   end; { endfor }
 
-      end; { endfor }
+   { If the project does not have the required DBLib file, then add it. }
+   if (not hasCorrectDbLib) then
+   begin
 
-      { Attempt to add our Current_database_library_file.DBLib file, with the proper path. }
+      { Attempt to add our XIA_Database_Kludged_no_sym_no_desc_no_footprints.DBLib file, with the proper path. }
       Project.DM_AddSourceDocument(constRequiredDbLibFilePath);
       WriteToDebugFile('Added required DBLib file "' + constRequiredDbLibFilePath + '" to project.');
       WriteToSummaryFile('INFO:     ' + 'Added required DBLib file "' + constRequiredDbLibFilePath + '" to project.');
-
-      { Attempt one more time to open DBLib file. }
-      dbLibDoc := IntegratedLibraryManager.GetAvailableDBLibDocAtPath(constRequiredDbLibFilePath);
-      
-      { Sanity check. }
-      if (dbLibDoc = Nil) then
-         MyAbort('Still unable to open required DBLib file "' + constRequiredDbLibFilePath + '"!');
 
       { Add project file to the list of changed files. }
       changedFiles.Add(Project.DM_ProjectFileName);
       
    end; { endif }
+
+
+   { Attempt to open DBLib file. }
+   { TODO:  What's the point of this operation again? }
+   dbLibDoc := IntegratedLibraryManager.GetAvailableDBLibDocAtPath(constRequiredDbLibFilePath);
+   
+   { Sanity check. }
+   if (dbLibDoc = Nil) then
+      MyAbort('Unable to open required DBLib file "' + constRequiredDbLibFilePath + '"!');
 
 
    {* Verify that if the project has a DBLink file DBLib, that the correct one is attached. *}
@@ -726,29 +767,44 @@ begin
 
       if (AnsiPos(constDbParmModelName, dbParmName) <> 0) then
       begin
-      
-         { Create a new model for the given schematic component. }
-         Model := component.AddSchImplementation;
+         
+         { See if we are allowed to update footprints. }
+         if (enableFootprintUpdates) then
+         begin
 
-         { Clear all datafile links. }
-         Model.ClearAllDatafileLinks;
+            { Create a new model for the given schematic component. }
+            Model := component.AddSchImplementation;
 
-         Model.ModelName   := dbParmValue;
-         Model.ModelType   := constKindPcbLib;
-         Model.Description := '';
-         Model.MapAsString := '';
+            { Clear all datafile links. }
+            Model.ClearAllDatafileLinks;
 
-         { Set this model to be not the current one.  We'll double check this later. }
-         Model.IsCurrent   := False;
+            Model.ModelName   := dbParmValue;
+            Model.ModelType   := constKindPcbLib;
+            Model.Description := '';
+            Model.MapAsString := '';
 
-         { Add this file to the list of changed files. }
-         changedFiles.Add(document.DM_FileName);
-      
-         { Tell summary file what we did. }
-         WriteToSummaryFile('INFO:     ' + component.Designator.Name + ' ' + component.Designator.Text + ':  Added missing footprint "' + dbParmName + '"="' + dbParmValue + '".');
+            { Set this model to be not the current one.  We'll double check this later. }
+            Model.IsCurrent   := False;
+
+            { Add this file to the list of changed files. }
+            changedFiles.Add(document.DM_FileName);
+            
+            { Tell summary file what we did. }
+            WriteToSummaryFile('INFO:     ' + component.Designator.Name + ' ' + component.Designator.Text + ':  Added missing footprint "' + dbParmName + '"="' + dbParmValue + '".');
+
+         end { endif enableFootprintUpdates }
+
+         { Else we are not allowed to update footprints. }
+         else
+         begin
+
+            { Tell summary file what we were not allowed to fix. }
+            WriteToSummaryFile('ERROR:    ' + component.Designator.Name + ' ' + component.Designator.Text + ':  I was not allowed to fix missing footprint "' + dbParmName + '"="' + dbParmValue + '".');
+            
+         end; { endelse enableFootprintUpdates }
 
       end; { endif }
-      
+
    end { endif }
 
    { Else it's a user parameter. }
@@ -824,7 +880,7 @@ begin
    
    { Refresh schematic sheet }
    //                 document.GraphicallyInvalidate;
-                  
+   
 end; { end SetModelToBeCurrentNotCurrent() }
 
 
@@ -1417,32 +1473,47 @@ begin
                WriteToDebugFile('Found system parm that we were ordered to update!');
                WriteToDebugFile(' Change from "' + SchModel.ModelName + '" to "' + dbParmValue + '".');
 
-               {** Make the change to the sch page! **}
-               { Notify the server process that we're about to make a change. }
-               SchServer.RobotManager.SendMessage(SchModel.I_ObjectAddress, c_BroadCast,
-                                                  SCHM_beginModify, c_NoEventData);
+               { See if we are allowed to update footprints. }
+               if (enableFootprintUpdates) then
+               begin
+                  
+                  {** Make the change to the sch page! **}
+                  { Notify the server process that we're about to make a change. }
+                  SchServer.RobotManager.SendMessage(SchModel.I_ObjectAddress, c_BroadCast,
+                                                     SCHM_beginModify, c_NoEventData);
 
-               { Make the change. }
-               SchModel.ModelName := dbParmValue;
+                  { Make the change. }
+                  SchModel.ModelName := dbParmValue;
 
-               { Set this model to be not the current one.  We'll double check this later. }
-               SchModel.IsCurrent := False;
+                  { Set this model to be not the current one.  We'll double check this later. }
+                  SchModel.IsCurrent := False;
 
-               { Notify the server process that we're done making changes. }
-               SchServer.RobotManager.SendMessage(SchModel.I_ObjectAddress, c_BroadCast,
-                                                  SCHM_endModify, c_NoEventData);
+                  { Notify the server process that we're done making changes. }
+                  SchServer.RobotManager.SendMessage(SchModel.I_ObjectAddress, c_BroadCast,
+                                                     SCHM_endModify, c_NoEventData);
 
-               { Clean up the robots in Schematic editor }
-               SchServer.ProcessControl.PostProcess(document, '');
-               
-               { Refresh schematic sheet }
-               //               document.GraphicallyInvalidate;
-               
-               { Add this file to the list of changed files. }
-               changedFiles.Add(document.DM_FileName);
-               
-               { Tell summary file what we did. }
-               WriteToSummaryFile('INFO:     ' + component.Designator.Name + ' ' + component.Designator.Text + ':  Set footprint "' + dbParmName + '"="' + dbParmValue + '".');
+                  { Clean up the robots in Schematic editor }
+                  SchServer.ProcessControl.PostProcess(document, '');
+                  
+                  { Refresh schematic sheet }
+                  //               document.GraphicallyInvalidate;
+                  
+                  { Add this file to the list of changed files. }
+                  changedFiles.Add(document.DM_FileName);
+                  
+                  { Tell summary file what we did. }
+                  WriteToSummaryFile('INFO:     ' + component.Designator.Name + ' ' + component.Designator.Text + ':  Set footprint "' + dbParmName + '"="' + dbParmValue + '".');
+
+               end { endif enableFootprintUpdates }
+
+               { Else we are not allowed to update footprints. }
+               else
+               begin
+
+                  { Tell summary file what we were not allowed to fix. }
+                  WriteToSummaryFile('ERROR:    ' + component.Designator.Name + ' ' + component.Designator.Text + ':  I was not allowed to set footprint "' + dbParmName + '"="' + dbParmValue + '".');
+                  
+               end; { endelse enableFootprintUpdates }
 
             end; { endif }
             
@@ -1765,17 +1836,36 @@ begin
    { Assume success. }
    result := 0;
 
-   { See if we need to update from Old_database_library_file.DBLib to Current_database_library_file.DBLib. }
-   if ( (constOldDbLibFileName <> '') and (component.DatabaseLibraryName = constOldDbLibFileName) ) then
+   { See if we need to update from Previous1_database_library_file.DBLib to Customary_database_library_file.DBLib. }
+   if ( (constOldDbLib1FileName <> '') and (component.DatabaseLibraryName = constOldDbLib1FileName) ) then
    begin
 
-      { Set new database library name to be 'Current_database_library_file.DBLib'. }
+      { Set new database library name to be 'Customary_database_library_file.DBLib'. }
       dbLibName := constRequiredDbLibFileName;
 
       { Append a '$' char to the end of the existing table name. }
       { NOTE:  This operation is highly XIA-specific! }
       dbTableName := component.DatabaseTableName + '$';
       
+      { Call UpdateSchDatabaseLink() to update the database library and database table fields. }
+      UpdateSchDatabaseLink(document,
+                            component,
+                            dbLibName,
+                            dbTableName,
+                            {var} changedFiles);
+
+   end; { endif }
+   
+   { See if we need to update from Previous2_database_library_file.DBLib to Customary_database_library_file.DBLib. }
+   if ( (constOldDbLib2FileName <> '') and (component.DatabaseLibraryName = constOldDbLib2FileName) ) then
+   begin
+
+      { Set new database library name to be 'Customary_database_library_file.DBLib'. }
+      dbLibName := constRequiredDbLibFileName;
+
+      { Retain the existing table name. }
+      dbTableName := component.DatabaseTableName;
+
       { Call UpdateSchDatabaseLink() to update the database library and database table fields. }
       UpdateSchDatabaseLink(document,
                             component,
@@ -1793,6 +1883,12 @@ end; { end CheckAndCorrectDatabaseLibraryName() }
  *  Get all user parameters for a given schematic component.
  *  In the process, attempt to identify the database key.
  *
+ *  In addition, store certain information about logical components for later
+ *  use when dealing with component variants.
+ *
+ *  NOTE:  Assumes that compUserParmsList string list has already been created.
+ *  NOTE:  Assumes that logCompCacheByRefDes and logCompCacheByUniqueId string lists have already been created.
+ *  
  *  Returns flag whether comp is only linked via DBLink file as var parm linkedOnlyViaDbLink.
  *  Returns database key for this comp as var parm compDbKey.
  *  Returns database table for this comp as var parm compDbTable.
@@ -1800,14 +1896,16 @@ end; { end CheckAndCorrectDatabaseLibraryName() }
  *  Returns possibly modified list of changed files as var parm changedFiles.
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function GetUserParametersFromComp(    document            : IDocument,
-                                       component           : ISch_Component;
-                                   var linkedOnlyViaDbLink : Boolean;
-                                   var compDbKey           : WideString;
-                                   var compDbTable         : WideString;
-                                   var compUserParmsList   : TStringList;
-                                   var changedFiles        : TStringList;
-                                       )                   : Integer;
+function GetUserParametersFromComp(    document               : IDocument,
+                                       component              : ISch_Component;
+                                   var linkedOnlyViaDbLink    : Boolean;
+                                   var compDbKey              : WideString;
+                                   var compDbTable            : WideString;
+                                   var compUserParmsList      : TStringList;
+                                   var logCompCacheByRefDes   : TStringList;
+                                   var logCompCacheByUniqueId : TStringList;
+                                   var changedFiles           : TStringList;
+                                       )                      : Integer;
 
 var
    PIterator    : ISch_Iterator;
@@ -1829,6 +1927,7 @@ begin
    WriteToDebugFile('LibReference       ="' + component.LibReference + '"');
    WriteToDebugFile('DatabaseLibraryName="' + component.DatabaseLibraryName + '"');
    WriteToDebugFile('DatabaseTableName  ="' + component.DatabaseTableName + '"');
+   WriteToDebugFile('UniqueId           ="' + component.UniqueId + '"');
 
    { Return database table name to caller. }
    compDbTable := component.DatabaseTableName;
@@ -1860,47 +1959,60 @@ begin
       begin
          WriteToDebugFile('  "' + Parameter.Name + constStringEquals + Parameter.Text + '"');
 
-         { See if we found the parameter called "OLD_DB_KEY".  This is used as our interim database key. }
-         if ( (Parameter.Name = constDbParmDbKeyInterim) and
-             (not foundDbKey) and
-             (constDbParmDbKeyInterim <> '') ) then
+         { See if we have a user parameter named "Description". }
+         if (AnsiUpperCase(Parameter.Name) = AnsiUpperCase(constDbParmDescription)) then
          begin
-
-            { We found the "OLD_DB_KEY" parameter.  Save this value for use as our interim database key, until we find "DB_KEY". }
-            compDbKey := Parameter.Text;
-            WriteToDebugFile('Found "' + constDbParmDbKeyInterim + '" parameter.  Using: "' + compDbKey + '" as interim database key.');
+            WriteToDebugFile('ERROR:    ' + 'Designator ' + component.Designator.Text + ':  Found user parameter named "' + Parameter.Name + '", which will get confused with system parameter "' + constDbParmDescription + '".  Please delete or rename this user parameter!');
+            WriteToSummaryFile('ERROR:    ' + 'Designator ' + component.Designator.Text + ':  Found user parameter named "' + Parameter.Name + '", which will get confused with system parameter "' + constDbParmDescription + '".  Please delete or rename this user parameter!');
          end
 
-         { See if we found the parameter called "DB_KEY".  This is used as our real database key. }
-         else if (Parameter.Name = constDbParmDbKey) then
+         { Else we have a user parameter that we actually want to store... }
+         else
          begin
-
-            { We found the "DB_KEY" parameter.  Save this value for use as our database key. }
-            compDbKey := Parameter.Text;
-            foundDbKey := True;
-            WriteToDebugFile('Found "' + constDbParmDbKey + '" parameter.  Using: "' + compDbKey + '" as database key.');
-         end;
-
-         { Make sure we're not seeing this parameter twice, as can happen in degenerate cases with bad sch symbols. }
-         position := compUserParmsList.IndexOfName(Parameter.Name);
-         if (position >= 0) then
-         begin
-
-            { Delete the previous instance of this parameter. }
-            WriteToDebugFile('Deleting previous instance of parameter name "' + Parameter.Name + '".');
-            compUserParmsList.Delete(position);
             
-            //                MyAbort('Found problem with sch symbol for ' + component.Designator.Text + '.  There are multiple parameters named "' + Parameter.Name + '"!' + constLineBreak +
-                                      //                          'Please try to update this sch symbol and/or speak to Jeff to address this problem.');
-         end;
-         
-         { Store this parameter in list, for later use in checking against database parameters. }
-         compUserParmsList.Add(Parameter.Name + constStringEquals + Parameter.Text);
+            { See if we found the parameter called "OLD_DB_KEY".  This is used as our interim database key. }
+            if ( (Parameter.Name = constDbParmDbKeyInterim) and
+                (not foundDbKey) and
+                (constDbParmDbKeyInterim <> '') ) then
+            begin
+
+               { We found the "OLD_DB_KEY" parameter.  Save this value for use as our interim database key, until we find "DB_KEY". }
+               compDbKey := Parameter.Text;
+               WriteToDebugFile('Found "' + constDbParmDbKeyInterim + '" parameter.  Using: "' + compDbKey + '" as interim database key.');
+            end
+
+            { See if we found the parameter called "DB_KEY".  This is used as our real database key. }
+            else if (Parameter.Name = constDbParmDbKey) then
+            begin
+
+               { We found the "DB_KEY" parameter.  Save this value for use as our database key. }
+               compDbKey := Parameter.Text;
+               foundDbKey := True;
+               WriteToDebugFile('Found "' + constDbParmDbKey + '" parameter.  Using: "' + compDbKey + '" as database key.');
+            end;
+
+            { Make sure we're not seeing this parameter twice, as can happen in degenerate cases with bad sch symbols. }
+            position := compUserParmsList.IndexOfName(Parameter.Name);
+            if (position >= 0) then
+            begin
+
+               { Delete the previous instance of this parameter. }
+               WriteToDebugFile('Deleting previous instance of parameter name "' + Parameter.Name + '".');
+               compUserParmsList.Delete(position);
+               
+               //                MyAbort('Found problem with sch symbol for ' + component.Designator.Text + '.  There are multiple parameters named "' + Parameter.Name + '"!' + constLineBreak +
+                                         //                          'Please try to update this sch symbol and/or speak to Jeff to address this problem.');
+            end;
+            
+            { Store this parameter in list, for later use in checking against database parameters. }
+            compUserParmsList.Add(Parameter.Name + constStringEquals + Parameter.Text);
+
+         end; { endelse }
          
          { Advance to next parameter in this schematic component. }
          Parameter := PIterator.NextSchObject;
 
-      end;
+      end; { endwhile }
 
       { We're now done iterating through user-defined schematic parameters. }
       finally
@@ -1945,6 +2057,13 @@ begin
       
    end; { endif }
 
+   {* Cache information about this logical component for later use in dealing with varied components. *}
+   { Format:  LogicalDesignator=ComponentDatabaseKey|ComponentDatabaseTable|UniqueId }
+   logCompCacheByRefDes.Add(component.Designator.Text + constStringEquals + compDbKey + constStringDelimiter + component.DatabaseTableName + constStringDelimiter + component.UniqueId);
+   
+   { Format:  UniqueId=ComponentDatabaseKey|ComponentDatabaseTable|LogicalDesignator }
+   logCompCacheByUniqueId.Add(component.UniqueId + constStringEquals + compDbKey + constStringDelimiter + component.DatabaseTableName + constStringDelimiter + component.Designator.Text);
+
 end; { end GetUserParametersFromComp() }
 
 
@@ -1953,6 +2072,8 @@ end; { end GetUserParametersFromComp() }
  *  Check all user parameters for a given schematic component.
  *  Currently this involves making sure that (with a few specific exceptions),
  *  that the "Comment" parameter is set to "=VALUE".
+ *
+ *  NOTE:  Assumes that compUserParmsList string list has already been created.
  *
  *  NOTE:  This whole function is highly XIA-specific!
  *  
@@ -2202,15 +2323,15 @@ end; { end CheckDbVsCompParmMatch() }
  *  Look for a component in a particular database table.
  *  If found, get all system and user parameters for a given database entry.
  *
+ *  NOTE:  Assumes that dbParmsCache and dbParmsCacheIndex string lists have already been created.
+ *  
  *  Returns whether this component was found in the specified db dable as var parm foundInThisDbTable.
  *  Returns cache of database parameters as var parm dbParmsCache.
  *  Returns index into database cache as var parm dbParmsCacheIndex.
  *  Returns limits of dbParmsCache as var parms dbParmsStart and dbParmsEnd.
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function GetAllParametersFromDatabaseTable(    document           : IDocument;
-                                               component          : ISch_Component;
-                                               dbLibDoc           : IDatabaseLibDocument;
+function GetAllParametersFromDatabaseTable(    dbLibDoc           : IDatabaseLibDocument;
                                                compDbKey          : WideString;
                                                tableIndex         : Integer;
                                            var foundInThisDbTable : Boolean;
@@ -2274,14 +2395,15 @@ end; { end GetAllParametersFromDatabaseTable() }
  *  Look for a component in the database.
  *  If found, get all system and user parameters for a given database entry.
  *
+ *  NOTE:  Assumes that dbParmsCache and dbParmsCacheIndex string lists have already been created.
+ *  
  *  Returns whether this component was found in the specified db dable as var parm foundInThisDbTable.
  *  Returns cache of database parameters as var parm dbParmsCache.
  *  Returns index into database cache as var parm dbParmsCacheIndex.
  *  Returns limits of dbParmsCache as var parms dbParmsStart and dbParmsEnd.
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function GetAllParametersFromDatabase(    document          : IDocument;
-                                          component         : ISch_Component;
+function GetAllParametersFromDatabase(    compRefDes        : WideString;
                                           dbLibDoc          : IDatabaseLibDocument;
                                           dbTableList       : TStringList;
                                           compDbKey         : WideString;
@@ -2370,8 +2492,8 @@ begin
       if (tableIndex < 0) then
       begin
          
-         WriteToDebugFile('ERROR:    ' + 'Designator ' + component.Designator.Text + ':  compDbTable "' + compDbTable + '" not found in list of db tables.  Please fix db table name!!');
-         WriteToSummaryFile('ERROR:    ' + 'Designator ' + component.Designator.Text + ':  compDbTable "' + compDbTable + '" not found in list of db tables.  Please fix db table name!!');
+         WriteToDebugFile('ERROR:    ' + 'Designator ' + compRefDes + ':  compDbTable "' + compDbTable + '" not found in list of db tables.  Please fix db table name!!');
+         WriteToSummaryFile('ERROR:    ' + 'Designator ' + compRefDes + ':  compDbTable "' + compDbTable + '" not found in list of db tables.  Please fix db table name!!');
 
       end;   
       
@@ -2387,9 +2509,7 @@ begin
 
          { Look for this component in this database table.
           If found, get all parameters specified in database. }
-         GetAllParametersFromDatabaseTable(document,
-                                           component,
-                                           dbLibDoc,
+         GetAllParametersFromDatabaseTable(dbLibDoc,
                                            compDbKey,
                                            tableIndex,
                                            {var} foundInThisDbTable,
@@ -2416,9 +2536,7 @@ begin
 
                { Look for this component in this database table.
                 If found, get all parameters specified in database. }
-               GetAllParametersFromDatabaseTable(document,
-                                                 component,
-                                                 dbLibDoc,
+               GetAllParametersFromDatabaseTable(dbLibDoc,
                                                  compDbKey,
                                                  tableIndex,
                                                  {var} foundInThisDbTable,
@@ -2444,8 +2562,8 @@ begin
    begin
 
       { Tell summary file about this problem. }
-      WriteToDebugFile('ERROR:    ' + component.Designator.Name + ' ' + component.Designator.Text + ':  Could not find database link for this component!  Please fix!!!');
-      WriteToSummaryFile('ERROR:    ' + component.Designator.Name + ' ' + component.Designator.Text + ':  Could not find database link for this component!  Please fix!!!');
+      WriteToDebugFile('ERROR:    ' + 'Designator ' + compRefDes + ':  Could not find database link for this component!  Please fix!!!');
+      WriteToSummaryFile('ERROR:    ' + 'Designator ' + compRefDes + ':  Could not find database link for this component!  Please fix!!!');
 
    end; { endif }
       
@@ -2481,6 +2599,8 @@ var
    dbParmValue   : TDynamicString;
    dbParmVisible : TDynamicString;
    dbDescription : TDynamicString;
+   dbSymName     : TDynamicString;
+   position      : Integer;
 
 begin
 
@@ -2526,6 +2646,57 @@ begin
       begin
          dbParmValue := rightStr;
          //                  WriteToDebugFile('dbParmValue is "' + dbParmValue + '".');
+
+         {* Check the schematic symbol name vs. the one called out by the database. *}
+         { See if this user parameter is equal to the magical one that we use to check whether the
+          schematic symbol in use in the SchDoc file is the one called out by the database. }
+         if (dbParmName = constDbParmShadowSymName) then
+         begin
+
+            { See if this is a placeholder schematic symbol. }
+            if (Copy(dbParmValue, 1, Length(constDbSchPlaceholderPrefix)) = constDbSchPlaceholderPrefix) then
+            begin
+
+               { In this case we have no need to separate symbol library name from symbol name. }
+               dbSymName := dbParmValue;
+
+            end { endif }
+
+            { Else this is a real schematic symbol with a library name and a symbol name. }
+            else
+            begin
+               
+               { First we need to strip off just the symbol name from the string provided by the database, which
+                also includes the name of the schematic library file. }
+               { For example, database will specify "FOO_CAPS\CAP_NP", but we want to extract just the "CAP_NP" part. }
+               position := LastDelimiter(constStringSymLibNameDelim, dbParmValue);
+
+               { Sanity check. }
+               if (position = 0) then
+                  MyAbort('Unable to find delimiter "' + constStringSymLibNameDelim + '" in schematic symbol name "' + dbParmValue + '" given by database.');
+
+               { Extract just the symbol name. }
+               dbSymName := Copy(dbParmValue, (position+1), MaxInt);
+
+            end; { endelse }
+            
+            { Now check that the sch symbol desired by the database is the one actually in use for this comp. }
+            if (dbSymName = component.LibReference) then
+            begin
+               WriteToDebugFile('Schematic symbol matches the symbol that database wants, specifically "' + dbParmValue + '".');
+            end
+
+            { Else there is a mismatch.  We dare not actually swap out the component in question, since
+             this will generally result in a new symbol with different shape, different connection points, etc.
+             So we're just going to flag this for the user and he/she needs to fix it manually. }
+            else
+            begin
+               WriteToDebugFile('ERROR:    ' + component.Designator.Name + ' ' + component.Designator.Text + ':  Schematic symbol mismatch.  Database wants symbol "' + dbParmValue + '", but SchDoc is currently using symbol "' + component.LibReference + '".  You MUST fix this issue manually, since new symbol may be larger, smaller, have different connection points, etc.');
+               WriteToSummaryFile('ERROR:    ' + component.Designator.Name + ' ' + component.Designator.Text + ':  Schematic symbol mismatch.  Database wants symbol "' + dbParmValue + '", but SchDoc is currently using symbol "' + component.LibReference + '".  You MUST fix this issue manually, since new symbol may be larger, smaller, have different connection points, etc.');
+               
+            end; { endelse }
+
+         end; { endif }
          
       end { elsif }
       
@@ -2876,17 +3047,27 @@ end; { end VerifyOneFootprintIsCurrent() }
  *  Attempt to retrieve user and system parameters for all components in a sch page.
  *  Then proceed to check these parameters against the database entry for each comp.
  *
+ *  In addition, store certain information about logical components for later
+ *  use when dealing with component variants.
+ *
+ *  NOTE:  Assumes that dbParmsCache and dbParmsCacheIndex string lists have already been created.
+ *  NOTE:  Assumes that logCompCacheByRefDes and logCompCacheByUniqueId string lists have already been created.
+ *  
  *  Returns cache of database parameters as var parm dbParmsCache.
  *  Returns index into database cache as var parm dbParmsCacheIndex.
+ *  Returns logical component information indexed by logRefDes as var parm phyCompCacheByRefDes.
+ *  Returns logical component information indexed by logUniqueId as var parm phyCompCacheByUniqueId.
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function CheckComponentsVsDatabase(    dbLibDoc          : IDatabaseLibDocument;
-                                       dbTableList       : TStringList;
-                                       document          : IDocument,
-                                   var dbParmsCache      : TStringList;
-                                   var dbParmsCacheIndex : TStringList;
-                                   var changedFiles      : TStringList;
-                                       )                 : Integer;
+function CheckComponentsVsDatabase(    dbLibDoc               : IDatabaseLibDocument;
+                                       dbTableList            : TStringList;
+                                       document               : IDocument,
+                                   var dbParmsCache           : TStringList;
+                                   var dbParmsCacheIndex      : TStringList;
+                                   var logCompCacheByRefDes   : TStringList;
+                                   var logCompCacheByUniqueId : TStringList;
+                                   var changedFiles           : TStringList;
+                                       )                      : Integer;
 var
    CurrentSch          : ISch_Sheet;
    Iterator            : ISch_Iterator;
@@ -2901,7 +3082,8 @@ var
    dbParmsStart        : Integer;
    dbParmsEnd          : Integer;
    linkedOnlyViaDbLink : Boolean;
-
+   compRefDes          : WideString;
+                                      
 begin
 
    { Assume success. }
@@ -2966,6 +3148,8 @@ begin
                                       {var} compDbKey,
                                       {var} compDbTable,
                                       {var} compUserParmsList,
+                                      {var} logCompCacheByRefDes,
+                                      {var} logCompCacheByUniqueId,
                                       {var} changedFiles);
 
             
@@ -2977,8 +3161,8 @@ begin
             
 
             {** Get all database parameters for this component. **}
-            GetAllParametersFromDatabase(document,
-                                         component,
+            compRefDes          := component.Designator.Text;
+            GetAllParametersFromDatabase(compRefDes,
                                          dbLibDoc,
                                          dbTableList,
                                          compDbKey,
@@ -3006,34 +3190,40 @@ begin
                                             {var} dbNumFootprints,
                                             {var} changedFiles);
 
-               
-               {** Maintain which footprint is marked "current", across changes to ordering of footprints and updating of same. **}
-               MaintainCurrentFootprint(document,
-                                        component,
-                                        compSysParmsList,
-                                        compUserParmsList,
-                                        {var} changedFiles);
 
-               
-               {** Delete any excess (beyond what is specified in database record) footprints from this component. **}
-               DeleteExcessFootprints(document,
-                                      component,
-                                      dbNumFootprints,
-                                      {var} changedFiles);
-
-               
-               {** Verify that after whatever changes were made, that exactly one footprint is marked "current". **}
-               VerifyOneFootprintIsCurrent(document,
+               { See if we are allowed to update footprints. }
+               if (enableFootprintUpdates) then
+               begin
+                  
+                  {** Maintain which footprint is marked "current", across changes to ordering of footprints and updating of same. **}
+                  MaintainCurrentFootprint(document,
                                            component,
+                                           compSysParmsList,
+                                           compUserParmsList,
                                            {var} changedFiles);
 
-            end; { endif }
+                  
+                  {** Delete any excess (beyond what is specified in database record) footprints from this component. **}
+                  DeleteExcessFootprints(document,
+                                         component,
+                                         dbNumFootprints,
+                                         {var} changedFiles);
+
+                  
+                  {** Verify that after whatever changes were made, that exactly one footprint is marked "current". **}
+                  VerifyOneFootprintIsCurrent(document,
+                                              component,
+                                              {var} changedFiles);
+
+               end; { endif enableFootprintUpdates }
+
+            end; { endif linkedToDb }
             
             { Clear list of parameters currently attached to this component. }
             compSysParmsList.Clear;
             compUserParmsList.Clear;
             
-         end; { endif }
+         end; { endif component.Designator.Text <> '*' }
             
          { Move on to next schematic component. }
          WriteToDebugFile('');
@@ -3060,6 +3250,925 @@ end; { end CheckComponentsVsDatabase() }
 
 
 {***************************************************************************
+ * function CachePhysicalComponentInfo()
+ *  Analyze the "flattened" pseudo-schematic page and retrieve and store
+ *  information for mapping physical components back to schematic level
+ *  logical components.  This information will be needed later when handling
+ *  component variants, since these are stored with respect to physical
+ *  components.
+ *
+ *  NOTE:  Assumes that design has already been compiled!
+ *  NOTE:  Assumes that phyCompCacheByRefDes and phyCompCacheByUniqueId string lists have already been created.
+ *  
+ *  Returns physical component information indexed by physRefDes as var parm phyCompCacheByRefDes.
+ *  Returns physical component information indexed by physUniqueId as var parm phyCompCacheByUniqueId.
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function CachePhysicalComponentInfo(    Project                : IProject;
+                                    var phyCompCacheByRefDes   : TStringList;
+                                    var phyCompCacheByUniqueId : TStringList;
+                                        )                      : Integer;
+
+var
+   flatSchem : IDocument;
+   i         : Integer;
+   component : IComponent;
+   part      : IPart;
+
+begin
+
+   { For now, assume/hope/pray that we will succeed. }
+   result := 0;
+
+   {** Analyze flattened pseudo-schematic in order to map physical designators to logical designators, etc. **}
+   { Note:  Code borrowed & adapted from AgileBOMV1.1.pas. }
+
+   { Get a reference to the flattened schematic document. }
+   flatSchem := Project.DM_DocumentFlattened;
+
+   { Sanity check. }
+   if (flatSchem = Nil) then
+      MyAbort('Unable to get flatSchem.  Probably this means the project hasn''t been compiled, but it should have been so already.');
+
+   { Output debug info. }
+   WriteToDebugFile('*About to process flattened components....');
+
+   { Loop over all physical components in flattened schematic document. }
+   for i := 0 to (flatSchem.DM_ComponentCount - 1) do
+   begin
+
+      { Retrieve reference to next flattened schematic component. }
+      component := flatSchem.DM_Components(i);
+
+      { Retrieve reference to the 0th subpart of this component. }
+      part         := component.DM_SubParts(0);
+   
+      { Output debug info. }
+      WriteToDebugFile('* Processing flattened component logical refdes "' + part.DM_LogicalDesignator + '", physical refdes "' + part.DM_PhysicalDesignator + '", UniqueId "' + part.DM_UniqueId + '", UniqueIdName "' + part.DM_UniqueIdName + '", UniqueIdPath "' + part.DM_UniqueIdPath + '".');
+
+      {* Cache information about this physical component for later use in dealing with varied components. *}
+      { Format:  PhysicalDesignator=LogicalDesignator|UniqueIdPath\UniqueId }
+      phyCompCacheByRefDes.Add(part.DM_PhysicalDesignator + constStringEquals + part.DM_LogicalDesignator + constStringDelimiter + part.DM_UniqueIdPath + constStringUniqueIdPathSep + part.DM_UniqueId);
+
+      { Format:  UniqueIdPath\UniqueId=LogicalDesignator|PhysicalDesignator }
+      phyCompCacheByUniqueId.Add(part.DM_UniqueIdPath + constStringUniqueIdPathSep + part.DM_UniqueId + constStringEquals + part.DM_LogicalDesignator + constStringDelimiter + part.DM_PhysicalDesignator);
+
+   end; { endfor }
+   
+end; { end CachePhysicalComponentInfo() }
+
+
+{***************************************************************************
+ * function ExtractDbUserParmsForComp()
+ *  Extract just the database user parameters for a given database componennt.
+ *  
+ *  Note:  Assumes that dbCompUserParms string list has already been created.
+ *
+ *  Returns database user parameters for specified component as var parm dbCompUserParms.
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function ExtractDbUserParmsForComp(    dbParmsCache      : TStringList;
+                                       dbParmsStart      : Integer;
+                                       dbParmsEnd        : Integer;
+                                   var dbCompUserParms   : TStringList;
+                                       )                 : Integer;
+
+var
+   i           : Integer;
+   leftStr     : TDynamicString;
+   rightStr    : TDynamicString;
+   dbParmName  : TDynamicString;
+   dbParmValue : TDynamicString;
+
+begin
+
+   { Assume success. }
+   result := 0;
+
+   { Loop over all database parameters. }
+   WriteToDebugFile('*In ExtractDbUserParmsForComp()...');
+   for i := dbParmsStart to dbParmsEnd do
+   begin
+
+//    WriteToDebugFile('db entry is "' + dbParmsCache.Strings[i] + '".');
+
+      { This entry will look something like "foo=bar".
+       So split it into a left string (before '=' char) and a right string (after '=' char). }
+      SplitStringIntoLeftAndRightWithAbort(dbParmsCache.Strings[i],
+                                           constStringEquals,
+                                           leftStr,
+                                           rightStr);
+
+      {* Look for a few keywords in the left string. *}
+
+      { Note:  The order that user parameters are declared in the db entry seems to be Name, Value, Visible:
+       "ParameterName0=Rating".
+       "ParameterValue0=50V".
+       "ParameterVisible0=True". }        
+      
+      { Look for left string to start with 'ParameterName' and if so, cache the right string. }
+      if (AnsiPos(constDbParmParameterName, leftStr) <> 0) then
+      begin
+         dbParmName := rightStr;
+      end
+
+      { Look for left string to start with 'ParameterValue' and if so, store the previously stored name along with this value. }
+      else if (AnsiPos(constDbParmParameterValue, leftStr) <> 0) then
+      begin
+         dbParmValue := rightStr;
+
+         { Add this user parameter as a NAME=VALUE pair to the dbCompUserParms string list. }
+         dbCompUserParms.Add(dbParmName + constStringEquals + dbParmValue);
+         WriteToDebugFile('* Adding this entry to dbCompUserParms: "' + dbParmName + constStringEquals + dbParmValue + '".');
+         
+      end { elsif }
+      
+      { Look for left string to start with 'Description' and if so, store it. }
+      else if (AnsiPos(constDbParmDescription, leftStr) <> 0) then
+      begin
+         dbParmValue := rightStr;
+         
+         { Check that the database parameter matches the component level parameter. }
+         dbParmName := constDbParmDescription;
+         dbParmValue := rightStr;
+
+         { Add this user parameter as a NAME=VALUE pair to the dbCompUserParms string list. }
+         dbCompUserParms.Add(dbParmName + constStringEquals + dbParmValue);
+         WriteToDebugFile('* Adding this entry to dbCompUserParms: "' + dbParmName + constStringEquals + dbParmValue + '".');
+         
+      end { elsif }
+
+   end; { endfor loop over database parameters }
+   
+end; { end ExtractDbUserParmsForComp() }
+
+
+{***************************************************************************
+ * function WriteDbCompDiffsForVariedCompToProjectFile()
+ *  Analyze the differences in user parameters between the database entries
+ *  for the specified varied component vs. the database entries for the
+ *  original component.  For all fields that differ, create a text entry
+ *  for the project file describing the varied parameter.
+ *
+ *  Note that we are NOT parsing and analyzing the previously existing entry
+ *  in the project file describing this varied component.  Instead, we
+ *  are examining the database entries for both the original and varied
+ *  components and computing a list of differing parameters from scratch.
+ *
+ *  The physical component to be varied is described by physical refdes phyDesignator
+ *  and physical unique ID phyUniqueId.  The database key for the variant
+ *  component to be loaded in place of this physical part is described by varCompDbKey.
+ *
+ *  We rely on already-populated string lists logCompCacheByRefDes and logCompCacheByUniqueId
+ *  to have stored information about all logical components that have been previously
+ *  processed by this script.  Information stored includes the database key for
+ *  all such components.
+ *
+ *  We rely on already-populated string lists phyCompCacheByRefDes and phyCompCacheByUniqueId
+ *  to store mapping info that allows us to map from a physical component back
+ *  to its logical schematic component.
+ *
+ *  NOTE:  Assumes that dbParmsCache and dbParmsCacheIndex string lists have already been created.
+ *  
+ *  Returns possibly incremented index of parameter variants as var parm parmVarIdx.
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function WriteDbCompDiffsForVariedCompToProjectFile(    Project                : IProject;
+                                                        newProjFileStrs        : TStringList;
+                                                        dbLibDoc               : IDatabaseLibDocument;
+                                                        dbTableList            : TStringList;
+                                                    var dbParmsCache           : TStringList;
+                                                    var dbParmsCacheIndex      : TStringList;
+                                                        logCompCacheByRefDes   : TStringList;
+                                                        logCompCacheByUniqueId : TStringList;
+                                                        phyCompCacheByRefDes   : TStringList;
+                                                        phyCompCacheByUniqueId : TStringList;
+                                                        phyDesignator          : TDynamicString;
+                                                        phyUniqueId            : TDynamicString;
+                                                        varCompDbKey           : TDynamicString;
+                                                    var parmVarIdx             : Integer;
+                                                        )                      : Integer;
+var
+   i                  : Integer;
+   j                  : Integer;
+   leftStr            : TDynamicString;
+   rightStr           : TDynamicString;
+   logDesignator      : TDynamicString;
+   logUniqueId        : TDynamicString;
+   position           : Integer;
+   logCompDbKey       : TDynamicString;
+   logCompDbTable     : TDynamicString;
+   logUniqueId2       : TDynamicString;
+   linkedToDb         : Boolean;
+   dbParmsStart       : Integer;
+   dbParmsEnd         : Integer;
+   origCompUserParms  : TStringList;
+   varCompUserParms   : TStringList;
+   varIdx             : Integer;
+   origParmName       : TDynamicString;
+   origParmValue      : TDynamicString;
+   varParmValue       : TDynamicString;
+   writeParmVariation : Boolean;
+
+begin
+
+   { For now, assume/hope/pray that we will succeed. }
+   result := 0;
+
+   { Output debug info. }
+   WriteToDebugFile('*In WriteDbCompDiffsForVariedCompToProjectFile(), phyDesignator is "' + phyDesignator + '", phyUniqueId is "' + phyUniqueId + '", varCompDbKey is "' + varCompDbKey + '".');
+
+   {* Try to find this physical component in the phyCompCache* lists. *}
+   { Look for this physical designator in the phyCompCacheByRefDes list. }
+   i := phyCompCacheByRefDes.IndexOfName(phyDesignator);
+
+   if (i = -1) then
+      MyAbort('Failed to find physical designator ' + phyDesignator + ' in phyCompCacheByRefDes!  Perhaps refdes''es have changed since variant information was created?');
+
+   WriteToDebugFile('* Found matching entry in phyCompCacheByRefDes, entry is "' + phyCompCacheByRefDes.Strings(i) + '".');
+
+   
+   { Look for this physical unique ID in the phyCompCacheByUniqueId list. }
+   j := phyCompCacheByUniqueId.IndexOfName(phyUniqueId);
+
+   if (j = -1) then
+      MyAbort('Failed to find physical unique ID ' + phyUniqueId + ' in phyCompCacheByUniqueId!');
+
+   WriteToDebugFile('* Found matching entry in phyCompCacheByUniqueId, entry is "' + phyCompCacheByUniqueId.Strings(j) + '".');
+
+   
+   {* Extract the logical refdes associated with this part. *}
+   SplitStringIntoLeftAndRight(phyCompCacheByRefDes.ValueFromIndex(i),
+                               constStringDelimiter,
+                               {var} leftStr,
+                               {var} rightStr);
+
+   logDesignator := leftStr;
+   WriteToDebugFile('* Logical refdes is "' + logDesignator + '".');
+
+   {* TODO:  Make sure both matches are describing the same component! *}
+   
+
+   {* Extract the logical unique ID associated with this part (the final entry after the final path separator). *}
+   { Find the index of the last path separator. }
+   position := LastDelimiter(constStringUniqueIdPathSep, rightStr);
+   if (position = 0) then
+      MyAbort('Failed to find path separator in unique ID path "' + rightStr + '"!');
+
+   { Now extract just the logical unique ID. }
+   logUniqueId := Copy(rightStr, (position+1), MaxInt);
+   WriteToDebugFile('* Logical UniqueId is "' + logUniqueId + '".');
+
+   
+   {* Try to find this logical component in the logCompCache* lists. *}
+   { Look for this logical designator in the logCompCacheByRefDes list. }
+   i := logCompCacheByRefDes.IndexOfName(logDesignator);
+
+   if (i = -1) then
+      MyAbort('Failed to find logical designator ' + logDesignator + ' in logCompCacheByRefDes!');
+
+   WriteToDebugFile('* Found matching entry in logCompCacheByRefDes, entry is "' + logCompCacheByRefDes.Strings(i) + '".');
+
+
+   {* Split this entry into database key, database table, and unique ID fields. *}
+   SplitStringIntoLeftAndRight(logCompCacheByRefDes.ValueFromIndex(i),
+                               constStringDelimiter,
+                               {var} leftStr,
+                               {var} rightStr);
+
+   logCompDbKey   := leftStr;
+
+   SplitStringIntoLeftAndRight(rightStr,
+                               constStringDelimiter,
+                               {var} logCompDbTable,
+                               {var} logUniqueId2);
+
+   WriteToDebugFile('* logCompDbKey is "' + logCompDbKey + '", logCompDbTable is "' + logCompDbTable + '", logUniqueId2 is "' + logUniqueId2 + '".');
+
+   
+   { Make sure the logical unique ID just extracted matches what we were already expecting. }
+   if (logUniqueId <> logUniqueId2) then
+      MyAbort('WriteDbCompDiffsForVariedCompToProjectFile(), logUniqueId does not match logUniqueId2!');
+
+
+   { Init string lists to hold database user parameters for both original and varied components. }
+   origCompUserParms := TStringList.Create;
+   varCompUserParms  := TStringList.Create;
+
+   origCompUserParms.NameValueSeparator := constStringEquals;
+   varCompUserParms.NameValueSeparator := constStringEquals;
+   
+
+   {* Retrieve database parameters for the varied component. *}
+   GetAllParametersFromDatabase((logDesignator+'_varied'), {compRefDes,}
+                                dbLibDoc,
+                                dbTableList,
+                                varCompDbKey, {compDbKey,}
+                                logCompDbTable, {compDbTable,}
+                                {var} linkedToDb,
+                                {var} dbParmsCache,
+                                {var} dbParmsCacheIndex,
+                                {var} dbParmsStart,
+                                {var} dbParmsEnd);
+
+   WriteToDebugFile('* Found varied component in database.  dbParmsStart is ' + IntToStr(dbParmsStart) + ', dbParmsEnd is ' + IntToStr(dbParmsEnd) + '.');
+   
+   { It only makes sense to proceed if the varied component is actually linked to a valid database component. }
+   if (linkedToDb) then
+   begin
+      
+      {* Extract just the database user parameters for the varied component. *}
+      ExtractDbUserParmsForComp(dbParmsCache,
+                                dbParmsStart,
+                                dbParmsEnd,
+                                {var} varCompUserParms {dbCompUserParms}
+                                );
+
+      {* Retrieve database parameters for the original component. *}
+      GetAllParametersFromDatabase(logDesignator, {compRefDes,}
+                                   dbLibDoc,
+                                   dbTableList,
+                                   logCompDbKey, {compDbKey,}
+                                   logCompDbTable, {compDbTable,}
+                                   {var} linkedToDb,
+                                   {var} dbParmsCache,
+                                   {var} dbParmsCacheIndex,
+                                   {var} dbParmsStart,
+                                   {var} dbParmsEnd);
+
+      WriteToDebugFile('* Found original component in database.  dbParmsStart is ' + IntToStr(dbParmsStart) + ', dbParmsEnd is ' + IntToStr(dbParmsEnd) + '.');
+
+      {* Extract just the database user parameters for the original component. *}
+      ExtractDbUserParmsForComp(dbParmsCache,
+                                dbParmsStart,
+                                dbParmsEnd,
+                                {var} origCompUserParms {dbCompUserParms}
+                                );
+
+      { Explicitly sort both sets of user parameters. }
+      origCompUserParms.Sort;
+      varCompUserParms.Sort;
+
+      { Loop over all the database user parameters in the original component. }
+      for i := 0 to (origCompUserParms.Count - 1) do
+      begin
+
+         { Extract the name and value of the current parameter in the original component. }
+         SplitStringIntoLeftAndRight(origCompUserParms.Strings(i),
+                                     constStringEquals,
+                                     {var} origParmName,
+                                     {var} origParmValue);
+
+         { Try to find this user parameter name in the list of varied component parameters. }
+         varIdx := varCompUserParms.IndexOfName(origParmName);
+
+         { Flag that we don't yet have a reason that we need to create a parameter variation for this one. }
+         writeParmVariation := False;
+         
+         { See if that user parameter name was found among the parameters of the varied component. }
+         if (varIdx >= 0) then
+         begin
+         
+            { Extract the value of the corrsponding parameter in the varied component. }
+            varParmValue := varCompUserParms.ValueFromIndex(varIdx);
+
+            { Now see if the parameter value of the original component differs from the parameter
+             value of the varied component.  In general, many parameters (eg. Rating, Tolerance, etc.)
+             may be the same between the original and varied components.  Others (eg. MFGNUMBER, VALUE, etc.)
+             are expected to be different. }
+            if (varParmValue = origParmValue) then
+            begin
+               WriteToDebugFile('* User parameter named "' + origParmName + '", with original value "' + origParmValue + '" is THE SAME between original and varied components.');
+            end { endif }
+
+            else
+            begin
+               WriteToDebugFile('* User parameter named "' + origParmName + '", with original value "' + origParmValue + '" DIFFERS compared to varied value "' + varParmValue + '".');
+
+               { Flag that we must create a parameter variation for this one. }
+               writeParmVariation := True;
+               
+            end; { endelse }
+
+         end { endif }
+
+         { Else that parameter did not exist in the varied component.
+          Hopefully this is because the user wanted a resistor loaded instead of a capacitor, etc.
+          Different types of components have different sets of user parameters. }
+         else
+         begin
+            WriteToDebugFile('* Warning:  User parameter named "' + origParmName + '" was not found in varied database component!');
+
+            { Setup for the varied component to have a null string for this parameter. }
+            varParmValue := '';
+            
+            { Flag that we must create a parameter variation for this one. }
+            writeParmVariation := True;
+            
+         end; { endelse }
+
+         { See if we need to create a parameter variation for this parameter. }
+         if (writeParmVariation) then
+         begin
+
+            { The Altium Variant manager GUI does an odd thing where it converts all null ('') strings to a single space (' ').
+             We're going to replicate this "feature" so that said GUI doesn't feel it necessary to "fix" our project file. }
+            if (varParmValue = '') then
+               varParmValue := ' ';
+
+            { If this parameter is the VALUE parameter, then we must also write a parameter variant
+             to describe the Comment field.  This is because most XIA components are expected to be
+             set with Comment set to "=VALUE".  But for a varied component, the "=VALUE" evaluates
+             to the unvaried VALUE parameter, not the varied one.  So we must create another
+             parameter variant to explicitly set Comment to VariedVALUE. }
+            { Note:  For now we are assuming that we're not dealing with any of the types of
+             components whose Comment field is not set to "=VALUE".  This is because I can see no
+             need for any of those to be a varied database component.  JWC 2011-12-23. }
+            { NOTE:  This operation is likely XIA specific! }
+            if (origParmName = constDbParmValue) then
+            begin
+
+               { Write out info lines for this parmVariant. }
+               { FIXME:  Currently we are adding a suffix string "(varied)" to the Comment field
+                in order to get this component to appear on its own line in the XLS BOM.
+                This is because the distributor stock check insists on using the non-varied
+                supplier part numbers, instead of the varied ones.  This leads to 2 problems:
+                1.  If this component is grouped with other components (which aren't varied), then
+                all the stock check info will fail for that entire BOM line.
+                2.  If this varied component is on its own BOM line, the stock check info will
+                appear correct (supplier and supplier part numbers are what we want them to be),
+                but the stock data returned from Digikey, Mouser, etc. will actually be the
+                data from the non-varied component.
+
+                So as a workaround we're choosing to force #2 above so that at least we don't
+                screw up the BOM lookup for other components.
+
+                This issue was reported to Altium as SupportCenter Case 00183687 and has been
+                reportedly forwarded to development for fix as Ticket #5842.  JWC 2011/12/29. }
+               newProjFileStrs.Add('ParamVariation' + IntToStr(parmVarIdx) + '=ParameterName=' + constDbParmComment + '|VariantValue=' + varParmValue + '(varied)');
+               newProjFileStrs.Add('ParamDesignator' + IntToStr(parmVarIdx) + '=' + phyDesignator);
+
+               { Increment parameter variant index. }
+               parmVarIdx  := parmVarIdx + 1;
+            
+            end; { endif }
+            
+            { Write out info lines for this parmVariant. }
+            newProjFileStrs.Add('ParamVariation' + IntToStr(parmVarIdx) + '=ParameterName=' + origParmName + '|VariantValue=' + varParmValue);
+            newProjFileStrs.Add('ParamDesignator' + IntToStr(parmVarIdx) + '=' + phyDesignator);
+
+            { Increment parameter variant index. }
+            parmVarIdx  := parmVarIdx + 1;
+            
+         end; { endif }
+
+      end; { endfor }
+      
+   end { endif }
+
+   { Else the varied component does not have a valid database link.  Flag this as an error. }
+   else
+   begin
+      WriteToDebugFile('ERROR:  There is an attempt to make a component variation for physical refdes ' + phyDesignator + ', calling out varied database component ' + varCompDbKey + '.  But this is not a valid database component!  Please fix!');
+      WriteToSummaryFile('ERROR:  There is an attempt to make a component variation for physical refdes ' + phyDesignator + ', calling out varied database component ' + varCompDbKey + '.  But this is not a valid database component!  Please fix!');
+
+   end; { endelse }
+   
+   { Free string lists. }
+   origCompUserParms.Free;
+   varCompUserParms.Free;
+   
+end; { end WriteDbCompDiffsForVariedCompToProjectFile() }
+
+
+{***************************************************************************
+ * function WriteAllVariedCompsToProjectFile()
+ *  Write text lines describing all varied components to the project file.
+ *
+ *  Varied components will fall into one of two categories:
+ *  1.  varied components that do not override the database key.  These are
+ *  hopefully things like a Comment override saying "Place sticker with VarA
+ *  here", etc.  For these, the script will simply write out all varied
+ *  parameters that currently exist and make no changes.
+ *  
+ *  2.  Varied components that override the database key.  For these, we will
+ *  compute from scratch the parameter differences between the original
+ *  database component and the varied database component.  We will write
+ *  all such parameter variations to the project file. *
+ *  
+ *  NOTE:  Assumes that dbParmsCache and dbParmsCacheIndex string lists have already been created.
+ *  
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function WriteAllVariedCompsToProjectFile(    Project                : IProject;
+                                              newProjFileStrs               : TStringList;
+                                              dbLibDoc               : IDatabaseLibDocument;
+                                              dbTableList            : TStringList;
+                                          var dbParmsCache           : TStringList;
+                                          var dbParmsCacheIndex      : TStringList;
+                                              logCompCacheByRefDes   : TStringList;
+                                              logCompCacheByUniqueId : TStringList;
+                                              phyCompCacheByRefDes   : TStringList;
+                                              phyCompCacheByUniqueId : TStringList;
+                                              )                      : Integer;
+var
+   i             : Integer;
+   j             : Integer;
+   k             : Integer;
+   projVariant   : IProjectVariant;
+   compVariant   : IComponentVariant;
+   parmVariant   : IParameterVariation;
+   altPart       : TDynamicString;
+   parmVarIdx    : Integer;
+   foundDbKey    : Boolean;
+   phyDesignator : TDynamicString;
+   phyUniqueId   : TDynamicString;
+   varCompDbKey     : TDynamicString;
+
+begin
+
+   { For now, assume/hope/pray that we will succeed. }
+   result := 0;
+
+   { Loop over all project variations }
+   for i := 0 to (Project.DM_ProjectVariantCount-1) do
+   begin
+
+      { (Re-)Initialize parameter variant index to 1 as we start with a new project variation. }
+      parmVarIdx  := 1;
+      
+      { Retrieve a reference to this projVariant. }
+      projVariant := Project.DM_ProjectVariants(i);
+
+      { Output debug info. }
+      WriteToDebugFile('* Processing project variant "' + projVariant.DM_Description + '".');
+      
+      { Write out header for this projVariant. }
+      newProjFileStrs.Add('[ProjectVariant' + IntToStr(i+1) + ']');
+      newProjFileStrs.Add('Description=' + projVariant.DM_Description);
+      newProjFileStrs.Add('AllowFabrication=0');		{ Write out this hardcoded string, per example project files that I have laying aroud.  TODO:  What does this do??? }
+      newProjFileStrs.Add('ParameterCount=0');		{ Write out this hardcoded string, per example project files that I have laying aroud.  TODO:  What does this do??? }
+      newProjFileStrs.Add('VariationCount=' + IntToStr(projVariant.DM_VariationCount));
+
+      { Loop over all component variations. }
+      for j := 0 to (projVariant.DM_VariationCount-1) do
+      begin
+         
+         { Retrieve a reference to this compVariant. }
+         compVariant := projVariant.DM_Variations(j);
+
+         { Output debug info. }
+         WriteToDebugFile('* Processing component variant "' + compVariant.DM_PhysicalDesignator + '", UniqueId "' + compVariant.DM_UniqueId + '".');
+      
+         { The example project files that I have show a " " (space char) on lines where AlternatePart is null.
+          I have no idea if this really matters, but I will attempt to recreate this "feature". }
+         if (compVariant.DM_AlternatePart = '') then
+            altPart := ' ' { nosemi }
+         else
+            altPart := compVariant.DM_AlternatePart;
+            
+         { Write out info line for this compVariant. }
+         newProjFileStrs.Add('Variation' + IntToStr(j+1) + '=Designator=' + compVariant.DM_PhysicalDesignator + '|UniqueId=' + compVariant.DM_UniqueId + '|Kind=' + IntToStr(compVariant.DM_VariationKind) + '|AlternatePart=' + altPart);
+
+         { Flag that we have not yet found an override to the database key parameter. }
+         varCompDbKey := '';
+         foundDbKey := False;
+         
+         { Loop over all parameter variations.  Look for overrides to database key field. }
+         for k := 0 to (compVariant.DM_VariationCount-1) do
+         begin
+
+            { Retrieve a reference to this parmVariant. }
+            parmVariant := compVariant.DM_Variations(k);
+
+            { Output debug info. }
+            WriteToDebugFile('*  k=' + IntToStr(k));
+      
+            { See if we found the parameter called "OLD_DB_KEY".  This is used as our interim database key. }
+            if ( (parmVariant.DM_ParameterName = constDbParmDbKeyInterim) and
+                (not foundDbKey) and
+                (constDbParmDbKeyInterim <> '') ) then
+            begin
+
+               { We found the "OLD_DB_KEY" parameter.  Save this value for use as our interim database key, until we find "DB_KEY". }
+               varCompDbKey := parmVariant.DM_VariedValue;
+               WriteToDebugFile('Found "' + constDbParmDbKeyInterim + '" parameter.  Using: "' + varCompDbKey + '" as interim database key.');
+            end
+
+            { See if we found the parameter called "DB_KEY".  This is used as our real database key. }
+            else if (parmVariant.DM_ParameterName = constDbParmDbKey) then
+            begin
+
+               { We found the "DB_KEY" parameter.  Save this value for use as our database key. }
+               varCompDbKey := parmVariant.DM_VariedValue;
+               foundDbKey := True;
+               WriteToDebugFile('Found "' + constDbParmDbKey + '" parameter.  Using: "' + varCompDbKey + '" as database key.');
+            end;
+            
+         end; { endfor k }
+
+         { See if we found the database key being varied.
+          If so, we want to (re-)compute the differences between all the database components for the unvaried part
+          vs. the varied part.  (Re-)Write all these out to the project file. }
+         if (varCompDbKey <> '') then
+         begin
+
+            { Record the refdes and unique ID of this varied physical component. }
+            phyDesignator := compVariant.DM_PhysicalDesignator;
+            phyUniqueId   := compVariant.DM_UniqueId;
+
+            { Call WriteDbCompDiffsForVariedCompToProjectFile() to compare the unvaried vs. varied component
+             and write all differences between them out to project file. }
+            { Note:  We will not be attempting to compare the current set of differences to the existing
+             set of differences already recorded in the existing project file and the internal data structures.
+             Rather, we will re-create this set of differences from scratch. }
+            WriteDbCompDiffsForVariedCompToProjectFile(Project,
+                                                       newProjFileStrs,
+                                                       dbLibDoc,
+                                                       dbTableList,
+                                                       {var} dbParmsCache,
+                                                       {var} dbParmsCacheIndex,
+                                                       logCompCacheByRefDes,
+                                                       logCompCacheByUniqueId,
+                                                       phyCompCacheByRefDes,
+                                                       phyCompCacheByUniqueId,
+                                                       phyDesignator,
+                                                       phyUniqueId,
+                                                       varCompDbKey,
+                                                       {var} parmVarIdx);
+
+
+         end { endif }
+
+         { Else we did not find the database key to be varied.
+          So just write out existing (presumably only "Comment" parameter) parameter variations to project file. }
+         else
+         begin
+
+            { Loop over all parameter variations.  Write to project file. }
+            for k := 0 to (compVariant.DM_VariationCount-1) do
+            begin
+
+               { Retrieve a reference to this parmVariant. }
+               parmVariant := compVariant.DM_Variations(k);
+
+               { Write out info lines for this parmVariant. }
+               newProjFileStrs.Add('ParamVariation' + IntToStr(parmVarIdx) + '=ParameterName=' + parmVariant.DM_ParameterName + '|VariantValue=' + parmVariant.DM_VariedValue);
+               newProjFileStrs.Add('ParamDesignator' + IntToStr(parmVarIdx) + '=' + compVariant.DM_PhysicalDesignator);
+
+               { Increment parameter variant index. }
+               parmVarIdx  := parmVarIdx + 1;
+               
+            end; { endfor k }
+
+         end; { endelse }
+
+      end; { endfor j }      
+      
+      { Write out footer for this projVariant. }
+      newProjFileStrs.Add('ParamVariationCount=' + IntToStr(parmVarIdx-1));
+      newProjFileStrs.Add('');
+
+   end; { endfor i }
+
+end; { end WriteAllVariedCompsToProjectFile() }
+
+
+{***************************************************************************
+ * function CheckAllVariedCompsVsDatabase()
+ *
+ *  Here's the plan:
+ *
+ *  1.  Expect the designer to fire up the Project->Variants GUI.
+ *  Find the component that should be loaded with another database comp.
+ *  Set checkbox by "OLD_DB_KEY" or "DB_KEY" and type in OLD_DB_KEY for varied
+ *  component.  For example, if one wants C1 to be C000001112 instead of
+ *  C000001111, then put C000001112 as the varied value for "DB_KEY".
+ *
+ *  2.  Now, if that's all that's done, the BOM will still show the non-varied
+ *  values for all other fields in C1 (eg. Comment, Description, MFGNUMBER, etc.).
+ *  This will result in purchasing and stuffing the original, non-varied part.
+ *
+ *  3.  What we've been doing so far is expecting the designer to manually
+ *  take a snapshot of all the component differences between C000001111 and
+ *  C000001112, and creating varied parameters for all differences
+ *  (eg. Comment, Description, MFGNUMBER, etc.).  This is bad for a number of reasons:
+ *  (a) It's a complete pain in the a**, (b) It requires a lot of manual, error
+ *  prone work, and (c) Database changes/improvements (eg. adding additional Supplier
+ *  info) for C000001112 will never get propagated to schematic.
+ *
+ *  4.  So what we're going to do is to examine all varied components.  For those
+ *  that have an override of "OLD_DB_KEY" or "DB_KEY", we're going to compare
+ *  all database parameters for the original component vs. the varied component.
+ *  For all such db parameters that differ, we will (re-)create varied parameters
+ *  to describe all such differences.
+ *
+ *  5.  Now, we have the same problem we had for modifying project-level parameters,
+ *  namely that Altium provides no (documented) interface for modifying or creating
+ *  varied parameters.  So we will take the same approach that we took for project-
+ *  level parameters:  We will re-write the project file.
+
+ *  FIXME:  We're currently doing this in a very kludgey way, by brutally
+ *  re-writing the .PrjPcb project file itself.  This is because I've been
+ *  unable to figure out how to modify and/or add varied component parameters
+ *  within Altium DelphiScript.
+ *  This missing feature has apparently been accepted to Altium's TODO list for a
+ *  future release of the tool.
+ *  See http://bugcrunch.live.altium.com/#Bug/1085 and http://forum.live.altium.com/#posts/189325
+ *  
+ *  NOTE:  Assumes that dbParmsCache and dbParmsCacheIndex string lists have already been created.
+ *  
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function CheckAllVariedCompsVsDatabase(    Project                : IProject;
+                                           dbLibDoc               : IDatabaseLibDocument;
+                                           dbTableList            : TStringList;
+                                       var dbParmsCache           : TStringList;
+                                       var dbParmsCacheIndex      : TStringList;
+                                           logCompCacheByRefDes   : TStringList;
+                                           logCompCacheByUniqueId : TStringList;
+                                           phyCompCacheByRefDes   : TStringList;
+                                           phyCompCacheByUniqueId : TStringList;
+                                       var changedFiles           : TStringList;
+                                       )                          : Integer;
+
+
+var
+   i               : Integer;
+   k               : Integer;
+   projFilePath    : TDynamicString;
+   projFileStrs    : TStringList;
+   newProjFileStrs : TStringList;
+   state           : Integer;
+   projFile        : TextFile;
+   rc              : Integer;
+   AServerDocument : IServerDocument;
+
+begin
+
+   { For now, assume/hope/pray that we will succeed. }
+   result := 0;
+
+   WriteToDebugFile('*In CheckAllVariedCompsVsDatabase()...');
+
+   { Retrieve the name of the project file. }
+   projFilePath := Project.DM_ProjectFullPath;
+   WriteToDebugFile('*Found project file at path ' + projFilePath);
+   
+   {** Proceed with the kludge to read in, modify, and re-write the project file itself. **}
+   { Init string list to read in project file. }
+   projFileStrs := TStringList.Create;
+   newProjFileStrs := TStringList.Create;
+
+   { Read existing project file into projFileStrs. }
+   projFileStrs.LoadFromFile(projFilePath);
+
+   {* Copy existing project file to new project file, except completely rewrite the project parameters section. *}
+   { Loop over all existing lines in the project file. }
+   state := 0;
+   for i := 0 to (projFileStrs.Count - 1) do
+   begin
+
+      { Examine current state and act appropriately. }
+      case state of
+
+        { State 0:  Project file before the project variants section. }
+        { In state 0, unconditionally copy line from input to output.
+         Look for a line that looks like "[ProjectVariant". When we find it, advance state. }
+        0 :
+           begin
+
+              { Look for the line that signifies the start of the project variants section. }
+              if (AnsiPos('[ProjectVariant', projFileStrs.Strings[i]) <> 0) then
+              begin
+
+                 { Advance state. }
+                 state := 1;
+                 WriteToDebugFile('*Found "[ProjectVariant" marker.  Advancing state.');
+
+                 {* Output all project variant info to output file now. *}
+                 WriteAllVariedCompsToProjectFile(Project,
+                                                  newProjFileStrs,
+                                                  dbLibDoc,
+                                                  dbTableList,
+                                                  {var} dbParmsCache,
+                                                  {var} dbParmsCacheIndex,
+                                                  logCompCacheByRefDes,
+                                                  logCompCacheByUniqueId,
+                                                  phyCompCacheByRefDes,
+                                                  phyCompCacheByUniqueId);
+                 
+              end { endif }
+
+              { Else we didn't find "[ProjectVariant".  Just copy this line from input to output. }
+              else
+              begin
+
+                 { Unconditionally copy this line of the original project file back out to the new project file. }
+                 newProjFileStrs.Add(projFileStrs.Strings[i]);
+
+              end; { endelse }
+
+           end; { endcase 0 }
+
+        { State 1:  Project file during the project variants section. }
+        { In state 1, ignore all lines.  Look for a line that starts with "[" and does not
+         contain "[ProjectVariant".  When we find it, output current line and advance state. }
+        1 :
+           begin
+
+              { Look for a line that begins with "[" and does not contain "[ProjectVariant" }
+              if ( (Copy(projFileStrs.Strings[i], 1, 1) = '[') and (AnsiPos('[ProjectVariant', projFileStrs.Strings[i]) = 0) ) then
+              begin
+
+                 { Copy this line of the original project file back out to the new project file. }
+                 newProjFileStrs.Add(projFileStrs.Strings[i]);
+
+                 { Advance state. }
+                 state := 2;
+                 WriteToDebugFile('*Found "[" with no "[ProjectVariant".  Advancing state.');
+
+              end; { endif }
+
+           end; { endcase 1 }
+
+        { State 2:  Project file after the project variants section. }
+        { In state 2, copy all lines from input to output and remain in this state forever. }
+        2 :
+           begin
+
+              { Unconditionally copy this line of the original project file back out to the new project file. }
+              newProjFileStrs.Add(projFileStrs.Strings[i]);
+
+           end; { endcase 2 }
+
+      else MyAbort('Unknown state ' + IntToStr(state));
+      end; { endcase }          
+      
+   end; { endfor }
+
+   { Sanity check. }
+   if (state <> 2) then
+      MyAbort('Encountered problem modifying project file.  Project file may be corrupted!');
+
+   
+   { See if re-generating the component variants resulted in a project file that differs from
+    the existing project file. }
+   rc := DiffStringLists(projFileStrs,
+                         newProjFileStrs);
+
+   { If so, rewrite project file. }
+   if (rc = 1) then
+   begin
+
+      WriteToDebugFile('*Need to re-write project file!');
+
+      WriteToSummaryFile('INFO:     ' + 'Updated one or more varied components with respect to database.  This results in changes to project file.');
+
+      { Add project file to the list of changed files. }
+      changedFiles.Add(Project.DM_ProjectFileName);
+
+      { Try to re-open project file for writing. }
+      AssignFile(projFile, projFilePath);
+      ReWrite(projFile);
+      
+      { Loop over all lines in newProjFileStrs. }
+      for i := 0 to (newProjFileStrs.Count - 1) do
+      begin
+
+         { Write out the next line of the new project file. }
+         WriteLn(projFile, newProjFileStrs.Strings(i));
+         
+      end; { endfor }
+
+   end { endif }
+
+   { Else we have no changes to make to the project file.  Don't re-write it. }
+   else
+   begin
+      WriteToDebugFile('*No need to re-write project file.  It is unchanged.');
+   end; { endelse }
+
+   { Close project file. }
+   CloseFile(projFile);
+   
+   { Free projFileStrs. }
+   projFileStrs.Free;
+   newProjFileStrs.Free;
+
+   { We have determined experimentally that Altium will now notice when the project file
+    changes.  It will automatically re-load the project file.  And it appears to be
+    unhelpful to actually notify it that the project file has changed, as this causes
+    it to duplicate component variants. }
+   { Notify Altium that we've changed the project file contents out from under it. }
+   { TODO:  Is this really doing anything?  Is there a better way to do this? }
+//   AServerDocument := Client.GetDocumentByPath(projFilePath);
+//   AServerDocument.DoFileLoad;
+   
+end; { end CheckAllVariedCompsVsDatabase() }
+
+
+{***************************************************************************
  * procedure UpdateFromDatabase()
  *  Do all the actual work of the script.
  *
@@ -3067,28 +4176,32 @@ end; { end CheckComponentsVsDatabase() }
  ***************************************************************************}
 procedure UpdateFromDatabase(foo : Integer);
 var
-   WorkSpace         : IWorkSpace;
-   Project           : IProject;
-   projectPath       : TDynamicString;
-   projOutPath       : TDynamicString;
-   projectName       : TDynamicString;
-   projLogPath       : TDynamicString;
-   scriptsPath       : TDynamicString;
-   document          : IDocument;
-   Component         : IComponent;
-   Net               : INet;
-   i                 : Integer;
-   k                 : Integer;
-   l                 : Integer;
-   rc                : Integer;
-   changedFiles      : TStringList;
-   dbLibDoc          : IDatabaseLibDocument;
-   dbTableList       : TStringList;
-   dbParmsCache      : TStringList;
-   dbParmsCacheIndex : TStringList;
-   timestamp         : TDynamicString;
-   startTime         : TDateTime;
-   endTime           : TDateTime;
+   WorkSpace              : IWorkSpace;
+   Project                : IProject;
+   projectPath            : TDynamicString;
+   projOutPath            : TDynamicString;
+   projectName            : TDynamicString;
+   projLogPath            : TDynamicString;
+   scriptsPath            : TDynamicString;
+   document               : IDocument;
+   Component              : IComponent;
+   Net                    : INet;
+   i                      : Integer;
+   k                      : Integer;
+   l                      : Integer;
+   rc                     : Integer;
+   changedFiles           : TStringList;
+   dbLibDoc               : IDatabaseLibDocument;
+   dbTableList            : TStringList;
+   dbParmsCache           : TStringList;
+   dbParmsCacheIndex      : TStringList;
+   logCompCacheByRefDes   : TStringList;
+   logCompCacheByUniqueId : TStringList;
+   phyCompCacheByRefDes   : TStringList;
+   phyCompCacheByUniqueId : TStringList;
+   timestamp              : TDynamicString;
+   startTime              : TDateTime;
+   endTime                : TDateTime;
 
 begin
 
@@ -3131,6 +4244,11 @@ begin
    WriteToSummaryFile('Actions performed by this script:');
    WriteToSummaryFile('');
 
+   { Report if script is being run with "sync footprints" unchecked. }
+   if (not enableFootprintUpdates) then
+      WriteToSummaryFile('ERROR:    This script is being run with database-to-schematic footprint sync disabled!!  Hopefully you have a good reason for doing this.');
+
+   
    { Compile project before proceeding. }
    UfdUpdateGuiStatusMessage('Status:  Compiling project.');
    Project.DM_Compile;
@@ -3156,6 +4274,30 @@ begin
    dbParmsCache      := TStringList.Create;
    dbParmsCacheIndex := TStringList.Create;
 
+   {** Initialize caches of logical components in the design. **}
+   logCompCacheByRefDes   := TStringList.Create;
+   logCompCacheByUniqueId := TStringList.Create;
+
+   logCompCacheByRefDes.Sorted := True;
+   logCompCacheByRefDes.Duplicates := dupError;
+   logCompCacheByRefDes.NameValueSeparator := constStringEquals;
+
+   logCompCacheByUniqueId.Sorted := True;
+   logCompCacheByUniqueId.Duplicates := dupError;
+   logCompCacheByUniqueId.NameValueSeparator := constStringEquals;
+
+   
+   {** Initialize caches of physical components in the design. **}
+   phyCompCacheByRefDes   := TStringList.Create;
+   phyCompCacheByUniqueId := TStringList.Create;
+   
+   phyCompCacheByRefDes.Sorted := True;
+   phyCompCacheByRefDes.Duplicates := dupError;
+   phyCompCacheByRefDes.NameValueSeparator := constStringEquals;
+
+   phyCompCacheByUniqueId.Sorted := True;
+   phyCompCacheByUniqueId.Duplicates := dupError;
+   phyCompCacheByUniqueId.NameValueSeparator := constStringEquals;
    
    {** Loop over all logical documents in the project.... **}
    for k := 0 to Project.DM_LogicalDocumentCount - 1 do
@@ -3169,6 +4311,7 @@ begin
          
          UfdUpdateGuiStatusMessage('Status:  Checking components in schematic page ' + document.DM_FullPath);
 
+         {* Check all components in this schematic page with respect to database. *}
          { Extract component parameter information from all components in this schematic page.
           Then proceed to check against the database entry for each component. }
          CheckComponentsVsDatabase(dbLibDoc,
@@ -3176,12 +4319,32 @@ begin
                                    document,
                                    {var} dbParmsCache,
                                    {var} dbParmsCacheIndex,
+                                   {var} logCompCacheByRefDes,
+                                   {var} logCompCacheByUniqueId,
                                    {var} changedFiles);
       end; { endif }
 
    end; { endfor loop over all logical documents in project }
 
 
+   {** Analyze and cache physical component to logical component mappings. *}
+   CachePhysicalComponentInfo(Project,
+                              {var} phyCompCacheByRefDes,
+                              {var} phyCompCacheByUniqueId);
+   
+   {** Check all varied components with respect to database. **}
+   CheckAllVariedCompsVsDatabase(Project,
+                                 dbLibDoc,
+                                 dbTableList,
+                                 {var} dbParmsCache,
+                                 {var} dbParmsCacheIndex,
+                                 logCompCacheByRefDes,
+                                 logCompCacheByUniqueId,
+                                 phyCompCacheByRefDes,
+                                 phyCompCacheByUniqueId,
+                                 {var} changedFiles);
+
+   
    { See if we have any changed files. }
    if (changedFiles.Count > 0) then
       begin
@@ -3207,7 +4370,8 @@ begin
       else
       begin
 
-         WriteToSummaryFile('No files were changed.  All schematic components were already synchronized to database.');
+         WriteToSummaryFile('');
+         WriteToSummaryFile('No files were changed.  All schematic components were already synchronized to database (or else the mismatches need to be fixed manually).');
 
       end;
 
@@ -3218,6 +4382,14 @@ begin
    dbParmsCache.Free;
    dbParmsCacheIndex.Free;
 
+   { Free caches of logical components. }
+   logCompCacheByRefDes.Free;
+   logCompCacheByUniqueId.Free;
+   
+   { Free caches of physical components. }
+   phyCompCacheByRefDes.Free;
+   phyCompCacheByUniqueId.Free;
+   
    
    { Record the wall clock time when we ended this script. }
    endTime := Now();
@@ -3331,6 +4503,34 @@ end; { end TUpdateFromDatabaseForm.clickedCancel() }
 
 
 {***************************************************************************
+ * procedure TUpdateFromDatabaseForm.bCheck0_1()
+ *  This is the handler for checking/unchecking "Sync footprints" checkbox.
+ ***************************************************************************}
+procedure TUpdateFromDatabaseForm.bCheck0_1(Sender : TPanel);
+begin
+
+   { See if the user just unchecked this box. }
+   if (formCbFlagOp0_1.Checked = False) then
+   begin
+
+      { Disable footprint sync. }
+      enableFootprintUpdates := False;
+
+   end { endif }
+
+   { Else the user re-checked this box. }
+   else
+   begin
+
+      { Enable footprint sync. }
+      enableFootprintUpdates := True;
+
+   end; { endelse }
+      
+end; { end TUpdateFromDatabaseForm.bCheck0_1() }
+
+
+{***************************************************************************
  * procedure XIA_Update_From_Database()
  *  Script entry point.
  *
@@ -3363,33 +4563,44 @@ begin
 
    UpdateFromDatabaseForm.formText08.Caption := 'This script will also:';
    UpdateFromDatabaseForm.formText08.Font.Style := MkSet(fsBold);
-   UpdateFromDatabaseForm.formText09.Caption := '4.  Check and if necessary, fix path to DBLib file.';
-   UpdateFromDatabaseForm.formText10.Caption := '5.  Check and if necessary, fix path to DBLink file.';
-   UpdateFromDatabaseForm.formText11.Caption := '6.  Update database link on any components still pointing to old DBLib file "' + constOldDbLibFileName + '".';
-   UpdateFromDatabaseForm.formText12.Caption := '';
-   
-   UpdateFromDatabaseForm.formText13.Caption := 'Preconditions:';
-   UpdateFromDatabaseForm.formText13.Font.Style := MkSet(fsBold);
-   UpdateFromDatabaseForm.formText14.Caption := '1.  All project files should have been saved prior to running this script.';
+   UpdateFromDatabaseForm.formText09.Caption := '4.  Synchronize Description fields between database and schematic components.';
+   UpdateFromDatabaseForm.formText10.Caption := '5.  Check and if necessary, fix path to DBLib file.';
+   UpdateFromDatabaseForm.formText11.Caption := '6.  Check and if necessary, fix path to DBLink file.';
+   UpdateFromDatabaseForm.formText12.Caption := '7.  Update database link on any components still pointing to old DBLib files "' + constOldDbLib1FileName + '" or "' +  '"' + constOldDbLib2FileName + '".';
+   UpdateFromDatabaseForm.formText13.Caption := '8.  Check that the schematic symbol in use on schematic pages matches the one specified by the database.  If not, don''t fix anything, but report the error to user.';
+   UpdateFromDatabaseForm.formText14.Caption := '9.  Synchronize varied database components with respect to database.';
    UpdateFromDatabaseForm.formText15.Caption := '';
    
-   UpdateFromDatabaseForm.formText16.Caption := 'Notes:';
+   UpdateFromDatabaseForm.formText16.Caption := 'Preconditions:';
    UpdateFromDatabaseForm.formText16.Font.Style := MkSet(fsBold);
-   UpdateFromDatabaseForm.formText17.Caption := '1.  This will take a minute or two to run.';
-   UpdateFromDatabaseForm.formText18.Caption := '2.  You''ll need to save modified files after I''m done.';
-   UpdateFromDatabaseForm.formText19.Caption := '3.  This script only synchronizes the schematic components to the database.';
-   UpdateFromDatabaseForm.formText20.Caption := '4.  Thus, you will still need to push changes from schematic to layout!';
-   UpdateFromDatabaseForm.formText21.Caption := '';
+   UpdateFromDatabaseForm.formText17.Caption := '1.  All project files should have been saved prior to running this script.';
+   UpdateFromDatabaseForm.formText18.Caption := '';
    
-   UpdateFromDatabaseForm.formText22.Caption := 'Shall I run (OK), or shall I Cancel running this script?';
-   UpdateFromDatabaseForm.formText22.Font.Style := MkSet(fsBold);
-   UpdateFromDatabaseForm.formText23.Caption := '';
+   UpdateFromDatabaseForm.formText19.Caption := 'Notes:';
+   UpdateFromDatabaseForm.formText19.Font.Style := MkSet(fsBold);
+   UpdateFromDatabaseForm.formText20.Caption := '1.  This will take a minute or two to run.';
+   UpdateFromDatabaseForm.formText21.Caption := '2.  You''ll need to save modified files after I''m done.';
+   UpdateFromDatabaseForm.formText22.Caption := '3.  This script only synchronizes the schematic components to the database.';
+   UpdateFromDatabaseForm.formText23.Caption := '4.  Thus, you will still need to push changes from schematic to layout!';
    UpdateFromDatabaseForm.formText24.Caption := '';
-   UpdateFromDatabaseForm.formText25.Caption := '';
+   
+   UpdateFromDatabaseForm.formText25.Caption := 'Options:';
+   UpdateFromDatabaseForm.formText25.Font.Style := MkSet(fsBold);
 
-   UpdateFromDatabaseForm.formButtonsLabel1.Caption := '';
+   UpdateFromDatabaseForm.formButtonsLabel1.Caption := 'Shall I run (OK), or shall I Cancel running this script?';
+   UpdateFromDatabaseForm.formButtonsLabel1.Font.Style := MkSet(fsBold);
 
+   { Override GUI check box labels. }
+   formCbFlagOp0_1.Caption := 'Sync footprints from database to schematic.  (Only uncheck for legacy designs using old Orcad footprints!)';
+
+   { Choose which checkboxes are checked on startup. }
+   formCbFlagOp0_1.Checked := True; { 'Enable database-to-schematic footprint sync' }
+
+   { Set initial status message. }
    UpdateFromDatabaseForm.formStatusBar1.SimpleText := 'Status:  Awaiting user permission to run script.';
+
+   { Flag that we are allowed to update footprints. }
+   enableFootprintUpdates := True;
 
    
    { Run GUI dialog box asking user for permission to run. }
