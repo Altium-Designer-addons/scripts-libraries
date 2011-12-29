@@ -676,7 +676,7 @@ function CreateZipFileName(    projectName  : TDynamicString;
  ***************************************************************************}
 const
 {* Declare the version and name of this script. *}
-   constScriptVersion            = 'v1.8.14_gc $Revision$';
+   constScriptVersion            = 'v1.9.4_gc $Revision$';
    constThisScriptNameNoExt      = 'XIA_Release_Manager';
    constThisScriptName           = constThisScriptNameNoExt + '.pas';
 
@@ -693,8 +693,9 @@ const
 {* Declare file and path names to the required DBLib file and the approved DBLink file. *}
    { Note:  These are only needed by the XIA_Update_From_Database script. }
    { Note:  If there is no old DBLib file to upgrade, set constOldDbLibFileName to ''. }
-   constOldDbLibFileName         = 'Old_database_library_file.DBLib';
-   constRequiredDbLibFileName    = 'Current_database_library_file.DBLib';
+   constOldDbLib1FileName        = 'Previous1_database_library_file.DBLib';
+   constOldDbLib2FileName        = 'Previous2_database_library_file.DBLib';
+   constRequiredDbLibFileName    = 'Customary_database_library_file.DBLib';
    constApprovedDblinkFileName   = 'Database_link_file_no_symbol_sync.DBLink';
    constRequiredDbLibFilePath    = constGlobalScriptsAndLibsWc + constRequiredDbLibFileName;
    constApprovedDblinkFilePath   = constGlobalScriptsAndLibsWc + constApprovedDblinkFileName;
@@ -723,6 +724,8 @@ const
    constStringQuote              = '"';                 { Standard quote char used to protect strings containing spaces when splitting delimited string into a stringList. }
    constStringEquals             = '=';                 { Standard char to use for NAME=VALUE pairs. }
    constStringFpNameVersionDelim = '/';                 { The character that appears exactly once in footprint names to separate FP name on left from version number on right. }
+   constStringSymLibNameDelim    = '\';                 { The character to delimit the schematic library name from the schematic symbol itself. }
+   constStringUniqueIdPathSep    = '\';                 { The character to delimit UniqueId paths / names. }
 
 {* Constants related to dialog boxes. *}
    constMaxLinesInShowMessage    = 55;                  { Maximum lines that will fit in ShowMessage() in a horizontally oriented monitor. }
@@ -740,8 +743,10 @@ const
    constDbParmCategory           = 'CATEGORY';          { Name of "CATEGORY" parameter. }
    constDbParmComment            = 'Comment';           { Name of "Comment" parameter. }
    constDbParmDescription        = 'Description';       { Name of "Description" parameter. }
+   constDbParmShadowSymName      = 'DBSCHSYMBOL';       { Name of parameter used as a shadow copy of the desired schematic symbol name. }
    constDbParmDbKeyInterim       = 'OLD_DB_KEY';        { Name of former database key, that we will use on an interim basis until we find the real db key. }
    constDbParmDbKey              = 'DB_KEY';            { Name of real database key. }
+   constDbSchPlaceholderPrefix   = 'PLACEHOLDER';       { Prefix to be prepended to any schematic symbol names that have not yet been created. }
    constDbValCommentStd          = '=VALUE';            { "Standard" setting for Comment value. }
    constDbValValueFreeform       = 'ALLOW_COMMENT_TO_DIFFER_FROM_THIS_VALUE';  { Value of the VALUE field used to flag that Comment field for this component is freeform. }
    constDbValCategoryFreeform    = 'ALLOW_COMMENT_TO_DIFFER_FROM_VALUE_FIELD'; { Value of the CATEGORY field used to flag that Comment field for this component is freeform. }
@@ -795,6 +800,9 @@ const
    constKindOutJob               = 'OUTPUTJOB';
    constKindHarness              = 'Harness';
    constKindSchLib               = 'SCHLIB';
+
+{* Setup constants for subdirs that Altium will decide to create within our ProjectOutputs/ subdirs. *}
+   constSubdirOdb                = 'odb';         { "Working" odb/ subdir within XRM5_Fabrication/. }
    
 {* Setup constants for some of the svn commands that we will issue, to avoid having the code full of magic numbers (er, magic strings). *}
    constSvnCmdPropSetKeywords    = 'propset svn:keywords "Date Rev Author Id"';
@@ -886,6 +894,7 @@ function PopulateStringLists(var projOutSubDirs             : TStringList;
                              var outJobSetSvnKeywordsOnBoms : TStringList;
                              var outJobDoFixIpc356Netlist   : TStringList;
                              var deleteExcludes             : TStringList;
+                             var svnAddExcludes             : TStringList;
                              var zipDoCheckForExisting      : TStringList;
                              var zipExcludes                : TStringList;
                              var zipFindAddlFiles           : TStringList;
@@ -911,6 +920,7 @@ begin
    outJobSetSvnKeywordsOnBoms := TStringList.Create;
    outJobDoFixIpc356Netlist := TStringList.Create;
    deleteExcludes := TStringList.Create;
+   svnAddExcludes := TStringList.Create;
    zipDoCheckForExisting := TStringList.Create;
    zipExcludes := TStringList.Create;
    zipFindAddlFiles := TStringList.Create;
@@ -929,6 +939,7 @@ begin
    outJobSetSvnKeywordsOnBoms.Add(BoolToStr(False));
    outJobDoFixIpc356Netlist.Add(BoolToStr(False));
    deleteExcludes.Add('*.zip');                                 { Exclude previously created zipfiles. }
+   svnAddExcludes.Add('');
    zipDoCheckForExisting.Add(BoolToStr(False));
    zipExcludes.Add('*.zip');
    zipFindAddlFiles.Add('');                                    { No additional outputs to find to include in this zipfile. }
@@ -947,6 +958,7 @@ begin
    outJobSetSvnKeywordsOnBoms.Add(BoolToStr(False));
    outJobDoFixIpc356Netlist.Add(BoolToStr(False));
    deleteExcludes.Add('*.zip');                                 { Exclude previously created zipfiles. }
+   svnAddExcludes.Add('');
    zipDoCheckForExisting.Add(BoolToStr(False));
    zipExcludes.Add('*.zip');
    zipFindAddlFiles.Add('');                                    { No additional outputs to find to include in this zipfile. }
@@ -965,6 +977,7 @@ begin
    outJobSetSvnKeywordsOnBoms.Add(BoolToStr(False));
    outJobDoFixIpc356Netlist.Add(BoolToStr(False));
    deleteExcludes.Add('*.zip');                                 { Exclude previously created zipfiles. }
+   svnAddExcludes.Add('');
    zipDoCheckForExisting.Add(BoolToStr(False));
    zipExcludes.Add('*.zip');
    zipFindAddlFiles.Add('');                                    { No additional outputs to find to include in this zipfile. }
@@ -983,14 +996,18 @@ begin
    outJobSetSvnKeywordsOnBoms.Add(BoolToStr(True));             { Flag that we should set svn prop keywords on generated BOM files in this subdir. }
    outJobDoFixIpc356Netlist.Add(BoolToStr(False));
    deleteExcludes.Add('*.zip');                                 { Exclude previously created zipfiles. }
+   svnAddExcludes.Add('');
    zipDoCheckForExisting.Add(BoolToStr(False));
-   zipExcludes.Add('"Status Report.Txt"|.ZIP');                 { Specific filenames and/or specific file extensions to exclude from zipfile.  Case insensitive.  Must quote protect anything containing a space char!}
+   zipExcludes.Add('"Status Report.Txt"|*.ZIP');                 { Specific filenames and/or specific file extensions to exclude from zipfile.  Case insensitive.  Must quote protect anything containing a space char!}
    zipFindAddlFiles.Add('');                                    { No additional outputs to find to include in this zipfile. }
    zipFileNames.Add   ('$projectName$_purch_rev_$bomRevNum$.zip'); { Variables in $dollarsigns$ will be substituted in later.  Don't attempt to use "$" char otherwise. }
    relAndTagSubDir.Add('$projectName$_purch_rev_$bomRevNum$');  { Variables in $dollarsigns$ will be substituted in later.  Don't attempt to use "$" char otherwise. }
 
    { Populate everything associated with OutJob #5:  fabrication outputs. }
    { NOTE:  For zipFileName, it MUST end with "_$pcbDocRevNum$.zip" unless you rewrite CheckForExistingZipFile()! }
+   { Note:  We must exclude Altium-created odb/ subdir from being added to svn because Altium will nuke this subdir and re-create it every time.
+    If we do nothing, svn will be unhappy because the .svn subdir that stores working copy info will get nuked along with everything else, resulting
+    in an svn error on commit.  It's ok to exclude this because the same odb files are also zipped up by Altium into XRM5/ProjectName.zip. }
    projOutSubDirs.Add(constFabricationSubDir);
    projOutIncludes.Add(constFabricationIncludeSubDir);          { Specify that there is an include subdirectory for this OutJob. }
    outJobFiles.Add(constFabricationSubDir + constExtOutJob);
@@ -1001,9 +1018,10 @@ begin
    outJobDoSortMultiNetlist.Add(BoolToStr(False));
    outJobSetSvnKeywordsOnBoms.Add(BoolToStr(False));
    outJobDoFixIpc356Netlist.Add(BoolToStr(True));               { Flag that we should fixup the IPC-356 netlist after running this OutJob file. }
-   deleteExcludes.Add('*.zip');                                 { Exclude previously created zipfiles. }
+   deleteExcludes.Add('*_*.zip');                               { Exclude previously created fabrication release zipfiles (that include "_" char in filename). }
+   svnAddExcludes.Add(constSubdirOdb);                          { Exclude Altium-created odb/ subdir from being added to svn. }
    zipDoCheckForExisting.Add(BoolToStr(True));                  { Check for existing zipfiles with same version number (though possibly different svn rev #). }
-   zipExcludes.Add('"Status Report.Txt"|.REP|.APR_LIB|.RUL|.ZIP');{ Specific filenames and/or specific file extensions to exclude from zipfile.  Case insensitive.  Must quote protect anything containing a space char!}
+   zipExcludes.Add('"Status Report.Txt"|*.REP|*.APR_LIB|*.RUL|*_*.ZIP');{ Specific filenames and/or specific file extensions to exclude from zipfile.  Case insensitive.  Must quote protect anything containing a space char!}
    zipFindAddlFiles.Add('');                                    { No additional outputs to find to include in this zipfile. }
    zipFileNames.Add   ('$pcbPartNum$-$pcbVersion$_fab_rev_$pcbDocRevNum$.zip'); { Variables in $dollarsigns$ will be substituted in later.  Don't attempt to use "$" char otherwise. }
    relAndTagSubDir.Add('$projectName$-$pcbVersion$_fab_rev_$pcbDocRevNum$'); { Variables in $dollarsigns$ will be substituted in later.  Don't attempt to use "$" char otherwise. }
@@ -1020,9 +1038,10 @@ begin
    outJobDoSortMultiNetlist.Add(BoolToStr(False));
    outJobSetSvnKeywordsOnBoms.Add(BoolToStr(False));
    outJobDoFixIpc356Netlist.Add(BoolToStr(False));
-   deleteExcludes.Add('*.zip');                                 { Exclude previously created zipfiles. }
+   deleteExcludes.Add('*_*.zip');                               { Exclude previously created assembly release zipfiles (that include "_" char in filename). }
+   svnAddExcludes.Add('');
    zipDoCheckForExisting.Add(BoolToStr(True));                  { Check for existing zipfiles with same version number (though possibly different svn rev #). }
-   zipExcludes.Add('"Status Report.Txt"|.REP|.APR_LIB|.RUL|.ZIP');{ Specific filenames and/or specific file extensions to exclude from zipfile.  Case insensitive.  Must quote protect anything containing a space char!}
+   zipExcludes.Add('"Status Report.Txt"|*.REP|*.APR_LIB|*.RUL|*_*.ZIP');{ Specific filenames and/or specific file extensions to exclude from zipfile.  Case insensitive.  Must quote protect anything containing a space char!}
    zipFindAddlFiles.Add(constPurchasingSubDir + '|' + '*.xls'); { Specify that we should also include all *.xls files in purchasing/ subdir. }
    zipFileNames.Add   ('$pcbaPartNum$-$pcbaVersion$_assy_rev_$bomRevNum$.zip'); { Variables in $dollarsigns$ will be substituted in later.  Don't attempt to use "$" char otherwise. }
    relAndTagSubDir.Add('$projectName$-$pcbaVersion$_assy_rev_$bomRevNum$'); { Variables in $dollarsigns$ will be substituted in later.  Don't attempt to use "$" char otherwise. }
@@ -1048,6 +1067,7 @@ function FreeStringLists(var projOutSubDirs             : TStringList;
                          var outJobSetSvnKeywordsOnBoms : TStringList;
                          var outJobDoFixIpc356Netlist   : TStringList;
                          var deleteExcludes             : TStringList;
+                         var svnAddExcludes             : TStringList;
                          var zipDoCheckForExisting      : TStringList;
                          var zipExcludes                : TStringList;
                          var zipFindAddlFiles           : TStringList;
@@ -1074,6 +1094,7 @@ begin
    outJobSetSvnKeywordsOnBoms.Free;
    outJobDoFixIpc356Netlist.Free;
    deleteExcludes.Free;
+   svnAddExcludes.Free;
    zipDoCheckForExisting.Free;
    zipExcludes.Free;
    zipFindAddlFiles.Free;
@@ -1373,6 +1394,7 @@ var
    FilesAndDirs : TStringList;
    attrs        : Integer;
    i            : Integer;
+
 begin
 
    { For now, assume/hope/pray that we will succeed. }
@@ -1436,6 +1458,84 @@ begin
                                          {var} FilesOnly);
 
 end; { end MyFindFiles() }
+
+
+{***************************************************************************
+ * function FindFilesWithExcludes()
+ *  Search a given directory for files matching specified mask.
+ *  Exclude all files matching an exclude string.
+ *  
+ *  Note:  Assumes that list FilesOnly has already been created!
+ *
+ *  Returns:  String list of generated files in var parameter FilesOnly.
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function FindFilesWithExcludes(    projOutPath : TString;
+                                   subDir      : TString;
+                                   mask        : TString;
+                                   excludes    : TStringList;
+                               var FilesOnly   : TStringList);
+var
+   excludedFiles : TStringList;
+   i             : Integer;
+
+begin
+
+   {** Find files in this subdir matching mask "mask" **}
+   { Call MyFindFilesSpecifyRecursion() to find all the files matching specified mask in specified subDir. }
+   result := MyFindFilesSpecifyRecursion(projOutPath,
+                                         subDir,
+                                         mask,
+                                         False,     { Specify non-recursive searching. }
+                                         {var} FilesOnly);
+
+   
+   {** Find files in this subdir matching one of the excludes masks. **}
+   { Initialize lists of excluded files. }
+   excludedFiles := TStringList.Create;
+
+   { Loop over all the excludes entries. }
+   for i := 0 to excludes.Count - 1 do
+   begin
+
+      WriteToDebugFile('In FindFilesWithExcludes(), looking for excludes entry "' + excludes.Strings[i] + '".');
+      
+      { Call MyFindFilesSpecifyRecursion() to find files matching our excludes mask. }
+      result := MyFindFilesSpecifyRecursion(projOutPath,
+                                            subDir,
+                                            excludes.Strings[i],
+                                            False,     { Specify non-recursive searching. }
+                                            {var} excludedFiles);
+
+   end; { endfor }
+
+
+   {** Modify the original list of files found, by deleting files that should be excluded. **}
+   { Loop over the original list of files.
+    Note that we must loop backwards so that we delete the later files first.
+    This way, we don't change the indices of things that we have yet to delete. }
+   for i := FilesOnly.Count - 1 downto 0 do
+   begin
+
+      { If this file also exists in the excludedFiles list, then delete it from this list. }
+      if (excludedFiles.IndexOf(FilesOnly.Strings[i]) >= 0) then
+      begin
+
+         WriteToDebugFile('*Found file ' + FilesOnly.Strings[i] + ' that I am removing from the list.');
+
+         { Do the deletion. }
+         FilesOnly.Delete(i);
+
+      end; { endif }
+
+   end; {endfor i}
+
+
+   {** Clean up **}
+   { Free up excludedFiles list. }
+   excludedFiles.Free;
+   
+end; { end FindFilesWithExcludes() }
 
 
 {***************************************************************************
@@ -2966,91 +3066,6 @@ end; { end CreateAllOutputSubDirs() }
 
 
 {***************************************************************************
- * function ExcludeFilesFromList()
- *  Process a list of files.  For each file, see if the filename or the fileext
- *  matches a list of excludes.  If so, remove it from the list.
- *
- *  Note:  Assumes that fileList stringlist has already been created.
- *
- *  Returns modified string list as var parm fileList.
- *  Returns:  0 on success, 1 if unable to delete one or more files
- ***************************************************************************}
-function ExcludeFilesFromList(var fileList : TStringList;
-                                  excludes : TStringList;
-                                  )        : Integer;
-var
-   i              : Integer;
-   fileName       : TDynamicString;
-   fileExt        : TDynamicString;
-   starDotFileExt : TDynamicString;
-   deletions      : TStringList;
-   idx            : Integer;
-                  
-begin
-
-   { For now, assume/hope/pray that we will succeed. }
-   result := 0;
-
-   { Create deletions list. }
-   deletions := TStringList.Create;
-   
-   { Set fileList to operate case-insensitively. }
-   fileList.CaseSensitive := False;
-
-   { Loop over all the files. }
-   for i := 0 to fileList.Count - 1 do
-   begin
-
-      { Extract just the filename for this file (eg. strip off leading path). }
-      fileName := ExtractFileName(fileList.Strings[i]);
-      
-      { Extract just the extension for this file (eg. ".TXT", ".XLS", etc.). }
-      fileExt := ExtractFileExt(fileList.Strings[i]);
-      //                 ShowMessage('Extracted filename is ' + fileName + '.');
-
-      { Extend the file extension to "star dot fileExt" (eg. "*.zip"). }
-      starDotFileExt := '*' + fileExt;
-
-      { Look for this filename in the excludes list.
-       Look for this file extension (eg. ".zip") in the excludes list.
-       Look for *.this file extension (eg. "*.zip") in the excludes list. }
-      if ( (excludes.IndexOf(fileName) >= 0) or
-          (excludes.IndexOf(fileExt) >= 0) or
-          (excludes.IndexOf(starDotFileExt) >= 0) ) then
-      begin
-         WriteToDebugFile('*Found file ' + fileList.Strings[i] + ' that I will remove from the list.');
-
-         { Record the index of the file we will delete from the list.
-          We can't do this right now, since we would screw up the for loop end condition. }
-         deletions.Add(IntToStr(i));
-
-      end; { endif }
-
-   end; { endfor i }
-
-   { Loop over the list of files we wish to delete from the original list.
-    Note that we must loop backwards so that we delete the later files first.
-    This way, we don't change the indices of things that we have yet to delete. }
-   for i := deletions.Count - 1 downto 0 do
-   begin
-
-      { Retrieve the index into fileList from deletions list. }
-      idx := strToInt(deletions.Strings[i]);
-      
-      WriteToDebugFile('*Found file ' + fileList.Strings[idx] + ' that I am removing from the list.');
-
-      { Do the deletion. }
-      fileList.Delete(idx);
-
-   end; {endfor i}
-
-   { Free deletions list. }
-   deletions.Free;
-
-end; { end ExcludeFilesFromList() }
-
-
-{***************************************************************************
  * function DeleteOutputFiles()
  *  Attempt to delete all files in a specified subdirectory of ProjectOutputs.
  *  Take a list of files to exclude from deletion.
@@ -3075,21 +3090,18 @@ begin
    { Initialize list of generated files. }
    generatedFiles := TStringList.Create;
 
-   { Fetch a list of all files in this subdirectory. }
-   MyFindFiles(projOutPath,
-               subDir,
-               '*.*',
-               {var} generatedFiles);
-
-   { Exclude specified files from this list. }
-   ExcludeFilesFromList({var} generatedFiles,
-                        excludes);
+   { Fetch a list of all files in this subdirectory, subject to the specified excludes. }
+   FindFilesWithExcludes(projOutPath,
+                         subDir,
+                         '*.*',
+                         excludes,
+                         {var} generatedFiles);
    
    { Loop over all the files. }
    for i := 0 to generatedFiles.Count - 1 do
    begin
 
-      //      ShowMessage(generatedFiles.Strings[i]);
+      WriteToDebugFile('*About to delete old output file "' + generatedFiles.Strings[i] + '".');
 
       { Attempt to delete this file. }
       DeleteFileWithVerify(generatedFiles.Strings[i]);
@@ -3148,7 +3160,9 @@ begin
          WriteToDebugFile('*About to delete old files from enabled ProjectOutputs subdir ' + subDir);
          
          { Delete files in this output subdir, subject to some exclusions. }
-         rc := rc | DeleteOutputFiles(projOutPath, subDir, excludes);
+         rc := rc | DeleteOutputFiles(projOutPath,
+                                      subDir,
+                                      excludes);
 
          { Free list of excludes. }
          excludes.Free;
@@ -5270,6 +5284,58 @@ end; { end IncrementPcbAndPcbaVersions() }
    
 
 {***************************************************************************
+ * function DiffStringLists()
+ *  Diff two string lists and say whether or not they are exactly the same.
+ *
+ *  Returns:  0 when the lists are the same, 1 if they are different.
+ ***************************************************************************}
+function DiffStringLists(listA : TStringList;
+                         listB : TStringList;
+                         )     : Integer;
+var                                                        
+   i     : Integer;
+   rc    : Integer;
+                  
+begin
+
+   { Assume the lists are the same until we find out otherwise. }
+   rc := 0;
+
+   { If they have different numbers of lines, then the lists differ. }
+   if (listA.Count <> listB.Count) then
+   begin
+      rc := 1;
+   end
+
+   { Else they have the same number of lines.  Proceed to check them line-by-line. }
+   else
+   begin
+
+      { Loop over all lines in listA. }
+      for i := 0 to listA.Count - 1 do
+      begin
+
+         { Compare the contents of this line from each list. }
+         if (listA.Strings[i] <> listB.Strings[i]) then
+         begin
+
+            { Now we know that the lists differ. }
+            { TODO:  Abort out of loop to speed things up. }
+            rc := 1;
+            
+         end; { endif }
+         
+      end; { endfor }
+
+   end; { endelse }
+      
+   { Return result to caller. }
+   result := rc;
+
+end; { end DiffStringLists() }
+
+
+{***************************************************************************
  * function DiffFiles()
  *  Diff 2 text files on the disk and say whether or not they are exactly the same.
  *
@@ -5281,53 +5347,26 @@ function DiffFiles(filePathA : TString;
 var                                                        
    i     : Integer;
    rc    : Integer;
-   fileA : TStringList;
-   fileB : TStringList;
+   listA : TStringList;
+   listB : TStringList;
                   
 begin
 
-   { Assume the files are the same until we find out otherwise. }
-   rc := 0;
-
    { Create string lists to hold contents of both files. }
-   fileA := TStringList.Create;
-   fileB := TStringList.Create;
+   listA := TStringList.Create;
+   listB := TStringList.Create;
 
    { Load both files into string lists. }
-   fileA.LoadFromFile(filePathA);
-   fileB.LoadFromFile(filePathB);
+   listA.LoadFromFile(filePathA);
+   listB.LoadFromFile(filePathB);
 
-   { If they have different numbers of lines, then the files differ. }
-   if (fileA.Count <> fileB.Count) then
-   begin
-      rc := 1;
-   end
+   { Call DiffStringLists() to compare the two string lists. }
+   rc := DiffStringLists(listA,
+                         listB);
 
-   { Else they have the same number of lines.  Proceed to check them line-by-line. }
-   else
-   begin
-
-      { Loop over all the files. }
-      for i := 0 to fileA.Count - 1 do
-      begin
-
-         { Compare the contents of this line from each file. }
-         if (fileA.Strings[i] <> fileB.Strings[i]) then
-         begin
-
-            { Now we know that the files differ. }
-            { TODO:  Abort out of loop to speed things up. }
-            rc := 1;
-            
-         end; { endif }
-         
-      end; { endfor }
-
-   end; { endelse }
-      
-   { Free fileA & fileB lists.}
-   fileA.Free;
-   fileB.Free;
+   { Free listA & listB lists.}
+   listA.Free;
+   listB.Free;
    
    { Return result to caller. }
    result := rc;
@@ -6387,10 +6426,10 @@ end; { end DelSvnPropsForXlsBomFiles() }
  *
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function ExcludeUnfixedIpc356(projOutPath : TString;
-                              subDir      : TString;
-                              excludes    : TStringList;
-                              )           : Integer;
+function ExcludeUnfixedIpc356(    projOutPath : TString;
+                                  subDir      : TString;
+                              var excludes    : TStringList;
+                                  )           : Integer;
 var
    fileList    : TStringList;
    i           : Integer;
@@ -6473,12 +6512,14 @@ function AddAllOutputsToSvn(scriptsPath     : TDynamicString;
                             projLogPath     : TString;
                             projOutSubDirs  : TStringList;
                             projOutIncludes : TStringList;
+                            svnAddExcludes  : TStringList;
                             )               : Integer;
 var
-   rc          : Integer;
-   i           : Integer;
-   subDirs     : TStringList;
-      
+   rc       : Integer;
+   i        : Integer;
+   subDirs  : TStringList;
+   excludes : TStringList;
+
 begin 
 
    { For now, assume/hope/pray that we will succeed. }
@@ -6500,7 +6541,47 @@ begin
    for i := 0 to projOutSubDirs.Count - 1 do
    begin
       subDirs.Add(projOutPath + '\' + projOutSubDirs.Strings[i]);
-      subDirs.Add(projOutPath + '\' + projOutSubDirs.Strings[i] + '\*.*');
+
+      { See if there is an svnAddExcludes entry for this ProjectOutputs/ subdir. }
+      { TODO:  The semantics of the svnAddExcludes list imply that an
+       entry applies only to a specific ProjectOutputs/ subdir.
+       However, what we're actually doing here is applying that exclusion
+       to all files already collected.  We should improve this. }
+      { TODO:  The current entry for odb/ is being excluded by virtue of being
+       a directory, rather than a file.  So it's not actually the excludes operation
+       of FindFilesWithExcludes() that's doing the excluding right now. }
+      if (svnAddExcludes.Strings[i] <> '') then
+      begin
+      
+         { Create list of files to exclude from being added to svn. }
+         excludes := TStringList.Create;
+
+         { Split this entry in svnAddExcludes into a string list named "excludes". }
+         SplitDelimitedStringIntoStringList(svnAddExcludes.Strings[i],
+                                            constStringDelimiter,
+                                            {var} excludes);
+
+
+         { Find all files in this ProjectOutputs/ subdir, subject to specified excludes. }
+         FindFilesWithExcludes(projOutPath,
+                               projOutSubDirs.Strings[i],
+                               '*.*',
+                               excludes,
+                               {var} subDirs);
+         
+         { Free list of excludes. }
+         excludes.Free;
+   
+      end { endif }
+
+      { Else there is no such entry.  Do things the easier and faster way. }
+      else
+      begin
+         
+         subDirs.Add(projOutPath + '\' + projOutSubDirs.Strings[i] + '\*.*');
+         
+      end; { endelse }
+      
    end; { endfor }
    
    { Attempt to add all ProjectOutputs include subdirs to svn.}
@@ -6514,7 +6595,7 @@ begin
          subDirs.Add(projOutPath + '\' + projOutIncludes.Strings[i] + '\*.*');
       end;
 
-   end; { endfor }
+   end; { endfor } 
 
    { Try to add all these subdirectories to svn.
     Note:  It will report lots of lines like "xyz is already under version control". }
@@ -7015,15 +7096,12 @@ begin
       { Initialize list of files. }
       fileList := TStringList.Create;
 
-      { Fetch a list of all files in this subdirectory. }
-      MyFindFiles(projOutPath,
-                  subDir,
-                  '*.*',
-                  {var} fileList);
-
-      { Exclude specified files from this list. }
-      ExcludeFilesFromList({var} fileList,
-                           excludes);
+      { Fetch a list of all files in this subdirectory, subject to specified excludes. }
+      FindFilesWithExcludes(projOutPath,
+                            subDir,
+                            '*.*',
+                            excludes,
+                            {var} fileList);
       
       { Loop over the non-excluded files in this ProjectOutputs/ subdir. }
       for i := 0 to fileList.Count - 1 do
@@ -7126,7 +7204,9 @@ begin
             { Look for a file containing "_fixed.".  If found, this indicates that earlier on we had
              to patch the IPC-356 netlist file.  If that happens, we want to include the "_fixed." file and
              then add the "unfixed" file of the similar name to the excludes list. }
-            ExcludeUnfixedIpc356(projOutPath, projOutSubDirs.Strings[i], excludes);
+            ExcludeUnfixedIpc356(projOutPath,
+                                 projOutSubDirs.Strings[i],
+                                 {var} excludes);
 
          end;
 
@@ -7787,6 +7867,7 @@ var
    outJobSetSvnKeywordsOnBoms : TStringList;
    outJobDoFixIpc356Netlist   : TStringList;
    deleteExcludes             : TStringList;
+   svnAddExcludes             : TStringList;
    zipDoCheckForExisting      : TStringList;
    zipExcludes                : TStringList;
    zipFindAddlFiles           : TStringList;
@@ -7862,6 +7943,7 @@ begin
                        {var} outJobSetSvnKeywordsOnBoms,
                        {var} outJobDoFixIpc356Netlist,
                        {var} deleteExcludes,
+                       {var} svnAddExcludes,
                        {var} zipDoCheckForExisting,
                        {var} zipExcludes,
                        {var} zipFindAddlFiles,
@@ -7881,6 +7963,7 @@ begin
        (projOutSubDirs.Count <> outJobSetSvnKeywordsOnBoms.Count) or
        (projOutSubDirs.Count <> outJobDoFixIpc356Netlist.Count) or
        (projOutSubDirs.Count <> deleteExcludes.Count) or
+       (projOutSubDirs.Count <> svnAddExcludes.Count) or
        (projOutSubDirs.Count <> zipDoCheckForExisting.Count) or      
        (projOutSubDirs.Count <> zipExcludes.Count) or      
        (projOutSubDirs.Count <> zipFindAddlFiles.Count) or     
@@ -8070,7 +8153,8 @@ begin
                       projOutPath,
                       projLogPath,
                       projOutSubDirs,
-                      projOutIncludes);
+                      projOutIncludes,
+                      svnAddExcludes);
    WriteToSummaryFile('1-' + IntToStr(StepPlusPlus(step)) + '.  Added all outputs in ProjectOutputs subdirectories to svn.');
    
    
@@ -8389,6 +8473,7 @@ begin
                    {var} outJobSetSvnKeywordsOnBoms,
                    {var} outJobDoFixIpc356Netlist,
                    {var} deleteExcludes,
+                   {var} svnAddExcludes,
                    {var} zipDoCheckForExisting,
                    {var} zipExcludes,
                    {var} zipFindAddlFiles,
