@@ -1090,6 +1090,36 @@ object FormLayersPanel: TFormLayersPanel
       Visible = False
       OnClick = CBCopper48Click
     end
+    object CBSignals: TCheckBox
+      Left = 155
+      Top = 48
+      Width = 81
+      Height = 17
+      BiDiMode = bdRightToLeft
+      Caption = 'Signal Layers'
+      Checked = True
+      Enabled = False
+      ParentBiDiMode = False
+      State = cbChecked
+      TabOrder = 50
+      Visible = False
+      OnClick = CBSignalsClick
+    end
+    object CBPlanes: TCheckBox
+      Left = 158
+      Top = 68
+      Width = 78
+      Height = 17
+      BiDiMode = bdRightToLeft
+      Caption = 'Plane Layers'
+      Checked = True
+      Enabled = False
+      ParentBiDiMode = False
+      State = cbChecked
+      TabOrder = 51
+      Visible = False
+      OnClick = CBPlanesClick
+    end
   end
   object GroupBoxMech: TGroupBox
     Left = 280
@@ -1841,6 +1871,36 @@ object FormLayersPanel: TFormLayersPanel
       TabOrder = 33
       Visible = False
       OnClick = CBMech32Click
+    end
+    object CBUnPaired: TCheckBox
+      Left = 176
+      Top = 48
+      Width = 60
+      Height = 17
+      BiDiMode = bdRightToLeft
+      Caption = 'Unpaired'
+      Checked = True
+      Enabled = False
+      ParentBiDiMode = False
+      State = cbChecked
+      TabOrder = 34
+      Visible = False
+      OnClick = CBUnPairedClick
+    end
+    object CBPaired: TCheckBox
+      Left = 188
+      Top = 68
+      Width = 48
+      Height = 17
+      BiDiMode = bdRightToLeft
+      Caption = 'Paired'
+      Checked = True
+      Enabled = False
+      ParentBiDiMode = False
+      State = cbChecked
+      TabOrder = 35
+      Visible = False
+      OnClick = CBPairedClick
     end
   end
   object GroupBoxOther: TGroupBox
