@@ -20,7 +20,7 @@
 {             corner of the group. If you disable the group you still see "All"}
 {             and "Visible" checkboxes                                         }
 {           - "Visible" checkbox allows you to disable the group from view     }
-{             without changing checkbox names                                  }
+{             without changing checkbox values                                 }
 {           - Click on Layer Color makes that Layer Current Layer              }
 {                                                                              }
 {                                                                              }
@@ -242,13 +242,13 @@ end;
 
 procedure TFormLayersPanel.FormLayersPanelShow(Sender: TObject);
 var
-   LayerObj  : IPCB_LayerObject;
-   MechLayer : IPCB_MechanicalLayer;
-   i, j      : Integer;
-   GetCB     : TCheckBox;
-   Enabled   : Boolean;
-   Disabled  : Boolean;
-   Shape     : TShape;
+   LayerObj      : IPCB_LayerObject;
+   MechLayer     : IPCB_MechanicalLayer;
+   i, j          : Integer;
+   GetCB         : TCheckBox;
+   Enabled       : Boolean;
+   Disabled      : Boolean;
+   Shape         : TShape;
 begin
    // On Show We have to set up all checkboxes based on current view,
    // number of mech and copper layers, etc...
@@ -280,9 +280,9 @@ begin
       LayerObj := TheLayerStack.NextLayer(LayerObj);
    end;
 
-   if Enabled = False then  CBCopperAll.Checked := False;
-   if Disabled = False then CBCopperAll.Checked := True;
-
+   if      Enabled  = False then CBCopperAll.Checked := False
+   else if Disabled = False then CBCopperAll.Checked := True
+   else                          CBCopperAll.State   := cbGrayed;
    // Now we need to modify size of copper group,
    // and mech groupbox position
 
@@ -323,14 +323,19 @@ begin
       end;
    end;
 
-   if Enabled = False then  CBMechAll.Checked := False;
-   if Disabled = False then CBMechAll.Checked := True;
+   if      Enabled  = False then CBMechAll.Checked := False
+   else if Disabled = False then CBMechAll.Checked := True
+   else                          CBMechAll.State   := cbGrayed;
 
    // Now we need to modify size of mech group,
    // and other groupbox position
 
    GetCB := Int2CBMech(j);
-   GroupBoxMech.Height := GetCB.Top + 10;
+   if j = 1 then
+      GroupBoxMech.Height := 48
+   else
+      GroupBoxMech.Height := GetCB.Top + 10;
+      
    GroupBoxOther.Left  := GroupBoxMech.Left;
    GroupBoxOther.Top   := GroupBoxMech.Top + GroupBoxMech.Height + 10;
 
@@ -388,9 +393,11 @@ begin
    else                      Disabled := True;
 
 
-   if Enabled = False then  CBOtherAll.Checked := False;
-   if Disabled = False then CBOtherAll.Checked := True;
+   if      Enabled  = False then CBOtherAll.Checked := False
+   else if Disabled = False then CBOtherAll.Checked := True
+   else                          CBOtherAll.State   := cbGrayed;
 
+   GroupBoxOther.Height := cbMultiLayer.Top + 30;
    FormLayersPanel.Width := 3 * GroupBoxCopper.Left + GroupBoxCopper.Width;
    FormLayersPanel.Height:= GroupBoxOther.Top + GroupBoxOther.Height + 50;
 
@@ -485,6 +492,7 @@ begin
    Refresh := True;
 end;
 
+
 procedure TFormLayersPanel.FormLayersPanelClose(Sender: TObject; var Action: TCloseAction);
 begin
    WriteToIniFile(ClientAPI_SpecialFolder_AltiumApplicationData + '\LayersPanelScriptData.ini');
@@ -533,16 +541,27 @@ end;
 
 procedure TFormLayersPanel.ImageArrowDownCopperClick(Sender: TObject);
 var
-   i : Integer;
+   i     : Integer;
    GetCB : TCheckBox;
+   Flag  : Boolean;
+   Height: Integer;
 begin
-   for i := 1 to 40 do
+   Flag := True;
+   for i := 1 to 48 do
    begin
       GetCB := Int2CBCopper(i);
-      if (GetCB.Enabled = False) then break;
+      if (GetCB.Enabled = False) then
+      begin
+         Flag := False;
+         break;
+      end;
    end;
 
-   GroupBoxCopper.Height := GetCB.Top + 10;
+   Height := GetCB.Top + 10;
+
+   if Flag then Height := Height + 20;
+
+   GroupBoxCopper.Height := Height;
    GroupBoxMech.Top      := GroupBoxCopper.Top + GroupBoxCopper.Height + 10;
    GroupBoxOther.Top     := GroupBoxMech.Top + GroupBoxMech.Height + 10;
 
@@ -592,7 +611,8 @@ begin
 
    Height := GetCB.Top + 10;
 
-   if Flag then Height := Height + 20;
+   if Flag then  Height := Height + 20;
+   if i = 1 then Height := 48;
 
    GroupBoxMech.Height := Height;
    GroupBoxOther.Top   := GroupBoxMech.Top + GroupBoxMech.Height + 10;
@@ -623,7 +643,7 @@ end;
 
 procedure TFormLayersPanel.ImageArrowDownOtherClick(Sender: TObject);
 begin
-   GroupBoxOther.Height := 256;
+   GroupBoxOther.Height := cbMultiLayer.Top + 30;
 
    FormLayersPanel.Height:= GroupBoxOther.Top + GroupBoxOther.Height + 50;
 
@@ -641,7 +661,14 @@ Var
    LayerObj : IPCB_LayerObject;
    i        : Integer;
    CB       : TCheckBox;
+   Enabled  : Boolean;
+   Disabled : Boolean;
 begin
+
+   UpdateFromCB := False;
+   Enabled      := False;
+   Disabled     := False;
+
    if CBCopperSelected.Checked then
    begin
       LayerObj := TheLayerStack.FirstLayer;
@@ -652,38 +679,54 @@ begin
 
          CB := Int2CBCopper(i);
 
+         if CB.State = cbGrayed then
+            CB.Checked := True;
+
          LayerObj.IsDisplayed[Board] := CB.Checked;
 
          if CB.Checked and Refresh then
          Begin
            Board.CurrentLayer := LayerObj.LayerID;
-
-           Board.ViewManager_FullUpdate;
-
            Refresh := False;
          end;
+
+         if LayerObj.IsDisplayed[Board] then Enabled := True
+         else                                Disabled := True;
 
          Inc(i);
          LayerObj := TheLayerStack.NextLayer(LayerObj);
       end;
+
+      if      Enabled  = False then CBCopperAll.Checked := False
+      else if Disabled = False then CBCopperAll.Checked := True
+      else                          CBCopperAll.State   := cbGrayed;
+
       Refresh := True;
-      Board.ViewManager_UpdateLayerTabs;
    end
    else
    begin
       LayerObj := TheLayerStack.FirstLayer;
+      i := 1;
 
       while (LayerObj <> nil) do
       begin
-         LayerObj.IsDisplayed[Board] := False;
+         if LayerObj.IsDisplayed[Board] then
+         begin
 
+            LayerObj.IsDisplayed[Board] := False;
+            CB := Int2CBCopper(i);
+            CB.State := cbGrayed;
+
+         end;
+         inc(i);
          LayerObj := TheLayerStack.NextLayer(LayerObj);
       end;
-
-      Board.ViewManager_FullUpdate;
-      Board.ViewManager_UpdateLayerTabs;
-
+      CBCopperAll.Checked := False;
    end;
+
+   Board.ViewManager_FullUpdate;
+   Board.ViewManager_UpdateLayerTabs;
+   UpdateFromCB := True;
 end;
 
 procedure TFormLayersPanel.CBMechSelectedClick(Sender: TObject);
@@ -691,8 +734,14 @@ var
    i, j      : Integer;
    MechLayer : IPCB_MechanicalLayer;
    CB        : TCheckBox;
+   Enabled   : Boolean;
+   Disabled  : Boolean;
 begin
-   j := 0;
+   j := 1;
+
+   UpdateFromCB := False;
+   Enabled      := False;
+   Disabled     := False;
 
    if CBMechSelected.Checked then
    begin
@@ -702,140 +751,159 @@ begin
 
          if MechLayer.MechanicalLayerEnabled then
          begin
-            Inc(j);
-
             CB := Int2CBMech(j);
+            if CB.State = cbGrayed then
+               CB.Checked := True;
+
             MechLayer.IsDisplayed[Board] := CB.Checked;
 
             if CB.Checked and Refresh then
             begin
                Board.CurrentLayer := MechLayer.V7_LayerID;
-
-               Board.ViewManager_FullUpdate;
-
                Refresh := False;
             end;
+
+            if MechLayer.IsDisplayed[Board] then Enabled := True
+            else                                 Disabled := True;
+
+            Inc(j);
          end;
       end;
 
-      Board.ViewManager_UpdateLayerTabs;
+      if      Enabled  = False then CBMechAll.Checked := False
+      else if Disabled = False then CBMechAll.Checked := True
+      else                          CBMechAll.State   := cbGrayed;
+
       Refresh := True;
    end
    else
    begin
+      j := 1;
       for i := 1 to 32 do
       begin
          MechLayer := TheLayerStack.LayerObject_V7[ILayer.MechanicalLayer(i)];
 
          if MechLayer.MechanicalLayerEnabled then
-            MechLayer.IsDisplayed[Board] := False;
+         begin
+            if MechLayer.IsDisplayed[Board] then
+            begin
+               MechLayer.IsDisplayed[Board] := False;
+               CB := Int2CBMech(j);
+               CB.State := cbGrayed;
+            end;
+            inc(j);
+         end;
+         CBMechAll.Checked := False;
       end;
-
-      Board.ViewManager_FullUpdate;
-      Board.ViewManager_UpdateLayerTabs;
    end;
+
+   Board.ViewManager_FullUpdate;
+   Board.ViewManager_UpdateLayerTabs;
+
+   UpdateFromCB := True;
+end;
+
+procedure OtherSelectedON(Layer : String);
+var
+   CB : TCheckBox;
+begin
+   CB := Str2CBOther(Layer);
+
+   if CB.State = cbGrayed then
+      CB.Checked := True;
+
+   Board.LayerIsDisplayed[String2Layer(Layer)] := CB.Checked;
+   if Refresh and CB.Checked then
+   begin
+      Board.CurrentLayer := String2Layer(Layer);
+      Refresh := False;
+   end;
+end;
+
+procedure OtherSelectedOFF(Layer : String);
+var
+   CB : TCheckBox;
+begin
+   CB := Str2CBOther(Layer);
+
+   if CB.Checked then
+   begin
+      CB.State := cbGrayed;
+      Board.LayerIsDisplayed[String2Layer(Layer)] := False;
+   end;
+end;
+
+function OtherEnabled(dummy : String) : Boolean;
+begin
+   Result := False;
+   if      Board.LayerIsDisplayed[String2Layer('Top Overlay')]        then Result := True
+   else if Board.LayerIsDisplayed[String2Layer('Bottom Overlay')]     then Result := True
+   else if Board.LayerIsDisplayed[String2Layer('Top Solder Mask')]    then Result := True
+   else if Board.LayerIsDisplayed[String2Layer('Bottom Solder Mask')] then Result := True
+   else if Board.LayerIsDisplayed[String2Layer('Top Paste')]          then Result := True
+   else if Board.LayerIsDisplayed[String2Layer('Bottom Paste')]       then Result := True
+   else if Board.LayerIsDisplayed[String2Layer('Drill Guide')]        then Result := True
+   else if Board.LayerIsDisplayed[String2Layer('Drill Drawing')]      then Result := True
+   else if Board.LayerIsDisplayed[String2Layer('Keep Out Layer')]     then Result := True
+   else if Board.LayerIsDisplayed[String2Layer('Multi Layer')]        then Result := True;
+
+end;
+
+function OtherDisabled(dummy : String) : Boolean;
+begin
+   Result := False;
+   if      not Board.LayerIsDisplayed[String2Layer('Top Overlay')]        then Result := True
+   else if not Board.LayerIsDisplayed[String2Layer('Bottom Overlay')]     then Result := True
+   else if not Board.LayerIsDisplayed[String2Layer('Top Solder Mask')]    then Result := True
+   else if not Board.LayerIsDisplayed[String2Layer('Bottom Solder Mask')] then Result := True
+   else if not Board.LayerIsDisplayed[String2Layer('Top Paste')]          then Result := True
+   else if not Board.LayerIsDisplayed[String2Layer('Bottom Paste')]       then Result := True
+   else if not Board.LayerIsDisplayed[String2Layer('Drill Guide')]        then Result := True
+   else if not Board.LayerIsDisplayed[String2Layer('Drill Drawing')]      then Result := True
+   else if not Board.LayerIsDisplayed[String2Layer('Keep Out Layer')]     then Result := True
+   else if not Board.LayerIsDisplayed[String2Layer('Multi Layer')]        then Result := True;
 end;
 
 procedure TFormLayersPanel.CBOtherSelectedClick(Sender: TObject);
 begin
+   UpdateFromCB := False;
+
    if CBOtherSelected.Checked then
    begin
-      Board.LayerIsDisplayed[String2Layer('Top Overlay')]        := CBTopOverlay.Checked;
-      if CBTopOverlay.Checked and Refresh then
-      begin
-         Board.CurrentLayer := String2Layer('Top Overlay');
+      OtherSelectedON('Top Overlay');
+      OtherSelectedON('Bottom Overlay');
+      OtherSelectedON('Top Solder Mask');
+      OtherSelectedON('Bottom Solder Mask');
+      OtherSelectedON('Top Paste');
+      OtherSelectedON('Bottom Paste');
+      OtherSelectedON('Drill Guide');
+      OtherSelectedON('Drill Drawing');
+      OtherSelectedON('Keep Out Layer');
+      OtherSelectedON('Multi Layer');
 
-         Refresh := False;
-      end;
-
-      Board.LayerIsDisplayed[String2Layer('Bottom Overlay')]     := CBBottomOverlay.Checked;
-      if CBBottomOverlay.Checked and Refresh then
-      begin
-         Board.CurrentLayer := String2Layer('Bottom Overlay');
-
-         Refresh := False;
-      end;
-
-      Board.LayerIsDisplayed[String2Layer('Top Solder Mask')]    := CBTopSolder.Checked;
-      if CBTopSolder.Checked and Refresh then
-      begin
-         Board.CurrentLayer := String2Layer('Top Solder Mask');
-
-         Refresh := False;
-      end;
-
-      Board.LayerIsDisplayed[String2Layer('Bottom Solder Mask')] := CBBottomSolder.Checked;
-      if CBBottomSolder.Checked and Refresh then
-      begin
-         Board.CurrentLayer := String2Layer('Bottom Solder Mask');
-
-         Refresh := False;
-      end;
-
-      Board.LayerIsDisplayed[String2Layer('Top Paste')]          := CBTopPaste.Checked;
-      if CBTopPaste.Checked and Refresh then
-      begin
-         Board.CurrentLayer := String2Layer('Top Paste');
-
-         Refresh := False;
-      end;
-
-      Board.LayerIsDisplayed[String2Layer('Bottom Paste')]       := CBBottomPaste.Checked;
-      if CBBottomPaste.Checked and Refresh then
-      begin
-         Board.CurrentLayer := String2Layer('Bottom Paste');
-
-         Refresh := False;
-      end;
-
-      Board.LayerIsDisplayed[String2Layer('Drill Guide')]        := CBDrillGuide.Checked;
-      if CBDrillGuide.Checked and Refresh then
-      begin
-         Board.CurrentLayer := String2Layer('Drill Guide');
-
-         Refresh := False;
-      end;
-
-      Board.LayerIsDisplayed[String2Layer('Drill Drawing')]      := CBDrillDraw.Checked;
-      if CBDrillDraw.Checked and Refresh then
-      begin
-         Board.CurrentLayer := String2Layer('Drill Drawing');
-
-         Refresh := False;
-      end;
-
-      Board.LayerIsDisplayed[String2Layer('Keep Out Layer')]     := CBKeepOut.Checked;
-      if CBKeepOut.Checked and Refresh then
-      begin
-         Board.CurrentLayer := String2Layer('Keep Out Layer');
-
-         Refresh := False;
-      end;
-
-      Board.LayerIsDisplayed[String2Layer('Multi Layer')]        := CBMultiLayer.Checked;
-      if CBMultiLayer.Checked and Refresh then
-      begin
-         Board.CurrentLayer := String2Layer('Multi Layer');
-
-         Refresh := False;
-      end;
+      if      OtherEnabled('')  = False then CBOtherAll.Checked := False
+      else if OtherDisabled('') = False then CBOtherAll.Checked := True
+      else                                   CBOtherAll.State   := cbGrayed;
 
       Refresh := True;
    end
    else
    begin
-      Board.LayerIsDisplayed[String2Layer('Top Overlay')]        := False;
-      Board.LayerIsDisplayed[String2Layer('Bottom Overlay')]     := False;
-      Board.LayerIsDisplayed[String2Layer('Top Solder Mask')]    := False;
-      Board.LayerIsDisplayed[String2Layer('Bottom Solder Mask')] := False;
-      Board.LayerIsDisplayed[String2Layer('Top Paste')]          := False;
-      Board.LayerIsDisplayed[String2Layer('Bottom Paste')]       := False;
-      Board.LayerIsDisplayed[String2Layer('Drill Guide')]        := False;
-      Board.LayerIsDisplayed[String2Layer('Drill Drawing')]      := False;
-      Board.LayerIsDisplayed[String2Layer('Keep Out Layer')]     := False;
-      Board.LayerIsDisplayed[String2Layer('Multi Layer')]        := False;
+      OtherSelectedOFF('Top Overlay');
+      OtherSelectedOFF('Bottom Overlay');
+      OtherSelectedOFF('Top Solder Mask');
+      OtherSelectedOFF('Bottom Solder Mask');
+      OtherSelectedOFF('Top Paste');
+      OtherSelectedOFF('Bottom Paste');
+      OtherSelectedOFF('Drill Guide');
+      OtherSelectedOFF('Drill Drawing');
+      OtherSelectedOFF('Keep Out Layer');
+      OtherSelectedOFF('Multi Layer');
+
+      CBOtherAll.Checked := False;
    end;
 
+   UpdateFromCB := True;
    Board.ViewManager_FullUpdate;
    Board.ViewManager_UpdateLayerTabs;
 end;
@@ -847,30 +915,33 @@ var
    CB       : TCheckBox;
    Flag     : Boolean;
 begin
-   LayerObj     := TheLayerStack.FirstLayer;
-   i            := 1;
-   UpdateFromCB := False;
-   Flag         := True;
-
-   while (LayerObj <> nil) do
+   if (CBCopperAll.State <> cbGrayed) and UpdateFromCB then
    begin
-      CB := Int2CBCopper(i);
+      LayerObj     := TheLayerStack.FirstLayer;
+      i            := 1;
+      UpdateFromCB := False;
+      Flag         := True;
 
-      LayerObj.IsDisplayed[Board] := CBCopperAll.Checked;
-      CB.Checked := CBCopperAll.Checked;
+      while (LayerObj <> nil) do
+      begin
+         CB := Int2CBCopper(i);
 
-      if CB.Checked and Flag then
-         Board.CurrentLayer := LayerObj.LayerID;
+         LayerObj.IsDisplayed[Board] := CBCopperAll.Checked;
+         CB.Checked := CBCopperAll.Checked;
 
-      Flag := False;
-      Inc(i);
-      LayerObj := TheLayerStack.NextLayer(LayerObj);
+         if CB.Checked and Flag then
+            Board.CurrentLayer := LayerObj.LayerID;
+
+         Flag := False;
+         Inc(i);
+         LayerObj := TheLayerStack.NextLayer(LayerObj);
+      end;
+
+      UpdateFromCB := True;
+      Refresh := True;
+      Board.ViewManager_FullUpdate;
+      Board.ViewManager_UpdateLayerTabs;
    end;
-
-   UpdateFromCB := True;
-   Refresh := True;
-   Board.ViewManager_FullUpdate;
-   Board.ViewManager_UpdateLayerTabs;
 end;
 
 procedure TFormLayersPanel.CBMechAllClick(Sender: TObject);
@@ -880,68 +951,73 @@ var
    CB        : TCheckBox;
    Flag      : Boolean;
 begin
-
-   j            := 0;
-   Flag         := True;
-   UpdateFromCB := False;
-
-   for i := 1 to 32 do
+   if (CBMechAll.State <> cbGrayed) and UpdateFromCB then
    begin
-      MechLayer := TheLayerStack.LayerObject_V7[ILayer.MechanicalLayer(i)];
+      j            := 0;
+      Flag         := True;
+      UpdateFromCB := False;
 
-      if MechLayer.MechanicalLayerEnabled then
-      Begin
-         Inc(j);
+      for i := 1 to 32 do
+      begin
+         MechLayer := TheLayerStack.LayerObject_V7[ILayer.MechanicalLayer(i)];
 
-         CB := Int2CBMech(j);
-         MechLayer.IsDisplayed[Board] := CBMechAll.Checked;
-         CB.Checked :=  CBMechAll.Checked;
+         if MechLayer.MechanicalLayerEnabled then
+         Begin
+            Inc(j);
 
-         if Cb.Checked and Flag then
-            Board.CurrentLayer := MechLayer.V7_LayerID;
+            CB := Int2CBMech(j);
+            MechLayer.IsDisplayed[Board] := CBMechAll.Checked;
+            CB.Checked :=  CBMechAll.Checked;
 
-         Flag := False;
+            if Cb.Checked and Flag then
+               Board.CurrentLayer := MechLayer.V7_LayerID;
+
+            Flag := False;
+         end;
       end;
-   end;
 
-   UpdateFromCB := True;
-   Board.ViewManager_FullUpdate;
-   Board.ViewManager_UpdateLayerTabs;
+      UpdateFromCB := True;
+      Board.ViewManager_FullUpdate;
+      Board.ViewManager_UpdateLayerTabs;
+   end;
 end;
 
 procedure TFormLayersPanel.CBOtherAllClick(Sender: TObject);
 begin
-   Board.LayerIsDisplayed[String2Layer('Top Overlay')]        := CBOtherAll.Checked;
-   Board.LayerIsDisplayed[String2Layer('Bottom Overlay')]     := CBOtherAll.Checked;
-   Board.LayerIsDisplayed[String2Layer('Top Solder Mask')]    := CBOtherAll.Checked;
-   Board.LayerIsDisplayed[String2Layer('Bottom Solder Mask')] := CBOtherAll.Checked;
-   Board.LayerIsDisplayed[String2Layer('Top Paste')]          := CBOtherAll.Checked;
-   Board.LayerIsDisplayed[String2Layer('Bottom Paste')]       := CBOtherAll.Checked;
-   Board.LayerIsDisplayed[String2Layer('Drill Guide')]        := CBOtherAll.Checked;
-   Board.LayerIsDisplayed[String2Layer('Drill Drawing')]      := CBOtherAll.Checked;
-   Board.LayerIsDisplayed[String2Layer('Keep Out Layer')]     := CBOtherAll.Checked;
-   Board.LayerIsDisplayed[String2Layer('Multi Layer')]        := CBOtherAll.Checked;
+   if (CBOtherAll.State <> cbGrayed) and UpdateFromCB then
+   begin
+      Board.LayerIsDisplayed[String2Layer('Top Overlay')]        := CBOtherAll.Checked;
+      Board.LayerIsDisplayed[String2Layer('Bottom Overlay')]     := CBOtherAll.Checked;
+      Board.LayerIsDisplayed[String2Layer('Top Solder Mask')]    := CBOtherAll.Checked;
+      Board.LayerIsDisplayed[String2Layer('Bottom Solder Mask')] := CBOtherAll.Checked;
+      Board.LayerIsDisplayed[String2Layer('Top Paste')]          := CBOtherAll.Checked;
+      Board.LayerIsDisplayed[String2Layer('Bottom Paste')]       := CBOtherAll.Checked;
+      Board.LayerIsDisplayed[String2Layer('Drill Guide')]        := CBOtherAll.Checked;
+      Board.LayerIsDisplayed[String2Layer('Drill Drawing')]      := CBOtherAll.Checked;
+      Board.LayerIsDisplayed[String2Layer('Keep Out Layer')]     := CBOtherAll.Checked;
+      Board.LayerIsDisplayed[String2Layer('Multi Layer')]        := CBOtherAll.Checked;
 
-   UpdateFromCB := False;
+      UpdateFromCB := False;
 
-   CBTopOverlay.Checked    := CBOtherAll.Checked;
-   CBBottomOverlay.Checked := CBOtherAll.Checked;
-   CBTopSolder.Checked     := CBOtherAll.Checked;
-   CBBottomSolder.Checked  := CBOtherAll.Checked;
-   CBTopPaste.Checked      := CBOtherAll.Checked;
-   CBBottomPaste.Checked   := CBOtherAll.Checked;
-   CBDrillGuide.Checked    := CBOtherAll.Checked;
-   CBDrillDraw.Checked     := CBOtherAll.Checked;
-   CBKeepOut.Checked       := CBOtherAll.Checked;
-   CBMultiLayer.Checked    := CBOtherAll.Checked;
+      CBTopOverlay.Checked    := CBOtherAll.Checked;
+      CBBottomOverlay.Checked := CBOtherAll.Checked;
+      CBTopSolder.Checked     := CBOtherAll.Checked;
+      CBBottomSolder.Checked  := CBOtherAll.Checked;
+      CBTopPaste.Checked      := CBOtherAll.Checked;
+      CBBottomPaste.Checked   := CBOtherAll.Checked;
+      CBDrillGuide.Checked    := CBOtherAll.Checked;
+      CBDrillDraw.Checked     := CBOtherAll.Checked;
+      CBKeepOut.Checked       := CBOtherAll.Checked;
+      CBMultiLayer.Checked    := CBOtherAll.Checked;
 
-   UpdateFromCB := True;
+      UpdateFromCB := True;
 
-   if CBOtherAll.Checked then
-      Board.CurrentLayer := String2Layer('Top Overlay');
+      if CBOtherAll.Checked then
+         Board.CurrentLayer := String2Layer('Top Overlay');
 
-   Board.ViewManager_FullUpdate;
-   Board.ViewManager_UpdateLayerTabs;
+      Board.ViewManager_FullUpdate;
+      Board.ViewManager_UpdateLayerTabs;
+   end;
 end;
 
 Procedure CopperClick(Nr : Integer);
@@ -949,11 +1025,16 @@ Var
    LayerObj : IPCB_LayerObject;
    i        : Integer;
    CB       : TCheckBox;
+   Enabled  : Boolean;
+   Disabled : Boolean;
 begin
-   if UpdateFromCB and CBCopperSelected.Checked Then
+   if UpdateFromCB then
    begin
       LayerObj := TheLayerStack.FirstLayer;
       i := 1;
+
+      Enabled  := False;
+      Disabled := False;
 
       while (LayerObj <> nil) do
       begin
@@ -971,12 +1052,20 @@ begin
                Board.ViewManager_FullUpdate;
                Board.ViewManager_UpdateLayerTabs;
             end;
-
-            break;
          end;
+
+         if LayerObj.IsDisplayed[Board] then Enabled := True
+         else                                Disabled := True;
+
          Inc(i);
          LayerObj := TheLayerStack.NextLayer(LayerObj);
       end;
+
+      UpdateFromCB := False;
+      if      Enabled  = False then CBCopperAll.Checked := False
+      else if Disabled = False then CBCopperAll.Checked := True
+      else                          CBCopperAll.State   := cbGrayed;
+      UpdateFromCB := True;
    end;
 end;
 
@@ -984,7 +1073,6 @@ Procedure CopperCurrent(Nr : Integer);
 Var
    LayerObj : IPCB_LayerObject;
    i        : Integer;
-   CB       : TCheckBox;
 begin
    LayerObj := TheLayerStack.FirstLayer;
    i := 1;
@@ -1013,33 +1101,48 @@ var
    i, j      : Integer;
    MechLayer : IPCB_MechanicalLayer;
    CB        : TCheckBox;
+   Enabled   : Boolean;
+   Disabled  : Boolean;
 begin
-   if UpdateFromCB and CBMechSelected.Checked then
+   if UpdateFromCB then
    begin
       j := 0;
+      Enabled  := False;
+      Disabled := False;
+
       for i := 1 to 32 do
       begin
          MechLayer := TheLayerStack.LayerObject_V7[ILayer.MechanicalLayer(i)];
 
-         if MechLayer.MechanicalLayerEnabled then Inc(j);
-
-         if j = Nr then
+         if MechLayer.MechanicalLayerEnabled then
          begin
-            CB := Int2CBMech(Nr);
-            MechLayer.IsDisplayed[Board] := CB.Checked;
+            Inc(j);
 
-            if CB.Checked then
-               Board.CurrentLayer := MechLayer.V7_LayerID;
-
-            if Refresh then
+            if j = Nr then
             begin
-               Board.ViewManager_FullUpdate;
-               Board.ViewManager_UpdateLayerTabs;
+               CB := Int2CBMech(Nr);
+               MechLayer.IsDisplayed[Board] := CB.Checked;
+
+               if CB.Checked then
+                  Board.CurrentLayer := MechLayer.V7_LayerID;
+
+               if Refresh then
+               begin
+                  Board.ViewManager_FullUpdate;
+                  Board.ViewManager_UpdateLayerTabs;
+               end;
             end;
 
-            break;
+            if MechLayer.IsDisplayed[Board] then Enabled := True
+            else                                 Disabled := True;
          end;
       end;
+
+      UpdateFromCB := False;
+      if      Enabled  = False then CBMechAll.Checked := False
+      else if Disabled = False then CBMechAll.Checked := True
+      else                          CBMechAll.State   := cbGrayed;
+      UpdateFromCB := True;
    end;
 end;
 
@@ -1047,7 +1150,6 @@ Procedure MechCurrent(Nr : Integer);
 var
    i, j      : Integer;
    MechLayer : IPCB_MechanicalLayer;
-   CB        : TCheckBox;
 begin
    j := 0;
    for i := 1 to 32 do
@@ -1075,7 +1177,7 @@ Procedure OtherClick(Name : String);
 var
    CB : TCheckBox;
 begin
-   if UpdateFromCB and CBOtherSelected.Checked then
+   if UpdateFromCB then
    begin
       CB := Str2CBOther(Name);
       Board.LayerIsDisplayed[String2Layer(Name)] := CB.Checked;
@@ -1088,6 +1190,13 @@ begin
          Board.ViewManager_FullUpdate;
          Board.ViewManager_UpdateLayerTabs;
       end;
+
+      UpdateFromCB := False;
+      if      OtherEnabled('')  = False then CBOtherAll.Checked := False
+      else if OtherDisabled('') = False then CBOtherAll.Checked := True
+      else                                   CBOtherAll.State   := cbGrayed;
+      UpdateFromCB := True;
+
    end;
 end;
 
@@ -2001,6 +2110,4 @@ end;
 procedure TFormLayersPanel.ShapeMultiLayerMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 begin
    OtherCurrent('Multi Layer');
-end;
-
-
+end;  
