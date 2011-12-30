@@ -1,8 +1,8 @@
 object FormLayersPanel: TFormLayersPanel
-  Left = 16
-  Top = -23
+  Left = 0
+  Top = 0
   Caption = 'Layers'
-  ClientHeight = 1024
+  ClientHeight = 1032
   ClientWidth = 811
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -21,6 +21,9 @@ object FormLayersPanel: TFormLayersPanel
     Top = 16
     Width = 245
     Height = 1016
+    Color = clBtnFace
+    ParentBackground = False
+    ParentColor = False
     TabOrder = 0
     object Image1: TImage
       Left = 1
