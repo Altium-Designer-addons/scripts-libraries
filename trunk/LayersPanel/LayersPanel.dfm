@@ -2,7 +2,7 @@ object FormLayersPanel: TFormLayersPanel
   Left = 0
   Top = 0
   Caption = 'Layers'
-  ClientHeight = 1032
+  ClientHeight = 742
   ClientWidth = 811
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -51,6 +51,19 @@ object FormLayersPanel: TFormLayersPanel
         FEEC5FE2CFFEFF1AFF4F4A554CBB}
       Stretch = True
     end
+    object Label1: TLabel
+      Left = 8
+      Top = 4
+      Width = 81
+      Height = 13
+      Caption = 'Copper Layers'
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -11
+      Font.Name = 'Tahoma'
+      Font.Style = [fsBold]
+      ParentFont = False
+    end
     object ImageArrowDownCopper: TImage
       Left = 224
       Top = 2
@@ -90,19 +103,6 @@ object FormLayersPanel: TFormLayersPanel
         D542AC8EBAAE9592C013EA77855486C53B55FB56FEDFC32937E24E1647F6070B
         333FA2}
       OnClick = ImageArrowUpCopperClick
-    end
-    object Label1: TLabel
-      Left = 8
-      Top = 4
-      Width = 40
-      Height = 13
-      Caption = 'Copper'
-      Font.Charset = DEFAULT_CHARSET
-      Font.Color = clWindowText
-      Font.Height = -11
-      Font.Name = 'Tahoma'
-      Font.Style = [fsBold]
-      ParentFont = False
     end
     object ShapeCopper1: TShape
       Left = 16
@@ -1153,6 +1153,19 @@ object FormLayersPanel: TFormLayersPanel
         FEEC5FE2CFFEFF1AFF4F4A554CBB}
       Stretch = True
     end
+    object Label2: TLabel
+      Left = 8
+      Top = 4
+      Width = 104
+      Height = 13
+      Caption = 'Mechanical Layers'
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -11
+      Font.Name = 'Tahoma'
+      Font.Style = [fsBold]
+      ParentFont = False
+    end
     object ImageArrowDownMech: TImage
       Left = 224
       Top = 2
@@ -1192,19 +1205,6 @@ object FormLayersPanel: TFormLayersPanel
         D542AC8EBAAE9592C013EA77855486C53B55FB56FEDFC32937E24E1647F6070B
         333FA2}
       OnClick = ImageArrowUpMechClick
-    end
-    object Label2: TLabel
-      Left = 8
-      Top = 4
-      Width = 30
-      Height = 13
-      Caption = 'Mech'
-      Font.Charset = DEFAULT_CHARSET
-      Font.Color = clWindowText
-      Font.Height = -11
-      Font.Name = 'Tahoma'
-      Font.Style = [fsBold]
-      ParentFont = False
     end
     object ShapeMech1: TShape
       Left = 16
@@ -1935,6 +1935,19 @@ object FormLayersPanel: TFormLayersPanel
         FEEC5FE2CFFEFF1AFF4F4A554CBB}
       Stretch = True
     end
+    object Label3: TLabel
+      Left = 8
+      Top = 4
+      Width = 73
+      Height = 13
+      Caption = 'Other Layers'
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -11
+      Font.Name = 'Tahoma'
+      Font.Style = [fsBold]
+      ParentFont = False
+    end
     object ImageArrowDownOther: TImage
       Left = 224
       Top = 2
@@ -1974,19 +1987,6 @@ object FormLayersPanel: TFormLayersPanel
         D542AC8EBAAE9592C013EA77855486C53B55FB56FEDFC32937E24E1647F6070B
         333FA2}
       OnClick = ImageArrowUpOtherClick
-    end
-    object Label3: TLabel
-      Left = 8
-      Top = 4
-      Width = 32
-      Height = 13
-      Caption = 'Other'
-      Font.Charset = DEFAULT_CHARSET
-      Font.Color = clWindowText
-      Font.Height = -11
-      Font.Name = 'Tahoma'
-      Font.Style = [fsBold]
-      ParentFont = False
     end
     object ShapeTopOverlay: TShape
       Left = 16
@@ -2173,6 +2173,58 @@ object FormLayersPanel: TFormLayersPanel
       Caption = 'Multi Layer'
       TabOrder = 11
       OnClick = CBMultiLayerClick
+    end
+    object CBOverlay: TCheckBox
+      Left = 182
+      Top = 48
+      Width = 54
+      Height = 17
+      BiDiMode = bdRightToLeft
+      Caption = 'Overlay'
+      Checked = True
+      ParentBiDiMode = False
+      State = cbChecked
+      TabOrder = 12
+      OnClick = CBOverlayClick
+    end
+    object CBMask: TCheckBox
+      Left = 196
+      Top = 68
+      Width = 40
+      Height = 17
+      BiDiMode = bdRightToLeft
+      Caption = 'Mask'
+      Checked = True
+      ParentBiDiMode = False
+      State = cbChecked
+      TabOrder = 13
+      OnClick = CBMaskClick
+    end
+    object CBDrill: TCheckBox
+      Left = 203
+      Top = 88
+      Width = 33
+      Height = 17
+      BiDiMode = bdRightToLeft
+      Caption = 'Drill'
+      Checked = True
+      ParentBiDiMode = False
+      State = cbChecked
+      TabOrder = 14
+      OnClick = CBDrillClick
+    end
+    object CBOther: TCheckBox
+      Left = 192
+      Top = 108
+      Width = 44
+      Height = 17
+      BiDiMode = bdRightToLeft
+      Caption = 'Other'
+      Checked = True
+      ParentBiDiMode = False
+      State = cbChecked
+      TabOrder = 15
+      OnClick = CBOtherClick
     end
   end
 end
