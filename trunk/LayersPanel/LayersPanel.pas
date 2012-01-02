@@ -591,7 +591,7 @@ Begin
       ImageArrowDownOther.Enabled := True;
    end;
 
-   FormLayersPanel.Height:= GroupBoxOther.Top + GroupBoxOther.Height + 50; 
+   FormLayersPanel.Height:= GroupBoxOther.Top + GroupBoxOther.Height + 50;
    IniFile.Free;
 End;
 
@@ -921,30 +921,33 @@ begin
 
          if MechLayer.MechanicalLayerEnabled then
          begin
-            CB := Int2CBMech(j);
-            if CB.State = cbGrayed then
-               CB.Checked := True;
-
-            MechLayer.IsDisplayed[Board] := CB.Checked;
-
-            if CB.Checked and Refresh then
+            if MechLayer.LinkToSheet = False then
             begin
-               Board.CurrentLayer := MechLayer.V7_LayerID;
-               Refresh := False;
-            end;
+               CB := Int2CBMech(j);
+               if CB.State = cbGrayed then
+                  CB.Checked := True;
 
-            if MechLayer.IsDisplayed[Board] then Enabled := True
-            else                                 Disabled := True;
+               MechLayer.IsDisplayed[Board] := CB.Checked;
 
-            if Board.MechanicalPairs.LayerUsed(ILayer.MechanicalLayer(j)) then
-            begin
-               if MechLayer.IsDisplayed[Board] then PairedEnabled := True
-               else                                 PairedDisabled := True;
-            end
-            else
-            begin
-               if MechLayer.IsDisplayed[Board] then UnPairedEnabled := True
-               else                                 UnPairedDisabled := True;
+               if CB.Checked and Refresh then
+               begin
+                  Board.CurrentLayer := MechLayer.V7_LayerID;
+                  Refresh := False;
+               end;
+
+               if MechLayer.IsDisplayed[Board] then Enabled := True
+               else                                 Disabled := True;
+
+               if Board.MechanicalPairs.LayerUsed(ILayer.MechanicalLayer(j)) then
+               begin
+                  if MechLayer.IsDisplayed[Board] then PairedEnabled := True
+                  else                                 PairedDisabled := True;
+               end
+               else
+               begin
+                  if MechLayer.IsDisplayed[Board] then UnPairedEnabled := True
+                  else                                 UnPairedDisabled := True;
+               end;
             end;
 
             Inc(j);
@@ -974,7 +977,7 @@ begin
 
          if MechLayer.MechanicalLayerEnabled then
          begin
-            if MechLayer.IsDisplayed[Board] then
+            if MechLayer.IsDisplayed[Board] and (MechLayer.LinkToSheet = False) then
             begin
                MechLayer.IsDisplayed[Board] := False;
                CB := Int2CBMech(j);
@@ -1148,14 +1151,17 @@ begin
          Begin
             Inc(j);
 
-            CB := Int2CBMech(j);
-            MechLayer.IsDisplayed[Board] := CBMechAll.Checked;
-            CB.Checked :=  CBMechAll.Checked;
+            if MechLayer.LinkToSheet = False then
+            begin
+               CB := Int2CBMech(j);
+               MechLayer.IsDisplayed[Board] := CBMechAll.Checked;
+               CB.Checked :=  CBMechAll.Checked;
 
-            if Cb.Checked and Flag then
-               Board.CurrentLayer := MechLayer.V7_LayerID;
+               if Cb.Checked and Flag then
+                  Board.CurrentLayer := MechLayer.V7_LayerID;
 
-            Flag := False;
+               Flag := False;
+            end;
          end;
       end;
 
