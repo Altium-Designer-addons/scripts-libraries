@@ -416,7 +416,8 @@ begin
 
          GetCB := Int2CBMech(j);
          GetCB.Visible := True;
-         GetCB.Enabled := True;
+         if MechLayer.LinkToSheet = False then
+            GetCB.Enabled := True;
          GetCB.Width := FormLayersPanel.Canvas.TextWidth(MechLayer.Name) + 16;
          GetCb.Caption := MechLayer.Name;
          GetCB.Checked := MechLayer.IsDisplayed[Board];
@@ -504,10 +505,25 @@ begin
    else if OtherDisabled('') = False then CBOtherAll.Checked := True
    else                                   CBOtherAll.State   := cbGrayed;
 
+   if (not CBTopOverlay.Checked) and (not CBBottomOverlay.Checked) then CBOverlay.Checked := False
+   else if CBTopOverlay.Checked  and      CBBottomOverlay.Checked  then CBOverlay.Checked := True
+   else                                                                 CBOverlay.State   := cbGrayed;
+
+   if (not CBTopSolder.Checked) and (not CBBottomSolder.Checked) and (not CBTopPaste.Checked) and (not CBBottomPaste.Checked) then CBMask.Checked := False
+   else if CBTopSolder.Checked  and      CBBottomSolder.Checked  and      CBTopPaste.Checked  and      CBBottomPaste.Checked  then CBMask.Checked := True
+   else                                                                                                                            CBMask.State   := cbGrayed;
+
+   if (not CBDrillDraw.Checked) and (not CBDrillGuide.Checked) then CBDrill.Checked := False
+   else if CBDrillDraw.Checked  and      CBDrillGuide.Checked  then CBDrill.Checked := True
+   else                                                             CBDrill.State   := cbGrayed;
+
+   if (not CBKeepOut.Checked) and (not CBMultiLayer.Checked) then CBOther.Checked := False
+   else if CBKeepOut.Checked  and      CBMultiLayer.Checked  then CBOther.Checked := True
+   else                                                           CBOther.State   := cbGrayed;
+
    GroupBoxOther.Height := cbMultiLayer.Top + 30;
    FormLayersPanel.Width := 3 * GroupBoxCopper.Left + GroupBoxCopper.Width;
    FormLayersPanel.Height:= GroupBoxOther.Top + GroupBoxOther.Height + 50;
-
 end;
 
 Procedure WriteToIniFile(AFileName : String);
@@ -575,6 +591,7 @@ Begin
       ImageArrowDownOther.Enabled := True;
    end;
 
+   FormLayersPanel.Height:= GroupBoxOther.Top + GroupBoxOther.Height + 50; 
    IniFile.Free;
 End;
 
@@ -632,7 +649,10 @@ begin
 
    CBOtherAll.Left       := GroupBoxOther.Width - 37;
    CBOtherSelected.Left  := GroupBoxOther.Width - 101;
-
+   CBOverlay.Left        := GroupBoxOther.Width - 63;
+   CBMask.Left           := GroupBoxOther.Width - 49;
+   CBDrill.Left          := GroupBoxOther.Width - 42;
+   CBOther.Left          := GroupBoxOther.Width - 53;
 end;
 
 procedure TFormLayersPanel.ImageArrowUpCopperClick(Sender: TObject);
@@ -661,7 +681,7 @@ begin
    for i := 1 to 48 do
    begin
       GetCB := Int2CBCopper(i);
-      if (GetCB.Enabled = False) then
+      if (GetCB.Visible = False) then
       begin
          Flag := False;
          break;
@@ -713,7 +733,7 @@ begin
    for i := 1 to 32 do
    begin
       GetCB := Int2CBMech(i);
-      if (GetCB.Enabled = False) then
+      if (GetCB.Visible = False) then
       begin
          Flag := False;
          break;
@@ -1025,6 +1045,22 @@ begin
       else if OtherDisabled('') = False then CBOtherAll.Checked := True
       else                                   CBOtherAll.State   := cbGrayed;
 
+      if (not CBTopOverlay.Checked) and (not CBBottomOverlay.Checked) then CBOverlay.Checked := False
+      else if CBTopOverlay.Checked  and      CBBottomOverlay.Checked  then CBOverlay.Checked := True
+      else                                                                 CBOverlay.State   := cbGrayed;
+
+      if (not CBTopSolder.Checked) and (not CBBottomSolder.Checked) and (not CBTopPaste.Checked) and (not CBBottomPaste.Checked) then CBMask.Checked := False
+      else if CBTopSolder.Checked  and      CBBottomSolder.Checked  and      CBTopPaste.Checked  and      CBBottomPaste.Checked  then CBMask.Checked := True
+      else                                                                                                                            CBMask.State   := cbGrayed;
+
+      if (not CBDrillDraw.Checked) and (not CBDrillGuide.Checked) then CBDrill.Checked := False
+      else if CBDrillDraw.Checked  and      CBDrillGuide.Checked  then CBDrill.Checked := True
+      else                                                             CBDrill.State   := cbGrayed;
+
+      if (not CBKeepOut.Checked) and (not CBMultiLayer.Checked) then CBOther.Checked := False
+      else if CBKeepOut.Checked  and      CBMultiLayer.Checked  then CBOther.Checked := True
+      else                                                           CBOther.State   := cbGrayed;
+
       Refresh := True;
    end
    else
@@ -1041,6 +1077,10 @@ begin
       OtherSelectedOFF('Multi Layer');
 
       CBOtherAll.Checked := False;
+      CBOverlay.Checked  := False;
+      CBMask.Checked     := False;
+      CBDrill.Checked    := False;
+      CBOther.Checked    := False;
    end;
 
    UpdateFromCB := True;
@@ -1155,6 +1195,11 @@ begin
       CBDrillDraw.Checked     := CBOtherAll.Checked;
       CBKeepOut.Checked       := CBOtherAll.Checked;
       CBMultiLayer.Checked    := CBOtherAll.Checked;
+      CBOtherAll.Checked      := CBOtherAll.Checked;
+      CBOverlay.Checked       := CBOtherAll.Checked;
+      CBMask.Checked          := CBOtherAll.Checked;
+      CBDrill.Checked         := CBOtherAll.Checked;
+      CBOther.Checked         := CBOtherAll.Checked;
 
       UpdateFromCB := True;
 
@@ -1628,8 +1673,33 @@ begin
       if      OtherEnabled('')  = False then CBOtherAll.Checked := False
       else if OtherDisabled('') = False then CBOtherAll.Checked := True
       else                                   CBOtherAll.State   := cbGrayed;
-      UpdateFromCB := True;
 
+      if (Name = 'Top Overlay') or (Name = 'Bottom Overlay') then
+      begin
+         if (not CBTopOverlay.Checked) and (not CBBottomOverlay.Checked) then CBOverlay.Checked := False
+         else if CBTopOverlay.Checked  and      CBBottomOverlay.Checked  then CBOverlay.Checked := True
+         else                                                                 CBOverlay.State   := cbGrayed;
+      end
+      else if (Name = 'Top Solder Mask') or (Name = 'Bottom Solder Mask') or (Name = 'Top Paste') or (Name = 'Bottom Paste') then
+      begin
+         if (not CBTopSolder.Checked) and (not CBBottomSolder.Checked) and (not CBTopPaste.Checked) and (not CBBottomPaste.Checked) then CBMask.Checked := False
+         else if CBTopSolder.Checked  and      CBBottomSolder.Checked  and      CBTopPaste.Checked  and      CBBottomPaste.Checked  then CBMask.Checked := True
+         else                                                                                                                            CBMask.State   := cbGrayed;
+      end
+      else if (Name = 'Drill Guide') or (Name = 'Drill Drawing') then
+      begin
+         if (not CBDrillDraw.Checked) and (not CBDrillGuide.Checked) then CBDrill.Checked := False
+         else if CBDrillDraw.Checked  and      CBDrillGuide.Checked  then CBDrill.Checked := True
+         else                                                             CBDrill.State   := cbGrayed;
+      end
+      else if (Name = 'Multi Layer') or (Name = 'Keep Out Layer') then
+      begin
+         if (not CBKeepOut.Checked) and (not CBMultiLayer.Checked) then CBOther.Checked := False
+         else if CBKeepOut.Checked  and      CBMultiLayer.Checked  then CBOther.Checked := True
+         else                                                           CBOther.State   := cbGrayed;
+      end;
+
+      UpdateFromCB := True;
    end;
 end;
 
@@ -2542,5 +2612,113 @@ end;
 procedure TFormLayersPanel.ShapeMultiLayerMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 begin
    OtherCurrent('Multi Layer');
+end;
+
+procedure TFormLayersPanel.CBOverlayClick(Sender: TObject);
+begin
+   if UpdateFromCB and (CBOverlay.State <> cbGrayed) then
+   begin
+      UpdateFromCB := False;
+
+      Board.LayerIsDisplayed[String2Layer('Top Overlay')]    := CBOverlay.Checked;
+      Board.LayerIsDisplayed[String2Layer('Bottom Overlay')] := CBOverlay.Checked;
+
+      CBTopOverlay.Checked    := CBOverlay.Checked;
+      CBBottomOverlay.Checked := CBOverlay.Checked;
+
+      if CBOverlay.Checked then
+         Board.CurrentLayer := String2Layer('Top Overlay');
+
+      if      OtherEnabled('')  = False then CBOtherAll.Checked := False
+      else if OtherDisabled('') = False then CBOtherAll.Checked := True
+      else                                   CBOtherAll.State   := cbGrayed;
+
+      Board.ViewManager_UpdateLayerTabs;
+      Board.ViewManager_FullUpdate;
+
+      UpdateFromCB := True;
+   end;
+end;
+
+procedure TFormLayersPanel.CBMaskClick(Sender: TObject);
+begin
+   if UpdateFromCB and (CBMask.State <> cbGrayed) then
+   begin
+      UpdateFromCB := False;
+
+      Board.LayerIsDisplayed[String2Layer('Top Solder Mask')]    := CBMask.Checked;
+      Board.LayerIsDisplayed[String2Layer('Bottom Solder Mask')] := CBMask.Checked;
+      Board.LayerIsDisplayed[String2Layer('Top Paste')]          := CBMask.Checked;
+      Board.LayerIsDisplayed[String2Layer('Bottom Paste')]       := CBMask.Checked;
+
+      CBTopSolder.Checked    := CBMask.Checked;
+      CBBottomSolder.Checked := CBMask.Checked;
+      CBTopPaste.Checked     := CBMask.Checked;
+      CBBottomPaste.Checked  := CBMask.Checked;
+
+      if CBMask.Checked then
+         Board.CurrentLayer := String2Layer('Top Solder Mask');
+
+      if      OtherEnabled('')  = False then CBOtherAll.Checked := False
+      else if OtherDisabled('') = False then CBOtherAll.Checked := True
+      else                                   CBOtherAll.State   := cbGrayed;
+
+      Board.ViewManager_UpdateLayerTabs;
+      Board.ViewManager_FullUpdate;
+
+      UpdateFromCB := True;
+   end;
+end;
+
+procedure TFormLayersPanel.CBDrillClick(Sender: TObject);
+begin
+   if UpdateFromCB and (CBDrill.State <> cbGrayed) then
+   begin
+      UpdateFromCB := False;
+
+      Board.LayerIsDisplayed[String2Layer('Drill Guide')]    := CBDrill.Checked;
+      Board.LayerIsDisplayed[String2Layer('Drill Drawing')]  := CBDrill.Checked;
+
+      CBDrillGuide.Checked := CBDrill.Checked;
+      CBDrillDraw.Checked  := CBDrill.Checked;
+
+      if CBDrill.Checked then
+         Board.CurrentLayer := String2Layer('Drill Guide');
+
+      if      OtherEnabled('')  = False then CBOtherAll.Checked := False
+      else if OtherDisabled('') = False then CBOtherAll.Checked := True
+      else                                   CBOtherAll.State   := cbGrayed;
+
+      Board.ViewManager_UpdateLayerTabs;
+      Board.ViewManager_FullUpdate;
+
+      UpdateFromCB := True;
+   end;
+end;
+
+procedure TFormLayersPanel.CBOtherClick(Sender: TObject);
+begin
+   if UpdateFromCB and (CBOther.State <> cbGrayed) then
+   begin
+      UpdateFromCB := False;
+
+      Board.LayerIsDisplayed[String2Layer('Keep Out Layer')] := CBOther.Checked;
+      Board.LayerIsDisplayed[String2Layer('Multi Layer')]    := CBOther.Checked;
+
+      CBKeepOut.Checked    := CBOther.Checked;
+      CBMultiLayer.Checked := CBOther.Checked;
+
+      if CBOther.Checked then
+         Board.CurrentLayer := String2Layer('Keep Out Layer');
+
+      if      OtherEnabled('')  = False then CBOtherAll.Checked := False
+      else if OtherDisabled('') = False then CBOtherAll.Checked := True
+      else                                   CBOtherAll.State   := cbGrayed;
+
+      Board.ViewManager_UpdateLayerTabs;
+      Board.ViewManager_FullUpdate;
+
+      UpdateFromCB := True;
+   end;
 end;
 
