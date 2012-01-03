@@ -400,18 +400,21 @@ begin
       if MechLayer.MechanicalLayerEnabled then
       begin
 
-         if MechLayer.IsDisplayed[Board] then Enabled := True
-         else                                 Disabled := True;
+         if MechLayer.LinkToSheet = False then
+         begin
+            if MechLayer.IsDisplayed[Board] then Enabled := True
+            else                                 Disabled := True;
 
-         if Board.MechanicalPairs.LayerUsed(ILayer.MechanicalLayer(j)) then
-         begin
-            if MechLayer.IsDisplayed[Board] then PairedEnabled := True
-            else                                 PairedDisabled := True;
-         end
-         else
-         begin
-            if MechLayer.IsDisplayed[Board] then UnPairedEnabled := True
-            else                                 UnPairedDisabled := True;
+            if Board.MechanicalPairs.LayerUsed(ILayer.MechanicalLayer(j)) then
+            begin
+               if MechLayer.IsDisplayed[Board] then PairedEnabled := True
+               else                                 PairedDisabled := True;
+            end
+            else
+            begin
+               if MechLayer.IsDisplayed[Board] then UnPairedEnabled := True
+               else                                 UnPairedDisabled := True;
+            end;
          end;
 
          GetCB := Int2CBMech(j);
@@ -1595,20 +1598,22 @@ begin
                end;
             end;
 
-            if MechLayer.IsDisplayed[Board] then Enabled := True
-            else                                 Disabled := True;
-
-            if Board.MechanicalPairs.LayerUsed(ILayer.MechanicalLayer(j)) then
+            if MechLayer.LinkToSheet = False then
             begin
-               if MechLayer.IsDisplayed[Board] then PairedEnabled := True
-               else                                 PairedDisabled := True;
-            end
-            else
-            begin
-               if MechLayer.IsDisplayed[Board] then UnPairedEnabled := True
-               else                                 UnPairedDisabled := True;
-            end;
+               if MechLayer.IsDisplayed[Board] then Enabled := True
+               else                                 Disabled := True;
 
+               if Board.MechanicalPairs.LayerUsed(ILayer.MechanicalLayer(j)) then
+               begin
+                  if MechLayer.IsDisplayed[Board] then PairedEnabled := True
+                  else                                 PairedDisabled := True;
+               end
+               else
+               begin
+                  if MechLayer.IsDisplayed[Board] then UnPairedEnabled := True
+                  else                                 UnPairedDisabled := True;
+               end;
+            end; 
          end;
       end;
 
