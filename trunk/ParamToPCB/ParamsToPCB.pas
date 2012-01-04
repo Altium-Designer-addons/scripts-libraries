@@ -65,6 +65,8 @@ begin
       GroupBoxLayers.Enabled := False;
       GroupBoxLayers.Visible := False;
 
+      RadioButtonSingle.Checked := True;
+
       for i := 1 to 32 do
          if Board.LayerStack.LayerObject_V7[ILayer.MechanicalLayer(i)].MechanicalLayerEnabled then
          begin
