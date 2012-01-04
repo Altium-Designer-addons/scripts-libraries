@@ -311,6 +311,8 @@ var
 begin
    // On Show We have to set up all checkboxes based on current view,
    // number of mech and copper layers, etc...
+   Board := PCBServer.GetCurrentPCBBoard;
+   TheLayerStack := Board.LayerStack;
 
    Enabled         := False;
    Disabled        := False;
@@ -625,37 +627,42 @@ end;
 
 procedure TFormLayersPanel.FormLayersPanelResize(Sender: TObject);
 begin
-   GroupBoxCopper.Width := FormLayersPanel.Width - 50;
-   GroupBoxMech.Width   := FormLayersPanel.Width - 50;
-   GroupBoxOther.Width  := FormLayersPanel.Width - 50;
+   if FormLayersPanel.Width < 254 then
+      FormLayersPanel.Width := 254
+   else
+   begin
+      GroupBoxCopper.Width := FormLayersPanel.Width - 50;
+      GroupBoxMech.Width   := FormLayersPanel.Width - 50;
+      GroupBoxOther.Width  := FormLayersPanel.Width - 50;
 
-   Image1.Width := GroupBoxCopper.Width - 2;
-   Image2.Width := GroupBoxMech.Width - 2;
-   Image3.Width := GroupBoxOther.Width - 2;
+      Image1.Width := GroupBoxCopper.Width - 2;
+      Image2.Width := GroupBoxMech.Width - 2;
+      Image3.Width := GroupBoxOther.Width - 2;
 
-   ImageArrowUpCopper.Left   := GroupBoxCopper.Width - 21;
-   ImageArrowDownCopper.Left := GroupBoxCopper.Width - 21;
-   ImageArrowUpMech.Left     := GroupBoxMech.Width - 21;
-   ImageArrowDownMech.Left   := GroupBoxMech.Width - 21;
-   ImageArrowUpOther.Left    := GroupBoxOther.Width - 21;
-   ImageArrowDownOther.Left  := GroupBoxOther.Width - 21;
+      ImageArrowUpCopper.Left   := GroupBoxCopper.Width - 21;
+      ImageArrowDownCopper.Left := GroupBoxCopper.Width - 21;
+      ImageArrowUpMech.Left     := GroupBoxMech.Width - 21;
+      ImageArrowDownMech.Left   := GroupBoxMech.Width - 21;
+      ImageArrowUpOther.Left    := GroupBoxOther.Width - 21;
+      ImageArrowDownOther.Left  := GroupBoxOther.Width - 21;
 
-   CBCopperAll.Left      := GroupBoxCopper.Width - 37;
-   CBCopperSelected.Left := GroupBoxCopper.Width - 101;
-   CBSignals.Left        := GroupBoxCopper.Width - 90;
-   CBPlanes.Left         := GroupBoxCopper.Width - 87;
+      CBCopperAll.Left      := GroupBoxCopper.Width - 37;
+      CBCopperSelected.Left := GroupBoxCopper.Width - 101;
+      CBSignals.Left        := GroupBoxCopper.Width - 90;
+      CBPlanes.Left         := GroupBoxCopper.Width - 87;
 
-   CBMechAll.Left        := GroupBoxMech.Width - 37;
-   CBMechSelected.Left   := GroupBoxMech.Width - 101;
-   CBPaired.Left         := GroupBoxMech.Width - 57;
-   CBUnPaired.Left       := GroupBoxMech.Width - 69;
+      CBMechAll.Left        := GroupBoxMech.Width - 37;
+      CBMechSelected.Left   := GroupBoxMech.Width - 101;
+      CBPaired.Left         := GroupBoxMech.Width - 57;
+      CBUnPaired.Left       := GroupBoxMech.Width - 69;
 
-   CBOtherAll.Left       := GroupBoxOther.Width - 37;
-   CBOtherSelected.Left  := GroupBoxOther.Width - 101;
-   CBOverlay.Left        := GroupBoxOther.Width - 63;
-   CBMask.Left           := GroupBoxOther.Width - 49;
-   CBDrill.Left          := GroupBoxOther.Width - 42;
-   CBOther.Left          := GroupBoxOther.Width - 53;
+      CBOtherAll.Left       := GroupBoxOther.Width - 37;
+      CBOtherSelected.Left  := GroupBoxOther.Width - 101;
+      CBOverlay.Left        := GroupBoxOther.Width - 63;
+      CBMask.Left           := GroupBoxOther.Width - 49;
+      CBDrill.Left          := GroupBoxOther.Width - 42;
+      CBOther.Left          := GroupBoxOther.Width - 53;
+   end;
 end;
 
 procedure TFormLayersPanel.ImageArrowUpCopperClick(Sender: TObject);
@@ -1613,7 +1620,7 @@ begin
                   if MechLayer.IsDisplayed[Board] then UnPairedEnabled := True
                   else                                 UnPairedDisabled := True;
                end;
-            end; 
+            end;
          end;
       end;
 
