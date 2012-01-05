@@ -380,6 +380,7 @@ Var
     Flag2         : Integer;
     Rectangle     : TCoordRect;
     Violation     : IPCB_Violation;
+    SelectedPrims : TStringList;
 
 Begin
     // There will be two big steps:
@@ -392,7 +393,9 @@ Begin
     begin
        ShowMessage('No selected objects');
        close;
-    end;    
+    end;
+
+    SelectedPrims := TStringList.Create;
 
     for i := 0 to Board.SelectecObjectCount - 1 do
     begin
@@ -406,6 +409,7 @@ Begin
           ShowMessage('All selected objects must be in a net');
           close;
        end;
+       SelectedPrims.AddObject(IntToStr(i), Board.SelectecObject[i]);
     end;
 
     FinalLayer := '';
@@ -446,9 +450,9 @@ Begin
     End;
     Board.BoardIterator_Destroy(Iterator);
 
-    for i := 0 to Board.SelectecObjectCount - 1 do
+    for i := 0 to SelectedPrims.Count - 1 do
     begin
-       Prim1 := Board.SelectecObject[i];
+       Prim1 := SelectedPrims.GetObject(i);
 
        NetName1   := Prim1.Net.Name;
        Layer1     := Prim1.Layer;
@@ -534,7 +538,11 @@ Begin
                    Y22        := Prim2.EndY;
                 end;
 
-                if ((X11 = X21) and (Y11 = Y21)) or ((X11 = X22) and (Y11 = Y22)) then PlaceVia(Layer1, X11, Y11, FinalLayer, Prim2.Net);
+                if ((X11 = X21) and (Y11 = Y21)) or ((X11 = X22) and (Y11 = Y22)) then
+                begin
+                   PlaceVia(Layer1, X11, Y11, FinalLayer, Prim2.Net);
+                   break;
+                end;
              end;
 
              Prim2 := BoardIterator.NextPCBObject;
@@ -600,8 +608,11 @@ Begin
                    Y22        := Prim2.EndY;
                 end;
 
-                if ((X12 = X21) and (Y12 = Y21)) or ((X12 = X22) and (Y12 = Y22)) then PlaceVia(Layer1, X12, Y12, FinalLayer, Prim2.Net);
-
+                if ((X12 = X21) and (Y12 = Y21)) or ((X12 = X22) and (Y12 = Y22)) then
+                begin
+                   PlaceVia(Layer1, X12, Y12, FinalLayer, Prim2.Net);
+                   break;
+                end;
              end;
 
              Prim2 := BoardIterator.NextPCBObject;
@@ -617,6 +628,7 @@ Begin
 
        Board.RemovePCBObject(Prim1);
        Board.AddPCBObject(Prim1);
+       Prim1.Selected := True;
 
        // Over here we will test this track and all other primitives on current layer for clearence violation
 
@@ -642,7 +654,7 @@ Begin
        Board.SpatialIterator_Destroy(BoardIterator);
        Prim1.GraphicallyInvalidate;
     end;
-    Board.ViewManager_FullUpdate;
+    Board.ViewManager_FullUpdate;  
     close;
  End;
 
