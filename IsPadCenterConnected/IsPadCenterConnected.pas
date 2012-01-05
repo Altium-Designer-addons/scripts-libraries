@@ -35,6 +35,7 @@ Var
     onLine                  : Integer;
     belowLine               : Integer;
 
+    Parameters              : String;
 Begin
 
     Board := PCBServer.GetCurrentPCBBoard;
@@ -59,83 +60,83 @@ Begin
         Pad := PadIteratorHandle.FirstPCBObject;
         While (Pad <> Nil) Do
         Begin
-
-            if Layer2String(Pad.Layer) = 'Multi Layer' then
+            if Pad.Innet then
             begin
-               Pad.Selected := False;
-               TheLayerStack := Board.LayerStack;
-
-               LayerObj := TheLayerStack.FirstLayer;
-
-               While LayerObj <> nil do
+               if Layer2String(Pad.Layer) = 'Multi Layer' then
                begin
-                  if ILayer.IsSignalLayer(LayerObj.V7_LayerID) then
+                  Pad.Selected := False;
+                  TheLayerStack := Board.LayerStack;
+
+                  LayerObj := TheLayerStack.FirstLayer;
+
+                  While LayerObj <> nil do
                   begin
-                     Rectangle := Pad.BoundingRectangleOnLayer(LayerObj.LayerID);
+                     if ILayer.IsSignalLayer(LayerObj.V7_LayerID) then
+                     begin
+                        Rectangle := Pad.BoundingRectangleOnLayer(LayerObj.LayerID);
 
-                     TrackIteratorHandle        := Board.SpatialIterator_Create;
-                     TrackIteratorHandle.AddFilter_ObjectSet(MkSet(eTrackObject));
-                     TrackIteratorHandle.AddFilter_Area(Rectangle.Left, Rectangle.Bottom, Rectangle.Right, Rectangle.Top);
-                     TrackIteratorHandle.AddFilter_LayerSet(MkSet(LayerObj.LayerID));
+                        TrackIteratorHandle        := Board.SpatialIterator_Create;
+                        TrackIteratorHandle.AddFilter_ObjectSet(MkSet(eTrackObject));
+                        TrackIteratorHandle.AddFilter_Area(Rectangle.Left, Rectangle.Bottom, Rectangle.Right, Rectangle.Top);
+                        TrackIteratorHandle.AddFilter_LayerSet(MkSet(LayerObj.LayerID));
 
-                     Track := TrackIteratorHandle.FirstPCBObject;
+                        Track := TrackIteratorHandle.FirstPCBObject;
 
-                     TrackFoundFlag  := 0;
-                     LayerFlag       := 0;
+                        TrackFoundFlag  := 0;
+                        LayerFlag       := 0;
 
 
-                     While (Track <> Nil) Do
-                     Begin
-                        if Track.InNet and Pad.InNet then
-                           If Track.Net.Name = Pad.Net.Name then
-                           begin
+                        While (Track <> Nil) Do
+                        Begin
+                           if Track.InNet and Pad.InNet then
+                              If Track.Net.Name = Pad.Net.Name then
+                              begin
 
-                              if Board.PrimPrimDistance(Track, Pad) = 0 then
-                                 TrackFoundFlag := 1;
+                                 if Board.PrimPrimDistance(Track, Pad) = 0 then
+                                    TrackFoundFlag := 1;
 
-                              if (((Track.x1 = Pad.x) and (Track.y1 = Pad.y)) or ((Track.x2 = Pad.x) and (Track.y2 = Pad.y))) then
-                                 LayerFlag := 1;
+                                 if (((Track.x1 = Pad.x) and (Track.y1 = Pad.y)) or ((Track.x2 = Pad.x) and (Track.y2 = Pad.y))) then
+                                    LayerFlag := 1;
 
-                           end;
+                              end;
 
-                        Track := TrackIteratorHandle.NextPCBObject;
-                     End;
+                           Track := TrackIteratorHandle.NextPCBObject;
+                        End;
 
-                     if (TrackFoundFlag = 1) and (LayerFlag = 0) then
-                        Pad.Selected := True;
+                        if (TrackFoundFlag = 1) and (LayerFlag = 0) then
+                           Pad.Selected := True;
 
-                  end;                  
-                  
-                  LayerObj := TheLayerStack.NextLayer(LayerObj);
+                     end;
+
+                     LayerObj := TheLayerStack.NextLayer(LayerObj);
+                  end;
+
+               end
+               else
+               begin
+                  Pad.Selected               := True;
+                  Rectangle := Pad.BoundingRectangleOnLayer(Pad.Layer_V6);
+                  TrackIteratorHandle        := Board.SpatialIterator_Create;
+                  TrackIteratorHandle.AddFilter_ObjectSet(MkSet(eTrackObject));
+                  TrackIteratorHandle.AddFilter_Area(Rectangle.Left, Rectangle.Bottom, Rectangle.Right, Rectangle.Top);
+
+                  if Layer2String(Pad.Layer) = 'Top Layer' then
+                     TrackIteratorHandle.AddFilter_LayerSet(MkSet(eTopLayer))
+                  else if Layer2String(Pad.Layer) = 'Bottom Layer' then
+                     TrackIteratorHandle.AddFilter_LayerSet(MkSet(eBottomLayer));
+
+                  Track := TrackIteratorHandle.FirstPCBObject;
+                  while (Track <> Nil) Do
+                  begin
+                      if (((Track.x1 = Pad.x) and (Track.y1 = Pad.y)) or ((Track.x2 = Pad.x) and (Track.y2 = Pad.y))) then
+                         Pad.Selected := False;
+
+
+                      Track := TrackIteratorHandle.NextPCBObject;
+                  end;
+                  Board.SpatialIterator_Destroy(TrackIteratorHandle);
                end;
-
-            end
-            else
-            begin
-               Pad.Selected               := True;
-               TrackIteratorHandle        := Board.SpatialIterator_Create;
-               TrackIteratorHandle.AddFilter_ObjectSet(MkSet(eTrackObject));
-               TrackIteratorHandle.AddFilter_Area(Rectangle.Left, Rectangle.Bottom, Rectangle.Right, Rectangle.Top);
-
-               if Layer2String(Pad.Layer) = 'Top Layer' then
-                  TrackIteratorHandle.AddFilter_LayerSet(MkSet(eTopLayer))
-               else if Layer2String(Pad.Layer) = 'Bottom Layer' then
-                  TrackIteratorHandle.AddFilter_LayerSet(MkSet(eBottomLayer));
-
-               Track := TrackIteratorHandle.FirstPCBObject;
-               While (Track <> Nil) Do
-               Begin
-                   if (((Track.x1 = Pad.x) and (Track.y1 = Pad.y)) or ((Track.x2 = Pad.x) and (Track.y2 = Pad.y))) then
-                      Pad.Selected := False;
-
-
-                   Track := TrackIteratorHandle.NextPCBObject;
-               End;
-
-               if not Pad.Innet then Pad.Selected := False;
             end;
-
-            Board.SpatialIterator_Destroy(TrackIteratorHandle);
 
             Pad := PadIteratorHandle.NextPCBObject;
         End;
@@ -146,9 +147,8 @@ Begin
     End;
     Board.BoardIterator_Destroy(ComponentIteratorHandle);
 
-    ResetParameters;
-    AddStringParameter('Action','Redraw');
-    RunProcess('PCB:Zoom');
+    Parameters := 'Apply=True|Expr=IsSelected|Index=1|Zoom=True|Select=True|Mask=True';
+    Client.PostMessage('PCB:RunQuery', Parameters, Length(Parameters), Client.CurrentView);
 End;
 {..............................................................................}
 
