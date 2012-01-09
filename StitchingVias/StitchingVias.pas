@@ -223,9 +223,7 @@ var
    Primitive      : IPCB_Primitive;
    Violation      : IPCB_Violation;
    ViolationFlag  : Integer;
-   SetOfLayers    : IPCB_LayerSet;
-
-   ConditionFlag  : Integer;
+   SetOfLayers    : IPCB_LayerSet;  
    TempString     : String;
 
 begin
@@ -596,7 +594,7 @@ begin
 
          if RadioButtonSelectedPolygons.Checked then
             for i := 0 to Board.SelectecObjectCount - 1 do
-               if Board.SelectecObject[i].ObjectId = eSplitPlaneObject then
+               if (Board.SelectecObject[i].ObjectId = eSplitPlaneObject) or (Board.SelectecObject[i].ObjectId = ePolyObject) then
                begin
                   Group := Board.SelectecObject[i].GroupIterator_Create;
                   Primitive := Group.FirstPCBObject;
@@ -616,26 +614,11 @@ begin
 
          while (Primitive <> nil) and (ViolationFlag = 0) do
          begin
-            // We test this primitive
-            ConditionFlag := 1;
+            Violation := RuleElectrical.ActualCheck(Primitive, NewVia);
+            if Violation <> nil then ViolationFlag := 1;
 
-            // Poly primitives are special case
-            if (Primitive.InPolygon) then
-               // if checkbox is checked - we never test
-               if (RadioButtonAllPolygons.Checked) then
-                  ConditionFlag := 0
-               // If CheckBox is not checked - we do not test only if poly and via are on same net
-               else if (Primitive.Polygon.Selected = False) then
-                  ConditionFlag := 0;
-
-            if ConditionFlag = 1 then
-            begin
-               Violation := RuleElectrical.ActualCheck(Primitive, NewVia);
-               if Violation <> nil then ViolationFlag := 1;
-
-               Violation := RuleOutline.ActualCheck(Primitive, NewVia);
-               if Violation <> nil then ViolationFlag := 1;
-            end;
+            Violation := RuleOutline.ActualCheck(Primitive, NewVia);
+            if Violation <> nil then ViolationFlag := 1;
 
             // We will search through selected objects to see weather via is within
             // a split plane
