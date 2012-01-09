@@ -223,7 +223,7 @@ var
    Primitive      : IPCB_Primitive;
    Violation      : IPCB_Violation;
    ViolationFlag  : Integer;
-   SetOfLayers    : IPCB_LayerSet;  
+   SetOfLayers    : IPCB_LayerSet;
    TempString     : String;
 
 begin
@@ -614,12 +614,14 @@ begin
 
          while (Primitive <> nil) and (ViolationFlag = 0) do
          begin
-            Violation := RuleElectrical.ActualCheck(Primitive, NewVia);
-            if Violation <> nil then ViolationFlag := 1;
+            if not Primitive.InPolygon then
+            begin
+                Violation := RuleElectrical.ActualCheck(Primitive, NewVia);
+                if Violation <> nil then ViolationFlag := 1;
 
-            Violation := RuleOutline.ActualCheck(Primitive, NewVia);
-            if Violation <> nil then ViolationFlag := 1;
-
+                Violation := RuleOutline.ActualCheck(Primitive, NewVia);
+                if Violation <> nil then ViolationFlag := 1;
+            end;
             // We will search through selected objects to see weather via is within
             // a split plane
 
