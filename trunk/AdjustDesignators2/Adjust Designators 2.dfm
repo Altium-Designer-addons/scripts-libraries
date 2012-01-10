@@ -42,7 +42,6 @@ object FormAdjustDesignators: TFormAdjustDesignators
       Height = 21
       TabOrder = 0
       Text = '5'
-      OnChange = EditMaxHeightChange
     end
     object EditMinHeight: TEdit
       Left = 192
@@ -51,7 +50,6 @@ object FormAdjustDesignators: TFormAdjustDesignators
       Height = 21
       TabOrder = 1
       Text = '1'
-      OnChange = EditMinHeightChange
     end
     object CheckBoxUnhide: TCheckBox
       Left = 8
