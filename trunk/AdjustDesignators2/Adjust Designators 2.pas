@@ -423,11 +423,20 @@ begin
 
             end;
 
+<<<<<<< .mine
             if ((Size = -1) AND (ShowOnce = False)) then
             begin
                  ShowMessage('To many characters in one or more components such as (' + Component.Name.Text + '). More than 7 characters are not supported and these components will be ommited.');
                  ShowOnce := True;
             end;
+
+=======
+            if ((Size = -1) AND (ShowOnce = False)) then
+            begin
+                 ShowMessage('To many characters in one or more components such as (' + Component.Name.Text + '). More than 7 characters are not supported and these components will be ommited.');
+                 ShowOnce := True;
+            end;
+>>>>>>> .r169
             if Size > 0 then
             begin
 
