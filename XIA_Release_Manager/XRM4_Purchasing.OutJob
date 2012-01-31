@@ -25,7 +25,7 @@ OutputEnabled1_OutputMedium2=1
 OutputDefault1=0
 PageOptions1=Record=PageOptions|CenterHorizontal=True|CenterVertical=True|PrintScale=1.00|XCorrection=1.00|YCorrection=1.00|PrintKind=0|BorderSize=5000000|LeftOffset=0|BottomOffset=0|Orientation=2|PaperLength=1000|PaperWidth=1000|Scale=100|PaperSource=7|PrintQuality=-4|MediaType=1|DitherType=10|PaperKind=Letter|PrintScaleMode=1
 Configuration1_Name1=Filter
-Configuration1_Item1=545046300E5446696C74657257726170706572000D46696C7465722E416374697665090F46696C7465722E43726974657269610A550000000100000000011A0000004E2F415F4F4D49545F46524F4D5F415353454D424C595F424F4D100000004D61696E47726964436F6C756D6E393001061A4E2F415F4F4D49545F46524F4D5F415353454D424C595F424F4D0000
+Configuration1_Item1=545046300E5446696C74657257726170706572000D46696C7465722E416374697665090F46696C7465722E43726974657269610A2200000001000000000001000000310F0000004D61696E47726964436F6C756D6E31010601310000
 Configuration1_Name2=General
 Configuration1_Item2=OpenExported=False|AddToProject=True|ForceFit=False|NotFitted=False|Database=True|IncludePCBData=False|ShowExportOptions=True|TemplateFilename=R:\ALTIUM_LIBRARIES\XIA_BOM_template2.XLT|BatchMode=5|FormWidth=1680|FormHeight=630|SupplierProdQty=20|SupplierAutoQty=True|SupplierUseCachedPricing=False|SupplierCurrency=USD
 Configuration1_Name3=GroupOrder
@@ -35,12 +35,12 @@ Configuration1_Item4=Record=BOMPrintView|ShowNoERC=True|ShowParamSet=True|ShowPr
 Configuration1_Name5=SortOrder
 Configuration1_Item5=DB_KEY=Up
 Configuration1_Name6=VisibleOrder
-Configuration1_Item6=COST=20|DISCONTINUED DATE=20|DB_KEY=20|FOOTPRT CHECK=20|LEADTIME=20|Marking_on_Component=20|MFG CHECK=20|MFGNAME=63|MFGNAME2=20|MFGNAME3=20|MFGNUMBER=20|MFGNUMBER2=20|MFGNUMBER3=20|PACKAGE SIZE=20|QTYONHAND=20|Rating=20|ROHS_COMPLIANT=20|SIZE_X=20|SIZE_Y=20|SIZE_Z=20|SOLDERING SPEC=20|STATUS=20|Supplier 1=20|Supplier 2=20|Supplier 3=20|Supplier 4=20|Supplier 5=20|Supplier Part Number 1=20|Supplier Part Number 2=20|Supplier Part Number 3=20|Supplier Part Number 4=20|Supplier Part Number 5=34|SYMBOL CHECK=20|TEMPERATURE=20|Tolerance=20|VALUE=20|APPROVED=20|Comment=20|Description=20|Designator=20|Footprint=20|Manufacturer 1=93|Manufacturer 2=93|Manufacturer 3=93|Manufacturer 4=93|Manufacturer 5=93|Manufacturer Part Number 1=93|Manufacturer Part Number 2=93|Manufacturer Part Number 3=93|Manufacturer Part Number 4=93|Manufacturer Part Number 5=93|Quantity=20|Supplier Currency 1=20|Supplier Currency 2=20|Supplier Currency 3=20|Supplier Currency 4=20|Supplier Currency 5=20|Supplier Order Qty 1=20|Supplier Order Qty 2=20|Supplier Order Qty 3=20|Supplier Order Qty 4=20|Supplier Order Qty 5=20|Supplier Stock 1=20|Supplier Stock 2=20|Supplier Stock 3=20|Supplier Stock 4=20|Supplier Stock 5=20|Supplier Subtotal 1=20|Supplier Subtotal 2=20|Supplier Subtotal 3=20|Supplier Subtotal 4=20|Supplier Subtotal 5=20|Supplier Unit Price 1=20|Supplier Unit Price 2=20|Supplier Unit Price 3=20|Supplier Unit Price 4=20|Supplier Unit Price 5=20
+Configuration1_Item6=AAA_INCLUDE_IN_XLS_BOM=1|COST=20|DISCONTINUED DATE=20|DB_KEY=20|FOOTPRT CHECK=20|LEADTIME=20|Marking_on_Component=20|MFG CHECK=20|MFGNAME=63|MFGNAME2=20|MFGNAME3=20|MFGNUMBER=20|MFGNUMBER2=20|MFGNUMBER3=20|PACKAGE SIZE=20|QTYONHAND=20|Rating=20|ROHS_COMPLIANT=20|SIZE_X=20|SIZE_Y=20|SIZE_Z=20|SOLDERING SPEC=20|STATUS=20|Supplier 1=20|Supplier 2=20|Supplier 3=20|Supplier 4=20|Supplier 5=20|Supplier Part Number 1=20|Supplier Part Number 2=20|Supplier Part Number 3=20|Supplier Part Number 4=20|Supplier Part Number 5=34|SYMBOL CHECK=20|TEMPERATURE=20|Tolerance=20|VALUE=20|APPROVED=20|Comment=20|Description=20|Designator=20|Footprint=20|Manufacturer 1=93|Manufacturer 2=93|Manufacturer 3=93|Manufacturer 4=93|Manufacturer 5=93|Manufacturer Part Number 1=93|Manufacturer Part Number 2=93|Manufacturer Part Number 3=93|Manufacturer Part Number 4=93|Manufacturer Part Number 5=93|Quantity=20|Supplier Currency 1=20|Supplier Currency 2=20|Supplier Currency 3=20|Supplier Currency 4=20|Supplier Currency 5=20|Supplier Order Qty 1=20|Supplier Order Qty 2=20|Supplier Order Qty 3=20|Supplier Order Qty 4=20|Supplier Order Qty 5=20|Supplier Stock 1=20|Supplier Stock 2=20|Supplier Stock 3=20|Supplier Stock 4=20|Supplier Stock 5=20|Supplier Subtotal 1=20|Supplier Subtotal 2=20|Supplier Subtotal 3=20|Supplier Subtotal 4=20|Supplier Subtotal 5=20|Supplier Unit Price 1=20|Supplier Unit Price 2=20|Supplier Unit Price 3=20|Supplier Unit Price 4=20|Supplier Unit Price 5=20
 
 [PublishSettings]
-OutputFilePath1=H:\projects\MicroCal_sandbox\trunk\schem\MicroCal_main\Project Outputs for MICROCAL_MAIN\
+OutputFilePath1=H:\projects\P500\trunk\schem\P500\Project Outputs for P500\
 ReleaseManaged1=0
-OutputBasePath1=Project Outputs for MICROCAL_MAIN
+OutputBasePath1=Project Outputs for P500
 OutputPathMedia1=
 OutputPathOutputer1=[Output Type]
 OutputFileName1=
@@ -55,19 +55,19 @@ MarkPins1=1
 MarkNetLabels1=1
 MarkPortsId1=1
 WebOutputMediumType1=FS
-OutputDirectory1=Project Outputs for MICROCAL_MAIN\WebOutput
-OutputFilePath2=H:\projects\MicroCal_sandbox\trunk\schem\MicroCal_main\Project Outputs for MICROCAL_MAIN\XRM4_Purchasing\
+OutputDirectory1=Project Outputs for P500\WebOutput
+OutputFilePath2=H:\projects\P500\trunk\schem\P500\Project Outputs for P500\XRM4_Purchasing\
 ReleaseManaged2=0
-OutputBasePath2=Project Outputs for MICROCAL_MAIN\
+OutputBasePath2=Project Outputs for P500\
 OutputPathMedia2=XRM4_Purchasing
 OutputPathOutputer2=
 OutputFileName2=
 OpenOutput2=1
 
 [GeneratedFilesSettings]
-RelativeOutputPath1=H:\projects\MicroCal_sandbox\trunk\schem\MicroCal_main\Project Outputs for MICROCAL_MAIN\
+RelativeOutputPath1=H:\projects\P500\trunk\schem\P500\Project Outputs for P500\
 OpenOutputs1=1
-RelativeOutputPath2=H:\projects\MicroCal_sandbox\trunk\schem\MicroCal_main\Project Outputs for MICROCAL_MAIN\XRM4_Purchasing\
+RelativeOutputPath2=H:\projects\P500\trunk\schem\P500\Project Outputs for P500\XRM4_Purchasing\
 OpenOutputs2=1
 AddToProject2=1
 TimestampFolder2=0

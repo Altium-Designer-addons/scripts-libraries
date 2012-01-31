@@ -198,9 +198,44 @@ object UpdateFromDatabaseForm: TUpdateFromDatabaseForm
     Height = 13
     Caption = 'foo'
   end
-  object formCbFlagOp0_1: TCheckBox
+  object formText26: TLabel
     Left = 14
     Top = 520
+    Width = 15
+    Height = 13
+    Caption = 'foo'
+  end
+  object formText27: TLabel
+    Left = 14
+    Top = 540
+    Width = 15
+    Height = 13
+    Caption = 'foo'
+  end
+  object formText28: TLabel
+    Left = 14
+    Top = 560
+    Width = 15
+    Height = 13
+    Caption = 'foo'
+  end
+  object formText29: TLabel
+    Left = 14
+    Top = 580
+    Width = 15
+    Height = 13
+    Caption = 'foo'
+  end
+  object formText30: TLabel
+    Left = 14
+    Top = 600
+    Width = 15
+    Height = 13
+    Caption = 'foo'
+  end
+  object formCbFlagOp0_1: TCheckBox
+    Left = 14
+    Top = 620
     Width = 950
     Height = 17
     Caption = 'Operation0_1'
