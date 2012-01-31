@@ -12,11 +12,18 @@
  8.  Check that the schematic symbol in use on schematic pages matches the one specified
      by the database.  If not, don't fix anything, but report the error to user.
  9.  Synchronize varied database components with respect to database.
+ 10.  If enabled by the presence of a particular .xml filename being part of the design,
+	 then restore/maintain "legacy/local" database parameters a function of (logical) refdes.
+	 This key is one of a number of parameters that gets lost upon doing an initial DBLib link
+	 of a component on a schematic page that was just imported from a legacy Orcad design.
+ 11.  If enabled by the presence of a particular .xml filename being part of the design,
+	 then restore/maintain a set of "legacy/local" database properties as a function of
+	 local database key.  These parameters must be "user" parameters.
  
  ***************************************************************************}
 
 {***************************************************************************
- * Copyright (c) 2009-2011 XIA LLC.
+ * Copyright (c) 2009-2012 XIA LLC.
  *  (Some code stolen from Altium examples and forum posts)
  *  Author:        Jeff Collins, jcollins@xia.com
  *  Author:        $Author$
@@ -56,7 +63,7 @@
 
 {***************************************************************************
  * External dependencies:
- *  1.  This script requires functions and constants defined in XIA_Release_Manager.pas.
+ *  1.  This script requires functions and constants defined in XIA_Utils.pas.
  *  Both of these scripts must be in the same script project.
  *  
  * Notes:
@@ -84,10 +91,17 @@
  *  5.  Check, and if necessary, fix path to DBLib file.
  *  6.  Check, and if necessary, fix path to DBLink file.
  *  7.  Update database link on any components still pointing to old DBLib files
- *  Previous1_database_library_file.DBLib or Previous2_database_library_file.DBLib.
+ *   Previous1_database_library_file.DBLib or Previous2_database_library_file.DBLib.
  *  8.  Check that the schematic symbol in use on schematic pages matches the one specified
  *   by the database.  If not, don't fix anything, but report the error to user.
  *  9.  Synchronize varied database components with respect to database.
+ * 10.  If enabled by the presence of a particular .xml filename being part of the design,
+	 then restore/maintain a "legacy/local" database parameters as a function of (logical) refdes.
+	 This key is one of a number of parameters that gets lost upon doing an initial DBLib link
+	 of a component on a schematic page that was just imported from a legacy Orcad design.
+ * 11.  If enabled by the presence of a particular .xml filename being part of the design,
+	 then restore/maintain a set of "legacy/local" database properties as a function of
+	 local database key.  These parameters must be "user" parameters.
  
  * WHAT THIS SCRIPT WILL *NOT* DO:
  *  1.  Create an ECO screeen to allow user to approve database-to-schematic changes.  It is assumed
@@ -286,6 +300,11 @@ type
    formText23 : TLabel;           
    formText24 : TLabel;           
    formText25 : TLabel;           
+   formText26 : TLabel;           
+   formText27 : TLabel;           
+   formText28 : TLabel;           
+   formText29 : TLabel;           
+   formText30 : TLabel;           
 
    formCbFlagOp0_1 : TCheckBox;
 
@@ -304,11 +323,11 @@ end;
  ***************************************************************************}
 const
 {* Declare the version and name of this script. *}
-   constScriptVersion          = 'v1.12.2_gc $Revision$';
+   constScriptVersion          = 'v1.14.0_gc $Revision$';
    constThisScriptNameNoExt    = 'XIA_Update_From_Database';
    constThisScriptName         = constThisScriptNameNoExt + '.pas';
 
-{ Note:  We implicitly rely on a number of constants defined in XIA_Release_Manager.pas.
+{ Note:  We implicitly rely on a number of constants defined in XIA_Utils.pas.
  That script and this one must both be part of an Altium script project!
  That way, we can use constants and functions defined in the other script. }
    
@@ -393,6 +412,11 @@ begin
    UpdateFromDatabaseForm.formText23.Free;
    UpdateFromDatabaseForm.formText24.Free;
    UpdateFromDatabaseForm.formText25.Free;
+   UpdateFromDatabaseForm.formText26.Free;
+   UpdateFromDatabaseForm.formText27.Free;
+   UpdateFromDatabaseForm.formText28.Free;
+   UpdateFromDatabaseForm.formText29.Free;
+   UpdateFromDatabaseForm.formText30.Free;
 
    { Transform existing GUI dialog box so that there is a big list box available. }
    UpdateFromDatabaseForm.listBox1.Left := 14;
@@ -494,58 +518,626 @@ end; { end UfdAtExit() }
    
 
 {***************************************************************************
- * function SplitDelimitedString()
+ * function SplitDelimitedStringIntoList()
  *  Split apart a delimited string.  We can't use the builtin TStringList
  *  function for this because it will also split on spaces, which we don't want.
+ *
+ *  Handle some of the idiosyncracies of the .csv format as implemented by Excel.
+ *  See http://creativyst.com/Doc/Articles/CSV/CSV01.htm .
+ *
+ *  Specifically, support:
+ *  1.  Quoting a comma character within a field by surrounding the whole field
+ *  with double quotes (").
+ *  2.  Support an actual double-quote character (") being encoded as "" (two
+ *  double-quote chars).
+ *
+ *  TODO:
+ *  1.  Support quoted numerics of the form ="08075" that will survive import/export
+ *  to/from Excel and not have leading 0's removed, number converted to scientific
+ *  notation, etc.
+ *
+ *  LIMITATIONS:
+ *  1.  This code does not do a character-by-character stateful inspection.  The
+ *  current implementation of double-quoted field support WILL break if you attempt
+ *  to combine a quoted field with an escaped double-quote followed by a comma.
+ *  eg. "This is a quoted field with escaped quotes and embedded commas "", that will break the parser."
+ *                                                                        ^ Parser will break this into 2 fields at this point.
  *
  *  Returns string list in var parm list.
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function SplitDelimitedString(    delimString : TDynamicString;
-                                  delimiter   : String;
-                              var list        : TStringList;
-                                  )           : Integer;
+function SplitDelimitedStringIntoList(    delimString : TDynamicString;
+                                          delimiter   : String;
+                                      var list        : TStringList;
+                                          )           : Integer;
 
 var
    position  : Integer;
    leftStr   : TDynamicString;
    rightStr  : TDynamicString;
+   haveQuote : Boolean;
    
 begin
 
    { Assume success. }
    result := 0;
 
-   { Initialize loop. }
-   rightStr := delimString;
+   {* Initialize loop. *}
+   { The initial right string is the entire delimString, but with escaped-quotes ("") replaced with '|' chars. }
+   rightStr := StringReplace(delimString, (constStringQuote + constStringQuote), constStringDelimiter, MkSet(rfReplaceAll));
 
-   { Loop until we run out of delimiters. }
-   { Here we assume that there is not a delimiter at the end of the delimString. }
+   {* Loop until we run out of delimiters. *}
+   { Note:  Here we assume that there is not a delimiter at the end of the delimString! }
    while (AnsiPos(delimiter, rightStr) <> 0) do
    begin
 
-      { Find the position of the next delimiter character. }
-      position := AnsiPos(delimiter, rightStr);
-//    WriteToDebugFile('rightStr is "' + rightStr + '", position is ' + IntToStr(position));
+      { Determine if this field starts with a quote char. }
+      { Note:  Leftmost index in a string for purposes of Copy() is 1! }
+      if (Copy(rightStr, 1, 1) = constStringQuote) then
+      begin
 
-      { The left string is everything up until the char before the delimiter. }
-      leftStr := Copy(rightStr, 0, (position-1));
+         { Flag that this is a quoted field. }
+         haveQuote := True;
+
+         { Find the position of the next closequote-delimiter pair. }
+         position := AnsiPos((constStringQuote + delimiter), rightStr);
+//         WriteToDebugFile('Have quoted field.  Initial rightStr is "' + rightStr + '", position is ' + IntToStr(position));
+
+         { The left string is everything up until the char before the delimiter, excluding the initial openquote. }
+         { Note:  Leftmost index in a string for purposes of Copy() is 1! }
+         leftStr := Copy(rightStr, 2, (position-1-1));
+//         WriteToDebugFile('Have quoted field.  New leftStr is "' + leftStr + '".');
+
+         { The new right string is everything after the closequote-delimiter pair. }
+         rightStr := Copy(rightStr, (position+2), MaxInt);
+//         WriteToDebugFile('Have quoted field.  New rightStr is "' + rightStr + '".');
+
+      end { endif }
+
+      { Else this is not a quoted field. }
+      else
+      begin
+      
+         { Flag that this is a non-quoted field. }
+         haveQuote := False;
+
+         { Find the position of the next delimiter character. }
+         position := AnsiPos(delimiter, rightStr);
+//         WriteToDebugFile('Have non-quoted field.  Initial rightStr is "' + rightStr + '", position is ' + IntToStr(position));
+
+         { The left string is everything up until the char before the delimiter. }
+         { Note:  Leftmost index in a string for purposes of Copy() is 1! }
+         leftStr := Copy(rightStr, 1, (position-1));
+//         WriteToDebugFile('Have non-quoted field.  New leftStr is "' + leftStr + '".');
+
+         { The new right string is everything after the delimiter char. }
+         rightStr := Copy(rightStr, (position+1), MaxInt);
+//         WriteToDebugFile('Have non-quoted field.  New rightStr is "' + rightStr + '".');
+
+      end; { endelse }
+
+      { Convert any remapped escaped quote characters ("") but now (|) back into a single quote char ("). }
+      leftStr := StringReplace(leftStr, constStringDelimiter, constStringQuote, MkSet(rfReplaceAll));
 
       { Add the left string to our running string list. }
       list.Add(leftStr);
-      WriteToDebugFile(' Adding substring "' + leftStr + '".');
-
-      { The new right string is everything after the delimiter char. }
-      rightStr := Copy(rightStr, (position+1), MaxInt);
-//    WriteToDebugFile('rightStr is "' + rightStr + '".');
-
+//      WriteToDebugFile(' In SplitDelimitedStringIntoList(), adding substring "' + leftStr + '".');
+      
    end; { endwhile }
+
+   { If the last field started with an openquote, then it must end with a closequote.
+    Exclude that last character. }
+   if (haveQuote) then
+   begin
+
+      { Strip off final character. }
+      SetLength(rightStr, (Length(rightStr)-1));
+
+   end; { endif }
+
+   { Convert any remapped escaped quote characters ("") but now (|) back into a single quote char ("). }
+   rightStr := StringReplace(rightStr, constStringDelimiter, constStringQuote, MkSet(rfReplaceAll));
 
    { Add the last string to the string list. }
    list.Add(rightStr);
-   WriteToDebugFile(' Adding substring "' + rightStr + '".');
+//   WriteToDebugFile(' In SplitDelimitedStringIntoList(), adding substring "' + rightStr + '".');
+      
+end; { end SplitDelimitedStringIntoList() }
 
-end; { end SplitDelimitedString() }
+
+{***************************************************************************
+ * function EncodeLocalParameters()
+ *  Encode all local parameters read from .xml files before storing in
+ *  stringlists.
+ *
+ *  Returns encoded string.
+ ***************************************************************************}
+function EncodeLocalParameters(rawParmValue : TDynamicString;
+                               )            : TDynamicString;
+
+begin
+
+   WriteToDebugFile('In EncodeLocalParameters(), rawParmValue starts as "' + rawParmValue + '".');
+
+   { Handle the .xml encoding of a double quote char ("). }
+   rawParmValue := StringReplace(rawParmValue, '&quot;', '"', MkSet(rfReplaceAll));
+
+   { Handle various other .xml encodings. }
+   rawParmValue := StringReplace(rawParmValue, '&amp;', '&', MkSet(rfReplaceAll));
+   rawParmValue := StringReplace(rawParmValue, '&gt;', '>', MkSet(rfReplaceAll));
+   rawParmValue := StringReplace(rawParmValue, '&lt;', '<', MkSet(rfReplaceAll));
+
+   { Make sure there are no constStringLocDbParmsEqualsRemap chars in the raw parameter values, since we're trying
+    to use this as the char to remap '=' chars to. }
+   if (AnsiPos(constStringLocDbParmsEqualsRemap, rawParmValue) <> 0) then
+      MyAbort('Sorry, but there is a "\" char in a local parameter value read from .xml file.  This is a reserved character.');
+   
+   
+   { We will change all '=' chars into constStringLocDbParmsEqualsRemap chars since '=' is our Name/Value
+    separator character and we have not had luck trying to assign a different
+    Name/Value separator char and have name searches still work.
+    Possibly this is an Altium scripting bug. }
+   result := StringReplace(rawParmValue, '=', constStringLocDbParmsEqualsRemap, MkSet(rfReplaceAll));
+
+   WriteToDebugFile('In EncodeLocalParameters(), result is "' + result + '".');
+
+end; { end EncodeLocalParameters() }
+
+
+{***************************************************************************
+ * function DecodeLocalParameters()
+ *  Decode all local parameters read from stringlists before use.
+ *
+ *  Returns decoded string.
+ ***************************************************************************}
+function DecodeLocalParameters(encodedParmValue : TDynamicString;
+                               )                : TDynamicString;
+
+begin
+   WriteToDebugFile('In DecodeLocalParameters(), encodedParmValue starts as "' + encodedParmValue + '".');
+
+   { Change all constStringLocDbParmsEqualsRemap chars back to '='. }
+   result := StringReplace(encodedParmValue, constStringLocDbParmsEqualsRemap, '=', MkSet(rfReplaceAll));
+
+   WriteToDebugFile('In DecodeLocalParameters(), result is "' + result + '".');
+
+end; { end DecodeLocalParameters() }
+
+
+{***************************************************************************
+ * function ReadXmlDataIntoCache()
+ *  Read simple data from an .xml file.
+ *
+ *  For our purposes here, we make the following simplifying assumptions:
+ *  1.  We will not read/parse/validate the entire .xml file.
+ *  2.  We only care about the cell data itself.
+ *  3.  We look for <Row> and </Row> tags.
+ *  4.  Within such, we look for <Cell> and </Cell> tags.
+ *  5.  Within such, we look for <Data> and </Data> tags.
+ *  6.  We will parse "Index="x"" within a <Cell> tag.
+ *
+ *  Directly store this information in our homebrewed database cache.
+ *  This cache consists of two stringlists:  a cache list and an index list.
+ *  
+ *  In the cache list, we store NAME=VALUE pairs for parameter names and
+ *  parameter values.
+ *  
+ *  Once we have stored all the NAME=VALUE pairs for a given component,
+ *  we write an entry to the index list specifying the component KEY
+ *  and the starting and ending indices of the NAME=VALUE pairs for that
+ *  particular component.
+ *  
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function ReadXmlDataIntoCache(    xmlFilePath     : TDynamicString;
+                              var locDbKeyName    : TDynamicString;
+                              var locDbParmsCache : TStringList;
+                              var locDbParmsIndex : TStringList;
+                                  )               : Integer;
+
+var
+   i                : Integer;
+   j                : Integer;
+   colIndex         : Integer;
+   indexVal         : Integer;
+   position         : Integer;
+   rawXmlFile       : TStringList;
+   state            : Integer;
+   line             : TDynamicString;
+   cellField        : TDynamicString;
+   indexField       : TDynamicString;
+   dataField        : TDynamicString;
+   justData         : TDynamicString;
+   recordFieldNames : Boolean;
+   fieldNames       : TStringList;
+   nameValuePair    : TDynamicString;
+   leftStr          : TDynamicString;
+   rightStr         : TDynamicString;
+   locDbParmsStart  : Integer;
+   locDbParmsEnd    : Integer;
+   locDbKey         : TDynamicString;
+   
+begin
+
+   { Assume success. }
+   result := 0;
+
+   { Flag that we do not yet know the name of the local database key field. }
+   locDbKeyName := '';
+   
+   { Since we have not yet populated this local database cache, init both of these to 0. }
+   locDbParmsStart  := 0;
+   locDbParmsEnd    := 0;
+   
+   { Create stringlist to read in raw .xml file. }
+   rawXmlFile := TStringList.Create;
+   fieldNames := TStringList.Create;
+
+   { Verify that file is readable (eg. not flocked by Excel). }
+   VerifyFileIsReadable(xmlFilePath);
+         
+   { Read raw xml file into stringlist. }
+   rawXmlFile.LoadFromFile(xmlFilePath);
+
+   { Init state to be 0. }
+   state := 0;
+
+   { Flag that we should be recording field names from the top line of the XML file. }
+   recordFieldNames := True;
+
+   
+   { Loop over all the lines in the file. }
+   for i := 0 to (rawXmlFile.Count-1) do
+   begin
+
+      { Cache current line of file. }
+      line := rawXmlFile.Strings(i);
+      WriteToDebugFile('Line is "' + line + '".');
+
+      { Examine current state and act appropriately. }
+      case state of
+
+        { State 0:  Look for a <Row> tag. }
+        0 :
+           begin
+
+              { If we find a '<Row' tag, then advance state. }
+              if (AnsiPos('<Row', line) <> 0) then
+              begin
+
+                 { Record the starting index of the new database record that we're going to add to the cache. }
+                 locDbParmsStart := locDbParmsCache.Count;
+
+                 { Clear the key field for this line. }
+                 locDbKey          := '';
+                 
+                 { Indicate that we will start getting data for column 0. }
+                 colIndex := 0;
+                 
+                 { Advance state. }
+                 state := 1;
+                 WriteToDebugFile('Found <Row.  Advancing state!');
+                 
+              end; { endif }
+                 
+           end; { endcase 0 }
+
+        { State 1:  Look for a <Cell> tag. }
+        1 :
+           begin
+
+              { If we find a '</Row' tag, then advance state. }
+              if (AnsiPos('</Row', line) <> 0) then
+              begin
+
+                 { Record the ending index of the new database record that just added to the cache. }
+                 locDbParmsEnd   := (locDbParmsCache.Count - 1);
+
+                 { Create a new record in the cache index, now that we've added this new entry. }
+                 { If this were locDbKey C000010001 and it now occupied indices 33 to 75 in the cache, the
+                  entry in index would be "C000010001=33|75". }
+                 nameValuePair    := locDbKey + constStringEquals + IntToStr(locDbParmsStart) + constStringDelimiter + IntToStr(locDbParmsEnd);
+                 
+                 locDbParmsIndex.add(nameValuePair);
+                 WriteToDebugFile('In ReadXmlDataIntoCache(), adding new entry to cache index : "' + nameValuePair + '".');
+
+                 { Flag that we are done recording field names from the top line of the XML file. }
+                 recordFieldNames := False;
+                 
+                 { Advance state. }
+                 state := 0;
+                 WriteToDebugFile('Found </Row.  Advancing state!');
+
+              end { endif }
+                 
+              { Else if we find a '<Cell' tag, then proceed to look for <Data> tag. }
+              else if (AnsiPos('<Cell', line) <> 0) then
+              begin
+
+//                 WriteToDebugFile('Found "<Cell".  Proceeding.');
+
+                 { Copy everything starting with '<Cell> to cellField. }
+                 cellField  := Copy(line, AnsiPos('<Cell', line), MaxInt);
+//                 WriteToDebugFile('cellField is "' + cellField + '".');
+
+                 { Look for '>' within cellField. }
+                 position   := AnsiPos('>', cellField);
+                 if (position = 0) then
+                    MyAbort('In ReadXmlDataIntoCache(), did not find ">" to end <Cell> tag.');
+
+                 { Copy everything after end of <Cell> tag as dataField. }
+                 dataField  := Copy(cellField, (position+1), MaxInt);
+//                 WriteToDebugFile('dataField is "' + dataField + '".');
+
+                 { Chop off everything after end of <Cell> tag in cellField. }
+                 SetLength(cellField, position);
+//                 WriteToDebugFile('cellField is now "' + cellField + '".');
+
+                 { Look for optional "Index=" within the <Cell> tag. }
+                 position   := AnsiPos('Index=', cellField);
+                 if (position <> 0) then
+                 begin
+
+                    { If we have an "Index=" constuct in lieu of column 0, which is
+                     our key column, we have a serious problem. }
+                    if (colIndex = 0) then
+                       MyAbort('In ReadXmlDataIntoCache(), missing key field for local database record (row)!');
+                    
+                    { Extract just the "Index="x"" portion. }
+                    indexField := Copy(cellField, position, MaxInt);
+                    WriteToDebugFile('indexField is "' + indexField + '".');
+
+                    { Look for '>' within indexField. }
+                    position   := AnsiPos('>', indexField);
+                    if (position = 0) then
+                       MyAbort('In ReadXmlDataIntoCache(), did not find ">" to end "Index=".');
+
+                    { Chop off indexField to end just before ">". }
+                    SetLength(indexField, (position-1));
+                    WriteToDebugFile('indexField is now "' + indexField + '".');
+
+                    { Look for ' ' (space) within chopped indexField. }
+                    position   := AnsiPos(' ', indexField);
+                    if (position <> 0) then
+                    begin
+                       SetLength(indexField, (position-1));
+                       WriteToDebugFile('indexField is now "' + indexField + '".');
+                    end; { endif }                    
+
+                    { Strip out all quote chars from indexField. }
+                    indexField := StringReplace(indexField, constStringQuote, '', MkSet(rfReplaceAll));
+//                    WriteToDebugFile('indexField is now "' + indexField + '".');
+
+                    { Split the indexField into "Index=" and "x". }
+                    SplitStringIntoLeftAndRight(indexField,
+                                                constStringEquals,
+                                                {var} leftStr,
+                                                {var} rightStr);
+
+                    { Convert rightStr to integer. }
+                    indexVal := StrToInt(rightStr);
+//                    WriteToDebugFile('indexVal is ' + IntToStr(indexVal) + '.');
+
+                    { We have null data (null parameter values) to write. }
+                    justData := '';
+                    
+                    { When we have this "Index=" construct at all, it's because Excel
+                     is skipping over a number of blank fields.  So we need to loop
+                     over all the blank fields between the last field and the given
+                     index of this upcoming field and insert blanks for all such fields. }
+                    for colIndex := colIndex to (indexVal-2) do
+                    begin
+
+                       { Create new NAME=VALUE pair to store parameter name and parameter value. }
+                       nameValuePair    := fieldNames.Strings(colIndex) + constStringEquals + justData;
+
+                       { Write this NAME=VALUE pair to cache list. }
+                       locDbParmsCache.add(nameValuePair);
+                       WriteToDebugFile('New nameValuePair being added to cache is "' + nameValuePair + '".');
+
+                    end; { endfor }
+
+                 end; { endif }
+
+                 { Look for <Data> tag. }
+                 position   := AnsiPos('<Data', dataField);
+                 if (position = 0) then
+                    MyAbort('In ReadXmlDataIntoCache(), did not find "<Data" tag.');
+
+                 { Look for '>' within dataField. }
+                 position   := AnsiPos('>', dataField);
+                 if (position = 0) then
+                    MyAbort('In ReadXmlDataIntoCache(), did not find ">" to end <Data> tag.');
+
+                 { Copy off just the data part of the dataField. }
+                 justData := Copy(dataField, (position+1), MaxInt);
+//                 WriteToDebugFile('justData is "' + justData + '".');
+
+                 { Look for '</Cell>' within justData. }
+                 position   := AnsiPos('</Cell>', justData);
+                 if (position = 0) then
+                    MyAbort('In ReadXmlDataIntoCache(), did not find "</Cell>" to end <Cell> tag.');
+
+                 { Look for '</Data>' within justData. }
+                 position   := AnsiPos('</Data>', justData);
+                 if (position = 0) then
+                    MyAbort('In ReadXmlDataIntoCache(), did not find "</Data>" to end <Data> tag.');
+
+                 { Chop off justData to end just before </Data>. }
+                 SetLength(justData, (position-1));
+//                 WriteToDebugFile('justData is now "' + justData + '".');
+
+                 { See if we need to record this as a field name. }
+                 if (recordFieldNames) then
+                 begin
+
+                    fieldNames.Add(justData);
+
+                    { If needed, record the name of the local database key field. }
+                    if (locDbKeyName = '') then
+                    begin
+                       
+                       locDbKeyName := justData;
+                       WriteToDebugFile('Found name of local database key field.  It is "' + locDbKeyName + '".');
+                       
+                    end; { endif }
+                       
+                 end { endif }
+
+                 { Else we have a new property. }
+                 else
+                 begin
+
+                    { Suppress any parameters that have value "*" to have null value. }
+                    { This is seen due to copy-pasting from Altium Parameter Manager to Excel. }
+                    if (justData = '*') then
+                       justData := '';
+
+                    { Escape any evil characters that may be in the raw string read from .xml file. }
+                    justData := EncodeLocalParameters(justData);
+                                        
+                    { See if we need to record the key field for this line. }
+                    if (colIndex = 0) then
+                    begin
+
+                       { Store the key field for this line. }
+                       locDbKey          := justData;
+                       
+                    end; { endif }
+
+                    { Create new NAME=VALUE pair to store parameter name and parameter value. }
+                    nameValuePair    := fieldNames.Strings(colIndex) + constStringEquals + justData;
+
+                    { Write this NAME=VALUE pair to cache list. }
+                    locDbParmsCache.add(nameValuePair);
+                    WriteToDebugFile('New nameValuePair being added to cache is "' + nameValuePair + '".');
+
+                 end; { endelse }
+
+                 { Increment column index. }
+                 colIndex := colIndex + 1;
+                 
+              end; { endif }
+
+           end; { endcase 1 }
+
+      else MyAbort('In ReadXmlDataIntoCache(), in unknown state ' + IntToStr(state));
+      end; { endcase }          
+      
+   end; { endfor }
+
+   { Free local stringlists. }
+   rawXmlFile.Free;
+   fieldNames.Free;
+   
+end; { end ReadXmlDataIntoCache() }
+
+
+{***************************************************************************
+ * function ChangeFullLogRefDesesToLogRefDeses()
+ *  The .xml files (due to being copy-pasted from Altium parameter manager)
+ *  are likely to contain a line for each subpart of a given component
+ *  (eg. separate lines for J2A, J2B, J2C, etc.).  However, when we parse
+ *  the logical design later on, we will only see it as "J2", not "J2A".
+ *  And it's not easy to get from one to the other, due to the differences
+ *  between ISch_Component and IComponent datastructures.
+ *
+ *  So what we're going to do is to change all J2A's to J2's, etc. in the
+ *  local database parameter caches that we already have in memory.
+ *  
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function ChangeFullLogRefDesesToLogRefDeses(    Project                 : IProject;
+                                                refDesFieldName         : TDynamicString;
+                                            var locDbParmsByRefDesCache : TStringList;
+                                            var locDbParmsByRefDesIndex : TStringList;
+                                                )                       : Integer;
+
+var
+   flatSchem     : IDocument;
+   i             : Integer;
+   component     : IComponent;
+   part          : IPart;
+   logRefDes     : TDynamicString;
+   fullLogRefDes : TDynamicString;
+   position      : Integer;
+   indexValue    : TDynamicString;
+
+begin
+   
+   { For now, assume/hope/pray that we will succeed. }
+   result := 0;
+
+   {** Analyze flattened pseudo-schematic in order to map physical designators to logical designators, etc. **}
+   { Note:  Code borrowed & adapted from AgileBOMV1.1.pas. }
+
+   { Get a reference to the flattened schematic document. }
+   flatSchem := Project.DM_DocumentFlattened;
+
+   { Sanity check. }
+   if (flatSchem = Nil) then
+      MyAbort('Unable to get flatSchem.  Probably this means the project hasn''t been compiled, but it should have been so already.');
+
+   { Output debug info. }
+   WriteToDebugFile('*About to process flattened components....');
+
+   { Loop over all physical components in flattened schematic document. }
+   for i := 0 to (flatSchem.DM_ComponentCount - 1) do
+   begin
+
+      { Retrieve reference to next flattened schematic component. }
+      component := flatSchem.DM_Components(i);
+
+      { Retrieve reference to the 0th subpart of this component. }
+      part         := component.DM_SubParts(0);
+
+      { Retrieve logical refdes for this component and full logical refdes of the 0th subpart of this component. }
+      logRefDes     := part.DM_LogicalDesignator;
+      fullLogRefDes := part.DM_FullLogicalDesignator;
+
+      
+      { See if the logical refdes (eg. "J2") for this component differs from the 0th full logical refdes (eg. "J2A"). }
+      if (logRefDes <> fullLogRefDes) then
+      begin
+
+         WriteToDebugFile('* In ChangeFullLogRefDesesToLogRefDeses(), about to change full logical refdes "' + fullLogRefDes + '" into logical refdes "' + logRefDes + '".');
+
+         { Look for the entry for this component in the locDbParmsByRefDesCache stringlist. }
+         position := locDbParmsByRefDesCache.IndexOf(refDesFieldName + '=' + fullLogRefDes);
+
+         { See if we found it. }
+         if (position >= 0) then
+         begin
+
+            WriteToDebugFile('* Found cache entry with full logical refdes at index ' + IntToStr(position) + '.');
+            WriteToDebugFile('* Original cache entry is "' + locDbParmsByRefDesCache.Strings(position) + '".');
+
+            { Overwrite this entry with new one using the logical refdes. }
+            locDbParmsByRefDesCache.Strings(position) := (refDesFieldName + '=' + logRefDes);
+            WriteToDebugFile('* New cache entry is      "' + locDbParmsByRefDesCache.Strings(position) + '".');
+
+            { Now we must also change the entry in the cache index. }
+            position := locDbParmsByRefDesIndex.IndexOfName(fullLogRefDes);
+
+            { Sanity check }
+            if (position < 0) then
+               MyAbort('Found inconsistency in local database parameter cache!');
+
+            { Retrieve the value of the cache index entry. }
+            indexValue := locDbParmsByRefDesIndex.ValueFromIndex(position);
+            WriteToDebugFile('* Original index entry is "' + locDbParmsByRefDesIndex.Strings(position) + '".');
+            
+            { Overwrite this entry with new one using the logical refdes. }
+            locDbParmsByRefDesIndex.Strings(position) := (logRefDes + '=' + indexValue);
+            WriteToDebugFile('* New index entry is      "' + locDbParmsByRefDesIndex.Strings(position) + '".');
+
+         end; { endif found entry in local database cache }
+         
+      end; { endif logical refdes differs from full logical refdes }
+   
+   end; { endfor }
+
+end; { end ChangeFullLogRefDesesToLogRefDeses() }
 
 
 {***************************************************************************
@@ -565,20 +1157,32 @@ end; { end SplitDelimitedString() }
  *  Returns possibly modified list of changed files as var parm changedFiles.
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function InitDatabaseInfo(    Project      : IProject;
-                          var dbLibDoc     : IDatabaseLibDocument;
-                          var dbTableList  : TStringList;
-                          var changedFiles : TStringList;
-                              )            : Integer;
+function InitDatabaseInfo(    Project                 : IProject;
+                              projectName             : TDynamicString;
+                              projectPath             : TDynamicString;
+                          var locDbKeyName            : TDynamicString;
+                          var locDbParmsByRefDesCache : TStringList;
+                          var locDbParmsByRefDesIndex : TStringList;
+                          var locDbParmsByKeyCache    : TStringList;
+                          var locDbParmsByKeyIndex    : TStringList;
+                          var dbLibDoc                : IDatabaseLibDocument;
+                          var dbTableList             : TStringList;
+                          var changedFiles            : TStringList;
+                              )                       : Integer;
 
 var
+   i                : Integer;
    k                : Integer;
    document         : IDocument;
+   fieldNames       : WideString;
+   leftStr          : WideString;
+   rightStr         : WideString;
    tableIndex       : Integer;
    dbTableName      : TDynamicString;
    hasCorrectDbLib  : Boolean;
    hasDbLink        : Boolean;
    hasCorrectDbLink : Boolean;
+   refDesFieldName  : TDynamicString;
    
 begin
 
@@ -587,6 +1191,9 @@ begin
 
    WriteToDebugFile('Hello from InitDatabaseInfo()');
 
+   { Until we find out otherwise, there is no legacy/local database or database key. }
+   locDbKeyName := '';   
+   
    {* Verify that the project the correct DBLib file attached. *}
    UfdUpdateGuiStatusMessage('Status:  Checking DBLib files.');
    hasCorrectDbLib := False;
@@ -731,6 +1338,66 @@ begin
 
    end; { endfor }
 
+
+   {* Look for a refdes-to-local-database-parms file as part of this project. }
+   { Look over all project documents and see if we find an unknown file. }
+   {** Loop over all logical documents in the project (counting backwards). **}
+   for k := (Project.DM_LogicalDocumentCount - 1) downto 0 do
+   begin
+      document := Project.DM_LogicalDocuments(k);
+      WriteToDebugFile('Examining project document ' + document.DM_FullPath);
+
+      { See if this is the refdes-to-local-database-key file. }
+      if (AnsiUpperCase(document.DM_FullPath) = AnsiUpperCase(projectPath + projectName + '_RefDes_to_parms' + constExtXml)) then
+      begin
+
+         WriteToDebugFile('Found RefDes_to_parms file!');
+
+         { Update status message displayed to user. }
+         UfdUpdateGuiStatusMessage('Status:  Reading local database (refdes-to-parms) information into in-memory caches.');
+
+         { Attempt to read in XML file. }
+         ReadXmlDataIntoCache(document.DM_FullPath,
+                              {var} refDesFieldName {locDbKeyName},
+                              {var} locDbParmsByRefDesCache {locDbParmsCache},
+                              {var} locDbParmsByRefDesIndex {locDbParmsIndex} );
+
+
+         { We need to strip off trailing "A", "B", etc. from all RefDes'es before
+          we let them loose upon the world.  This inconsistency is due to the fact
+          that the local .xml files will be created by copy-pasting from Altium
+          Parameter Manager, which gives the full logical RefDes (eg. "J2A").
+          But later on this script will operate in such a way that it only has
+          access to the logical RefDes (eg. "J2").  So we're going to identify
+          components where this is even an issue and then overwrite all "J2A"'s
+          with "J2"'s, etc. }
+         ChangeFullLogRefDesesToLogRefDeses(Project,
+                                            refDesFieldName,
+                                            {var} locDbParmsByRefDesCache,
+                                            {var} locDbParmsByRefDesIndex);
+         
+      end; { endif }
+
+ 
+      { See if this is the local-database-key-to-local-parms file. }
+      if (AnsiUpperCase(document.DM_FullPath) = AnsiUpperCase(projectPath + projectName + '_local_db_key_to_parms' + constExtXml)) then
+      begin
+
+         WriteToDebugFile('Found local_db_key_to_parms file!');
+
+         { Update status message displayed to user. }
+         UfdUpdateGuiStatusMessage('Status:  Reading local database (local-db-key-to-parms) information into in-memory caches.');
+
+         { Attempt to read in XML file. }
+         ReadXmlDataIntoCache(document.DM_FullPath,
+                              {var} locDbKeyName,
+                              {var} locDbParmsByKeyCache {locDbParmsCache},
+                              {var} locDbParmsByKeyIndex {locDbParmsIndex} );
+
+      end; { endif }
+      
+   end; { endfor }
+   
 end; { end InitDatabaseInfo() }
 
 
@@ -741,13 +1408,14 @@ end; { end InitDatabaseInfo() }
  *  Returns possibly modified list of changed files as var parm changedFiles.
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function AddSchParm(    document      : IDocument,
-                        component     : ISch_Component;
-                        dbParmName    : TDynamicString;
-                        dbParmValue   : TDynamicString;
-                        dbParmVisible : TDynamicString;
-                    var changedFiles  : TStringList;
-                        )             : Integer;
+function AddSchParm(    document          : IDocument,
+                        component         : ISch_Component;
+                        suppressFpUpdates : Boolean;
+                        dbParmName        : TDynamicString;
+                        dbParmValue       : TDynamicString;
+                        dbParmVisible     : TDynamicString;
+                    var changedFiles      : TStringList;
+                        )                 : Integer;
 
 var
    Parameter : ISch_Parameter;
@@ -769,7 +1437,7 @@ begin
       begin
          
          { See if we are allowed to update footprints. }
-         if (enableFootprintUpdates) then
+         if ( (enableFootprintUpdates) and (not suppressFpUpdates) ) then
          begin
 
             { Create a new model for the given schematic component. }
@@ -1422,12 +2090,13 @@ end; { end UpdateSchCurrentModel() }
  *  Returns possibly modified list of changed files as var parm changedFiles.
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function UpdateSchModel(    document     : IDocument,
-                            component    : ISch_Component;
-                            dbParmName   : TDynamicString;
-                            dbParmValue  : TDynamicString;
-                        var changedFiles : TStringList;
-                            )            : Integer;
+function UpdateSchModel(    document          : IDocument,
+                            component         : ISch_Component;
+                            suppressFpUpdates : Boolean;
+                            dbParmName        : TDynamicString;
+                            dbParmValue       : TDynamicString;
+                        var changedFiles      : TStringList;
+                            )                 : Integer;
 
 var
    ImplIterator         : ISch_Iterator;
@@ -1474,7 +2143,7 @@ begin
                WriteToDebugFile(' Change from "' + SchModel.ModelName + '" to "' + dbParmValue + '".');
 
                { See if we are allowed to update footprints. }
-               if (enableFootprintUpdates) then
+               if ( (enableFootprintUpdates) and (not suppressFpUpdates) ) then
                begin
                   
                   {** Make the change to the sch page! **}
@@ -1618,12 +2287,13 @@ end; { end UpdateSchUserParm() }
  *  Returns possibly modified list of changed files as var parm changedFiles.
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function UpdateSchParmValueByName(    document     : IDocument,
-                                      component    : ISch_Component;
-                                      dbParmName   : TDynamicString;
-                                      dbParmValue  : TDynamicString;
-                                  var changedFiles : TStringList;
-                                      )            : Integer;
+function UpdateSchParmValueByName(    document          : IDocument,
+                                      component         : ISch_Component;
+                                      suppressFpUpdates : Boolean;
+                                      dbParmName        : TDynamicString;
+                                      dbParmValue       : TDynamicString;
+                                  var changedFiles      : TStringList;
+                                      )                 : Integer;
 begin
 
    { Assume success. }
@@ -1679,6 +2349,7 @@ begin
       { Call UpdateSchModel() to do all the real work. }
       UpdateSchModel(document,
                      component,
+                     suppressFpUpdates,
                      dbParmName,
                      dbParmValue,
                      {var} changedFiles);
@@ -1898,6 +2569,9 @@ end; { end CheckAndCorrectDatabaseLibraryName() }
  ***************************************************************************}
 function GetUserParametersFromComp(    document               : IDocument,
                                        component              : ISch_Component;
+                                       locDbKeyName           : WideString;
+                                   var locDbKey               : WideString;
+                                   var suppressFpUpdates      : Boolean;
                                    var linkedOnlyViaDbLink    : Boolean;
                                    var compDbKey              : WideString;
                                    var compDbTable            : WideString;
@@ -1922,15 +2596,22 @@ begin
    { Assume success. }
    result := 0;
 
+   { Unless we find out otherwise, we have no reason to suppress footprint updates. }
+   suppressFpUpdates := False;   
+
    { Attempt to extract database related info. }
    WriteToDebugFile('DesignItemID       ="' + component.DesignItemID + '"');
    WriteToDebugFile('LibReference       ="' + component.LibReference + '"');
    WriteToDebugFile('DatabaseLibraryName="' + component.DatabaseLibraryName + '"');
    WriteToDebugFile('DatabaseTableName  ="' + component.DatabaseTableName + '"');
    WriteToDebugFile('UniqueId           ="' + component.UniqueId + '"');
+   WriteToDebugFile('locDbKeyName       ="' + locDbKeyName + '"');
 
    { Return database table name to caller. }
    compDbTable := component.DatabaseTableName;
+
+   { Clear the legacy/local database key until we find it for this component. }
+   locDbKey := '';
 
    { Clear the database key until we find it for this component. }
    compDbKey := '';
@@ -1969,6 +2650,17 @@ begin
          { Else we have a user parameter that we actually want to store... }
          else
          begin
+
+            { See if we found the legacy/local database key. }
+            { NOTE:  This may be the same parameter as the one below, so this MUST be an independent "if" statement! }
+            if ( (locDbKeyName <> '') and (Parameter.Name = locDbKeyName) ) then
+            begin
+
+               { Store the legacy/local database key for this component. }
+               locDbKey := Parameter.Text;
+               WriteToDebugFile('Found locDbKey parameter.  Using: "' + locDbKey + '" as local database key.');
+
+            end; { endif }
             
             { See if we found the parameter called "OLD_DB_KEY".  This is used as our interim database key. }
             if ( (Parameter.Name = constDbParmDbKeyInterim) and
@@ -1989,6 +2681,15 @@ begin
                compDbKey := Parameter.Text;
                foundDbKey := True;
                WriteToDebugFile('Found "' + constDbParmDbKey + '" parameter.  Using: "' + compDbKey + '" as database key.');
+            end
+
+            { Else see if we found the parameter called 'SUPPRESS_FP_UPDATES'.  This being set to 1 will cause us to suppress footprint updates for this component only. }
+            else if (Parameter.Name = constDbParmNameSuppressFpUpdates) then
+            begin
+
+               { See if parameter is set to appropriate value. }
+               suppressFpUpdates := (Parameter.Text = constDbParmValueSuppressFpUpdates);
+               WriteToDebugFile('Found "' + constDbParmNameSuppressFpUpdates + '" parameter, value is "' + Parameter.Text + '".  Set suppressFpUpdates to ' + BoolToStr(suppressFpUpdates) + '.');
             end;
 
             { Make sure we're not seeing this parameter twice, as can happen in degenerate cases with bad sch symbols. }
@@ -2050,11 +2751,11 @@ begin
    else
    begin
       linkedOnlyViaDbLink := True;
-      WriteToDebugFile('DesignItemID is "' + component.DesignItemID + '", compDbKey is "' + compDbKey + '".');
+      WriteToDebugFile('DesignItemID is "' + component.DesignItemID + '", compDbKey is "' + compDbKey + '", looks like only a DBLink connection.');
 
-      WriteToDebugFile('WARNING:  ' + component.Designator.Name + ' ' + component.Designator.Text + ':  This component is linked using only DBLink file!!  Sch symbol may differ and DB lookups are slower!');
-      WriteToSummaryFile('WARNING:  ' + component.Designator.Name + ' ' + component.Designator.Text + ':  This component is linked using only DBLink file!!  Sch symbol may differ and DB lookups are slower!');
-      
+      { Postpone warning messages about DBLink status until we know for sure
+       if this part is linked to the database at all. }
+
    end; { endif }
 
    {* Cache information about this logical component for later use in dealing with varied components. *}
@@ -2146,6 +2847,7 @@ begin
          { Call UpdateSchParmValueByRef() to do all the real work of updating the Comment parameter. }
          UpdateSchParmValueByName(document,
                                   component,
+                                  False {suppressFpUpdates},
                                   constDbParmComment,
                                   constDbValCommentStd,
                                   {var} changedFiles);
@@ -2166,6 +2868,7 @@ end; { end CheckUserParametersForComp() }
  ***************************************************************************}
 function CheckDbVsCompParmMatch(    document          : IDocument,
                                     component         : ISch_Component;
+                                    suppressFpUpdates : Boolean;
                                     compSysParmsList  : TStringList;
                                     compUserParmsList : TStringList;
                                     dbParmName        : TDynamicString;
@@ -2192,6 +2895,7 @@ begin
       { Attempt to update the component level parameter to match the database parameter. }
       UpdateSchParmValueByName(document,
                                component,
+                               suppressFpUpdates,
                                dbParmName,
                                dbParmValue,
                                {var} changedFiles);
@@ -2229,6 +2933,7 @@ begin
             { Attempt to update the component level parameter to match the database parameter. }
             UpdateSchParmValueByName(document,
                                      component,
+                                     suppressFpUpdates,
                                      dbParmName,
                                      dbParmValue,
                                      {var} changedFiles);
@@ -2246,6 +2951,7 @@ begin
          { Attempt to add the missing component level parameter to match the database parameter. }
          AddSchParm(document,
                     component,
+                    suppressFpUpdates,
                     dbParmName,
                     dbParmValue,
                     dbParmVisible,
@@ -2288,6 +2994,7 @@ begin
              We only care about the parameter value! }
             UpdateSchParmValueByName(document,
                                      component,
+                                     suppressFpUpdates,
                                      dbParmName,
                                      dbParmValue,
                                      {var} changedFiles);
@@ -2306,6 +3013,7 @@ begin
          { Specify whether the parameter to be added should be visible or not. }
          AddSchParm(document,
                     component,
+                    suppressFpUpdates,
                     dbParmName,
                     dbParmValue,
                     dbParmVisible,
@@ -2316,6 +3024,305 @@ begin
    end; { endelse }
    
 end; { end CheckDbVsCompParmMatch() }
+
+
+{***************************************************************************
+ * function SearchForCompInDatabaseCache()
+ *  Look for a component in a database cache.
+ *  If found, return starting and ending indices for this component in cache list.
+ *
+ *  NOTE:  Assumes that dbParmsIndex string list has already been created.
+ *  
+ *  Returns whether this component was found in the specified db cache as var parm foundInDbCache.
+ *  Returns limits of dbParmsCache as var parms dbParmsStart and dbParmsEnd.
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function SearchForCompInDatabaseCache(    dbKey          : WideString;
+                                          dbParmsIndex   : TStringList;
+                                      var foundInDbCache : Boolean;
+                                      var dbParmsStart   : Integer;
+                                      var dbParmsEnd     : Integer;
+                                          )              : Integer;
+
+var
+   i                : Integer;
+   cacheIndex       : Integer;
+   leftStr          : TDynamicString;
+   rightStr         : TDynamicString;
+   dbParmsStartStr  : TDynamicString;
+   dbParmsEndStr    : TDynamicString;
+   dbParmValuesStr  : TDynamicString;
+   dbParmValuesList : TStringList;
+   dbParmValue      : TDynamicString;
+
+begin
+
+   { Assume success. }
+   result := 0;
+
+   { Until we find out otherwise, we have not found this component in database cache. }
+   foundInDbCache := False;         
+
+
+   {* Attempt to retrieve local database parameters for this component. *}
+   { See if we have a valid database key. }
+   if (dbKey <> '') then
+   begin
+
+      { Search database cache string list. }
+      WriteToDebugFile('Searching for dbKey "' + dbKey + '" in dbParmsIndex.');
+
+      { Search for dbKey in string list. }
+      cacheIndex := dbParmsIndex.IndexOfName(dbKey);
+
+      { See if we got a hit. }
+      if (cacheIndex >= 0) then
+      begin
+
+         { Extract the right side of this entry in the cache index.
+          This contains the start and end indices into the cache itself. }
+         { Note:  Entry in cache index will look something like "C000010001=33|75". }
+         SplitStringIntoLeftAndRightWithAbort(dbParmsIndex.Strings[cacheIndex],
+                                              constStringEquals,
+                                              leftStr,
+                                              rightStr);
+
+         { Split that right string again into strings that represent the start and
+           end indices into the cache itself. }
+         SplitStringIntoLeftAndRightWithAbort(rightStr,
+                                              constStringDelimiter,
+                                              dbParmsStartStr,
+                                              dbParmsEndStr);
+
+         { Convert the start and end indices into the cache into integers. }
+         dbParmsStart := StrToInt(dbParmsStartStr);
+         dbParmsEnd   := StrToInt(dbParmsEndStr);
+         
+         { Flag that we found this component in the database cache. }
+         foundInDbCache := True;
+         WriteToDebugFile('Found dbKey "' + dbKey + '" in dbParmsIndex.  dbParmsStart is ' + IntToStr(dbParmsStart) + ', dbParmsEnd is ' + IntToStr(dbParmsEnd) + '.');
+
+      end { endif got cache hit }
+
+   end; { endif valid database key }
+
+end; { end SearchForCompInDatabaseCache() }
+
+
+{***************************************************************************
+ * function CheckAllParametersVsLocalDatabase()
+ *  Check all local database parameters versus the current user and system paramters
+ *  for a given component.
+ *
+ *  NOTE:  Assumes that all string lists have already been created.
+ *  
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function CheckAllParametersVsLocalDatabase(    document                : IDocument;
+                                               component               : ISch_Component;
+                                               locDbKeyName            : TDynamicString;
+                                               locDbKey                : WideString;
+                                               locDbParmsByRefDesCache : TStringList;
+                                               locDbParmsByRefDesIndex : TStringList;
+                                               locDbParmsByKeyCache    : TStringList;
+                                               locDbParmsByKeyIndex    : TStringList;
+                                               compSysParmsList        : TStringList;
+                                               compUserParmsList       : TStringList;
+                                           var suppressFpUpdates       : Boolean;
+                                           var changedFiles            : TStringList;
+                                               )                       : Integer;
+
+var
+   i                    : Integer;
+   compRefDes           : WideString;
+   encRefDes            : WideString;
+   foundInLocDbByRefDes : Boolean;
+   foundInLocDbByKey    : Boolean;
+   leftStr              : TDynamicString;
+   rightStr             : TDynamicString;
+   locDbParmsStartStr   : TDynamicString;
+   locDbParmsEndStr     : TDynamicString;
+   locDbParmValuesStr   : TDynamicString;
+   locDbParmValuesList  : TStringList;
+   locDbParmValue       : TDynamicString;
+   dbParmName           : TDynamicString;
+   dbParmValue          : TDynamicString;
+   dbParmVisible        : TDynamicString;
+   position             : Integer;
+   locDbKeyNew          : WideString;
+   dbParmsStart         : Integer;
+   dbParmsEnd           : Integer;
+
+begin
+
+   { Assume success. }
+   result := 0;
+   
+   { Retrieve this component's logical refdes. }
+   compRefDes          := component.Designator.Text;
+
+   { Init local variable to null. }
+   locDbKeyNew := '';
+
+   WriteToDebugFile('In CheckAllParametersVsLocalDatabase(), locDbKey is "' + locDbKey + '".');
+   
+   {* See if we should restore/maintain legacy/local database parameters as a function of RefDes. *}
+   if (locDbParmsByRefDesCache.Count > 0) then
+   begin
+
+      WriteToDebugFile('About to check local database as a function of RefDes for "' + compRefDes + '"...');
+
+      { Encode the RefDes so that we may compare it to strings that were already similarly encoded. }
+      encRefDes := EncodeLocalParameters(compRefDes);
+      
+      { Look for this RefDes in the local-database-cache-by-RefDes. }
+      SearchForCompInDatabaseCache(encRefDes {dbKey},
+                                   locDbParmsByRefDesIndex {dbParmsIndex},
+                                   {var} foundInLocDbByRefDes {foundInDbCache},
+                                   {var} dbParmsStart,
+                                   {var} dbParmsEnd);
+
+      { See if this RefDes was found in the local-database-cache-by-RefDes. }
+      if (foundInLocDbByRefDes) then
+      begin
+
+         { Loop over all parameters cached for this RefDes. }
+         { The initial parameter here will be RefDes, which we will skip. }
+         for i := (dbParmsStart+1) to dbParmsEnd do
+         begin
+
+            { Split the cache entry (NAME=VALUE) into name and value pieces. }
+            SplitStringIntoLeftAndRightWithAbort(locDbParmsByRefDesCache.Strings[i],
+                                                 constStringEquals,
+                                                 leftStr,
+                                                 rightStr);
+            
+            { Assign database parameter name, value, and visibility. }
+            { Decode all local parameters before use in schematic land. }
+            dbParmName    := DecodeLocalParameters(leftStr);
+            dbParmValue   := DecodeLocalParameters(rightStr);
+            dbParmVisible := 'False';
+
+            { Check that the local database parameter matches the component level parameter. }
+            CheckDbVsCompParmMatch(document,
+                                   component,
+                                   suppressFpUpdates,
+                                   compSysParmsList,
+                                   compUserParmsList,
+                                   dbParmName,
+                                   dbParmValue,
+                                   dbParmVisible,
+                                   {var} changedFiles);
+
+            { See if this local database parameter is in fact the local database key. }
+            if (dbParmName = locDbKeyName) then
+            begin
+               locDbKeyNew := dbParmValue;
+               WriteToDebugFile('For "' + compRefDes + '", found locDbKeyNew of "' + locDbKeyNew + '".');
+            end
+
+            { Else see if we found the parameter called 'SUPPRESS_FP_UPDATES'.  This being set to 1 will cause us to suppress footprint updates for this component only. }
+            else if (dbParmName = constDbParmNameSuppressFpUpdates) then
+            begin
+
+               { See if parameter is set to appropriate value. }
+               suppressFpUpdates := (dbParmValue = constDbParmValueSuppressFpUpdates);
+               WriteToDebugFile('Found "' + constDbParmNameSuppressFpUpdates + '" parameter, value is "' + dbParmValue + '".  Set suppressFpUpdates to ' + BoolToStr(suppressFpUpdates) + '.');
+            end;
+         end; { endfor }
+
+      end { endif found in the local-database-cache-by-RefDes. }
+
+      { Else this part was not found in the local-database-cache-by-RefDes. }
+      else
+      begin
+         
+         WriteToDebugFile('NOTE:   Component "' + compRefDes + '" was not found in local-database-cache-by-RefDes.');
+         WriteToSummaryFile('NOTE:   Component "' + compRefDes + '" was not found in local-database-cache-by-RefDes.');
+
+      end;
+
+   end; { endif have local database parameters }
+      
+   {* See if we should restore/maintain legacy/local database parameters as a function of Key. *}
+   if (locDbParmsByKeyCache.Count > 0) then
+   begin
+
+      { Use the new version of locDbKey if it exists. }
+      if (locDbKeyNew <> '') then
+         locDbKey := locDbKeyNew;
+
+      { Make sure locDbKey is non-null. }
+      if (locDbKey <> '') then
+      begin
+
+         WriteToDebugFile('About to check local database as a function of Key for "' + compRefDes + '", locDbKey "' + locDbKey + '"...');
+
+         { Look for this Key in the local-database-cache-by-Key. }
+         SearchForCompInDatabaseCache(locDbKey {dbKey},
+                                      locDbParmsByKeyIndex {dbParmsIndex},
+                                      {var} foundInLocDbByKey {foundInDbCache},
+                                      {var} dbParmsStart,
+                                      {var} dbParmsEnd);
+
+         { See if this Key was found in the local-database-cache-by-Key. }
+         if (foundInLocDbByKey) then
+         begin
+
+            { Loop over all parameters cached for this Key. }
+            for i := dbParmsStart to dbParmsEnd do
+            begin
+
+               { Split the cache entry (NAME=VALUE) into name and value pieces. }
+               SplitStringIntoLeftAndRightWithAbort(locDbParmsByKeyCache.Strings[i],
+                                                    constStringEquals,
+                                                    leftStr,
+                                                    rightStr);
+               
+               { Assign database parameter name, value, and visibility. }
+               { Decode all local parameters before use in schematic land. }
+               dbParmName    := DecodeLocalParameters(leftStr);
+               dbParmValue   := DecodeLocalParameters(rightStr);
+               dbParmVisible := 'False';
+
+               { Check that the local database parameter matches the component level parameter. }
+               CheckDbVsCompParmMatch(document,
+                                      component,
+                                      suppressFpUpdates,
+                                      compSysParmsList,
+                                      compUserParmsList,
+                                      dbParmName,
+                                      dbParmValue,
+                                      dbParmVisible,
+                                      {var} changedFiles);
+
+               { Else see if we found the parameter called 'SUPPRESS_FP_UPDATES'.  This being set to 1 will cause us to suppress footprint updates for this component only. }
+               if (dbParmName = constDbParmNameSuppressFpUpdates) then
+               begin
+                  
+                  { See if parameter is set to appropriate value. }
+                  suppressFpUpdates := (dbParmValue = constDbParmValueSuppressFpUpdates);
+                  WriteToDebugFile('Found "' + constDbParmNameSuppressFpUpdates + '" parameter, value is "' + dbParmValue + '".  Set suppressFpUpdates to ' + BoolToStr(suppressFpUpdates) + '.');
+               end;
+
+            end; { endfor }
+
+         end { endif found in the local-database-cache-by-Key. }
+
+         { Else this part was not found in the local-database-cache-by-Key. }
+         else
+         begin
+            
+            WriteToDebugFile('NOTE:   Component "' + compRefDes + '", key "' + locDbKey + '" was not found in local-database-cache-by-Key.');
+            WriteToSummaryFile('NOTE:   Component "' + compRefDes + '", key "' + locDbKey + '" was not found in local-database-cache-by-Key.');
+
+         end;
+
+      end; { endif locDbKey non-null }
+
+   end; { endif have local database parameters }
+   
+end; { end CheckAllParametersVsLocalDatabase() }
 
 
 {***************************************************************************
@@ -2372,9 +3379,9 @@ begin
       dbParmsStart := dbParmsCache.Count;
 
       { Split apart the gigantic string returned by the database table query and add to cache.}
-      SplitDelimitedString(dbParmsStr,
-                           constStringDelimiter,
-                           dbParmsCache);
+      SplitDelimitedStringIntoList(dbParmsStr,
+                                   constStringDelimiter,
+                                   {var} dbParmsCache);
 
       { Record the ending index of the new database record that just added to the cache. }
       dbParmsEnd   := (dbParmsCache.Count - 1);
@@ -2403,17 +3410,18 @@ end; { end GetAllParametersFromDatabaseTable() }
  *  Returns limits of dbParmsCache as var parms dbParmsStart and dbParmsEnd.
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function GetAllParametersFromDatabase(    compRefDes        : WideString;
-                                          dbLibDoc          : IDatabaseLibDocument;
-                                          dbTableList       : TStringList;
-                                          compDbKey         : WideString;
-                                          compDbTable       : WideString;
-                                      var linkedToDb        : Boolean;
-                                      var dbParmsCache      : TStringList;
-                                      var dbParmsCacheIndex : TStringList;
-                                      var dbParmsStart      : Integer;
-                                      var dbParmsEnd        : Integer;
-                                          )                 : Integer;
+function GetAllParametersFromDatabase(    compRefDes          : WideString;
+                                          linkedOnlyViaDbLink : Boolean;
+                                          dbLibDoc            : IDatabaseLibDocument;
+                                          dbTableList         : TStringList;
+                                          compDbKey           : WideString;
+                                          compDbTable         : WideString;
+                                      var linkedToDb          : Boolean;
+                                      var dbParmsCache        : TStringList;
+                                      var dbParmsCacheIndex   : TStringList;
+                                      var dbParmsStart        : Integer;
+                                      var dbParmsEnd          : Integer;
+                                          )                   : Integer;
 
 var
    dbTableName        : TDynamicString;
@@ -2438,44 +3446,12 @@ begin
    tableIndex := -1;
 
    { Look for this component in database cache. }
-   if (compDbKey <> '') then
-   begin
+   SearchForCompInDatabaseCache(compDbKey {dbKey},
+                                dbParmsCacheIndex {dbParmsIndex},
+                                {var} foundInDbCache,
+                                {var} dbParmsStart,
+                                {var} dbParmsEnd);
 
-      { Search database cache string list. }
-      WriteToDebugFile('Searching for compDbKey "' + compDbKey + '" in dbParmsCacheIndex.');
-      cacheIndex := dbParmsCacheIndex.IndexOfName(compDbKey);
-
-      { See if we got a hit. }
-      if (cacheIndex >= 0) then
-      begin
-
-         { Extract the right side of this entry in the cache index.
-          This contains the start and end indices into the cache itself. }
-         { Note:  Entry in cache index will look something like "C000010001=33|75". }
-         SplitStringIntoLeftAndRightWithAbort(dbParmsCacheIndex.Strings[cacheIndex],
-                                              constStringEquals,
-                                              leftStr,
-                                              rightStr);
-
-         { Split that right string again into strings that represent the start and
-          end indices into the cache itself. }
-         SplitStringIntoLeftAndRightWithAbort(rightStr,
-                                              constStringDelimiter,
-                                              dbParmsStartStr,
-                                              dbParmsEndStr);
-
-         { Convert the start and end indices into the cache into integers. }
-         dbParmsStart := StrToInt(dbParmsStartStr);
-         dbParmsEnd   := StrToInt(dbParmsEndStr);
-         
-         { Flag that we found this component in the database cache. }
-         foundInDbCache := True;
-         WriteToDebugFile('Found compDbKey "' + compDbKey + '" in dbParmsCache.  dbParmsStart is ' + IntToStr(dbParmsStart) + ', dbParmsEnd is ' + IntToStr(dbParmsEnd) + '.');
-
-      end; { endif got cache hit }
-
-   end; { endif compDbKey <> '' }
-   
 
    { If we were given the name of a database table, then look that name up in the list
     of database table names. }
@@ -2565,7 +3541,14 @@ begin
       WriteToDebugFile('ERROR:    ' + 'Designator ' + compRefDes + ':  Could not find database link for this component!  Please fix!!!');
       WriteToSummaryFile('ERROR:    ' + 'Designator ' + compRefDes + ':  Could not find database link for this component!  Please fix!!!');
 
-   end; { endif }
+   end { endif }
+
+   { Else we're linked to database.  But report if we have only a DBLink connection. }
+   else if (linkedOnlyViaDbLink) then
+   begin
+      WriteToDebugFile('WARNING:  ' + 'Designator ' + compRefDes + ':  This component is linked using only DBLink file!!  Sch symbol may differ and DB lookups are slower!');
+      WriteToSummaryFile('WARNING:  ' + 'Designator ' + compRefDes + ':  This component is linked using only DBLink file!!  Sch symbol may differ and DB lookups are slower!');
+   end; { end elsif}
       
 end; { end GetAllParametersFromDatabase() }
 
@@ -2581,7 +3564,8 @@ end; { end GetAllParametersFromDatabase() }
  ***************************************************************************}
 function CheckAllParametersVsDatabase(    document          : IDocument;
                                           component         : ISch_Component;
-                                          dbLibDoc          : IDatabaseLibDocument;
+                                          suppressFpUpdates : Boolean;
+                                          linkedToDb        : Boolean;
                                           dbParmsCache      : TStringList;
                                           dbParmsStart      : Integer;
                                           dbParmsEnd        : Integer;
@@ -2593,6 +3577,8 @@ function CheckAllParametersVsDatabase(    document          : IDocument;
 
 var
    i             : Integer;
+   compRefDes    : TDynamicString;
+   locDbKey      : TDynamicString;
    leftStr       : TDynamicString;
    rightStr      : TDynamicString;
    dbParmName    : TDynamicString;
@@ -2607,88 +3593,97 @@ begin
    { Assume success. }
    result := 0;
 
-   { Init number of footprints allowed by database record to be 0. }
-   dbNumFootprints := 0;
+   { Retrieve this component's logical refdes. }
+   compRefDes          := component.Designator.Text;
 
-   { Loop over all database parameters. }
-   WriteToDebugFile('About to loop over all database parameters...');
-   for i := dbParmsStart to dbParmsEnd do
+   { Make sure component is actually linked to database. }
+   if (linkedToDb) then
    begin
+   
+      WriteToDebugFile('About to check all database parameters for component "' + compRefDes + '"...');
 
-//    WriteToDebugFile('db entry is "' + dbParmsCache.Strings[i] + '".');
+      { Init number of footprints allowed by database record to be 0. }
+      dbNumFootprints := 0;
 
-      { Clear this variable, since it will not always be set in the following code. }
-      dbParmVisible := '';
-
-      { This entry will look something like "foo=bar".
-       So split it into a left string (before '=' char) and a right string (after '=' char). }
-      SplitStringIntoLeftAndRightWithAbort(dbParmsCache.Strings[i],
-                                           constStringEquals,
-                                           leftStr,
-                                           rightStr);
-
-      {* Look for a few keywords in the left string. *}
-
-      { Note:  The order that user parameters are declared in the db entry seems to be Name, Value, Visible:
-       "ParameterName0=Rating".
-       "ParameterValue0=50V".
-       "ParameterVisible0=True". }        
-      
-      { Look for left string to start with 'ParameterName' and if so, cache the right string. }
-      if (AnsiPos(constDbParmParameterName, leftStr) <> 0) then
+      { Loop over all database parameters. }
+      for i := dbParmsStart to dbParmsEnd do
       begin
-         dbParmName := rightStr;
-         //                  WriteToDebugFile('dbParmName is "' + dbParmName + '".');
-      end
 
-      { Look for left string to start with 'ParameterValue' and if so, cache the right string. }
-      else if (AnsiPos(constDbParmParameterValue, leftStr) <> 0) then
-      begin
-         dbParmValue := rightStr;
-         //                  WriteToDebugFile('dbParmValue is "' + dbParmValue + '".');
+         //    WriteToDebugFile('db entry is "' + dbParmsCache.Strings[i] + '".');
 
-         {* Check the schematic symbol name vs. the one called out by the database. *}
-         { See if this user parameter is equal to the magical one that we use to check whether the
-          schematic symbol in use in the SchDoc file is the one called out by the database. }
-         if (dbParmName = constDbParmShadowSymName) then
+         { Clear this variable, since it will not always be set in the following code. }
+         dbParmVisible := '';
+
+         { This entry will look something like "foo=bar".
+          So split it into a left string (before '=' char) and a right string (after '=' char). }
+         SplitStringIntoLeftAndRightWithAbort(dbParmsCache.Strings[i],
+                                              constStringEquals,
+                                              leftStr,
+                                              rightStr);
+
+         {* Look for a few keywords in the left string. *}
+
+         { Note:  The order that user parameters are declared in the db entry seems to be Name, Value, Visible:
+          "ParameterName0=Rating".
+          "ParameterValue0=50V".
+          "ParameterVisible0=True". }        
+         
+         { Look for left string to start with 'ParameterName' and if so, cache the right string. }
+         if (AnsiPos(constDbParmParameterName, leftStr) <> 0) then
          begin
+            dbParmName := rightStr;
+            //                  WriteToDebugFile('dbParmName is "' + dbParmName + '".');
+         end
 
-            { See if this is a placeholder schematic symbol. }
-            if (Copy(dbParmValue, 1, Length(constDbSchPlaceholderPrefix)) = constDbSchPlaceholderPrefix) then
+         { Look for left string to start with 'ParameterValue' and if so, cache the right string. }
+         else if (AnsiPos(constDbParmParameterValue, leftStr) <> 0) then
+         begin
+            dbParmValue := rightStr;
+            //                  WriteToDebugFile('dbParmValue is "' + dbParmValue + '".');
+
+            {* Check the schematic symbol name vs. the one called out by the database. *}
+            { See if this user parameter is equal to the magical one that we use to check whether the
+             schematic symbol in use in the SchDoc file is the one called out by the database. }
+            if (dbParmName = constDbParmShadowSymName) then
             begin
 
-               { In this case we have no need to separate symbol library name from symbol name. }
-               dbSymName := dbParmValue;
+               { See if this is a placeholder schematic symbol. }
+               { Note:  Leftmost index in a string for purposes of Copy() is 1! }
+               if (Copy(dbParmValue, 1, Length(constDbSchPlaceholderPrefix)) = constDbSchPlaceholderPrefix) then
+               begin
 
-            end { endif }
+                  { In this case we have no need to separate symbol library name from symbol name. }
+                  dbSymName := dbParmValue;
 
-            { Else this is a real schematic symbol with a library name and a symbol name. }
-            else
-            begin
+               end { endif }
+
+               { Else this is a real schematic symbol with a library name and a symbol name. }
+               else
+               begin
+                  
+                  { First we need to strip off just the symbol name from the string provided by the database, which
+                   also includes the name of the schematic library file. }
+                  { For example, database will specify "FOO_CAPS\CAP_NP", but we want to extract just the "CAP_NP" part. }
+                  position := LastDelimiter(constStringSymLibNameDelim, dbParmValue);
+
+                  { Sanity check. }
+                  if (position = 0) then
+                     MyAbort('Unable to find delimiter "' + constStringSymLibNameDelim + '" in schematic symbol name "' + dbParmValue + '" given by database.');
+
+                  { Extract just the symbol name. }
+                  dbSymName := Copy(dbParmValue, (position+1), MaxInt);
+
+               end; { endelse }
                
-               { First we need to strip off just the symbol name from the string provided by the database, which
-                also includes the name of the schematic library file. }
-               { For example, database will specify "FOO_CAPS\CAP_NP", but we want to extract just the "CAP_NP" part. }
-               position := LastDelimiter(constStringSymLibNameDelim, dbParmValue);
+               { Now check that the sch symbol desired by the database is the one actually in use for this comp. }
+               if (dbSymName = component.LibReference) then
+               begin
+                  WriteToDebugFile('Schematic symbol matches the symbol that database wants, specifically "' + dbParmValue + '".');
+               end
 
-               { Sanity check. }
-               if (position = 0) then
-                  MyAbort('Unable to find delimiter "' + constStringSymLibNameDelim + '" in schematic symbol name "' + dbParmValue + '" given by database.');
-
-               { Extract just the symbol name. }
-               dbSymName := Copy(dbParmValue, (position+1), MaxInt);
-
-            end; { endelse }
-            
-            { Now check that the sch symbol desired by the database is the one actually in use for this comp. }
-            if (dbSymName = component.LibReference) then
-            begin
-               WriteToDebugFile('Schematic symbol matches the symbol that database wants, specifically "' + dbParmValue + '".');
-            end
-
-            { Else there is a mismatch.  We dare not actually swap out the component in question, since
-             this will generally result in a new symbol with different shape, different connection points, etc.
-             So we're just going to flag this for the user and he/she needs to fix it manually. }
+               { Else there is a mismatch.  We dare not actually swap out the component in question, since
+                this will generally result in a new symbol with different shape, different connection points, etc.
+                So we're just going to flag this for the user and he/she needs to fix it manually. }
             else
             begin
                WriteToDebugFile('ERROR:    ' + component.Designator.Name + ' ' + component.Designator.Text + ':  Schematic symbol mismatch.  Database wants symbol "' + dbParmValue + '", but SchDoc is currently using symbol "' + component.LibReference + '".  You MUST fix this issue manually, since new symbol may be larger, smaller, have different connection points, etc.');
@@ -2696,72 +3691,77 @@ begin
                
             end; { endelse }
 
-         end; { endif }
+            end; { endif }
+            
+         end { elsif }
          
-      end { elsif }
-      
-      { Look for left string to start with 'ParameterVisible' and if so, check component vs. database entry. }
-      else if (AnsiPos(constDbParmParameterVisible, leftStr) <> 0) then
-      begin
-         dbParmVisible := rightStr;
-         //                  WriteToDebugFile('dbParmVisible is "' + dbParmVisible + '".');
-
-         { Check that the database parameter matches the component level parameter. }
-         CheckDbVsCompParmMatch(document,
-                                component,
-                                compSysParmsList,
-                                compUserParmsList,
-                                dbParmName,
-                                dbParmValue,
-                                dbParmVisible,
-                                {var} changedFiles);
-      end
-
-      { Look for left string to start with 'Description' and if so, act on it. }
-      else if (AnsiPos(constDbParmDescription, leftStr) <> 0) then
-      begin
-         dbDescription := rightStr;
-         WriteToDebugFile('Description is "' + dbDescription + '".');
-         
-         { Check that the database parameter matches the component level parameter. }
-         dbParmName := constDbParmDescription;
-         dbParmValue := rightStr;
-         CheckDbVsCompParmMatch(document,
-                                component,
-                                compSysParmsList,
-                                compUserParmsList,
-                                dbParmName,
-                                dbParmValue,
-                                dbParmVisible,
-                                {var} changedFiles);
-      end { elsif }
-
-      { Look for left string to start with 'ModelType' or 'ModelName'. }
-      else if ( (AnsiPos(constDbParmModelType, leftStr) <> 0) or (AnsiPos(constDbParmModelName, leftStr) <> 0) ) then
-      begin
-
-         dbParmName := leftStr;
-         dbParmValue := rightStr;
-
-         { Check that the database parameter matches the component level parameter. }
-         CheckDbVsCompParmMatch(document,
-                                component,
-                                compSysParmsList,
-                                compUserParmsList,
-                                dbParmName,
-                                dbParmValue,
-                                dbParmVisible,
-                                {var} changedFiles);
-
-         { If needed, increment the number of footprints specified in the database record for this component. }
-         if (AnsiPos(constDbParmModelType, leftStr) <> 0) then
+         { Look for left string to start with 'ParameterVisible' and if so, check component vs. database entry. }
+         else if (AnsiPos(constDbParmParameterVisible, leftStr) <> 0) then
          begin
-            dbNumFootprints := dbNumFootprints + 1;
-         end;
+            dbParmVisible := rightStr;
+            //                  WriteToDebugFile('dbParmVisible is "' + dbParmVisible + '".');
 
-      end { elsif }
+            { Check that the database parameter matches the component level parameter. }
+            CheckDbVsCompParmMatch(document,
+                                   component,
+                                   suppressFpUpdates,
+                                   compSysParmsList,
+                                   compUserParmsList,
+                                   dbParmName,
+                                   dbParmValue,
+                                   dbParmVisible,
+                                   {var} changedFiles);
+         end
 
-   end; { endfor loop over database parameters }
+         { Look for left string to start with 'Description' and if so, act on it. }
+         else if (AnsiPos(constDbParmDescription, leftStr) <> 0) then
+         begin
+            dbDescription := rightStr;
+            WriteToDebugFile('Description is "' + dbDescription + '".');
+            
+            { Check that the database parameter matches the component level parameter. }
+            dbParmName := constDbParmDescription;
+            dbParmValue := rightStr;
+            CheckDbVsCompParmMatch(document,
+                                   component,
+                                   suppressFpUpdates,
+                                   compSysParmsList,
+                                   compUserParmsList,
+                                   dbParmName,
+                                   dbParmValue,
+                                   dbParmVisible,
+                                   {var} changedFiles);
+         end { elsif }
+
+         { Look for left string to start with 'ModelType' or 'ModelName'. }
+         else if ( (AnsiPos(constDbParmModelType, leftStr) <> 0) or (AnsiPos(constDbParmModelName, leftStr) <> 0) ) then
+         begin
+
+            dbParmName := leftStr;
+            dbParmValue := rightStr;
+
+            { Check that the database parameter matches the component level parameter. }
+            CheckDbVsCompParmMatch(document,
+                                   component,
+                                   suppressFpUpdates,
+                                   compSysParmsList,
+                                   compUserParmsList,
+                                   dbParmName,
+                                   dbParmValue,
+                                   dbParmVisible,
+                                   {var} changedFiles);
+
+            { If needed, increment the number of footprints specified in the database record for this component. }
+            if (AnsiPos(constDbParmModelType, leftStr) <> 0) then
+            begin
+               dbNumFootprints := dbNumFootprints + 1;
+            end;
+
+         end { elsif }
+
+      end; { endfor loop over database parameters }
+
+   end; { endif linkedToDb }
    
 end; { end CheckAllParametersVsDatabase() }
 
@@ -2782,17 +3782,21 @@ function MaintainCurrentFootprint(    document          : IDocument,
                                       )                 : Integer;
 
 var
-   i             : Integer;
-   leftStr       : TDynamicString;
-   rightStr      : TDynamicString;
-   dbParmName    : TDynamicString;
-   dbParmValue   : TDynamicString;
-   dbParmVisible : TDynamicString;
+   i                 : Integer;
+   leftStr           : TDynamicString;
+   rightStr          : TDynamicString;
+   dbParmName        : TDynamicString;
+   dbParmValue       : TDynamicString;
+   dbParmVisible     : TDynamicString;
+   suppressFpUpdates : Boolean;
    
 begin
 
    { Assume success. }
    result := 0;
+
+   { Set this local var to safe value for our purposes here. }
+   suppressFpUpdates := False;
 
    { Init this to a defined, yet bogus value. }
    dbParmVisible := '';
@@ -2823,6 +3827,7 @@ begin
          { Check that the database parameter matches the component level parameter. }
          CheckDbVsCompParmMatch(document,
                                 component,
+                                suppressFpUpdates,
                                 compSysParmsList,
                                 compUserParmsList,
                                 dbParmName,
@@ -3043,7 +4048,7 @@ end; { end VerifyOneFootprintIsCurrent() }
 
 
 {***************************************************************************
- * function CheckComponentsVsDatabase()
+ * function CheckSchComponentsVsDatabase()
  *  Attempt to retrieve user and system parameters for all components in a sch page.
  *  Then proceed to check these parameters against the database entry for each comp.
  *
@@ -3059,16 +4064,21 @@ end; { end VerifyOneFootprintIsCurrent() }
  *  Returns logical component information indexed by logUniqueId as var parm phyCompCacheByUniqueId.
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function CheckComponentsVsDatabase(    dbLibDoc               : IDatabaseLibDocument;
-                                       dbTableList            : TStringList;
-                                       document               : IDocument,
-                                   var dbParmsCache           : TStringList;
-                                   var dbParmsCacheIndex      : TStringList;
-                                   var logCompCacheByRefDes   : TStringList;
-                                   var logCompCacheByUniqueId : TStringList;
-                                   var changedFiles           : TStringList;
-                                       )                      : Integer;
-var
+function CheckSchComponentsVsDatabase(    document                : IDocument,
+                                          locDbKeyName            : WideString;
+                                          locDbParmsByRefDesCache : TStringList;
+                                          locDbParmsByRefDesIndex : TStringList;
+                                          locDbParmsByKeyCache    : TStringList;
+                                          locDbParmsByKeyIndex    : TStringList;
+                                          dbLibDoc                : IDatabaseLibDocument;
+                                          dbTableList             : TStringList;
+                                      var dbParmsCache            : TStringList;
+                                      var dbParmsCacheIndex       : TStringList;
+                                      var logCompCacheByRefDes    : TStringList;
+                                      var logCompCacheByUniqueId  : TStringList;
+                                      var changedFiles            : TStringList;
+                                          )                       : Integer;
+var                                                           
    CurrentSch          : ISch_Sheet;
    Iterator            : ISch_Iterator;
    component           : ISch_Component;
@@ -3082,7 +4092,12 @@ var
    dbParmsStart        : Integer;
    dbParmsEnd          : Integer;
    linkedOnlyViaDbLink : Boolean;
+   suppressFpUpdates   : Boolean;
    compRefDes          : WideString;
+   locDbKey            : WideString;
+   foundInLocDb        : Boolean;
+   locDbParmsStart     : Integer;
+   locDbParmsEnd       : Integer;
                                       
 begin
 
@@ -3128,7 +4143,7 @@ begin
          { Exclude bogus components, such as title blocks. }
          if (component.Designator.Text <> '*') then 
          begin           
-         
+
             {** Get system parameters (aka models aka footprints) currently attached to this component. **}
             GetSysParametersFromComp(document,
                                      component,
@@ -3144,6 +4159,9 @@ begin
             {** Get user parameters currently attached to this component. **}
             GetUserParametersFromComp(document,
                                       component,
+                                      locDbKeyName,
+                                      {var} locDbKey,
+                                      {var} suppressFpUpdates,
                                       {var} linkedOnlyViaDbLink,
                                       {var} compDbKey,
                                       {var} compDbTable,
@@ -3151,18 +4169,27 @@ begin
                                       {var} logCompCacheByRefDes,
                                       {var} logCompCacheByUniqueId,
                                       {var} changedFiles);
+            
+            
+            {** Check all parameters for this component compared to what the local database (if any) says they should be. **}
+            CheckAllParametersVsLocalDatabase(document,
+                                              component,
+                                              locDbKeyName,
+                                              locDbKey,
+                                              locDbParmsByRefDesCache,
+                                              locDbParmsByRefDesIndex,
+                                              locDbParmsByKeyCache,
+                                              locDbParmsByKeyIndex,
+                                              compSysParmsList,
+                                              compUserParmsList,
+                                              {var} suppressFpUpdates,
+                                              {var} changedFiles);
 
             
-            {** Check user parameters for this component. **}
-            CheckUserParametersForComp(document,
-                                       component,
-                                       compUserParmsList,
-                                       {var} changedFiles);
-            
-
             {** Get all database parameters for this component. **}
             compRefDes          := component.Designator.Text;
             GetAllParametersFromDatabase(compRefDes,
+                                         linkedOnlyViaDbLink,
                                          dbLibDoc,
                                          dbTableList,
                                          compDbKey,
@@ -3174,25 +4201,33 @@ begin
                                          {var} dbParmsEnd);
 
             
+            {** Check all parameters for this component compared to what the database says they should be. **}
+            CheckAllParametersVsDatabase(document,
+                                         component,
+                                         suppressFpUpdates,
+                                         linkedToDb,
+                                         dbParmsCache,
+                                         dbParmsStart,
+                                         dbParmsEnd,
+                                         compSysParmsList,
+                                         compUserParmsList,
+                                         {var} dbNumFootprints,
+                                         {var} changedFiles);
+
+            
+            {** Check user parameters for this component. **}
+            CheckUserParametersForComp(document,
+                                       component,
+                                       compUserParmsList,
+                                       {var} changedFiles);
+
+            
             { Make sure component is successfully linked to database. }
             if (linkedToDb) then
             begin
             
-               {** Check all parameters for this component compared to what the database says they should be. **}
-               CheckAllParametersVsDatabase(document,
-                                            component,
-                                            dbLibDoc,
-                                            dbParmsCache,
-                                            dbParmsStart,
-                                            dbParmsEnd,
-                                            compSysParmsList,
-                                            compUserParmsList,
-                                            {var} dbNumFootprints,
-                                            {var} changedFiles);
-
-
                { See if we are allowed to update footprints. }
-               if (enableFootprintUpdates) then
+               if ( (enableFootprintUpdates) and (not suppressFpUpdates) ) then
                begin
                   
                   {** Maintain which footprint is marked "current", across changes to ordering of footprints and updating of same. **}
@@ -3246,7 +4281,7 @@ begin
    { Refresh the screen. }
    CurrentSch.GraphicallyInvalidate;
    
-end; { end CheckComponentsVsDatabase() }
+end; { end CheckSchComponentsVsDatabase() }
 
 
 {***************************************************************************
@@ -3561,10 +4596,11 @@ begin
 
    {* Retrieve database parameters for the varied component. *}
    GetAllParametersFromDatabase((logDesignator+'_varied'), {compRefDes,}
+                                False {linkedOnlyViaDbLink},
                                 dbLibDoc,
                                 dbTableList,
-                                varCompDbKey, {compDbKey,}
-                                logCompDbTable, {compDbTable,}
+                                varCompDbKey {compDbKey},
+                                logCompDbTable {compDbTable},
                                 {var} linkedToDb,
                                 {var} dbParmsCache,
                                 {var} dbParmsCacheIndex,
@@ -3586,10 +4622,11 @@ begin
 
       {* Retrieve database parameters for the original component. *}
       GetAllParametersFromDatabase(logDesignator, {compRefDes,}
+                                   False {linkedOnlyViaDbLink},
                                    dbLibDoc,
                                    dbTableList,
-                                   logCompDbKey, {compDbKey,}
-                                   logCompDbTable, {compDbTable,}
+                                   logCompDbKey {compDbKey},
+                                   logCompDbTable {compDbTable},
                                    {var} linkedToDb,
                                    {var} dbParmsCache,
                                    {var} dbParmsCacheIndex,
@@ -3706,7 +4743,7 @@ begin
                 This issue was reported to Altium as SupportCenter Case 00183687 and has been
                 reportedly forwarded to development for fix as Ticket #5842.  JWC 2011/12/29. }
                newProjFileStrs.Add('ParamVariation' + IntToStr(parmVarIdx) + '=ParameterName=' + constDbParmComment + '|VariantValue=' + varParmValue + '(varied)');
-               newProjFileStrs.Add('ParamDesignator' + IntToStr(parmVarIdx) + '=' + phyDesignator);
+               newProjFileStrs.Add('ParamDesignator' + IntToStr(parmVarIdx) + constStringEquals + phyDesignator);
 
                { Increment parameter variant index. }
                parmVarIdx  := parmVarIdx + 1;
@@ -3715,7 +4752,7 @@ begin
             
             { Write out info lines for this parmVariant. }
             newProjFileStrs.Add('ParamVariation' + IntToStr(parmVarIdx) + '=ParameterName=' + origParmName + '|VariantValue=' + varParmValue);
-            newProjFileStrs.Add('ParamDesignator' + IntToStr(parmVarIdx) + '=' + phyDesignator);
+            newProjFileStrs.Add('ParamDesignator' + IntToStr(parmVarIdx) + constStringEquals + phyDesignator);
 
             { Increment parameter variant index. }
             parmVarIdx  := parmVarIdx + 1;
@@ -3914,7 +4951,7 @@ begin
 
                { Write out info lines for this parmVariant. }
                newProjFileStrs.Add('ParamVariation' + IntToStr(parmVarIdx) + '=ParameterName=' + parmVariant.DM_ParameterName + '|VariantValue=' + parmVariant.DM_VariedValue);
-               newProjFileStrs.Add('ParamDesignator' + IntToStr(parmVarIdx) + '=' + compVariant.DM_PhysicalDesignator);
+               newProjFileStrs.Add('ParamDesignator' + IntToStr(parmVarIdx) + constStringEquals + compVariant.DM_PhysicalDesignator);
 
                { Increment parameter variant index. }
                parmVarIdx  := parmVarIdx + 1;
@@ -4078,6 +5115,7 @@ begin
            begin
 
               { Look for a line that begins with "[" and does not contain "[ProjectVariant" }
+              { Note:  Leftmost index in a string for purposes of Copy() is 1! }
               if ( (Copy(projFileStrs.Strings[i], 1, 1) = '[') and (AnsiPos('[ProjectVariant', projFileStrs.Strings[i]) = 0) ) then
               begin
 
@@ -4176,32 +5214,37 @@ end; { end CheckAllVariedCompsVsDatabase() }
  ***************************************************************************}
 procedure UpdateFromDatabase(foo : Integer);
 var
-   WorkSpace              : IWorkSpace;
-   Project                : IProject;
-   projectPath            : TDynamicString;
-   projOutPath            : TDynamicString;
-   projectName            : TDynamicString;
-   projLogPath            : TDynamicString;
-   scriptsPath            : TDynamicString;
-   document               : IDocument;
-   Component              : IComponent;
-   Net                    : INet;
-   i                      : Integer;
-   k                      : Integer;
-   l                      : Integer;
-   rc                     : Integer;
-   changedFiles           : TStringList;
-   dbLibDoc               : IDatabaseLibDocument;
-   dbTableList            : TStringList;
-   dbParmsCache           : TStringList;
-   dbParmsCacheIndex      : TStringList;
-   logCompCacheByRefDes   : TStringList;
-   logCompCacheByUniqueId : TStringList;
-   phyCompCacheByRefDes   : TStringList;
-   phyCompCacheByUniqueId : TStringList;
-   timestamp              : TDynamicString;
-   startTime              : TDateTime;
-   endTime                : TDateTime;
+   WorkSpace               : IWorkSpace;
+   Project                 : IProject;
+   projectPath             : TDynamicString;
+   projOutPath             : TDynamicString;
+   projectName             : TDynamicString;
+   projLogPath             : TDynamicString;
+   scriptsPath             : TDynamicString;
+   document                : IDocument;
+   Component               : IComponent;
+   Net                     : INet;
+   i                       : Integer;
+   k                       : Integer;
+   l                       : Integer;
+   rc                      : Integer;
+   changedFiles            : TStringList;
+   locDbKeyName            : WideString;
+   locDbParmsByRefDesCache : TStringList;
+   locDbParmsByRefDesIndex : TStringList;
+   locDbParmsByKeyCache    : TStringList;
+   locDbParmsByKeyIndex    : TStringList;
+   dbLibDoc                : IDatabaseLibDocument;
+   dbTableList             : TStringList;
+   dbParmsCache            : TStringList;
+   dbParmsCacheIndex       : TStringList;
+   logCompCacheByRefDes    : TStringList;
+   logCompCacheByUniqueId  : TStringList;
+   phyCompCacheByRefDes    : TStringList;
+   phyCompCacheByUniqueId  : TStringList;
+   timestamp               : TDynamicString;
+   startTime               : TDateTime;
+   endTime                 : TDateTime;
 
 begin
 
@@ -4213,9 +5256,19 @@ begin
    { Specify that we are running the XIA_Update_From_Database script. }
    whichScriptIsThis     := constWhichScriptUfd;
 
+   { Initialize local database related string lists. }
+   locDbParmsByRefDesCache := TStringList.Create;
+   locDbParmsByRefDesIndex := TStringList.Create;
+   locDbParmsByKeyCache    := TStringList.Create;
+   locDbParmsByKeyIndex    := TStringList.Create;
 
+   { I have not been able to assign a different NameValueSeparator and have it actually work.  JWC 2012/01/20. }
+//   locDbParmsByRefDesIndex.NameValueSeparator := '/';
+//   locDbParmsByKeyIndex.NameValueSeparator := '/';
+
+   
    {*** Run standard script initialization routine. ***}
-   { Note:  This code is located in XIA_Release_Manager.pas. }
+   { Note:  This code is located in XIA_Utils.pas. }
    rc := InitScript(Workspace,
                     Project,
                     scriptsPath,
@@ -4236,6 +5289,9 @@ begin
 
    { Open debug file. }
    OpenDebugFile((projectPath + constThisScriptNameNoExt + '_Debug.txt'));
+
+   { Record the wall clock time when we ended this script. }
+   startTime := Now();
    WriteToDebugFile('**Script ' + constThisScriptName + ' started at ' + DateTimeToStr(Date) + ' ' + TimeToStr(startTime));
    WriteToDebugFile('Project : ' +  Project.DM_ProjectFileName);
 
@@ -4263,12 +5319,26 @@ begin
    { Record the wall clock time when we started the real work of this script. }
    startTime := Now();
    
+   {** Initialize local database caches. **}
+   locDbParmsByRefDesCache   := TStringList.Create;
+   locDbParmsByRefDesIndex   := TStringList.Create;
+   locDbParmsByKeyCache      := TStringList.Create;
+   locDbParmsByKeyIndex      := TStringList.Create;
+
+   
    {** Initialize database info. **}
    InitDatabaseInfo(Project,
+                    projectName,
+                    projectPath,
+                    {var} locDbKeyName,
+                    {var} locDbParmsByRefDesCache,
+                    {var} locDbParmsByRefDesIndex,
+                    {var} locDbParmsByKeyCache,
+                    {var} locDbParmsByKeyIndex,
                     {var} dbLibDoc,
                     {var} dbTableList,
                     {var} changedFiles);
-
+   
 
    {** Initialize database cache. **}
    dbParmsCache      := TStringList.Create;
@@ -4302,6 +5372,8 @@ begin
    {** Loop over all logical documents in the project.... **}
    for k := 0 to Project.DM_LogicalDocumentCount - 1 do
    begin
+
+      { Retrieve a reference to next logical document. }
       document := Project.DM_LogicalDocuments(k);
       WriteToDebugFile('Examining project document ' + document.DM_FullPath);
       
@@ -4314,14 +5386,20 @@ begin
          {* Check all components in this schematic page with respect to database. *}
          { Extract component parameter information from all components in this schematic page.
           Then proceed to check against the database entry for each component. }
-         CheckComponentsVsDatabase(dbLibDoc,
-                                   dbTableList,
-                                   document,
-                                   {var} dbParmsCache,
-                                   {var} dbParmsCacheIndex,
-                                   {var} logCompCacheByRefDes,
-                                   {var} logCompCacheByUniqueId,
-                                   {var} changedFiles);
+         CheckSchComponentsVsDatabase(document,
+                                      locDbKeyName,
+                                      locDbParmsByRefDesCache,
+                                      locDbParmsByRefDesIndex,
+                                      locDbParmsByKeyCache,
+                                      locDbParmsByKeyIndex,
+                                      dbLibDoc,
+                                      dbTableList,
+                                      {var} dbParmsCache,
+                                      {var} dbParmsCacheIndex,
+                                      {var} logCompCacheByRefDes,
+                                      {var} logCompCacheByUniqueId,
+                                      {var} changedFiles);
+
       end; { endif }
 
    end; { endfor loop over all logical documents in project }
@@ -4374,6 +5452,13 @@ begin
          WriteToSummaryFile('No files were changed.  All schematic components were already synchronized to database (or else the mismatches need to be fixed manually).');
 
       end;
+
+
+   { Free local database caches. }
+   locDbParmsByRefDesCache.Free;
+   locDbParmsByRefDesIndex.Free;
+   locDbParmsByKeyCache.Free;
+   locDbParmsByKeyIndex.Free;
 
    { Free list of database tables. }
    dbTableList.Free;
@@ -4449,10 +5534,6 @@ begin
       formButtonsLabel1.Caption := 'OK.  Proceeding to run script.';
       formButtonsLabel1.Update;
 
-      { Clear text asking the user for permission to run script. }
-      UpdateFromDatabaseForm.formText22.Caption := '';
-      UpdateFromDatabaseForm.formText22.Update;
-      
       { Disable (grey out) OK and Cancel buttons on primary form. }
       formButtonOk.Enabled := False;
       formButtonOk.Update;
@@ -4569,24 +5650,30 @@ begin
    UpdateFromDatabaseForm.formText12.Caption := '7.  Update database link on any components still pointing to old DBLib files "' + constOldDbLib1FileName + '" or "' +  '"' + constOldDbLib2FileName + '".';
    UpdateFromDatabaseForm.formText13.Caption := '8.  Check that the schematic symbol in use on schematic pages matches the one specified by the database.  If not, don''t fix anything, but report the error to user.';
    UpdateFromDatabaseForm.formText14.Caption := '9.  Synchronize varied database components with respect to database.';
-   UpdateFromDatabaseForm.formText15.Caption := '';
-   
-   UpdateFromDatabaseForm.formText16.Caption := 'Preconditions:';
-   UpdateFromDatabaseForm.formText16.Font.Style := MkSet(fsBold);
-   UpdateFromDatabaseForm.formText17.Caption := '1.  All project files should have been saved prior to running this script.';
-   UpdateFromDatabaseForm.formText18.Caption := '';
-   
-   UpdateFromDatabaseForm.formText19.Caption := 'Notes:';
-   UpdateFromDatabaseForm.formText19.Font.Style := MkSet(fsBold);
-   UpdateFromDatabaseForm.formText20.Caption := '1.  This will take a minute or two to run.';
-   UpdateFromDatabaseForm.formText21.Caption := '2.  You''ll need to save modified files after I''m done.';
-   UpdateFromDatabaseForm.formText22.Caption := '3.  This script only synchronizes the schematic components to the database.';
-   UpdateFromDatabaseForm.formText23.Caption := '4.  Thus, you will still need to push changes from schematic to layout!';
-   UpdateFromDatabaseForm.formText24.Caption := '';
-   
-   UpdateFromDatabaseForm.formText25.Caption := 'Options:';
-   UpdateFromDatabaseForm.formText25.Font.Style := MkSet(fsBold);
+   UpdateFromDatabaseForm.formText15.Caption := '10.  If enabled, restore/maintain "legacy/local" database parameters as function of logical refdes.';
+   UpdateFromDatabaseForm.formText16.Caption := '11.  If enabled, restore/maintain a set of "legacy/local" database properties as a function of local database key.';
+   UpdateFromDatabaseForm.formText17.Caption := '';
 
+   UpdateFromDatabaseForm.formText18.Caption := 'Preconditions:';
+   UpdateFromDatabaseForm.formText18.Font.Style := MkSet(fsBold);
+   UpdateFromDatabaseForm.formText19.Caption := '1.  All project files should have been saved prior to running this script.';
+   UpdateFromDatabaseForm.formText20.Caption := '';
+   
+   UpdateFromDatabaseForm.formText21.Caption := 'Notes:';
+   UpdateFromDatabaseForm.formText21.Font.Style := MkSet(fsBold);
+   UpdateFromDatabaseForm.formText22.Caption := '1.  This will take a minute or two to run.';
+   UpdateFromDatabaseForm.formText23.Caption := '2.  You''ll need to save modified files after I''m done.';
+   UpdateFromDatabaseForm.formText24.Caption := '3.  This script only synchronizes the schematic components to the database.';
+   UpdateFromDatabaseForm.formText25.Caption := '4.  Thus, you will still need to push changes from schematic to layout!';
+   UpdateFromDatabaseForm.formText26.Caption := '';
+   
+   UpdateFromDatabaseForm.formText27.Caption := '';
+   UpdateFromDatabaseForm.formText28.Caption := '';
+   UpdateFromDatabaseForm.formText29.Caption := '';
+   
+   UpdateFromDatabaseForm.formText30.Caption := 'Options:';
+   UpdateFromDatabaseForm.formText30.Font.Style := MkSet(fsBold);
+   
    UpdateFromDatabaseForm.formButtonsLabel1.Caption := 'Shall I run (OK), or shall I Cancel running this script?';
    UpdateFromDatabaseForm.formButtonsLabel1.Font.Style := MkSet(fsBold);
 
