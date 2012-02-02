@@ -106,7 +106,7 @@ end;
 {..............................................................................}
 procedure TZoomToComponent.ZoomToComponentCreate(Sender: TObject);
 begin
-    IniFileName := 'C:\Users\Petar\AppData\Local\AltiumDesignerSummer09\ZoomComponentTemp.ini';
+    IniFileName := ClientAPI_SpecialFolder_AltiumApplicationData + '\ZoomComponentTemp.ini';
     ReadFromIniFile(IniFileName);   // Reading condition of checkboxes
 end;
 {..............................................................................}
