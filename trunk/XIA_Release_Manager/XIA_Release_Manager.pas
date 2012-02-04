@@ -8,6 +8,8 @@
 {***************************************************************************
  * Copyright (c) 2009-2012 XIA LLC.
  *  (Some code stolen from Altium examples and forum posts)
+ *  (Specifically, some code borrowed from forum post at http://forum.live.altium.com/#posts/189386.
+ *   This code is Copyright (c) 2011 Sencore Inc.)
  *  Author:        Jeff Collins, jcollins@xia.com
  *  Author:        $Author$
  *  Check-in Date: $Date$ 
@@ -578,7 +580,8 @@
 
 
 uses
-SysUtils;
+	SysUtils;
+    IniFiles;
 
 {***************************************************************************
  * Forward declarations for form objects.
@@ -695,7 +698,7 @@ function CreateZipFileName(    projectName  : TDynamicString;
  ***************************************************************************}
 const
 {* Declare the version and name of this script. *}
-   constScriptVersion            = 'v1.11.2_gc $Revision$';
+   constScriptVersion            = 'v1.12.0_gc $Revision$';
    constThisScriptNameNoExt      = 'XIA_Release_Manager';
    constThisScriptName           = constThisScriptNameNoExt + '.pas';
 
@@ -1043,25 +1046,6 @@ begin
 //   AddStringParameter('ObjectKind', 'WorkspaceDocuments');
 //   RunProcess('WorkspaceManager:CloseObject');
    
-
-   
-   {   IOutputer interface
-    Overview
-    The IOutputer interface represents the one of the outputs of an output job within a design project.
-    Interface Methods
-Function DM_ViewName : WideString
-Function DM_EditProperties : Boolean;
-Function DM_Generate_OutputFilesTo (OutputDirectory : WideString; ParameterOverrides : PChar) : Boolean;
-Function DM_Generate_OutputFiles (AGeneratedFilename : PChar) : Boolean;
-Procedure DM_SetPrintScale (APrintScale : Double);
-Procedure DM_SetPrintMode (AFitPrintToPage : Boolean);
-Procedure DM_SetDocumentPath (ADocPath : WideString);
-    See also
-    Workspace Manager Interfaces
-    IProject interface
-    IOutputJob interface
-    IWSM_OutputJobDocument interface}
-
 end; {end CheckForUnsavedSource() }
 
 
@@ -3082,7 +3066,9 @@ function GenerateAllOutputs(var Project                    : IProject;
                             var step                       : Integer;
                                 )                          : Integer;
 var                                                        
-   i    : Integer;
+   i                : Integer;
+   outJobFile       : TIniFile;
+   currTargetMedium : TDynamicString;
                   
 begin
 
@@ -3093,7 +3079,7 @@ begin
 
    {** Loop over all ProjectOutputs subdirs and run the specified OutJob container(s) for each. **}
    { Note:  Here we assume that all these string lists are of equal size! }
-   for i := 0 to projOutSubDirs.Count - 1 do
+   for i := 0 to (projOutSubDirs.Count - 1) do
    begin
 
       WriteToDebugFile('*Starting to generate outputs for projOutSubDir ' + IntToStr(i));
@@ -3101,6 +3087,31 @@ begin
       { See if we have been enabled to run this OutJob file at all. }
       if (StrToBool(runOutJobs.Strings[i])) then
       begin
+
+         {* See if we need to hack this OutJob file to specify our desired generate files output container. *}
+         { NOTE:  Assumes that OutJob file is currently closed! }
+        
+         {* BEGIN snippet of code that is Copyright (c) 2011 Sencore Inc.
+          Author: Michael Anderson, michael.anderson@sencore.com.
+          http://forum.live.altium.com/#posts/189386 make_scripts.zip->make.pas.  Thanks Michael!! *}
+
+         { Pretend this OutJob file is an ini file and read it into memory. }
+         outJobFile := TIniFile.Create(projectPath + outJobFiles.Strings[i]);
+         currTargetMedium := OutJobFile.ReadString('OutputGroup1', 'TargetOutputMedium', '');
+
+         { See if we need to re-specify the generate files target output container. }
+         if (currTargetMedium <> outJobGenContainers.Strings[i]) then
+         begin
+
+            { Re-write this OutJob with the desired generate files output container specfied as the target one. }
+            outJobFile.WriteString('OutputGroup1', 'TargetOutputMedium', outJobGenContainers.Strings[i]);
+            outJobFile.UpdateFile;
+         end; { endif }
+
+         { Free the ini file object. }
+         outJobFile.Free;
+         
+         {* END snippet of code that is Copyright (c) 2011 Sencore Inc. *}
 
          { Open the desired OutJob file. }
          ResetParameters;
@@ -3155,13 +3166,15 @@ begin
          if (outJobGenContainers.Strings[i] <> '') then
          begin
 
-            { Attempt to run "Generate_files_XIA_reviews" as specified in the OutJob script. }
+            { Attempt to run the desired generate output container as specified in the OutJob script. }
             { For now we have to trust that the user has enabled all desired outputs and associated
              them with this output container.  In other words, each output must still have a green dot
              and green arrow by it.  I can't figure out how to forcibly enable these in script land. }
+            { Note:  It is not possible with running in OutputBatch mode to select _which_ generate
+             output container we wish to run.  Thus, we rely on code above us to hack and rewrite
+             the OutJob file if needed before we actually open it in WorkspaceManager. }
             ResetParameters;
             AddStringParameter ('Action'                 ,'Run');
-            AddStringParameter ('OutputMedium'           ,outJobGenContainers.Strings[i]);
             AddStringParameter ('ObjectKind'             ,'OutputBatch');
 
             { See if we are allowed to generate outputs. }
@@ -3169,7 +3182,7 @@ begin
             begin
                WriteToDebugFile('*Running generate outputs container....');
                RunProcess('WorkspaceManager:GenerateReport');
-            end
+            end;
 
          end; { endif enabled to run generate outputs output container. }
 
@@ -3879,7 +3892,7 @@ end; { end ExcludeUnfixedIpc356() }
 
 {***************************************************************************
  * function AddAllOutputsToSvn()
- *  Silently add all ECO log files in ProjectLogs/ directory to svn.
+ *  First, silently add all ECO log files in ProjectLogs/ directory to svn.
  *  Add all generated output files and all zipfiles we just created to svn.
  *  Don't check them in yet.
  *
@@ -3997,18 +4010,20 @@ end; { end AddAllOutputsToSvn() }
  *  Returns svn rev number from this checkin as var parm newRevNum.
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function CheckinGeneratedFiles(    Project     : IProject;
-                                   scriptsPath : TDynamicString;
-                                   projectPath : TDynamicString;
-                                   projLogPath : TString;
-                                   projOutPath : TString;
-                                   commitMsg   : TString;
-                               var newRevNum   : TDynamicString;
-                                   )           : Integer;
+function CheckinGeneratedFiles(    Project        : IProject;
+                                   scriptsPath    : TDynamicString;
+                                   projectPath    : TDynamicString;
+                                   projLogPath    : TString;
+                                   projOutPath    : TString;
+                                   outJobFiles : TStringList;
+                                   commitMsg      : TString;
+                               var newRevNum      : TDynamicString;
+                                   )              : Integer;
 var
    rc          : Integer;
    projectFile : TString;
    parms       : TStringList;
+   i           : Integer;
 
 begin
 
@@ -4025,16 +4040,25 @@ begin
    parms.Add('-m');
    parms.Add(commitMsg);
       
-   { Attempt to checkin project file, since this script may have made changes to it. }
+   {* Attempt to checkin project file, since this script may have made changes to it. *}
    parms.Add(projectFile);
+
+   {* Attempt to checkin OutJob files, since this script may have made changes to them. *}
+   for i := 0 to (outJobFiles.Count - 1) do
+   begin
+
+      { Add this OutJob (with full path) to list of files to checkin. }
+      parms.Add(projectPath + outJobFiles.Strings[i]);
+
+   end; { endfor }
    
-   { Attempt to checkin all new / changed files in ProjectLogs directory. }
+   {* Attempt to checkin all new / changed files in ProjectLogs directory. *}
    parms.Add(projLogPath);
    
-   { Attempt to checkin all new / changed files in ProjectOutputs directory. }
+   {* Attempt to checkin all new / changed files in ProjectOutputs directory. *}
    parms.Add(projOutPath);
 
-   { Issue command to checkin generated files, and ask to look for "Committed revision" in svn output. }
+   {* Issue command to checkin generated files, and ask to look for "Committed revision" in svn output. *}
    IssueSvnCommandLookForOutputLine(scriptsPath,
                                     projectPath,
                                     constSvnCmdCommit,
@@ -5062,7 +5086,7 @@ begin
          
          { Set commit message. }
          parms.Add('-m');
-         parms.Add('Performing server side copy-with-commit to copy snapshot of ' + constSvnDirTrunk + '/ working directory to new subdir in ' + constSvnDirTags + '/.  This is an automated checkin performed by script ' + constThisScriptName + '.');
+         parms.Add('Automated checkin to perform server side copy-with-commit to copy snapshot of ' + constSvnDirTrunk + '/ working directory to new subdir in ' + constSvnDirTags + '/.  Performed by script ' + constThisScriptName + '.');
          
          {** Issue svn server side copy-with-commit command to copy project snapshot to new subdir in tags/. **}
          { Make sure we're not in a debugging mode where we aren't allowed to do the svn commits. }
@@ -5460,6 +5484,7 @@ begin
                             projectPath,
                             projLogPath,
                             projOutPath,
+                            outJobFiles,
                             'Automated checkin of Altium generated output files, performed by script ' + constThisScriptName + '.',
                             {var} bomRevNum);
       WriteToSummaryFile('1-' + IntToStr(StepPlusPlus(step)) + '.  Committed all outputs in ProjectOutputs subdirectories to svn.');
@@ -5491,6 +5516,7 @@ begin
                             projectPath,
                             projLogPath,
                             projOutPath,
+                            outJobFiles,
                             'Automated checkin of .xls BOM files with properties disabled, performed by script ' + constThisScriptName + '.',
                             {var} foo);
       WriteToSummaryFile('1-' + IntToStr(StepPlusPlus(step)) + '.  Re-committed .xls BOM file(s) to svn.');
@@ -5667,7 +5693,7 @@ begin
       {*** Commit new subdirs in releases/ and tags/, as well as any copied zipfiles, to svn. ***}
       { Set commit message. }
       newSubDirs.Add('-m');
-      newSubDirs.Add('Preparing new subdirs in ' + constSvnDirReleases + '/ and ' + constSvnDirTags + '/ and copying zipfile(s) to said new subdir(s) in ' + constSvnDirReleases +'/.  This is an automated checkin performed by script ' + constThisScriptName + '.');
+      newSubDirs.Add('Automated checkin of new subdirs in ' + constSvnDirReleases + '/ and ' + constSvnDirTags + '/ and copying zipfile(s) to said new subdir(s) in ' + constSvnDirReleases +'/.  Performed by script ' + constThisScriptName + '.');
       
       { Make sure we're not in a debugging mode where we aren't allowed to do the svn commits. }
       if (enableSvnCommits = True) then

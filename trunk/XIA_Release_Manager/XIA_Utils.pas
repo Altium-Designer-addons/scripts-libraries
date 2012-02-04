@@ -8,9 +8,9 @@
  * Copyright (c) 2009-2012 XIA LLC.
  *  (Some code stolen from Altium examples and forum posts)
  *  Author:        Jeff Collins, jcollins@xia.com
- *  Author:        $Author: jcollins $
- *  Check-in Date: $Date: 2012-01-27 14:38:48 -0800 (Fri, 27 Jan 2012) $ 
- *  Version #:     $Revision: 21748 $
+ *  Author:        $Author$
+ *  Check-in Date: $Date$ 
+ *  Version #:     $Revision$
  *  
  * Redistribution and use in source and binary forms, 
  * with or without modification, are permitted provided 
@@ -92,7 +92,7 @@ procedure MyAbort(msg : TDynamicString); forward;
  ***************************************************************************}
 const
 {* Declare the version and name of this script. *}
-   constScriptVersion            = 'v1.1.5_gc $Revision: 21748 $';
+   constScriptVersion            = 'v1.1.7_gc $Revision$';
    constThisScriptNameNoExt      = 'XIA_Utils';
    constThisScriptName           = constThisScriptNameNoExt + '.pas';
 
@@ -226,6 +226,7 @@ const
 
 {* Setup constants for subdirs that Altium will decide to create within our ProjectOutputs/ subdirs. *}
    constSubdirOdb                = 'odb';         { "Working" odb/ subdir within XRM5_Fabrication/. }
+   constSubdirPreviews           = '__Previews/'; { Annoying new subdir being created as of AD10.818.23272. }
    
 {* Setup constants for some of the svn commands that we will issue, to avoid having the code full of magic numbers (er, magic strings). *}
    constSvnCmdPropSetKeywords    = 'propset svn:keywords "Date Rev Author Id"';
@@ -358,7 +359,7 @@ begin
    outJobSetSvnKeywordsOnBoms.Add(BoolToStr(False));
    outJobDoFixIpc356Netlist.Add(BoolToStr(False));
    deleteExcludes.Add('*.zip');                                 { Exclude previously created zipfiles. }
-   svnAddExcludes.Add('');
+   svnAddExcludes.Add(constSubdirPreviews);                     { Exclude new __Previews/ subdir from being added to svn. }
    zipDoCheckForExisting.Add(BoolToStr(False));
    zipExcludes.Add('*.zip');
    zipFindAddlFiles.Add('');                                    { No additional outputs to find to include in this zipfile. }
@@ -377,7 +378,7 @@ begin
    outJobSetSvnKeywordsOnBoms.Add(BoolToStr(False));
    outJobDoFixIpc356Netlist.Add(BoolToStr(False));
    deleteExcludes.Add('*.zip');                                 { Exclude previously created zipfiles. }
-   svnAddExcludes.Add('');
+   svnAddExcludes.Add(constSubdirPreviews);                     { Exclude new __Previews/ subdir from being added to svn. }
    zipDoCheckForExisting.Add(BoolToStr(False));
    zipExcludes.Add('*.zip');
    zipFindAddlFiles.Add('');                                    { No additional outputs to find to include in this zipfile. }
@@ -396,7 +397,7 @@ begin
    outJobSetSvnKeywordsOnBoms.Add(BoolToStr(False));
    outJobDoFixIpc356Netlist.Add(BoolToStr(False));
    deleteExcludes.Add('*.zip');                                 { Exclude previously created zipfiles. }
-   svnAddExcludes.Add('');
+   svnAddExcludes.Add(constSubdirPreviews);                     { Exclude new __Previews/ subdir from being added to svn. }
    zipDoCheckForExisting.Add(BoolToStr(False));
    zipExcludes.Add('*.zip');
    zipFindAddlFiles.Add('');                                    { No additional outputs to find to include in this zipfile. }
@@ -415,7 +416,7 @@ begin
    outJobSetSvnKeywordsOnBoms.Add(BoolToStr(True));             { Flag that we should set svn prop keywords on generated BOM files in this subdir. }
    outJobDoFixIpc356Netlist.Add(BoolToStr(False));
    deleteExcludes.Add('*.zip');                                 { Exclude previously created zipfiles. }
-   svnAddExcludes.Add('');
+   svnAddExcludes.Add(constSubdirPreviews);                     { Exclude new __Previews/ subdir from being added to svn. }
    zipDoCheckForExisting.Add(BoolToStr(False));
    zipExcludes.Add('"Status Report.Txt"|*.ZIP');                 { Specific filenames and/or specific file extensions to exclude from zipfile.  Case insensitive.  Must quote protect anything containing a space char!}
    zipFindAddlFiles.Add('');                                    { No additional outputs to find to include in this zipfile. }
@@ -438,7 +439,7 @@ begin
    outJobSetSvnKeywordsOnBoms.Add(BoolToStr(False));
    outJobDoFixIpc356Netlist.Add(BoolToStr(True));               { Flag that we should fixup the IPC-356 netlist after running this OutJob file. }
    deleteExcludes.Add('*_*.zip');                               { Exclude previously created fabrication release zipfiles (that include "_" char in filename). }
-   svnAddExcludes.Add(constSubdirOdb);                          { Exclude Altium-created odb/ subdir from being added to svn. }
+   svnAddExcludes.Add(constSubdirOdb+'|'+constSubdirPreviews);  { Exclude Altium-created odb/ subdir and new __Previews/ subdir from being added to svn. }
    zipDoCheckForExisting.Add(BoolToStr(True));                  { Check for existing zipfiles with same version number (though possibly different svn rev #). }
    zipExcludes.Add('"Status Report.Txt"|*.REP|*.APR_LIB|*.RUL|*_*.ZIP');{ Specific filenames and/or specific file extensions to exclude from zipfile.  Case insensitive.  Must quote protect anything containing a space char!}
    zipFindAddlFiles.Add('');                                    { No additional outputs to find to include in this zipfile. }
@@ -458,7 +459,7 @@ begin
    outJobSetSvnKeywordsOnBoms.Add(BoolToStr(False));
    outJobDoFixIpc356Netlist.Add(BoolToStr(False));
    deleteExcludes.Add('*_*.zip');                               { Exclude previously created assembly release zipfiles (that include "_" char in filename). }
-   svnAddExcludes.Add('');
+   svnAddExcludes.Add(constSubdirPreviews);                     { Exclude new __Previews/ subdir from being added to svn. }
    zipDoCheckForExisting.Add(BoolToStr(True));                  { Check for existing zipfiles with same version number (though possibly different svn rev #). }
    zipExcludes.Add('"Status Report.Txt"|*.REP|*.APR_LIB|*.RUL|*_*.ZIP');{ Specific filenames and/or specific file extensions to exclude from zipfile.  Case insensitive.  Must quote protect anything containing a space char!}
    zipFindAddlFiles.Add(constPurchasingSubDir + '|' + '*.xls'); { Specify that we should also include all *.xls files in purchasing/ subdir. }
