@@ -10,9 +10,9 @@
  *  (Sorting code stolen from Netlister.pas script from Altium 9 installation.)
  *  (Some code stolen from Altium examples and forum posts)
  *  Author:        Jeff Collins, jcollins@xia.com
- *  Author:        $Author: jcollins $
- *  Check-in Date: $Date: 2012-01-13 12:06:22 -0800 (Fri, 13 Jan 2012) $ 
- *  Version #:     $Revision: 21619 $
+ *  Author:        $Author$
+ *  Check-in Date: $Date$ 
+ *  Version #:     $Revision$
  *  
  * Redistribution and use in source and binary forms, 
  * with or without modification, are permitted provided 
@@ -88,7 +88,7 @@ SysUtils;
  ***************************************************************************}
 const
 {* Declare the version and name of this script. *}
-   constScriptVersion          = 'v1.2.1_gc $Revision: 21619 $';
+   constScriptVersion          = 'v1.2.1_gc $Revision$';
    constThisScriptNameNoExt    = 'XIA_Generate_Sorted_Multiwire_Netlist';
    constThisScriptName         = constThisScriptNameNoExt + '.pas';
 {}
