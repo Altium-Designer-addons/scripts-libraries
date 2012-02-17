@@ -52,12 +52,12 @@ object FormAutoSTEPplacer: TFormAutoSTEPplacer
     Width = 40
     Height = 21
     Style = csDropDownList
-    ItemIndex = 1
+    ItemIndex = 0
     TabOrder = 1
     Text = 'Y'
     Items.Strings = (
-      'Z'
-      'Y')
+      'Y'
+      'Z')
   end
   object ButtonCancel: TButton
     Left = 216
