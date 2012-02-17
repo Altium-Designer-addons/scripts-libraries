@@ -6,6 +6,10 @@
 {           requaire that tracks and arcs have same connection point. They     }
 {           only have to be connected.                                         }
 {                                                                              }
+{           Changelog:                                                         }
+{           - v1.0 - Initial Release                                           }
+{           - v1.1 - Made objects appear in inspector panel                    }
+{                                                                              }
 { Created by:    Petar Perisin                                                 }
 {..............................................................................}
 
@@ -74,10 +78,10 @@ begin
    while True do
    begin
 
+      Board.ViewManager_FullUpdate;
       Prim := Board.GetObjectAtCursor(MkSet(eTrackObject, eArcObject), AllLayers, 'Choose Track or Arc');
 
-      if Prim = nil then exit;
-
+      if Prim = nil then break;
       Prim.Selected := True;
       Lista.AddObject(Lista.Count + 1, Prim);
 
