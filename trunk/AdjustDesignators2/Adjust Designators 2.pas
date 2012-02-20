@@ -523,7 +523,7 @@ begin
                   MechDesignator := TrackIteratorHandle.FirstPCBObject;
                   while (MechDesignator <> Nil) Do
                   begin                                                        //                     \/ This function returns just string of MechDesignator.Text
-                     if (((MechDesignator.Layer = Layer3) or (MechDesignator.Layer = Layer4)) and (GetFirstLayerName(MechDesignator.Text) = '.Designator' )) then
+                     if (((MechDesignator.Layer = Layer3) or (MechDesignator.Layer = Layer4)) and ((GetFirstLayerName(MechDesignator.Text) = '.Designator' ) or (MechDesignator.Text = Designator.Text))) then
                      begin
                         MechDesignator.Size       := Designator.Size;
                         MechDesignator.UseTTFonts := Designator.UseTTFonts;
