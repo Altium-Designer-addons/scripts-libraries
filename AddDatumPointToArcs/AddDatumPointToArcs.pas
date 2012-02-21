@@ -15,11 +15,12 @@ begin
       if Board.SelectecObject[i].ObjectId = eArcObject then
       begin
          Arc := Board.SelectecObject[i];
+         Tr1 := PCBServer.PCBObjectFactory(eTrackObject, eNoDimension, eCreate_Default);
+         Tr1.Width := Arc.LineWidth;
+         Tr1.Layer := Arc.Layer;
 
          if (Arc.StartAngle = 0) and (Arc.EndAngle = 360) then
          begin
-            Tr1 := PCBServer.PCBObjectFactory(eTrackObject, eNoDimension, eCreate_Default);
-            Tr1.Width := Arc.LineWidth;
             Tr1.x1 := Arc.XCenter;
             Tr1.y1 := Arc.YCenter;
             Tr1.x2 := Arc.XCenter + Arc.Radius * 1.3;
@@ -43,8 +44,6 @@ begin
          end
          else
          begin
-            Tr1 := PCBServer.PCBObjectFactory(eTrackObject, eNoDimension, eCreate_Default);
-            Tr1.Width := Arc.LineWidth;
             Tr1.x1 := Arc.XCenter;
             Tr1.y1 := Arc.YCenter;
             Tr1.x2 := Arc.XCenter + Arc.Radius * 1.3 * cos((Arc.StartAngle + 0.5 * (Arc.EndAngle - Arc.StartAngle)) * pi / 180);
@@ -52,4 +51,5 @@ begin
             Board.AddPCBObject(Tr1);
          end;
       end;
+   Board.ViewManager_FullUpdate;
 end;
