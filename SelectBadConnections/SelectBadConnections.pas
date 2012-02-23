@@ -78,7 +78,7 @@ begin
 
    While Prim1 <> nil do
    begin
-      if Prim1.TearDrop then
+      if Prim1.TearDrop or Prim1.InComponent or Prim1.InCoordinate or Prim1.InDimension or Prim1.InPolygon then
          Found := True
       else if (Prim1.ObjectId = eArcObject) and (Prim1.StartAngle = 0) and (Prim1.EndAngle = 360) then
          Found := True
@@ -122,7 +122,7 @@ begin
          Prim2 := SIter.FirstPCBObject;
          While (Prim2 <> nil) and not Found do
          begin
-            if Prim1.I_ObjectAddress <> Prim2.I_ObjectAddress then
+            if (Prim1.I_ObjectAddress <> Prim2.I_ObjectAddress) and not (Prim2.TearDrop or Prim2.InComponent or Prim2.InCoordinate or Prim2.InDimension or Prim2.InPolygon) then
             begin
                if (Prim2.ObjectId = eTrackObject) and (Prim2.Layer = Prim1.Layer) then
                begin
