@@ -78,7 +78,9 @@ begin
 
    While Prim1 <> nil do
    begin
-      if (Prim1.ObjectId = eArcObject) and (Prim1.StartAngle = 0) and (Prim1.EndAngle = 360) then
+      if Prim1.TearDrop then
+         Found := True
+      else if (Prim1.ObjectId = eArcObject) and (Prim1.StartAngle = 0) and (Prim1.EndAngle = 360) then
          Found := True
       else
       for i := 1 to 2 do
