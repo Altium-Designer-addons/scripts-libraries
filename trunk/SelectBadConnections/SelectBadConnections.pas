@@ -69,6 +69,9 @@ begin
    else
       Tolerance := MMsToCoord(StrToFloat(TempString));
 
+   ResetParameters;
+   AddStringParameter('Scope','All');
+   RunProcess('PCB:DeSelect');
 
    BIter := Board.BoardIterator_Create;
    BIter.AddFilter_ObjectSet(MkSet(eTrackObject, eArcObject));
@@ -122,7 +125,7 @@ begin
          Prim2 := SIter.FirstPCBObject;
          While (Prim2 <> nil) and not Found do
          begin
-            if (Prim1.I_ObjectAddress <> Prim2.I_ObjectAddress) and not (Prim2.TearDrop or Prim2.InComponent or Prim2.InCoordinate or Prim2.InDimension or Prim2.InPolygon) then
+            if (Prim1.I_ObjectAddress <> Prim2.I_ObjectAddress) and not (Prim2.TearDrop or Prim2.InCoordinate or Prim2.InDimension or Prim2.InPolygon) then
             begin
                if (Prim2.ObjectId = eTrackObject) and (Prim2.Layer = Prim1.Layer) then
                begin
