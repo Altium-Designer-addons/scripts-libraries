@@ -40,7 +40,7 @@ end;
 
 function CheckWithTolerance(X1, Y1, X2, Y2) : Boolean;
 begin
-   if (Abs(X1 - X2) <= Tolerance) and(Abs(Y1 - Y2) <= Tolerance) then
+   if (Abs(X1 - X2) <= Tolerance) and (Abs(Y1 - Y2) <= Tolerance) then
       Result := True
    else
       Result := False;
@@ -81,7 +81,7 @@ begin
 
    While Prim1 <> nil do
    begin
-      if Prim1.TearDrop or Prim1.InComponent or Prim1.InCoordinate or Prim1.InDimension or Prim1.InPolygon then
+      if Prim1.TearDrop or Prim1.InComponent or not Prim1.InNet then
          Found := True
       else if (Prim1.ObjectId = eArcObject) and (Prim1.StartAngle = 0) and (Prim1.EndAngle = 360) then
          Found := True
@@ -118,34 +118,46 @@ begin
          SIter := Board.SpatialIterator_Create;
          SIter.AddFilter_ObjectSet(MkSet(eTrackObject, eArcObject, ePadObject, eViaObject));
          SIter.AddFilter_LayerSet(MkSet(Prim1.Layer, String2Layer('Multi Layer')));
-         SIter.AddFilter_Area(X - 1, Y - 1, X + 1, Y + 1);
+         SIter.AddFilter_Area(X - Tolerance, Y - Tolerance, X + Tolerance, Y + Tolerance);
 
          Found := False;
 
          Prim2 := SIter.FirstPCBObject;
          While (Prim2 <> nil) and not Found do
          begin
-            if (Prim1.I_ObjectAddress <> Prim2.I_ObjectAddress) and not (Prim2.TearDrop or Prim2.InCoordinate or Prim2.InDimension or Prim2.InPolygon) then
+            if Prim2.InNet and (Prim2.Net.Name = Prim1.Net.Name) and (Prim1.I_ObjectAddress <> Prim2.I_ObjectAddress) and not Prim2.TearDrop then
             begin
                if (Prim2.ObjectId = eTrackObject) and (Prim2.Layer = Prim1.Layer) then
                begin
                   if CheckWithTolerance(Prim2.x1, Prim2.y1, X, Y) or CheckWithTolerance(Prim2.x2, Prim2.y2, X, Y) then
+                  begin
                      Found := True;
+                     break;
+                  end;
                end
                else if (Prim2.ObjectId = eArcObject) and (Prim2.Layer = Prim1.Layer) then
                begin
                   if CheckWithTolerance(Prim2.StartX, Prim2.StartY, X, Y) or CheckWithTolerance(Prim2.EndX, Prim2.EndY, X, Y) then
+                  begin
                      Found := True;
+                     break;
+                  end;
                end
                else if Prim2.ObjectId = ePadObject then
                begin
                   if ((Prim2.Layer = String2Layer('Multi Layer')) or (Prim2.Layer = Prim1.Layer)) and CheckWithTolerance(Prim2.x, Prim2.y, X, Y) then
+                  begin
                      Found := True;
+                     break;
+                  end;
                end
                else if Prim2.ObjectId = eViaObject then
                begin
                   if Prim2.IntersectLayer(Prim1.Layer) and CheckWithTolerance(Prim2.x, Prim2.y, X, Y) then
+                  begin
                      Found := True;
+                     break;
+                  end;
                end;
             end;
 
