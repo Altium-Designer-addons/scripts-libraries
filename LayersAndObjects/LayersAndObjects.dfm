@@ -2,7 +2,7 @@ object FormLayersPanel: TFormLayersPanel
   Left = 0
   Top = 0
   Caption = 'Layers & Objects'
-  ClientHeight = 742
+  ClientHeight = 747
   ClientWidth = 810
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -11,6 +11,7 @@ object FormLayersPanel: TFormLayersPanel
   Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
+  OnActivate = FormLayersPanelActivate
   OnClose = FormLayersPanelClose
   OnResize = FormLayersPanelResize
   OnShow = FormLayersPanelShow
@@ -1119,6 +1120,32 @@ object FormLayersPanel: TFormLayersPanel
       TabOrder = 51
       Visible = False
       OnClick = CBPlanesClick
+    end
+    object CBUnbold: TCheckBox
+      Left = 64
+      Top = 24
+      Width = 64
+      Height = 17
+      Caption = 'CBUnbold'
+      Enabled = False
+      TabOrder = 52
+      Visible = False
+    end
+    object CBBold: TCheckBox
+      Left = 8
+      Top = 24
+      Width = 56
+      Height = 17
+      Caption = 'CBBold'
+      Enabled = False
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -11
+      Font.Name = 'Tahoma'
+      Font.Style = [fsBold]
+      ParentFont = False
+      TabOrder = 53
+      Visible = False
     end
   end
   object GroupBoxMech: TGroupBox
@@ -2477,10 +2504,10 @@ object FormLayersPanel: TFormLayersPanel
       Top = 26
       Width = 57
       Height = 17
+      AllowGrayed = True
       BiDiMode = bdRightToLeft
       Caption = 'Visible'
       Checked = True
-      Enabled = False
       ParentBiDiMode = False
       State = cbChecked
       TabOrder = 13

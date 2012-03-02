@@ -55,7 +55,7 @@ Variant=[No Variations]
 GenerateBOM=0
 
 [Generic_ScriptingSystem]
-StartProcName=LayersPanel.pas>
+StartProcName=LayersAndObjects.pas>Start
 
 [OutputGroup1]
 Name=Netlist Outputs
