@@ -1,5 +1,5 @@
 {..............................................................................}
-{ Summary   This scripts can be used to show or hide layers.                   }
+{ Summary   This scripts can be used to show or hide layers and objects.       }
 {                                                                              }
 {           it shows all layers in a form and by clicking you turn them on or  }
 {           off. This is easier to use than "Board Layers and colors" dialog   }
@@ -22,6 +22,16 @@
 {           - "Visible" checkbox allows you to disable the group from view     }
 {             without changing checkbox values                                 }
 {           - Click on Layer Color makes that Layer Current Layer              }
+{           - Current layer has bolded checkbox                                }
+{                                                                              }
+{           Script was updated by allowing user to modify objects view in      }
+{           Final, Draft and hidden forms.                                     }
+{                                                                              }
+{           Also, Script was modified to enable it to work when documents are  }
+{           switched, just like a panel works. So you can on-the-fly change    }
+{           between PCB documents, or other documents too (other documents     }
+{           will have empty panel, but problems should not appear) and panel   }
+{           will refresh.                                                      }
 {                                                                              }
 {                                                                              }
 { Created by:    Petar Perisin                                                 }
@@ -39,6 +49,7 @@ var
    Refresh          : Boolean;
    UpdateFromCB     : Boolean;
    SwitchGrayAndOff : Boolean;
+   CurrentLayerCB   : TCheckBox;
 
 function Int2CBCopper(i : Integer) : TCheckBox;
 begin
@@ -226,6 +237,7 @@ end;
 
 Function Str2CBOther(Name : String): TCheckBox;
 begin
+   Result := nil;
    Case Name of
       'Top Overlay'        : Result := CBTopOverlay;
       'Bottom Overlay'     : Result := CBBottomOverlay;
@@ -287,7 +299,44 @@ begin
    else if not Board.LayerIsDisplayed[String2Layer('Multi Layer')]        then Result := True;
 end;
 
-procedure TFormLayersPanel.FormLayersPanelShow(Sender: TObject);
+Procedure HideLayerCB(dummy : String);
+var
+   i  : Integer;
+   CB : TCheckBox;
+   Shape : TShape;
+begin
+   for i := 1 to 48 do
+   begin
+      CB := Int2CBCopper(i);
+      if CB.Visible then
+      begin
+         CB.Visible := False;
+         CB.Enabled := False;
+         Shape := Int2ShapeCopper(i);
+         Shape.Visible := False;
+         Shape.Enabled := False;
+      end
+      else
+         break;
+   end;
+
+   for i := 1 to 32 do
+   begin
+      CB := Int2CBMech(i);
+      if CB.Visible then
+      begin
+         CB.Visible := False;
+         CB.Enabled := False;
+         Shape := Int2ShapeMech(i);
+         Shape.Visible := False;
+         Shape.Enabled := False;
+      end
+      else
+         break;
+   end;
+end;
+
+procedure RefreshPanel(dummy : String);
 var
    LayerObj         : IPCB_LayerObject;
    MechLayer        : IPCB_MechanicalLayer;
@@ -313,232 +362,304 @@ begin
    // On Show We have to set up all checkboxes based on current view,
    // number of mech and copper layers, etc...
    Board := PCBServer.GetCurrentPCBBoard;
-   TheLayerStack := Board.LayerStack;
 
-   Enabled         := False;
-   Disabled        := False;
-   SignalsEnabled  := False;
-   SignalsDisabled := False;
-   PlanesEnabled   := False;
-   PlanesDisabled  := False;
-   Signals         := LayerSet.SignalLayers;
-
-   GroupBoxObjects.Top  := 16;
-   GroupBoxObjects.Left := 16;
-
-   GroupBoxCopper.Top := GroupBoxObjects.Top + GroupBoxObjects.Height + 10;
-   GroupBoxCopper.Left := GroupBoxObjects.Left;
-
-   if TheLayerStack.LayersInStackCount <> TheLayerStack.SignalLayerCount then
+   GroupBoxObjects.Visible := False;
+   GroupBoxCopper.Visible  := False;
+   GroupBoxMech.Visible    := False;
+   GroupBoxOther.Visible   := False;
+   if Board = nil then
    begin
-      CBSignals.Enabled := True;
-      CBSignals.Visible := True;
-      CBPlanes.Enabled  := True;
-      CBPlanes.Visible  := True;
-   end;
+      GroupBoxObjects.Enabled := False;
+      GroupBoxCopper.Enabled  := False;
+      GroupBoxMech.Enabled    := False;
+      GroupBoxOther.Enabled   := False;
 
-   // Copper
-   LayerObj := TheLayerStack.FirstLayer;
-   i := 1;
-   while (LayerObj <> nil) and (i <= 32) do
-   begin
-      if LayerObj.IsDisplayed[Board] then Enabled := True
-      else                                Disabled := True;
-
-      if Signals.Contains(LayerObj.V7_LayerID) then
-      begin
-         if LayerObj.IsDisplayed[Board] then SignalsEnabled := True
-         else                                SignalsDisabled := True;
-      end
-      else
-      begin
-         if LayerObj.IsDisplayed[Board] then PlanesEnabled := True
-         else                                PlanesDisabled := True;
-      end;
-
-      GetCB := Int2CBCopper(i);
-      GetCB.Visible := True;
-      GetCB.Enabled := True;
-      GetCB.Caption := LayerObj.Name;
-      GetCB.Width := FormLayersPanel.Canvas.TextWidth(LayerObj.Name) + 16;
-      GetCB.Checked := LayerObj.IsDisplayed[Board];
-
-      Shape := Int2ShapeCopper(i);
-      Shape.Visible := True;
-      Shape.Enabled := True;
-      Shape.Brush.Color := Board.LayerColor[LayerObj.LayerID];
-
-      Inc(i);
-      LayerObj := TheLayerStack.NextLayer(LayerObj);
-   end;
-
-   if      Enabled  = False        then CBCopperAll.Checked := False
-   else if Disabled = False        then CBCopperAll.Checked := True
-   else                                 CBCopperAll.State   := cbGrayed;
-
-   if      SignalsEnabled  = False then CBSignals.Checked := False
-   else if SignalsDisabled = False then CBSignals.Checked := True
-   else                                 CBSignals.State   := cbGrayed;
-
-   if      PlanesEnabled  = False  then CBPlanes.Checked := False
-   else if PlanesDisabled = False  then CBPlanes.Checked := True
-   else                                 CBPlanes.State   := cbGrayed;
-
-
-   // Now we need to modify size of copper group,
-   // and mech groupbox position
-
-   GetCB := Int2CBCopper(i);
-   GroupBoxCopper.Height := GetCB.Top + 10;
-   GroupBoxMech.Left := GroupBoxCopper.Left;
-   GroupBoxMech.Top  := GroupBoxCopper.Top + GroupBoxCopper.Height + 10;
-
-   Enabled  := False;
-   Disabled := False;
-
-   UnPairedEnabled  := False;
-   UnPairedDisabled := False;
-   PairedEnabled    := False;
-   PairedDisabled   := False;
-
-   j := 1;
-   for i := 1 to 32 do
-   begin
-      MechLayer := TheLayerStack.LayerObject_V7[ILayer.MechanicalLayer(i)];
-
-      if MechLayer.MechanicalLayerEnabled then
-      begin
-
-         if MechLayer.LinkToSheet = False then
-         begin
-            if MechLayer.IsDisplayed[Board] then Enabled := True
-            else                                 Disabled := True;
-
-            if Board.MechanicalPairs.LayerUsed(ILayer.MechanicalLayer(j)) then
-            begin
-               if MechLayer.IsDisplayed[Board] then PairedEnabled := True
-               else                                 PairedDisabled := True;
-            end
-            else
-            begin
-               if MechLayer.IsDisplayed[Board] then UnPairedEnabled := True
-               else                                 UnPairedDisabled := True;
-            end;
-         end;
-
-         GetCB := Int2CBMech(j);
-         GetCB.Visible := True;
-         if MechLayer.LinkToSheet = False then
-            GetCB.Enabled := True;
-         GetCB.Width := FormLayersPanel.Canvas.TextWidth(MechLayer.Name) + 16;
-         GetCb.Caption := MechLayer.Name;
-         GetCB.Checked := MechLayer.IsDisplayed[Board];
-
-         Shape := Int2ShapeMech(j);
-         Shape.Visible := True;
-         Shape.Enabled := True;
-
-         Shape.Brush.Color := PCBServer.SystemOptions.LayerColors[MechLayer.V7_LayerID];
-
-         inc(j);
-      end;
-   end;
-
-   if      Enabled  = False then CBMechAll.Checked := False
-   else if Disabled = False then CBMechAll.Checked := True
-   else                          CBMechAll.State   := cbGrayed;
-     
-   if      PairedEnabled  = False then CBPaired.Checked := False
-   else if PairedDisabled = False then CBPaired.Checked := True
-   else                                CBPaired.State   := cbGrayed;
-
-   if      UnPairedEnabled  = False then CBUnPaired.Checked := False
-   else if UnPairedDisabled = False then CBUnPaired.Checked := True
-   else                                  CBUnPaired.State   := cbGrayed;
-
-
-   // Now we need to modify size of mech group,
-   // and other groupbox position
-
-   if j = 1 then
-      GroupBoxMech.Height := 48
+      if FormLayersPanel.Height > 400 then
+         FormLayersPanel.Height := 400;
+   end
    else
    begin
-      GetCB := Int2CBMech(j-1);
-      GroupBoxMech.Height := GetCB.Top + 30;
-      if Board.MechanicalPairs.Count > 0 then
+      UpdateFromCB := False;
+      Refresh      := False;
+
+      GroupBoxObjects.Enabled := True;
+      GroupBoxCopper.Enabled  := True;
+      GroupBoxMech.Enabled    := True;
+      GroupBoxOther.Enabled   := True;
+
+      TheLayerStack := Board.LayerStack;
+
+      HideLayerCB('');
+      if CurrentLayerCB <> nil then
       begin
-         CBPaired.Visible := True;
-         CBPaired.Enabled := True;
-
-         CBUnPaired.Visible := True;
-         CBUnPaired.Enabled := True;
+         CurrentLayerCB.Font.Style := CBunbold.Font.Style;
+         CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+         CurrentLayerCB := nil;
       end;
+
+      Enabled         := False;
+      Disabled        := False;
+      SignalsEnabled  := False;
+      SignalsDisabled := False;
+      PlanesEnabled   := False;
+      PlanesDisabled  := False;
+      Signals         := LayerSet.SignalLayers;
+
+      GroupBoxObjects.Top  := 16;
+      GroupBoxObjects.Left := 16;
+
+      GroupBoxCopper.Top := GroupBoxObjects.Top + GroupBoxObjects.Height + 10;
+      GroupBoxCopper.Left := GroupBoxObjects.Left;
+
+      if TheLayerStack.LayersInStackCount <> TheLayerStack.SignalLayerCount then
+      begin
+         CBSignals.Enabled := True;
+         CBSignals.Visible := True;
+         CBPlanes.Enabled  := True;
+         CBPlanes.Visible  := True;
+      end;
+
+      // Copper
+      LayerObj := TheLayerStack.FirstLayer;
+      i := 1;
+      while (LayerObj <> nil) and (i <= 32) do
+      begin
+         if LayerObj.IsDisplayed[Board] then Enabled := True
+         else                                Disabled := True;
+
+         if Signals.Contains(LayerObj.V7_LayerID) then
+         begin
+            if LayerObj.IsDisplayed[Board] then SignalsEnabled := True
+            else                                SignalsDisabled := True;
+         end
+         else
+         begin
+            if LayerObj.IsDisplayed[Board] then PlanesEnabled := True
+            else                                PlanesDisabled := True;
+         end;
+
+         GetCB := Int2CBCopper(i);
+         GetCB.Visible := True;
+         GetCB.Enabled := True;
+         GetCB.Caption := LayerObj.Name;
+         if Board.CurrentLayer = LayerObj.V7_LayerID then
+         begin
+            CurrentLayerCB := GetCB;
+            GetCB.Width := Image1.Canvas.TextWidth(LayerObj.Name) + 16;
+            CurrentLayerCB.Font.Style := CBBold.Font.Style;
+         end
+         else
+            GetCB.Width := FormLayersPanel.Canvas.TextWidth(LayerObj.Name) + 16;
+         GetCB.Checked := LayerObj.IsDisplayed[Board];
+
+         Shape := Int2ShapeCopper(i);
+         Shape.Visible := True;
+         Shape.Enabled := True;
+         Shape.Brush.Color := Board.LayerColor[LayerObj.LayerID];
+
+         Inc(i);
+         LayerObj := TheLayerStack.NextLayer(LayerObj);
+      end;
+
+      if      Enabled  = False        then CBCopperAll.Checked := False
+      else if Disabled = False        then CBCopperAll.Checked := True
+      else                                 CBCopperAll.State   := cbGrayed;
+
+      if      SignalsEnabled  = False then CBSignals.Checked := False
+      else if SignalsDisabled = False then CBSignals.Checked := True
+      else                                 CBSignals.State   := cbGrayed;
+
+      if      PlanesEnabled  = False  then CBPlanes.Checked := False
+      else if PlanesDisabled = False  then CBPlanes.Checked := True
+      else                                 CBPlanes.State   := cbGrayed;
+
+
+      // Now we need to modify size of copper group,
+      // and mech groupbox position
+
+      GetCB := Int2CBCopper(i);
+      if ImageArrowUpCopper.Enabled then
+         GroupBoxCopper.Height := GetCB.Top + 10
+      else
+         GroupBoxCopper.Height := 48;
+
+      GroupBoxMech.Left := GroupBoxCopper.Left;
+      GroupBoxMech.Top  := GroupBoxCopper.Top + GroupBoxCopper.Height + 10;
+
+      Enabled  := False;
+      Disabled := False;
+
+      UnPairedEnabled  := False;
+      UnPairedDisabled := False;
+      PairedEnabled    := False;
+      PairedDisabled   := False;
+
+      j := 1;
+      for i := 1 to 32 do
+      begin
+         MechLayer := TheLayerStack.LayerObject_V7[ILayer.MechanicalLayer(i)];
+
+         if MechLayer.MechanicalLayerEnabled then
+         begin
+
+            if MechLayer.LinkToSheet = False then
+            begin
+               if MechLayer.IsDisplayed[Board] then Enabled := True
+               else                                 Disabled := True;
+
+               if Board.MechanicalPairs.LayerUsed(ILayer.MechanicalLayer(j)) then
+               begin
+                  if MechLayer.IsDisplayed[Board] then PairedEnabled := True
+                  else                                 PairedDisabled := True;
+               end
+               else
+               begin
+                  if MechLayer.IsDisplayed[Board] then UnPairedEnabled := True
+                  else                                 UnPairedDisabled := True;
+               end;
+            end;
+
+            GetCB := Int2CBMech(j);
+            GetCB.Visible := True;
+            if MechLayer.LinkToSheet = False then
+               GetCB.Enabled := True;
+            if Board.CurrentLayer = MechLayer.LayerID then
+            begin
+               CurrentLayerCB := GetCB;
+               GetCB.Width := Image1.Canvas.TextWidth(MechLayer.Name) + 16;
+               CurrentLayerCB.Font.Style := CBBold.Font.Style;
+            end
+            else
+               GetCB.Width := FormLayersPanel.Canvas.TextWidth(MechLayer.Name) + 16;
+            GetCb.Caption := MechLayer.Name;
+            GetCB.Checked := MechLayer.IsDisplayed[Board];
+
+
+            Shape := Int2ShapeMech(j);
+            Shape.Visible := True;
+            Shape.Enabled := True;
+
+            Shape.Brush.Color := PCBServer.SystemOptions.LayerColors[MechLayer.V7_LayerID];
+
+            inc(j);
+         end;
+      end;
+
+      if      Enabled  = False then CBMechAll.Checked := False
+      else if Disabled = False then CBMechAll.Checked := True
+      else                          CBMechAll.State   := cbGrayed;
+
+      if      PairedEnabled  = False then CBPaired.Checked := False
+      else if PairedDisabled = False then CBPaired.Checked := True
+      else                                CBPaired.State   := cbGrayed;
+
+      if      UnPairedEnabled  = False then CBUnPaired.Checked := False
+      else if UnPairedDisabled = False then CBUnPaired.Checked := True
+      else                                  CBUnPaired.State   := cbGrayed;
+
+
+      // Now we need to modify size of mech group,
+      // and other groupbox position
+
+      if (j = 1) or ImageArrowDownMech.Enabled then
+         GroupBoxMech.Height := 48
+      else
+      begin
+         GetCB := Int2CBMech(j-1);
+         GroupBoxMech.Height := GetCB.Top + 30;
+         if Board.MechanicalPairs.Count > 0 then
+         begin
+            CBPaired.Visible := True;
+            CBPaired.Enabled := True;
+
+            CBUnPaired.Visible := True;
+            CBUnPaired.Enabled := True;
+         end;
+      end;
+
+      GroupBoxOther.Left  := GroupBoxMech.Left;
+      GroupBoxOther.Top   := GroupBoxMech.Top + GroupBoxMech.Height + 10;
+
+      Enabled  := False;
+      Disabled := False;
+
+      CBTopOverlay.Checked := Board.LayerIsDisplayed[String2Layer('Top Overlay')];
+      ShapeTopOverlay.Brush.Color := Board.LayerColor[String2Layer('Top Overlay')];
+
+      CBBottomOverlay.Checked := Board.LayerIsDisplayed[String2Layer('Bottom Overlay')];
+      ShapeBottomOverlay.Brush.Color := Board.LayerColor[String2Layer('Bottom Overlay')];
+
+      CBTopSolder.Checked := Board.LayerIsDisplayed[String2Layer('Top Solder Mask')];
+      ShapeTopSolder.Brush.Color := Board.LayerColor[String2Layer('Top Solder Mask')];
+
+      CBBottomSolder.Checked := Board.LayerIsDisplayed[String2Layer('Bottom Solder Mask')];
+      ShapeBottomSolder.Brush.Color := Board.LayerColor[String2Layer('Bottom Solder Mask')];
+
+      CBTopPaste.Checked := Board.LayerIsDisplayed[String2Layer('Top Paste')];
+      ShapeTopPaste.Brush.Color := Board.LayerColor[String2Layer('Top Paste')];
+
+      CBBottomPaste.Checked := Board.LayerIsDisplayed[String2Layer('Bottom Paste')];
+      ShapeBottomPaste.Brush.Color := Board.LayerColor[String2Layer('Bottom Paste')];
+
+      CBDrillGuide.Checked := Board.LayerIsDisplayed[String2Layer('Drill Guide')];
+      ShapeDrillGuide.Brush.Color := Board.LayerColor[String2Layer('Drill Guide')];
+
+      CBDrillDraw.Checked := Board.LayerIsDisplayed[String2Layer('Drill Drawing')];
+      ShapeDrillDraw.Brush.Color := Board.LayerColor[String2Layer('Drill Drawing')];
+
+      CBMultiLayer.Checked := Board.LayerIsDisplayed[String2Layer('Multi Layer')];
+      ShapeMultiLayer.Brush.Color := Board.LayerColor[String2Layer('Multi Layer')];
+
+      CBKeepOut.Checked := Board.LayerIsDisplayed[String2Layer('Keep Out Layer')];
+      ShapeKeepOut.Brush.Color := Board.LayerColor[String2Layer('Keep Out Layer')];
+
+
+      if      OtherEnabled('')  = False then CBOtherAll.Checked := False
+      else if OtherDisabled('') = False then CBOtherAll.Checked := True
+      else                                   CBOtherAll.State   := cbGrayed;
+
+      if (not CBTopOverlay.Checked) and (not CBBottomOverlay.Checked) then CBOverlay.Checked := False
+      else if CBTopOverlay.Checked  and      CBBottomOverlay.Checked  then CBOverlay.Checked := True
+      else                                                                 CBOverlay.State   := cbGrayed;
+
+      if (not CBTopSolder.Checked) and (not CBBottomSolder.Checked) and (not CBTopPaste.Checked) and (not CBBottomPaste.Checked) then CBMask.Checked := False
+      else if CBTopSolder.Checked  and      CBBottomSolder.Checked  and      CBTopPaste.Checked  and      CBBottomPaste.Checked  then CBMask.Checked := True
+      else                                                                                                                            CBMask.State   := cbGrayed;
+
+      if (not CBDrillDraw.Checked) and (not CBDrillGuide.Checked) then CBDrill.Checked := False
+      else if CBDrillDraw.Checked  and      CBDrillGuide.Checked  then CBDrill.Checked := True
+      else                                                             CBDrill.State   := cbGrayed;
+
+      if (not CBKeepOut.Checked) and (not CBMultiLayer.Checked) then CBOther.Checked := False
+      else if CBKeepOut.Checked  and      CBMultiLayer.Checked  then CBOther.Checked := True
+      else                                                           CBOther.State   := cbGrayed;
+
+      if (CurrentLayerCB = nil) and (Str2CBOther(Layer2String(Board.CurrentLayer)) <> nil) then
+      begin
+         CurrentLayerCB := Str2CBOther(Layer2String(Board.CurrentLayer));
+         CurrentLayerCB.Width := Image1.Canvas.TextWidth(Layer2String(Board.CurrentLayer)) + 16;
+         CurrentLayerCB.Font.Style := CBBold.Font.Style;
+      end;
+
+      if ImageArrowUpOther.Enabled then
+         GroupBoxOther.Height := cbMultiLayer.Top + 30
+      else
+         GroupBoxOther.Height := 48;
+
+      FormLayersPanel.Width := 3 * GroupBoxCopper.Left + GroupBoxCopper.Width;
+      FormLayersPanel.Height:= GroupBoxOther.Top + GroupBoxOther.Height + 50;
+
+      // finally read are connection lines shown
+      CBConnections.Checked := Board.LayerIsDisplayed[eConnectLayer];
+
+      GroupBoxObjects.Visible := True;
+      GroupBoxCopper.Visible  := True;
+      GroupBoxMech.Visible    := True;
+      GroupBoxOther.Visible   := True;
+
+      UpdateFromCB := True;
+      Refresh      := True;
    end;
-      
-   GroupBoxOther.Left  := GroupBoxMech.Left;
-   GroupBoxOther.Top   := GroupBoxMech.Top + GroupBoxMech.Height + 10;
-
-   Enabled  := False;
-   Disabled := False;
-
-   CBTopOverlay.Checked := Board.LayerIsDisplayed[String2Layer('Top Overlay')];
-   ShapeTopOverlay.Brush.Color := Board.LayerColor[String2Layer('Top Overlay')];
-
-   CBBottomOverlay.Checked := Board.LayerIsDisplayed[String2Layer('Bottom Overlay')];
-   ShapeBottomOverlay.Brush.Color := Board.LayerColor[String2Layer('Bottom Overlay')];
-
-   CBTopSolder.Checked := Board.LayerIsDisplayed[String2Layer('Top Solder Mask')];
-   ShapeTopSolder.Brush.Color := Board.LayerColor[String2Layer('Top Solder Mask')];
-
-   CBBottomSolder.Checked := Board.LayerIsDisplayed[String2Layer('Bottom Solder Mask')];
-   ShapeBottomSolder.Brush.Color := Board.LayerColor[String2Layer('Bottom Solder Mask')];
-
-   CBTopPaste.Checked := Board.LayerIsDisplayed[String2Layer('Top Paste')];
-   ShapeTopPaste.Brush.Color := Board.LayerColor[String2Layer('Top Paste')];
-
-   CBBottomPaste.Checked := Board.LayerIsDisplayed[String2Layer('Bottom Paste')];
-   ShapeBottomPaste.Brush.Color := Board.LayerColor[String2Layer('Bottom Paste')];
-
-   CBDrillGuide.Checked := Board.LayerIsDisplayed[String2Layer('Drill Guide')];
-   ShapeDrillGuide.Brush.Color := Board.LayerColor[String2Layer('Drill Guide')];
-
-   CBDrillDraw.Checked := Board.LayerIsDisplayed[String2Layer('Drill Drawing')];
-   ShapeDrillDraw.Brush.Color := Board.LayerColor[String2Layer('Drill Drawing')];
-
-   CBMultiLayer.Checked := Board.LayerIsDisplayed[String2Layer('Multi Layer')];
-   ShapeMultiLayer.Brush.Color := Board.LayerColor[String2Layer('Multi Layer')];
-
-   CBKeepOut.Checked := Board.LayerIsDisplayed[String2Layer('Keep Out Layer')];
-   ShapeKeepOut.Brush.Color := Board.LayerColor[String2Layer('Keep Out Layer')];
-
-
-   if      OtherEnabled('')  = False then CBOtherAll.Checked := False
-   else if OtherDisabled('') = False then CBOtherAll.Checked := True
-   else                                   CBOtherAll.State   := cbGrayed;
-
-   if (not CBTopOverlay.Checked) and (not CBBottomOverlay.Checked) then CBOverlay.Checked := False
-   else if CBTopOverlay.Checked  and      CBBottomOverlay.Checked  then CBOverlay.Checked := True
-   else                                                                 CBOverlay.State   := cbGrayed;
-
-   if (not CBTopSolder.Checked) and (not CBBottomSolder.Checked) and (not CBTopPaste.Checked) and (not CBBottomPaste.Checked) then CBMask.Checked := False
-   else if CBTopSolder.Checked  and      CBBottomSolder.Checked  and      CBTopPaste.Checked  and      CBBottomPaste.Checked  then CBMask.Checked := True
-   else                                                                                                                            CBMask.State   := cbGrayed;
-
-   if (not CBDrillDraw.Checked) and (not CBDrillGuide.Checked) then CBDrill.Checked := False
-   else if CBDrillDraw.Checked  and      CBDrillGuide.Checked  then CBDrill.Checked := True
-   else                                                             CBDrill.State   := cbGrayed;
-
-   if (not CBKeepOut.Checked) and (not CBMultiLayer.Checked) then CBOther.Checked := False
-   else if CBKeepOut.Checked  and      CBMultiLayer.Checked  then CBOther.Checked := True
-   else                                                           CBOther.State   := cbGrayed;
-
-   GroupBoxOther.Height := cbMultiLayer.Top + 30;
-   FormLayersPanel.Width := 3 * GroupBoxCopper.Left + GroupBoxCopper.Width;
-   FormLayersPanel.Height:= GroupBoxOther.Top + GroupBoxOther.Height + 50;
-
-   // finally read are connection lines shown
-   CBConnections.Checked := Board.LayerIsDisplayed[eConnectLayer];
 end;
 
 Procedure WriteToIniFile(AFileName : String);
@@ -624,6 +745,16 @@ Begin
    IniFile.Free;
 End;
 
+procedure TFormLayersPanel.FormLayersPanelActivate(Sender: TObject);
+begin
+   RefreshPanel('');
+end;
+
+procedure TFormLayersPanel.FormLayersPanelShow(Sender: TObject);
+begin
+   RefreshPanel('');
+end;
+
 Procedure Start;
 var
    iniFile : TIniFile;
@@ -634,15 +765,13 @@ begin
    TheLayerStack := Board.LayerStack;
    if TheLayerStack = nil then exit;
 
-   UpdateFromCB := False;
-   Refresh      := False;
+   CurrentLayerCB := nil;
+   Image1.Canvas.Font.Style := CBBold.Font.Style;
 
    FormlayersPanel.Show;
 
    ReadFromIniFile(ClientAPI_SpecialFolder_AltiumApplicationData + '\LayersPanelScriptData.ini');
 
-   UpdateFromCB     := True;
-   Refresh          := True;
    SwitchGrayAndOff := True;
 end;
 
@@ -653,8 +782,8 @@ end;
 
 procedure TFormLayersPanel.FormLayersPanelResize(Sender: TObject);
 begin
-   if FormLayersPanel.Width < 254 then
-      FormLayersPanel.Width := 254
+   if FormLayersPanel.Width < 274 then
+      FormLayersPanel.Width := 274
    else
    begin
       GroupBoxObjects.Width := FormLayersPanel.Width - 50;
@@ -829,6 +958,128 @@ begin
 
 end;
 
+Function Layer2CB(Layer : TLayer) : TCheckBox;
+var
+   CB                : TCheckBox;
+   CurrentLayerFound : Boolean;
+   i, j              : Integer;
+   LayerObj          : IPCB_LayerObject;
+   MechLayer         : IPCB_MechanicalLayer;
+begin
+   CB := nil;
+   Result := nil;
+   CurrentLayerFound := False;
+   i := 0;
+
+   LayerObj := TheLayerStack.FirstLayer;
+   while LayerObj <> nil do
+   begin
+      Inc(i);
+
+      if Board.CurrentLayer = LayerObj.LayerID then
+      begin
+         CurrentLayerFound := True;
+         CB := int2CBCopper(i);
+         Result := CB;
+         break;
+      end;
+      LayerObj := TheLayerStack.NextLayer(LayerObj);
+   end;
+
+   if not CurrentLayerFound then
+   begin
+      j := 0;
+      for i := 1 to 32 do
+      begin
+         MechLayer := TheLayerStack.LayerObject_V7[ILayer.MechanicalLayer(i)];
+
+         if MechLayer.MechanicalLayerEnabled then
+         begin
+            Inc(j);
+
+            if Board.CurrentLayer = MechLayer.V7_LayerID then
+            begin
+               CurrentLayerFound := True;
+               CB := Int2CBMech(j);
+               Result := CB;
+               break;
+            end;
+         end;
+      end;
+
+   end;
+
+   if not CurrentLayerFound and Board.CurrentLayer = eTopOverlay then
+   begin
+      CurrentLayerFound := True;
+      CB := CBTopOverlay;
+      Result := CB;
+   end;
+
+   if not CurrentLayerFound and Board.CurrentLayer = eBottomOverlay then
+   begin
+      CurrentLayerFound := True;
+      CB := CBBottomOverlay;
+      Result := CB;
+   end;
+
+   if not CurrentLayerFound and Board.CurrentLayer = eTopSolder then
+   begin
+      CurrentLayerFound := True;
+      CB := CBTopSolder;
+      Result := CB;
+   end;
+
+   if not CurrentLayerFound and Board.CurrentLayer = eBottomSolder then
+   begin
+      CurrentLayerFound := True;
+      CB := CBBottomSolder;
+      Result := CB;
+   end;
+
+   if not CurrentLayerFound and Board.CurrentLayer = eTopPaste then
+   begin
+      CurrentLayerFound := True;
+      CB := CBTopPaste;
+      Result := CB;
+   end;
+
+   if not CurrentLayerFound and Board.CurrentLayer = eBottomPaste then
+   begin
+      CurrentLayerFound := True;
+      CB := CBBottomPaste;
+      Result := CB;
+   end;
+
+   if not CurrentLayerFound and Board.CurrentLayer = eDrillGuide then
+   begin
+      CurrentLayerFound := True;
+      CB := CBDrillGuide;
+      Result := CB;
+   end;
+
+   if not CurrentLayerFound and Board.CurrentLayer = eDrillDrawing then
+   begin
+      CurrentLayerFound := True;
+      CB := CBDrillDraw;
+      Result := CB;
+   end;
+
+   if not CurrentLayerFound and Board.CurrentLayer = eKeepOutLayer then
+   begin
+      CurrentLayerFound := True;
+      CB := CBKeepOut;
+      Result := CB;
+   end;
+
+   if not CurrentLayerFound and Board.CurrentLayer = eMultiLayer then
+   begin
+      CurrentLayerFound := True;
+      CB := CBMultiLayer;
+      Result := CB;
+   end;
+end;
+
 procedure TFormLayersPanel.CBCopperSelectedClick(Sender: TObject);
 Var
    LayerObj         : IPCB_LayerObject;
@@ -870,6 +1121,17 @@ begin
          if CB.Checked and Refresh then
          Begin
            Board.CurrentLayer := LayerObj.LayerID;
+
+           if CurrentLayerCB <> nil then
+           begin
+              CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
+              CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+           end;
+
+           CurrentLayerCB := CB;
+           CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+           CurrentLayerCB.Font.Style := CBBold.Font.Style;
+
            Refresh := False;
          end;
 
@@ -904,6 +1166,9 @@ begin
       else                                CBPlanes.State   := cbGrayed;
 
       Refresh := True;
+
+      Board.ViewManager_FullUpdate;
+      Board.ViewManager_UpdateLayerTabs;
    end
    else
    begin
@@ -926,10 +1191,25 @@ begin
       CBCopperAll.Checked := False;
       CBSignals.Checked   := False;
       CBPlanes.Checked    := False;
-   end;
 
-   Board.ViewManager_FullUpdate;
-   Board.ViewManager_UpdateLayerTabs;
+      Board.ViewManager_FullUpdate;
+      Board.ViewManager_UpdateLayerTabs;
+
+      CB := Layer2CB(Board.CurrentLayer);
+
+      if CurrentLayerCB <> nil then
+      begin
+         CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
+         CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+      end;
+
+      if CB <> nil then
+      begin
+         CurrentLayerCB := CB;
+         CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+         CurrentLayerCB.Font.Style := CBBold.Font.Style;
+      end;
+   end;
    UpdateFromCB := True;
 end;
 
@@ -944,6 +1224,7 @@ var
    UnPairedDisabled : Boolean;
    PairedEnabled    : Boolean;
    PairedDisabled   : Boolean;
+   CurrentLayerFound: Boolean;
 begin
 
    j := 1;
@@ -975,6 +1256,17 @@ begin
                if CB.Checked and Refresh then
                begin
                   Board.CurrentLayer := MechLayer.V7_LayerID;
+
+                  if CurrentLayerCB <> nil then
+                  begin
+                     CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
+                     CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+                  end;
+
+                  CurrentLayerCB := CB;
+                  CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+                  CurrentLayerCB.Font.Style := CBBold.Font.Style;
+
                   Refresh := False;
                end;
 
@@ -1010,6 +1302,9 @@ begin
       else                                  CBUnPaired.State   := cbGrayed;
 
       Refresh := True;
+
+      Board.ViewManager_FullUpdate;
+      Board.ViewManager_UpdateLayerTabs;
    end
    else
    begin
@@ -1028,14 +1323,32 @@ begin
             end;
             inc(j);
          end;
-         CBMechAll.Checked  := False;
-         CBPaired.Checked   := False;
-         CBUnPaired.Checked := False;
-      end;
-   end;
 
-   Board.ViewManager_FullUpdate;
-   Board.ViewManager_UpdateLayerTabs;
+      end;
+
+      CBMechAll.Checked  := False;
+      CBPaired.Checked   := False;
+      CBUnPaired.Checked := False;
+
+      Board.ViewManager_FullUpdate;
+      Board.ViewManager_UpdateLayerTabs;
+
+      CB := Layer2CB(Board.CurrentLayer);
+
+      if CurrentLayerCB <> nil then
+      begin
+         CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
+         CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+      end;
+
+      if CB <> nil then
+      begin
+         CurrentLayerCB := CB;
+         CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+         CurrentLayerCB.Font.Style := CBBold.Font.Style;
+      end;
+
+   end;
 
    UpdateFromCB := True;
 end;
@@ -1053,6 +1366,17 @@ begin
    if Refresh and CB.Checked then
    begin
       Board.CurrentLayer := String2Layer(Layer);
+
+      if CurrentLayerCB <> nil then
+      begin
+         CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
+         CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+      end;
+
+      CurrentLayerCB := CB;
+      CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+      CurrentLayerCB.Font.Style := CBBold.Font.Style;
+
       Refresh := False;
    end;
 end;
@@ -1071,6 +1395,8 @@ begin
 end;
 
 procedure TFormLayersPanel.CBOtherSelectedClick(Sender: TObject);
+var
+   CB : TCheckBox;
 begin
    UpdateFromCB := False;
 
@@ -1108,6 +1434,8 @@ begin
       else                                                           CBOther.State   := cbGrayed;
 
       Refresh := True;
+      Board.ViewManager_FullUpdate;
+      Board.ViewManager_UpdateLayerTabs;
    end
    else
    begin
@@ -1127,11 +1455,27 @@ begin
       CBMask.Checked     := False;
       CBDrill.Checked    := False;
       CBOther.Checked    := False;
+
+      Board.ViewManager_FullUpdate;
+      Board.ViewManager_UpdateLayerTabs;
+
+      CB := Layer2CB(Board.CurrentLayer);
+
+      if CurrentLayerCB <> nil then
+      begin
+         CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
+         CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+      end;
+
+      if CB <> nil then
+      begin
+         CurrentLayerCB := CB;
+         CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+         CurrentLayerCB.Font.Style := CBBold.Font.Style;
+      end;
    end;
 
    UpdateFromCB := True;
-   Board.ViewManager_FullUpdate;
-   Board.ViewManager_UpdateLayerTabs;
 end;
 
 procedure TFormLayersPanel.CBCopperAllClick(Sender: TObject);
@@ -1156,8 +1500,19 @@ begin
          CB.Checked := CBCopperAll.Checked;
 
          if CB.Checked and Flag then
+         begin
             Board.CurrentLayer := LayerObj.LayerID;
 
+            if CurrentLayerCB <> nil then
+            begin
+               CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
+               CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+            end;
+
+            CurrentLayerCB := CB;
+            CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+            CurrentLayerCB.Font.Style := CBBold.Font.Style;
+         end;
          Flag := False;
          Inc(i);
          LayerObj := TheLayerStack.NextLayer(LayerObj);
@@ -1170,6 +1525,24 @@ begin
       Refresh := True;
       Board.ViewManager_FullUpdate;
       Board.ViewManager_UpdateLayerTabs;
+
+      if not CBCopperAll.Checked then
+      begin
+         CB := Layer2CB(Board.CurrentLayer);
+
+         if CurrentLayerCB <> nil then
+         begin
+            CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
+            CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+         end;
+
+         if CB <> nil then
+         begin
+            CurrentLayerCB := CB;
+            CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+            CurrentLayerCB.Font.Style := CBBold.Font.Style;
+         end;
+      end;
    end;
 end;
 
@@ -1201,8 +1574,19 @@ begin
                CB.Checked :=  CBMechAll.Checked;
 
                if Cb.Checked and Flag then
+               begin
                   Board.CurrentLayer := MechLayer.V7_LayerID;
 
+                  if CurrentLayerCB <> nil then
+                  begin
+                     CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
+                     CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+                  end;
+
+                  CurrentLayerCB := CB;
+                  CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+                  CurrentLayerCB.Font.Style := CBBold.Font.Style;
+               end;
                Flag := False;
             end;
          end;
@@ -1214,10 +1598,30 @@ begin
       UpdateFromCB := True;
       Board.ViewManager_FullUpdate;
       Board.ViewManager_UpdateLayerTabs;
+
+      if not CBMechAll.Checked then
+      begin
+         CB := Layer2CB(Board.CurrentLayer);
+
+         if CurrentLayerCB <> nil then
+         begin
+            CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
+            CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+         end;
+
+         if CB <> nil then
+         begin
+            CurrentLayerCB := CB;
+            CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+            CurrentLayerCB.Font.Style := CBBold.Font.Style;
+         end;
+      end;
    end;
 end;
 
 procedure TFormLayersPanel.CBOtherAllClick(Sender: TObject);
+var
+   CB : TCheckbox;
 begin
    if (CBOtherAll.State <> cbGrayed) and UpdateFromCB then
    begin
@@ -1252,8 +1656,46 @@ begin
 
       UpdateFromCB := True;
 
+      Board.ViewManager_FullUpdate;
+      Board.ViewManager_UpdateLayerTabs;
+
       if CBOtherAll.Checked then
+      begin
          Board.CurrentLayer := String2Layer('Top Overlay');
+
+         if CurrentLayerCB <> nil then
+         begin
+            CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
+            CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+         end;
+
+         CurrentLayerCB := CBTopOverlay;
+         CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+         CurrentLayerCB.Font.Style := CBBold.Font.Style;
+
+         Board.ViewManager_FullUpdate;
+         Board.ViewManager_UpdateLayerTabs;
+      end
+      else
+      begin
+         Board.ViewManager_FullUpdate;
+         Board.ViewManager_UpdateLayerTabs;
+
+         CB := Layer2CB(Board.CurrentLayer);
+
+         if CurrentLayerCB <> nil then
+         begin
+            CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
+            CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+         end;
+
+         if CB <> nil then
+         begin
+            CurrentLayerCB := CB;
+            CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+            CurrentLayerCB.Font.Style := CBBold.Font.Style;
+         end;
+      end;
 
       Board.ViewManager_FullUpdate;
       Board.ViewManager_UpdateLayerTabs;
@@ -1291,7 +1733,20 @@ begin
             CB.Checked := CBSignals.Checked;
 
             if Flag and CB.Checked then
+            begin
                Board.CurrentLayer := LayerObj.LayerID;
+
+               if CurrentLayerCB <> nil then
+               begin
+                  CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
+                  CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+               end;
+
+               CurrentLayerCB := CB;
+               CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+               CurrentLayerCB.Font.Style := CBBold.Font.Style;
+
+            end;
 
             Flag := False;
          end;
@@ -1307,9 +1762,28 @@ begin
       else if Disabled = False then CBCopperAll.Checked := True
       else                          CBCopperAll.State   := cbGrayed;
 
-      UpdateFromCB := True;
       Board.ViewManager_FullUpdate;
       Board.ViewManager_UpdateLayerTabs;
+
+      if not CBSignals.Checked then
+      begin
+         CB := Layer2CB(Board.CurrentLayer);
+
+         if CurrentLayerCB <> nil then
+         begin
+            CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
+            CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+         end;
+
+         if CB <> nil then
+         begin
+            CurrentLayerCB := CB;
+            CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+            CurrentLayerCB.Font.Style := CBBold.Font.Style;
+         end;
+      end;
+
+      UpdateFromCB := True;
    end;
 end;
 
@@ -1344,7 +1818,20 @@ begin
             CB.Checked := CBPlanes.Checked;
 
             if Flag and CB.Checked then
+            begin
                Board.CurrentLayer := LayerObj.LayerID;
+
+               if CurrentLayerCB <> nil then
+               begin
+                  CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
+                  CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+               end;
+
+               CurrentLayerCB := CB;
+               CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+               CurrentLayerCB.Font.Style := CBBold.Font.Style;
+
+            end;
 
             Flag := False;
          end;
@@ -1360,9 +1847,28 @@ begin
       else if Disabled = False then CBCopperAll.Checked := True
       else                          CBCopperAll.State   := cbGrayed;
 
-      UpdateFromCB := True;
       Board.ViewManager_FullUpdate;
       Board.ViewManager_UpdateLayerTabs;
+
+      if not CBPlanes.Checked then
+      begin
+         CB := Layer2CB(Board.CurrentLayer);
+
+         if CurrentLayerCB <> nil then
+         begin
+            CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
+            CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+         end;
+
+         if CB <> nil then
+         begin
+            CurrentLayerCB := CB;
+            CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+            CurrentLayerCB.Font.Style := CBBold.Font.Style;
+         end;
+      end;
+
+      UpdateFromCB := True;
    end;
 end;
 
@@ -1403,8 +1909,19 @@ begin
                if Refresh and CBPaired.Checked then
                begin
                   Board.CurrentLayer := MechLayer.V7_LayerID;
-                  Refresh := False;
+
+                  if CurrentLayerCB <> nil then
+                  begin
+                     CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
+                     CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+                  end;
+
+                  CurrentLayerCB := CB;
+                  CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+                  CurrentLayerCB.Font.Style := CBBold.Font.Style;
+
                end;
+               Refresh := False;
             end;
 
             if MechLayer.IsDisplayed[Board] then Enabled := True
@@ -1423,6 +1940,24 @@ begin
 
       Board.ViewManager_FullUpdate;
       Board.ViewManager_UpdateLayerTabs;
+
+      if not CBPaired.Checked then
+      begin
+         CB := Layer2CB(Board.CurrentLayer);
+
+         if CurrentLayerCB <> nil then
+         begin
+            CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
+            CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+         end;
+
+         if CB <> nil then
+         begin
+            CurrentLayerCB := CB;
+            CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+            CurrentLayerCB.Font.Style := CBBold.Font.Style;
+         end;
+      end;
    end;
 end;
 
@@ -1463,8 +1998,19 @@ begin
                if Refresh and CBUnPaired.Checked then
                begin
                   Board.CurrentLayer := MechLayer.V7_LayerID;
-                  Refresh := False;
+
+                  if CurrentLayerCB <> nil then
+                  begin
+                     CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
+                     CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+                  end;
+
+                  CurrentLayerCB := CB;
+                  CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+                  CurrentLayerCB.Font.Style := CBBold.Font.Style;
                end;
+
+               Refresh := False;
             end;
 
             if MechLayer.IsDisplayed[Board] then Enabled := True
@@ -1478,11 +2024,30 @@ begin
       else if Disabled = False then CBMechAll.Checked  := True
       else                          CBMechAll.State    := cbGrayed;
 
+      Board.ViewManager_FullUpdate;
+      Board.ViewManager_UpdateLayerTabs;
+
+      if not CBUnPaired.Checked then
+      begin
+         CB := Layer2CB(Board.CurrentLayer);
+
+         if CurrentLayerCB <> nil then
+         begin
+            CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
+            CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+         end;
+
+         if CB <> nil then
+         begin
+            CurrentLayerCB := CB;
+            CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+            CurrentLayerCB.Font.Style := CBBold.Font.Style;
+         end;
+      end;
+
       UpdateFromCB := True;
       Refresh := True;
 
-      Board.ViewManager_FullUpdate;
-      Board.ViewManager_UpdateLayerTabs;
    end;
 end;
 
@@ -1521,12 +2086,42 @@ begin
             LayerObj.IsDisplayed[Board] := CB.Checked;
 
             if CB.Checked then
+            begin
               Board.CurrentLayer := LayerObj.LayerID;
+
+              if CurrentLayerCB <> nil then
+              begin
+                 CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
+                 CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+              end;
+
+              CurrentLayerCB := CB;
+              CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+              CurrentLayerCB.Font.Style := CBBold.Font.Style;
+            end;
 
             if Refresh Then
             begin
                Board.ViewManager_FullUpdate;
                Board.ViewManager_UpdateLayerTabs;
+
+               if not CB.Checked then
+               begin
+                  CB := Layer2CB(Board.CurrentLayer);
+
+                  if CurrentLayerCB <> nil then
+                  begin
+                     CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
+                     CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+                  end;
+
+                  if CB <> nil then
+                  begin
+                     CurrentLayerCB := CB;
+                     CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+                     CurrentLayerCB.Font.Style := CBBold.Font.Style;
+                  end;
+               end;
             end;
          end;
 
@@ -1582,6 +2177,16 @@ begin
          begin
             Board.CurrentLayer := LayerObj.LayerID;
 
+            if CurrentLayerCB <> nil then
+            begin
+               CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
+               CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+            end;
+
+            CurrentLayerCB := int2CBCopper(Nr);
+            CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+            CurrentLayerCB.Font.Style := CBBold.Font.Style;
+
             Board.ViewManager_FullUpdate;
             Board.ViewManager_UpdateLayerTabs;
          end;
@@ -1591,6 +2196,7 @@ begin
       Inc(i);
       LayerObj := TheLayerStack.NextLayer(LayerObj);
    end;
+
 end;
 
 Procedure MechClick(Nr : Integer);
@@ -1629,12 +2235,42 @@ begin
                MechLayer.IsDisplayed[Board] := CB.Checked;
 
                if CB.Checked then
+               begin
                   Board.CurrentLayer := MechLayer.V7_LayerID;
+
+                  if CurrentLayerCB <> nil then
+                  begin
+                     CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
+                     CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+                  end;
+                  CurrentLayerCB := CB;
+                  CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+                  CurrentLayerCB.Font.Style := CBBold.Font.Style;
+
+               end;
 
                if Refresh then
                begin
                   Board.ViewManager_FullUpdate;
                   Board.ViewManager_UpdateLayerTabs;
+
+                  if not CB.Checked then
+                  begin
+                     CB := Layer2CB(Board.CurrentLayer);
+
+                     if CurrentLayerCB <> nil then
+                     begin
+                        CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
+                        CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+                     end;
+
+                     if CB <> nil then
+                     begin
+                        CurrentLayerCB := CB;
+                        CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+                        CurrentLayerCB.Font.Style := CBBold.Font.Style;
+                     end;
+                  end;
                end;
             end;
 
@@ -1693,6 +2329,15 @@ begin
          begin
             Board.CurrentLayer := MechLayer.V7_LayerID;
 
+            if CurrentLayerCB <> nil then
+            begin
+               CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
+               CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+            end;
+            CurrentLayerCB := int2CBMech(Nr);
+            CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+            CurrentLayerCB.Font.Style := CBBold.Font.Style;
+
             Board.ViewManager_FullUpdate;
             Board.ViewManager_UpdateLayerTabs;
          end;
@@ -1700,6 +2345,7 @@ begin
          break;
       end;
    end;
+
 end;
 
 Procedure OtherClick(Name : String);
@@ -1712,12 +2358,43 @@ begin
       Board.LayerIsDisplayed[String2Layer(Name)] := CB.Checked;
 
       if CB.Checked then
+      begin
          Board.CurrentLayer := String2Layer(Name);
+
+         if CurrentLayerCB <> nil then
+         begin
+            CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
+            CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+         end;
+
+         CurrentLayerCB := Str2CBOther(Name);
+         CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+         CurrentLayerCB.Font.Style := CBBold.Font.Style;
+
+      end;
 
       if Refresh then
       begin
          Board.ViewManager_FullUpdate;
          Board.ViewManager_UpdateLayerTabs;
+
+         if not CB.Checked then
+         begin
+            CB := Layer2CB(Board.CurrentLayer);
+
+            if CurrentLayerCB <> nil then
+            begin
+               CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
+               CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+            end;
+
+            if CB <> nil then
+            begin
+               CurrentLayerCB := CB;
+               CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+               CurrentLayerCB.Font.Style := CBBold.Font.Style;
+            end;
+         end;
       end;
 
       UpdateFromCB := False;
@@ -1759,9 +2436,20 @@ begin
    if Board.LayerIsDisplayed[String2Layer(Name)] then
    begin
       Board.CurrentLayer := String2Layer(Name);
-      
+
+      if CurrentLayerCB <> nil then
+      begin
+         CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
+         CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+      end;
+
+      CurrentLayerCB := Str2CBOther(Name);
+      CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+      CurrentLayerCB.Font.Style := CBBold.Font.Style;
+
       Board.ViewManager_FullUpdate;
       Board.ViewManager_UpdateLayerTabs;
+
    end;
 end;
 
@@ -2666,6 +3354,8 @@ begin
 end;
 
 procedure TFormLayersPanel.CBOverlayClick(Sender: TObject);
+var
+   CB : TCheckBox;
 begin
    if UpdateFromCB and (CBOverlay.State <> cbGrayed) then
    begin
@@ -2678,20 +3368,54 @@ begin
       CBBottomOverlay.Checked := CBOverlay.Checked;
 
       if CBOverlay.Checked then
+      begin
          Board.CurrentLayer := String2Layer('Top Overlay');
+
+         if CurrentLayerCB <> nil then
+         begin
+            CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
+            CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+         end;
+
+         CurrentLayerCB := CBTopOverlay;
+         CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+         CurrentLayerCB.Font.Style := CBBold.Font.Style;
+
+         Board.ViewManager_UpdateLayerTabs;
+         Board.ViewManager_FullUpdate;
+      end
+      else
+      begin
+         Board.ViewManager_FullUpdate;
+         Board.ViewManager_UpdateLayerTabs;
+
+         CB := Layer2CB(Board.CurrentLayer);
+
+         if CurrentLayerCB <> nil then
+         begin
+            CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
+            CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+         end;
+
+         if CB <> nil then
+         begin
+            CurrentLayerCB := CB;
+            CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+            CurrentLayerCB.Font.Style := CBBold.Font.Style;
+         end;
+      end;
 
       if      OtherEnabled('')  = False then CBOtherAll.Checked := False
       else if OtherDisabled('') = False then CBOtherAll.Checked := True
       else                                   CBOtherAll.State   := cbGrayed;
-
-      Board.ViewManager_UpdateLayerTabs;
-      Board.ViewManager_FullUpdate;
 
       UpdateFromCB := True;
    end;
 end;
 
 procedure TFormLayersPanel.CBMaskClick(Sender: TObject);
+var
+   CB : TCheckBox;
 begin
    if UpdateFromCB and (CBMask.State <> cbGrayed) then
    begin
@@ -2708,20 +3432,54 @@ begin
       CBBottomPaste.Checked  := CBMask.Checked;
 
       if CBMask.Checked then
+      begin
          Board.CurrentLayer := String2Layer('Top Solder Mask');
+
+         if CurrentLayerCB <> nil then
+         begin
+            CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
+            CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+         end;
+
+         CurrentLayerCB := CBTopSolder;
+         CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+         CurrentLayerCB.Font.Style := CBBold.Font.Style;
+
+         Board.ViewManager_UpdateLayerTabs;
+         Board.ViewManager_FullUpdate;
+      end
+      else
+      begin
+         Board.ViewManager_FullUpdate;
+         Board.ViewManager_UpdateLayerTabs;
+
+         CB := Layer2CB(Board.CurrentLayer);
+
+         if CurrentLayerCB <> nil then
+         begin
+            CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
+            CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+         end;
+
+         if CB <> nil then
+         begin
+            CurrentLayerCB := CB;
+            CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+            CurrentLayerCB.Font.Style := CBBold.Font.Style;
+         end;
+      end;
 
       if      OtherEnabled('')  = False then CBOtherAll.Checked := False
       else if OtherDisabled('') = False then CBOtherAll.Checked := True
       else                                   CBOtherAll.State   := cbGrayed;
-
-      Board.ViewManager_UpdateLayerTabs;
-      Board.ViewManager_FullUpdate;
 
       UpdateFromCB := True;
    end;
 end;
 
 procedure TFormLayersPanel.CBDrillClick(Sender: TObject);
+var
+   CB : TCheckBox;
 begin
    if UpdateFromCB and (CBDrill.State <> cbGrayed) then
    begin
@@ -2734,20 +3492,54 @@ begin
       CBDrillDraw.Checked  := CBDrill.Checked;
 
       if CBDrill.Checked then
+      begin
          Board.CurrentLayer := String2Layer('Drill Guide');
+
+         if CurrentLayerCB <> nil then
+         begin
+            CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
+            CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+         end;
+
+         CurrentLayerCB := CBDrillGuide;
+         CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+         CurrentLayerCB.Font.Style := CBBold.Font.Style;
+
+         Board.ViewManager_UpdateLayerTabs;
+         Board.ViewManager_FullUpdate;
+      end
+      else
+      begin
+         Board.ViewManager_FullUpdate;
+         Board.ViewManager_UpdateLayerTabs;
+
+         CB := Layer2CB(Board.CurrentLayer);
+
+         if CurrentLayerCB <> nil then
+         begin
+            CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
+            CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+         end;
+
+         if CB <> nil then
+         begin
+            CurrentLayerCB := CB;
+            CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+            CurrentLayerCB.Font.Style := CBBold.Font.Style;
+         end;
+      end;
 
       if      OtherEnabled('')  = False then CBOtherAll.Checked := False
       else if OtherDisabled('') = False then CBOtherAll.Checked := True
       else                                   CBOtherAll.State   := cbGrayed;
-
-      Board.ViewManager_UpdateLayerTabs;
-      Board.ViewManager_FullUpdate;
 
       UpdateFromCB := True;
    end;
 end;
 
 procedure TFormLayersPanel.CBOtherClick(Sender: TObject);
+var
+   CB : TCheckBox;
 begin
    if UpdateFromCB and (CBOther.State <> cbGrayed) then
    begin
@@ -2760,14 +3552,46 @@ begin
       CBMultiLayer.Checked := CBOther.Checked;
 
       if CBOther.Checked then
+      begin
          Board.CurrentLayer := String2Layer('Keep Out Layer');
+
+         if CurrentLayerCB <> nil then
+         begin
+            CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
+            CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+         end;
+
+         CurrentLayerCB := CBKeepOut;
+         CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+         CurrentLayerCB.Font.Style := CBBold.Font.Style;
+
+         Board.ViewManager_UpdateLayerTabs;
+         Board.ViewManager_FullUpdate;
+      end
+      else
+      begin
+         Board.ViewManager_FullUpdate;
+         Board.ViewManager_UpdateLayerTabs;
+
+         CB := Layer2CB(Board.CurrentLayer);
+
+         if CurrentLayerCB <> nil then
+         begin
+            CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
+            CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+         end;
+
+         if CB <> nil then
+         begin
+            CurrentLayerCB := CB;
+            CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+            CurrentLayerCB.Font.Style := CBBold.Font.Style;
+         end;
+      end;
 
       if      OtherEnabled('')  = False then CBOtherAll.Checked := False
       else if OtherDisabled('') = False then CBOtherAll.Checked := True
       else                                   CBOtherAll.State   := cbGrayed;
-
-      Board.ViewManager_UpdateLayerTabs;
-      Board.ViewManager_FullUpdate;
 
       UpdateFromCB := True;
    end;
@@ -2848,22 +3672,96 @@ begin
    end;
 end;
 
+function CombineCBStates(State1, State2 : TCheckBoxState): TCheckBoxState;
+begin
+   if      (State1 = cbUnchecked) or (State2 = cbUnchecked) then Result := cbUnchecked
+   else if (State1 = cbGrayed) or (State2 = cbGrayed) then       Result := cbGrayed
+   else                                                          Result := cbChecked;
+end;
+
+Procedure CB2PrimQuality(ObjCaption : String; CBState : TCheckBoxState);
+var
+   ObjType  : String;
+   ViewType : String;
+begin
+   Case ObjCaption of
+      'Tracks'      : ObjType := 'TrackQuality';
+      'Arcs'        : ObjType := 'ArcQuality';
+      'Pads'        : ObjType := 'PadQuality';
+      'Vias'        : ObjType := 'ViaQuality';
+      'Regions'     : ObjType := 'SolidRegionQuality';
+      'Fills'       : ObjType := 'FillQuality';
+      'Strings'     : ObjType := 'StringQuality';
+      'Components'  : ObjType := 'ComponentQuality';
+      'Polygons'    : ObjType := 'PolygonQuality';
+      '3D Models'   : ObjType := '3DBodyQuality';
+      'Dimensions'  : ObjType := 'DimensionQuality';
+      'Rooms'       : ObjType := 'RoomQuality';
+      'Coordinates' : ObjType := 'CoordQuality';
+   end;
+
+   if      CBState = cbChecked then ViewType := 'Final'
+   else if CBState = cbGrayed  then ViewType := 'Draft'
+   else                             ViewType := 'Hidden';
+
+   ResetParameters;
+   AddStringParameter (ObjType, ViewType);
+   RunProcess ('Pcb:SetupPreferences');
+end;
+
+Procedure VisibleObjects(CBox : TCheckBox);
+var
+   CBState : TCheckBoxState;
+begin
+   if      (CBox.State = cbUnchecked) or (CBShowObjects.State = cbUnchecked) then CBState := cbUnchecked
+   else if (CBox.State = cbGrayed)    or (CBShowObjects.State = cbGrayed)    then CBState := cbGrayed
+   else                                                                           CBState := cbChecked;
+
+    CB2PrimQuality(CBox.Caption,CBState);
+end;
+
 procedure TFormLayersPanel.CBShowObjectsClick(Sender: TObject);
 begin
-   CBTracks.Checked      := CBTracks.Checked;
-   CBArcs.Checked        := CBArcs.Checked;
-   CBPads.Checked        := CBPads.Checked;
-   CBVias.Checked        := CBVias.Checked;
-   CBRegions.Checked     := CBRegions.Checked;
-   CBFills.Checked       := CBFills.Checked;
-   CBStrings.Checked     := CBStrings.Checked;
-   CBComponents.Checked  := CBComponents.Checked;
-   CBPolygons.Checked    := CBPolygons.Checked;
-   CB3DModels.Checked    := CB3DModels.Checked;
-   CBDimensions.Checked  := CBDimensions.Checked;
-   CBCoordinates.Checked := CBCoordinates.Checked;
-   CBRooms.Checked       := CBRooms.Checked;
-   CBConnections.Checked := CBConnections.Checked;
+   if Refresh then
+   begin
+      if SwitchGrayAndOff then
+      begin
+         SwitchGrayAndOff := False;
+         if CBShowObjects.State = cbUnchecked   then CBShowObjects.State := cbGrayed
+         else if CBShowObjects.State = cbGrayed then CBShowObjects.State := cbChecked
+         else                                        CBShowObjects.State := cbUnchecked;
+      end
+      else
+      begin
+         Refresh     := False;
+
+         VisibleObjects(CBTracks);
+         VisibleObjects(CBArcs);
+         VisibleObjects(CBPads);
+         VisibleObjects(CBVias);
+         VisibleObjects(CBRegions);
+         VisibleObjects(CBFills);
+         VisibleObjects(CBStrings);
+         VisibleObjects(CBComponents);
+         VisibleObjects(CBPolygons);
+         VisibleObjects(CB3DModels);
+         VisibleObjects(CBDimensions);
+         VisibleObjects(CBCoordinates);
+         VisibleObjects(CBRooms);
+
+         if CBShowObjects.State = cbUnchecked then
+            Board.LayerIsDisplayed[eConnectLayer] := False
+         else
+            Board.LayerIsDisplayed[eConnectLayer] := CBConnections.Checked;
+
+         ResetParameters;
+         AddStringParameter('Action', 'Redraw');
+         RunProcess('PCB:Zoom');
+
+         Refresh          := True;
+         SwitchGrayAndOff := True;
+      end;
+   end;
 end;
 
 Procedure ShowHideObjects(CBox : TCheckBox;);
@@ -2872,8 +3770,6 @@ var
    ObjSet   : TObjectSet;
    Iterator : IPCB_BoardIterator;
    i,j,k : Integer;
-   ObjType  : String;
-   ViewType : String;
 begin
    // Here is a small Algorythm to switch unchecked and grayed
    if UpdateFromCB then
@@ -2900,30 +3796,7 @@ begin
          end
          else
          begin
-            Case CBox.Caption of
-               'Tracks'      : ObjType := 'TrackQuality';
-               'Arcs'        : ObjType := 'ArcQuality';
-               'Pads'        : ObjType := 'PadQuality';
-               'Vias'        : ObjType := 'ViaQuality';
-               'Regions'     : ObjType := 'SolidRegionQuality';
-               'Fills'       : ObjType := 'FillQuality';
-               'Strings'     : ObjType := 'StringQuality';
-               'Components'  : ObjType := 'ComponentQuality';
-               'Polygons'    : ObjType := 'PolygonQuality';
-               '3D Models'   : ObjType := '3DBodyQuality';
-               'Dimensions'  : ObjType := 'DimensionQuality';
-               'Rooms'       : ObjType := 'RoomQuality';
-               'Coordinates' : ObjType := 'CoordQuality';
-            end;
-
-            if      CBox.State = cbChecked then ViewType := 'Final'
-            else if CBox.State = cbGrayed  then ViewType := 'Draft'
-            else                                ViewType := 'Hidden';
-
-            ResetParameters;
-            AddStringParameter (ObjType, ViewType);
-            RunProcess ('Pcb:SetupPreferences');
-
+            CB2PrimQuality(CBox.Caption,CBox.State);
             If Refresh then
             begin
                ResetParameters;
@@ -3008,3 +3881,5 @@ procedure TFormLayersPanel.CBConnectionsClick(Sender: TObject);
 begin
    ShowHideObjects(CBConnections);
 end;
+
+
