@@ -2,19 +2,25 @@
 { Summary   This scripts can be used to have better interface to autorouters.  }
 {           It has DSNexporter and SESimporter. Here are fixes in them.        }
 {                                                                              }
-{           SESImporter:                                                       }
+{           SESimporter:                                                       }
 {           - imports ses file including component placement and routings.     }
 {           - uses built-in rte importer for routings, but fixes overlaping    }
 {             components and free primitives.                                  }
 {                                                                              }
-{           DsNexporter:                                                       }
+{           DSNexporter:                                                       }
 {           - fixes issue with multiple pads of the same name in component.    }
-{           - I plan to fix rounded pads issue (not done yet).                 }
+{           - fixed rounded pads issue with FreeRouter (I made them            }
+{             rectangular). However, you need to set FreeRouter variable to    }
+{             true for this (line 20, just below)                              }
 {                                                                              }
 { Created by:    Petar Perisin                                                 }
 {..............................................................................}
 
 {..............................................................................}
+
+const
+   FreeRouter = False;
+
 
 //Following function removes multiple and leading spaces
 function RemoveMultipleSpaces(Tekst): string;
@@ -343,17 +349,21 @@ end;
 
 Procedure DSNexporter;
 var
-   i, j      : Integer;
-   flag      : Boolean;
-   Board     : IPCB_Board;
-   SaveFile  : TSaveDialog;
-   FileName  : String;
-   Iter      : IPCB_BoardIterator;
-   Component : IPCB_Component;
-   GroupIter : IPCB_GroupIterator;
-   Pad       : IPCB_Pad;
-   PadList   : TStringList;
-   Modified  : TStringList;
+   i, j, nr   : Integer;
+   flag       : Boolean;
+   Board      : IPCB_Board;
+   SaveFile   : TSaveDialog;
+   FileName   : String;
+   Iter       : IPCB_BoardIterator;
+   Component  : IPCB_Component;
+   GroupIter  : IPCB_GroupIterator;
+   Pad        : IPCB_Pad;
+   PadList    : TStringList;
+   Modified   : TStringList;
+   Rounded    : TStringList;
+   Octagonal  : TStringList;
+   PadString  : String;
+   LayerString: String;
 begin
    // This will fix error when DSN export does not export multiple component pads with same designator
 
@@ -373,6 +383,8 @@ begin
 
    PadList  := TStringList.Create;
    Modified := TStringList.Create;
+   Rounded  := TStringList.Create;
+   Octagonal:= TStringList.Create;
 
    Iter := Board.BoardIterator_Create;
    Iter.AddFilter_AllLayers;
@@ -406,6 +418,82 @@ begin
          else
             PadList.Add(Pad.Name);
 
+         if FreeRouter then
+         begin
+            if Pad.Mode = ePadMode_Simple then
+            begin
+               if (Pad.TopShape = eRounded) and (Pad.TopXSize <> Pad.TopYSize) then
+               begin
+                  Pad.TopShape := eRectangular;
+                  Rounded.AddObject('',Pad);
+               end
+               else if (Pad.TopShape = eOctagonal) and (Pad.TopXSize <> Pad.TopYSize) then
+               begin
+                  Pad.TopShape := eRectangular;
+                  Octagonal.AddObject('',Pad);
+               end
+            end
+            else if Pad.Mode = ePadMode_LocalStack then
+            begin
+               PadString := '';
+
+               if (Pad.TopShape = eRounded) and (Pad.TopXSize <> Pad.TopYSize) then
+               begin
+                  Pad.TopShape := eRectangular;
+                  PadString := 'Top,';
+               end;
+
+               if (Pad.MidShape = eRounded) and (Pad.MidXSize <> Pad.MidYSize) then
+               begin
+                  Pad.MidShape := eRectangular;
+                  PadString := PadString + 'Mid,';
+               end;
+
+               if (Pad.BotShape = eRounded) and (Pad.BotXSize <> Pad.BotYSize) then
+               begin
+                  Pad.BotShape := eRectangular;
+                  PadString := PadString + 'Bot,';
+               end;
+
+               if PadString <> '' then
+               begin
+                  SetLength(PadString,Length(PadString) - 1);
+                  Rounded.AddObject(PadString,Pad);
+               end;
+
+               PadString := '';
+
+               if (Pad.TopShape = eOctagonal) and (Pad.TopXSize <> Pad.TopYSize) then
+               begin
+                  Pad.TopShape := eRectangular;
+                  PadString := 'Top,';
+               end;
+
+               if (Pad.MidShape = eOctagonal) and (Pad.MidXSize <> Pad.MidYSize) then
+               begin
+                  Pad.MidShape := eRectangular;
+                  PadString := PadString + 'Mid,';
+               end;
+
+               if (Pad.BotShape = eOctagonal) and (Pad.BotXSize <> Pad.BotYSize) then
+               begin
+                  Pad.BotShape := eRectangular;
+                  PadString := PadString + 'Bot,';
+               end;
+
+               if PadString <> '' then
+               begin
+                  SetLength(PadString,Length(PadString) - 1);
+                  Octagonal.AddObject(PadString,Pad);
+               end;
+            end
+            else if Pad.Mode = ePadMode_ExternalStack then
+            begin
+
+
+            end;
+         end;
+
          Pad := GroupIter.NextPCBObject;
       end;
       Component.GroupIterator_Destroy(GroupIter);
@@ -423,5 +511,67 @@ begin
    begin
       Pad := Modified.GetObject(i);
       Pad.Name := Modified[i];
-   end;                          
+   end;
+
+   for i := 0 to Rounded.Count - 1 do
+   begin
+      Pad := Rounded.GetObject(i);
+      PadString := Rounded[i];
+
+      if PadString = '' then
+         Pad.TopShape := eRounded
+      else
+      begin
+         nr := (Length(PadString) + 1) / 4;
+
+         for j := 1 to nr do
+         begin
+            LayerString := GetToken(PadString,j,',');
+
+            if LayerString = 'Top' then
+            begin
+               Pad.TopShape := eRounded;
+            end
+            else if LayerString = 'Mid' then
+            begin
+               Pad.MidShape := eRounded;
+            end
+            else if LayerString = 'Bot' then
+            begin
+               Pad.BotShape := eRounded;
+            end;
+         end;
+      end;
+   end;
+
+   for i := 0 to Octagonal.Count - 1 do
+   begin
+      Pad := Octagonal.GetObject(i);
+      PadString := Octagonal[i];
+
+      if PadString = '' then
+         Pad.TopShape := eOctagonal
+      else
+      begin
+         nr := (Length(PadString) + 1) / 4;
+
+         for j := 1 to nr do
+         begin
+            LayerString := GetToken(PadString,j,',');
+
+            if LayerString = 'Top' then
+            begin
+               Pad.TopShape := eOctagonal;
+            end
+            else if LayerString = 'Mid' then
+            begin
+               Pad.MidShape := eOctagonal;
+            end
+            else if LayerString = 'Bot' then
+            begin
+               Pad.BotShape := eOctagonal;
+            end;
+         end;
+      end;
+   end;
 end;
