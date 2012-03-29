@@ -33,7 +33,7 @@ begin
    While Prim1 <> nil do
    begin
       IsExtended := False;
-      if (not Prim1.Selected) and Prim1.InNet then
+      if (not Prim1.Selected) and Prim1.InNet and (not Prim1.TearDrop) and (not Prim1.InComponent) then
       begin
          IsVertical := False;
          if (Prim1.x1 = Prim1.x2) then
@@ -79,7 +79,8 @@ begin
          Prim2 := SIter.FirstPCBObject;
          While (Prim2 <> nil) do
          begin
-            if (not Prim2.Selected) and (Prim1.I_ObjectAddress <> Prim2.I_ObjectAddress) and Prim2.InNet and (Prim2.Net.Name = Prim1.Net.Name) and (Prim1.Width = Prim2.Width) then
+            if (not Prim2.Selected) and (Prim1.I_ObjectAddress <> Prim2.I_ObjectAddress) and Prim2.InNet and (Prim2.Net.Name = Prim1.Net.Name) and
+               (Prim1.Width = Prim2.Width) and (not Prim2.TearDrop) and (not Prim2.InComponent)then
             begin
                if IsVertical and (Prim2.x1 = Prim2.x2) and (Abs(Prim1.x1 - Prim2.x1) < 100) then
                begin
@@ -175,7 +176,7 @@ begin
    begin
       IsExtended := False;
 
-      if (not Prim1.Selected) and Prim1.InNet then         
+      if (not Prim1.Selected) and Prim1.InNet and (not Prim1.TearDrop) and (not Prim1.InComponent) then
       begin
 
          SIter := Board.SpatialIterator_Create;
@@ -186,11 +187,10 @@ begin
          Prim2 := SIter.FirstPCBObject;
          While (Prim2 <> nil) do
          begin
-            if (not Prim2.Selected) and (Prim1.I_ObjectAddress <> Prim2.I_ObjectAddress)  and Prim2.InNet and (Prim2.Net.Name = Prim1.Net.Name) and (Prim1.LineWidth = Prim2.LineWidth) and
-               (Abs(Prim1.Radius - Prim2.Radius) < 100) and (Abs(Prim1.XCenter - Prim2.XCenter) < 100) and (Abs(Prim1.YCenter - Prim2.YCenter) < 100)  then
+            if (not Prim2.Selected) and (not Prim2.TearDrop) and (Prim1.I_ObjectAddress <> Prim2.I_ObjectAddress)  and Prim2.InNet and
+               (Prim2.Net.Name = Prim1.Net.Name) and (not Prim2.InComponent) and (Prim1.LineWidth = Prim2.LineWidth) and
+               (Abs(Prim1.Radius - Prim2.Radius) < 100) and (Abs(Prim1.XCenter - Prim2.XCenter) < 100) and (Abs(Prim1.YCenter - Prim2.YCenter) < 100) then
             begin
-               // Man, this needs to be split in 4 sections   :-(
-
                if (Prim1.StartAngle < Prim1.EndAngle) and (Prim2.StartAngle < Prim2.EndAngle) then
                begin
                   if not ((Prim1.StartAngle >= Prim2.EndAngle) or (Prim2.StartAngle >= Prim1.EndAngle)) then
@@ -224,26 +224,6 @@ begin
                      IsExtended := True;
                   end;
                end
-              { else if (Prim1.StartAngle > Prim1.EndAngle) and (Prim2.StartAngle < Prim2.EndAngle) then
-               begin
-                  if (Prim1.StartAngle <= Prim2.EndAngle) or (Prim2.StartAngle <= Prim1.EndAngle) then
-                  begin
-                     if (Prim1.StartAngle <= Prim2.EndAngle) and (Prim2.StartAngle <= Prim1.EndAngle) then
-                     begin
-                        Prim1.StartAngle := 0;
-                        Prim1.EndAngle   := 360;
-                     end
-                     else
-                     begin
-                        if Prim1.StartAngle <= Prim2.EndAngle then Prim1.StartAngle := Prim2.StartAngle;
-                        if Prim1.EndAngle >= Prim2.StartAngle then Prim1.EndAngle   := Prim2.EndAngle;
-                     end;
-
-                     Prim1.GraphicallyInvalidate;
-                     Prim2.Selected := True;
-                     IsExtended := True;
-                  end;
-               end   }
                else if (Prim1.StartAngle > Prim1.EndAngle) and (Prim2.StartAngle > Prim2.EndAngle) then
                begin
                   // They always overlap here
