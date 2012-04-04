@@ -29,7 +29,12 @@
 {             practice is to use default value.                                }
 {                                                                              }
 {                                                                              }
+{                                                                              }
 { Created by:    Petar Perisin                                                 }
+{ Fixes from:    Claudio Veronesi                                              }
+{                - Issue with Unconnected net labels on same coordinate        }
+{                - Issue with Alternate part view                              }
+{                                                                              }
 {..............................................................................}
 
 {..............................................................................}
@@ -1242,10 +1247,8 @@ begin
       begin
          Part := Component.DM_SubParts(i);
 
-
          // We need to find sch document this part is on
-         SchDoc := SCHServer.GetSchDocumentByPath(Part.DM_OwnerDocumentFullPath);
-
+         SchDoc := SCHServer.GetSchDocumentByPath(Part.DM_OwnerDocumentFullPath);   
 
          If SchDoc = nil then
          begin
@@ -1277,7 +1280,7 @@ begin
                        Begin
                           // We need another iterator that will find
 
-                          if Pin.OwnerPartId = Comp.CurrentPartID then
+                          if (Pin.OwnerPartId = Comp.CurrentPartID) and (Pin.OwnerPartDisplayMode = Comp.Displaymode) then
                           begin
 
                              try
@@ -1285,13 +1288,13 @@ begin
                                 NetItr.AddFilter_ObjectSet(MkSet(eNetLabel));
 
                                 if      Pin.Orientation = eRotate0 then
-                                   NetItr.AddFilter_Area(Pin.Location.X - 1, Pin.Location.Y - 1, Pin.Location.X + 30000000, Pin.Location.Y + 1)
+                                   NetItr.AddFilter_Area(Pin.Location.X - 1, Pin.Location.Y - 1, Pin.Location.X + 10000000, Pin.Location.Y + 1)
                                 else if Pin.Orientation = eRotate90 then
-                                   NetItr.AddFilter_Area(Pin.Location.X - 1, Pin.Location.Y - 1, Pin.Location.X + 1, Pin.Location.Y + 30000000)
+                                   NetItr.AddFilter_Area(Pin.Location.X - 1, Pin.Location.Y - 1, Pin.Location.X + 1, Pin.Location.Y + 10000000)
                                 else if Pin.Orientation = eRotate180 then
-                                   NetItr.AddFilter_Area(Pin.Location.X - 30000000, Pin.Location.Y - 1, Pin.Location.X + 1, Pin.Location.Y + 1)
+                                   NetItr.AddFilter_Area(Pin.Location.X - 10000000, Pin.Location.Y - 1, Pin.Location.X + 1, Pin.Location.Y + 1)
                                 else if Pin.Orientation = eRotate270 then
-                                   NetItr.AddFilter_Area(Pin.Location.X - 1, Pin.Location.Y - 30000000, Pin.Location.X + 1, Pin.Location.Y + 1);
+                                   NetItr.AddFilter_Area(Pin.Location.X - 1, Pin.Location.Y - 10000000, Pin.Location.X + 1, Pin.Location.Y + 1);
 
                                 NetLabel := NetItr.FirstSchObject;
                                 Templabel := nil;
@@ -1397,6 +1400,3 @@ begin
 
    VendorToolsForm.ShowModal;
 end;
-
-
-
