@@ -25,9 +25,12 @@
 ' fix crash in Altium Designer Summer 09                                    (Ben Benardos 23/07/2009)
 ' v96 add support for Mechanical 17 - Mechanical 32 layers                  (Ben Benardos 06/07/2010)
 ' v96 change LayerListBox.Style to csDropDownList                           (Ben Benardos 06/07/2010)
+' v97 added define board shape checkbox                                     (EA           04/18/2012)
+' v97 added selected rectangle checkbox                                     (EA           04/18/2012)
+' v97 changed so that the form doesn't pop up twice                         (EA           04/18/2012)
 '....................................................
 '
-' Version 0.96
+' Version 0.97
 
 ' still to do
 
@@ -201,6 +204,7 @@ Sub XPBitBtn1Click(Sender)
     Track.Y2       = CentreY + Round(Height/2)
     Track.Layer    = Layer
     AddPCBObject(Track)
+    Track.Selected = Selected.Checked Or BoardShape.Checked
 
     Track          = PCBServer.PCBObjectFactory(eTrackObject, eNoDimension, eCreate_Default)
     Track.Width    = Width
@@ -210,6 +214,7 @@ Sub XPBitBtn1Click(Sender)
     Track.Y2       = CentreY - Round(Height/2)
     Track.Layer    = Layer
     AddPCBObject(Track)
+    Track.Selected = Selected.Checked Or BoardShape.Checked
 
     Track          = PCBServer.PCBObjectFactory(eTrackObject, eNoDimension, eCreate_Default)
     Track.Width    = Width
@@ -219,6 +224,7 @@ Sub XPBitBtn1Click(Sender)
     Track.Y2       = CentreY - Round(Height/2)
     Track.Layer    = Layer
     AddPCBObject(Track)
+    Track.Selected = Selected.Checked Or BoardShape.Checked
 
     Track          = PCBServer.PCBObjectFactory(eTrackObject, eNoDimension, eCreate_Default)
     Track.Width    = Width
@@ -228,6 +234,7 @@ Sub XPBitBtn1Click(Sender)
     Track.Y2       = CentreY + Round(Height/2)
     Track.Layer    = Layer
     AddPCBObject(Track)
+    Track.Selected = Selected.Checked Or BoardShape.Checked
 
 
     If AddVia.Checked Then
@@ -243,6 +250,12 @@ Sub XPBitBtn1Click(Sender)
         Via.LowLayer  = eTopLayer
         Via.HighLayer = eBottomLayer
         AddPCBObject(Via)
+    End If
+
+    If BoardShape.Checked then
+        ResetParameters
+        Call AddStringParameter("Mode", "BOARDOUTLINE_FROM_SEL_PRIMS")
+        RunProcess("PCB:PlaceBoardOutline")
     End If
 
     Pcbserver.PostProcess
@@ -278,15 +291,11 @@ End Sub
 
 '-----------------------------------------------------------------------
 Sub Main
-    PlaceRectangleForm.showmodal
+    'PlaceRectangleForm.showmodal
 End Sub
 
 '-----------------------------------------------------------------------
 Sub XPBitBtn2Click(Sender)
     close
 End Sub
-
-
-
-
 
