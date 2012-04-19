@@ -570,12 +570,42 @@ object PlaceRectangleForm: TPlaceRectangleForm
     Transparent = True
   end
   object Label3: TLabel
-    Left = 333
-    Top = 52
+    Left = 373
+    Top = 60
     Width = 45
     Height = 13
     Alignment = taRightJustify
     Caption = 'Add Via'
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -11
+    Font.Name = 'MS Sans Serif'
+    Font.Style = [fsBold]
+    ParentFont = False
+    Transparent = True
+  end
+  object Label4: TLabel
+    Left = 367
+    Top = 36
+    Width = 51
+    Height = 13
+    Alignment = taRightJustify
+    Caption = 'Selected'
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -11
+    Font.Name = 'MS Sans Serif'
+    Font.Style = [fsBold]
+    ParentFont = False
+    Transparent = True
+  end
+  object Label5: TLabel
+    Left = 303
+    Top = 12
+    Width = 115
+    Height = 13
+    Alignment = taRightJustify
+    Caption = 'Define Board Shape'
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
     Font.Height = -11
@@ -598,9 +628,11 @@ object PlaceRectangleForm: TPlaceRectangleForm
     Top = 180
     Width = 14
     Height = 13
+    Checked = True
     Color = cl3DDkShadow
     ParentColor = False
     TabOrder = 9
+    TabStop = True
   end
   object XPBitBtn1: TXPBitBtn
     Left = 289
@@ -729,15 +761,13 @@ object PlaceRectangleForm: TPlaceRectangleForm
     Top = 129
     Width = 14
     Height = 13
-    Checked = True
     Color = cl3DDkShadow
     ParentColor = False
     TabOrder = 11
-    TabStop = True
   end
   object AddVia: TXPCheckBox
-    Left = 382
-    Top = 49
+    Left = 422
+    Top = 57
     Width = 15
     Height = 17
     Caption = 'AddVia'
@@ -749,7 +779,6 @@ object PlaceRectangleForm: TPlaceRectangleForm
     ParentFont = False
     TabOrder = 12
     Alignment = taLeftJustify
-    State = cbChecked
   end
   object StartX: TEdit
     Left = 176
@@ -861,5 +890,35 @@ object PlaceRectangleForm: TPlaceRectangleForm
       OnClick = MetricClick
       Alignment = taLeftJustify
     end
+  end
+  object Selected: TXPCheckBox
+    Left = 422
+    Top = 33
+    Width = 15
+    Height = 17
+    Caption = 'Selected'
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -11
+    Font.Name = 'MS Sans Serif'
+    Font.Style = [fsBold]
+    ParentFont = False
+    TabOrder = 18
+    Alignment = taLeftJustify
+  end
+  object BoardShape: TXPCheckBox
+    Left = 422
+    Top = 9
+    Width = 15
+    Height = 17
+    Caption = 'Selected'
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -11
+    Font.Name = 'MS Sans Serif'
+    Font.Style = [fsBold]
+    ParentFont = False
+    TabOrder = 19
+    Alignment = taLeftJustify
   end
 end
