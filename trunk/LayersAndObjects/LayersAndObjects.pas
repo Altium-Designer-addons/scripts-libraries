@@ -1,4 +1,5 @@
 {..............................................................................}
+{                                                                              }
 { Summary   This scripts can be used to show or hide layers and objects.       }
 {                                                                              }
 {           it shows all layers in a form and by clicking you turn them on or  }
@@ -43,13 +44,14 @@
 
 
 var
-   Board            : IPCB_Board;
-   TheLayerStack    : IPCB_LayerStack;
-   OnShow           : Boolean;
-   Refresh          : Boolean;
-   UpdateFromCB     : Boolean;
-   SwitchGrayAndOff : Boolean;
-   CurrentLayerCB   : TCheckBox;
+   Board               : IPCB_Board;
+   TheLayerStack       : IPCB_LayerStack;
+   OnShow              : Boolean;
+   Refresh             : Boolean;
+   UpdateFromCB        : Boolean;
+   SwitchGrayAndOff    : Boolean;
+   PanelRefreshControl : Boolean;
+   CurrentLayerCB      : TCheckBox;
 
 function Int2CBCopper(i : Integer) : TCheckBox;
 begin
@@ -299,40 +301,19 @@ begin
    else if not Board.LayerIsDisplayed[String2Layer('Multi Layer')]        then Result := True;
 end;
 
-Procedure HideLayerCB(dummy : String);
-var
-   i  : Integer;
-   CB : TCheckBox;
-   Shape : TShape;
+Procedure SetBoldedCB(CB : TCheckBox);
 begin
-   for i := 1 to 48 do
+   if CurrentLayerCB <> nil then
    begin
-      CB := Int2CBCopper(i);
-      if CB.Visible then
-      begin
-         CB.Visible := False;
-         CB.Enabled := False;
-         Shape := Int2ShapeCopper(i);
-         Shape.Visible := False;
-         Shape.Enabled := False;
-      end
-      else
-         break;
+      CurrentLayerCB.Font.Style := MkSet();
+      CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
    end;
 
-   for i := 1 to 32 do
+   if CB <> nil then
    begin
-      CB := Int2CBMech(i);
-      if CB.Visible then
-      begin
-         CB.Visible := False;
-         CB.Enabled := False;
-         Shape := Int2ShapeMech(i);
-         Shape.Visible := False;
-         Shape.Enabled := False;
-      end
-      else
-         break;
+      CurrentLayerCB := CB;
+      CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
+      CurrentLayerCB.Font.Style := MkSet(fsBold);
    end;
 end;
 
@@ -342,6 +323,7 @@ var
    MechLayer        : IPCB_MechanicalLayer;
    i, j             : Integer;
    GetCB            : TCheckBox;
+   FoundCurrentLayer: Boolean;
 
    Enabled          : Boolean;
    Disabled         : Boolean;
@@ -363,12 +345,12 @@ begin
    // number of mech and copper layers, etc...
    Board := PCBServer.GetCurrentPCBBoard;
 
-   GroupBoxObjects.Visible := False;
-   GroupBoxCopper.Visible  := False;
-   GroupBoxMech.Visible    := False;
-   GroupBoxOther.Visible   := False;
    if Board = nil then
    begin
+      GroupBoxObjects.Visible := False;
+      GroupBoxCopper.Visible  := False;
+      GroupBoxMech.Visible    := False;
+      GroupBoxOther.Visible   := False;
       GroupBoxObjects.Enabled := False;
       GroupBoxCopper.Enabled  := False;
       GroupBoxMech.Enabled    := False;
@@ -388,14 +370,6 @@ begin
       GroupBoxOther.Enabled   := True;
 
       TheLayerStack := Board.LayerStack;
-
-      HideLayerCB('');
-      if CurrentLayerCB <> nil then
-      begin
-         CurrentLayerCB.Font.Style := CBunbold.Font.Style;
-         CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-         CurrentLayerCB := nil;
-      end;
 
       Enabled         := False;
       Disabled        := False;
@@ -419,10 +393,12 @@ begin
          CBPlanes.Visible  := True;
       end;
 
+      FoundCurrentLayer := False;
+
       // Copper
       LayerObj := TheLayerStack.FirstLayer;
       i := 1;
-      while (LayerObj <> nil) and (i <= 32) do
+      while (LayerObj <> nil) and (i <= 48) do
       begin
          if LayerObj.IsDisplayed[Board] then Enabled := True
          else                                Disabled := True;
@@ -442,11 +418,16 @@ begin
          GetCB.Visible := True;
          GetCB.Enabled := True;
          GetCB.Caption := LayerObj.Name;
-         if Board.CurrentLayer = LayerObj.V7_LayerID then
+         if (Board.CurrentLayer = LayerObj.V7_LayerID) then
          begin
-            CurrentLayerCB := GetCB;
-            GetCB.Width := Image1.Canvas.TextWidth(LayerObj.Name) + 16;
-            CurrentLayerCB.Font.Style := CBBold.Font.Style;
+            if (CurrentLayerCB.Caption <> GetCB.Caption) then
+            begin
+               SetBoldedCB(nil);
+               CurrentLayerCB := GetCB;
+               GetCB.Width := Image1.Canvas.TextWidth(LayerObj.Name) + 16;
+               CurrentLayerCB.Font.Style := MkSet(fsBold);
+            end;
+            FoundCurrentLayer := True;
          end
          else
             GetCB.Width := FormLayersPanel.Canvas.TextWidth(LayerObj.Name) + 16;
@@ -459,6 +440,22 @@ begin
 
          Inc(i);
          LayerObj := TheLayerStack.NextLayer(LayerObj);
+      end;
+
+      while i <= 48 do
+      begin
+         GetCB := Int2CBCopper(i);
+         if GetCB.Visible then
+         begin
+            GetCB.Visible := False;
+            GetCB.Enabled := False;
+            Shape := Int2ShapeCopper(i);
+            Shape.Visible := False;
+            Shape.Enabled := False;
+         end
+         else
+            break;
+         inc(i);
       end;
 
       if      Enabled  = False        then CBCopperAll.Checked := False
@@ -523,11 +520,16 @@ begin
             GetCB.Visible := True;
             if MechLayer.LinkToSheet = False then
                GetCB.Enabled := True;
-            if Board.CurrentLayer = MechLayer.LayerID then
+            if (Board.CurrentLayer = MechLayer.LayerID) then
             begin
-               CurrentLayerCB := GetCB;
-               GetCB.Width := Image1.Canvas.TextWidth(MechLayer.Name) + 16;
-               CurrentLayerCB.Font.Style := CBBold.Font.Style;
+               if (CurrentLayerCB.Name <> GetCB.Name) then
+               begin
+                  SetBoldedCB(nil);
+                  CurrentLayerCB := GetCB;
+                  GetCB.Width := Image1.Canvas.TextWidth(MechLayer.Name) + 16;
+                  CurrentLayerCB.Font.Style := MkSet(fsBold);
+               end;
+               FoundCurrentLayer := True;
             end
             else
                GetCB.Width := FormLayersPanel.Canvas.TextWidth(MechLayer.Name) + 16;
@@ -543,6 +545,21 @@ begin
 
             inc(j);
          end;
+      end;
+
+      for i := j to 32 do
+      begin
+         GetCB := Int2CBMech(i);
+         if GetCB.Visible then
+         begin
+            GetCB.Visible := False;
+            GetCB.Enabled := False;
+            Shape := Int2ShapeMech(i);
+            Shape.Visible := False;
+            Shape.Enabled := False;
+         end
+         else
+            break;
       end;
 
       if      Enabled  = False then CBMechAll.Checked := False
@@ -634,11 +651,12 @@ begin
       else if CBKeepOut.Checked  and      CBMultiLayer.Checked  then CBOther.Checked := True
       else                                                           CBOther.State   := cbGrayed;
 
-      if (CurrentLayerCB = nil) and (Str2CBOther(Layer2String(Board.CurrentLayer)) <> nil) then
+      if not FoundCurrentLayer then
       begin
+         SetBoldedCB(nil);
          CurrentLayerCB := Str2CBOther(Layer2String(Board.CurrentLayer));
          CurrentLayerCB.Width := Image1.Canvas.TextWidth(Layer2String(Board.CurrentLayer)) + 16;
-         CurrentLayerCB.Font.Style := CBBold.Font.Style;
+         CurrentLayerCB.Font.Style := MkSet(fsBold);
       end;
 
       if ImageArrowUpOther.Enabled then
@@ -646,7 +664,7 @@ begin
       else
          GroupBoxOther.Height := 48;
 
-      FormLayersPanel.Width := 3 * GroupBoxCopper.Left + GroupBoxCopper.Width;
+      FormLayersPanel.Width := 3 * GroupBoxCopper.Left + GroupBoxCopper.Width + 2;
       FormLayersPanel.Height:= GroupBoxOther.Top + GroupBoxOther.Height + 50;
 
       // finally read are connection lines shown
@@ -747,7 +765,7 @@ End;
 
 procedure TFormLayersPanel.FormLayersPanelActivate(Sender: TObject);
 begin
-   RefreshPanel('');
+//   RefreshPanel('');
 end;
 
 procedure TFormLayersPanel.FormLayersPanelShow(Sender: TObject);
@@ -765,8 +783,8 @@ begin
    TheLayerStack := Board.LayerStack;
    if TheLayerStack = nil then exit;
 
-   CurrentLayerCB := nil;
-   Image1.Canvas.Font.Style := CBBold.Font.Style;
+   CurrentLayerCB := CBTracks;
+   Image1.Canvas.Font.Style := MkSet(fsBold);
 
    FormlayersPanel.Show;
 
@@ -1122,15 +1140,7 @@ begin
          Begin
            Board.CurrentLayer := LayerObj.LayerID;
 
-           if CurrentLayerCB <> nil then
-           begin
-              CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
-              CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-           end;
-
-           CurrentLayerCB := CB;
-           CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-           CurrentLayerCB.Font.Style := CBBold.Font.Style;
+           SetBoldedCB(CB);
 
            Refresh := False;
          end;
@@ -1197,18 +1207,8 @@ begin
 
       CB := Layer2CB(Board.CurrentLayer);
 
-      if CurrentLayerCB <> nil then
-      begin
-         CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
-         CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-      end;
+      SetBoldedCB(CB);
 
-      if CB <> nil then
-      begin
-         CurrentLayerCB := CB;
-         CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-         CurrentLayerCB.Font.Style := CBBold.Font.Style;
-      end;
    end;
    UpdateFromCB := True;
 end;
@@ -1257,15 +1257,7 @@ begin
                begin
                   Board.CurrentLayer := MechLayer.V7_LayerID;
 
-                  if CurrentLayerCB <> nil then
-                  begin
-                     CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
-                     CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-                  end;
-
-                  CurrentLayerCB := CB;
-                  CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-                  CurrentLayerCB.Font.Style := CBBold.Font.Style;
+                  SetBoldedCB(CB);
 
                   Refresh := False;
                end;
@@ -1335,18 +1327,7 @@ begin
 
       CB := Layer2CB(Board.CurrentLayer);
 
-      if CurrentLayerCB <> nil then
-      begin
-         CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
-         CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-      end;
-
-      if CB <> nil then
-      begin
-         CurrentLayerCB := CB;
-         CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-         CurrentLayerCB.Font.Style := CBBold.Font.Style;
-      end;
+      SetBoldedCB(CB);
 
    end;
 
@@ -1367,15 +1348,7 @@ begin
    begin
       Board.CurrentLayer := String2Layer(Layer);
 
-      if CurrentLayerCB <> nil then
-      begin
-         CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
-         CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-      end;
-
-      CurrentLayerCB := CB;
-      CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-      CurrentLayerCB.Font.Style := CBBold.Font.Style;
+      SetBoldedCB(CB);
 
       Refresh := False;
    end;
@@ -1461,18 +1434,7 @@ begin
 
       CB := Layer2CB(Board.CurrentLayer);
 
-      if CurrentLayerCB <> nil then
-      begin
-         CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
-         CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-      end;
-
-      if CB <> nil then
-      begin
-         CurrentLayerCB := CB;
-         CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-         CurrentLayerCB.Font.Style := CBBold.Font.Style;
-      end;
+      SetBoldedCB(CB);
    end;
 
    UpdateFromCB := True;
@@ -1503,15 +1465,7 @@ begin
          begin
             Board.CurrentLayer := LayerObj.LayerID;
 
-            if CurrentLayerCB <> nil then
-            begin
-               CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
-               CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-            end;
-
-            CurrentLayerCB := CB;
-            CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-            CurrentLayerCB.Font.Style := CBBold.Font.Style;
+            SetBoldedCB(CB);
          end;
          Flag := False;
          Inc(i);
@@ -1530,18 +1484,7 @@ begin
       begin
          CB := Layer2CB(Board.CurrentLayer);
 
-         if CurrentLayerCB <> nil then
-         begin
-            CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
-            CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-         end;
-
-         if CB <> nil then
-         begin
-            CurrentLayerCB := CB;
-            CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-            CurrentLayerCB.Font.Style := CBBold.Font.Style;
-         end;
+         SetBoldedCB(CB);
       end;
    end;
 end;
@@ -1577,15 +1520,7 @@ begin
                begin
                   Board.CurrentLayer := MechLayer.V7_LayerID;
 
-                  if CurrentLayerCB <> nil then
-                  begin
-                     CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
-                     CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-                  end;
-
-                  CurrentLayerCB := CB;
-                  CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-                  CurrentLayerCB.Font.Style := CBBold.Font.Style;
+                  SetBoldedCB(CB);
                end;
                Flag := False;
             end;
@@ -1603,18 +1538,7 @@ begin
       begin
          CB := Layer2CB(Board.CurrentLayer);
 
-         if CurrentLayerCB <> nil then
-         begin
-            CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
-            CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-         end;
-
-         if CB <> nil then
-         begin
-            CurrentLayerCB := CB;
-            CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-            CurrentLayerCB.Font.Style := CBBold.Font.Style;
-         end;
+         SetBoldedCB(CB);
       end;
    end;
 end;
@@ -1663,15 +1587,7 @@ begin
       begin
          Board.CurrentLayer := String2Layer('Top Overlay');
 
-         if CurrentLayerCB <> nil then
-         begin
-            CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
-            CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-         end;
-
-         CurrentLayerCB := CBTopOverlay;
-         CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-         CurrentLayerCB.Font.Style := CBBold.Font.Style;
+         SetBoldedCB(CBTopOverlay);
 
          Board.ViewManager_FullUpdate;
          Board.ViewManager_UpdateLayerTabs;
@@ -1683,18 +1599,7 @@ begin
 
          CB := Layer2CB(Board.CurrentLayer);
 
-         if CurrentLayerCB <> nil then
-         begin
-            CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
-            CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-         end;
-
-         if CB <> nil then
-         begin
-            CurrentLayerCB := CB;
-            CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-            CurrentLayerCB.Font.Style := CBBold.Font.Style;
-         end;
+         SetBoldedCB(CB);
       end;
 
       Board.ViewManager_FullUpdate;
@@ -1736,16 +1641,7 @@ begin
             begin
                Board.CurrentLayer := LayerObj.LayerID;
 
-               if CurrentLayerCB <> nil then
-               begin
-                  CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
-                  CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-               end;
-
-               CurrentLayerCB := CB;
-               CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-               CurrentLayerCB.Font.Style := CBBold.Font.Style;
-
+               SetBoldedCB(CB);
             end;
 
             Flag := False;
@@ -1769,18 +1665,7 @@ begin
       begin
          CB := Layer2CB(Board.CurrentLayer);
 
-         if CurrentLayerCB <> nil then
-         begin
-            CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
-            CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-         end;
-
-         if CB <> nil then
-         begin
-            CurrentLayerCB := CB;
-            CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-            CurrentLayerCB.Font.Style := CBBold.Font.Style;
-         end;
+         SetBoldedCB(CB);
       end;
 
       UpdateFromCB := True;
@@ -1821,16 +1706,7 @@ begin
             begin
                Board.CurrentLayer := LayerObj.LayerID;
 
-               if CurrentLayerCB <> nil then
-               begin
-                  CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
-                  CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-               end;
-
-               CurrentLayerCB := CB;
-               CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-               CurrentLayerCB.Font.Style := CBBold.Font.Style;
-
+               SetBoldedCB(CB);
             end;
 
             Flag := False;
@@ -1854,18 +1730,7 @@ begin
       begin
          CB := Layer2CB(Board.CurrentLayer);
 
-         if CurrentLayerCB <> nil then
-         begin
-            CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
-            CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-         end;
-
-         if CB <> nil then
-         begin
-            CurrentLayerCB := CB;
-            CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-            CurrentLayerCB.Font.Style := CBBold.Font.Style;
-         end;
+         SetBoldedCB(CB);
       end;
 
       UpdateFromCB := True;
@@ -1910,15 +1775,7 @@ begin
                begin
                   Board.CurrentLayer := MechLayer.V7_LayerID;
 
-                  if CurrentLayerCB <> nil then
-                  begin
-                     CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
-                     CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-                  end;
-
-                  CurrentLayerCB := CB;
-                  CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-                  CurrentLayerCB.Font.Style := CBBold.Font.Style;
+                  SetBoldedCB(CB);
 
                end;
                Refresh := False;
@@ -1945,18 +1802,7 @@ begin
       begin
          CB := Layer2CB(Board.CurrentLayer);
 
-         if CurrentLayerCB <> nil then
-         begin
-            CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
-            CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-         end;
-
-         if CB <> nil then
-         begin
-            CurrentLayerCB := CB;
-            CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-            CurrentLayerCB.Font.Style := CBBold.Font.Style;
-         end;
+         SetBoldedCB(CB);
       end;
    end;
 end;
@@ -1999,15 +1845,7 @@ begin
                begin
                   Board.CurrentLayer := MechLayer.V7_LayerID;
 
-                  if CurrentLayerCB <> nil then
-                  begin
-                     CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
-                     CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-                  end;
-
-                  CurrentLayerCB := CB;
-                  CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-                  CurrentLayerCB.Font.Style := CBBold.Font.Style;
+                  SetBoldedCB(CB);
                end;
 
                Refresh := False;
@@ -2031,18 +1869,7 @@ begin
       begin
          CB := Layer2CB(Board.CurrentLayer);
 
-         if CurrentLayerCB <> nil then
-         begin
-            CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
-            CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-         end;
-
-         if CB <> nil then
-         begin
-            CurrentLayerCB := CB;
-            CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-            CurrentLayerCB.Font.Style := CBBold.Font.Style;
-         end;
+         SetBoldedCB(CB);
       end;
 
       UpdateFromCB := True;
@@ -2089,15 +1916,7 @@ begin
             begin
               Board.CurrentLayer := LayerObj.LayerID;
 
-              if CurrentLayerCB <> nil then
-              begin
-                 CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
-                 CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-              end;
-
-              CurrentLayerCB := CB;
-              CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-              CurrentLayerCB.Font.Style := CBBold.Font.Style;
+              SetBoldedCB(CB);
             end;
 
             if Refresh Then
@@ -2109,18 +1928,7 @@ begin
                begin
                   CB := Layer2CB(Board.CurrentLayer);
 
-                  if CurrentLayerCB <> nil then
-                  begin
-                     CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
-                     CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-                  end;
-
-                  if CB <> nil then
-                  begin
-                     CurrentLayerCB := CB;
-                     CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-                     CurrentLayerCB.Font.Style := CBBold.Font.Style;
-                  end;
+                  SetBoldedCB(CB);
                end;
             end;
          end;
@@ -2177,15 +1985,7 @@ begin
          begin
             Board.CurrentLayer := LayerObj.LayerID;
 
-            if CurrentLayerCB <> nil then
-            begin
-               CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
-               CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-            end;
-
-            CurrentLayerCB := int2CBCopper(Nr);
-            CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-            CurrentLayerCB.Font.Style := CBBold.Font.Style;
+            SetBoldedCB(int2CBCopper(Nr));
 
             Board.ViewManager_FullUpdate;
             Board.ViewManager_UpdateLayerTabs;
@@ -2238,15 +2038,7 @@ begin
                begin
                   Board.CurrentLayer := MechLayer.V7_LayerID;
 
-                  if CurrentLayerCB <> nil then
-                  begin
-                     CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
-                     CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-                  end;
-                  CurrentLayerCB := CB;
-                  CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-                  CurrentLayerCB.Font.Style := CBBold.Font.Style;
-
+                  SetBoldedCB(CB);
                end;
 
                if Refresh then
@@ -2258,18 +2050,7 @@ begin
                   begin
                      CB := Layer2CB(Board.CurrentLayer);
 
-                     if CurrentLayerCB <> nil then
-                     begin
-                        CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
-                        CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-                     end;
-
-                     if CB <> nil then
-                     begin
-                        CurrentLayerCB := CB;
-                        CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-                        CurrentLayerCB.Font.Style := CBBold.Font.Style;
-                     end;
+                     SetBoldedCB(CB);
                   end;
                end;
             end;
@@ -2329,14 +2110,7 @@ begin
          begin
             Board.CurrentLayer := MechLayer.V7_LayerID;
 
-            if CurrentLayerCB <> nil then
-            begin
-               CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
-               CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-            end;
-            CurrentLayerCB := int2CBMech(Nr);
-            CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-            CurrentLayerCB.Font.Style := CBBold.Font.Style;
+            SetBoldedCB(Int2CBMech(Nr));
 
             Board.ViewManager_FullUpdate;
             Board.ViewManager_UpdateLayerTabs;
@@ -2345,7 +2119,6 @@ begin
          break;
       end;
    end;
-
 end;
 
 Procedure OtherClick(Name : String);
@@ -2361,16 +2134,7 @@ begin
       begin
          Board.CurrentLayer := String2Layer(Name);
 
-         if CurrentLayerCB <> nil then
-         begin
-            CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
-            CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-         end;
-
-         CurrentLayerCB := Str2CBOther(Name);
-         CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-         CurrentLayerCB.Font.Style := CBBold.Font.Style;
-
+         SetBoldedCB(Str2CBOther(Name));
       end;
 
       if Refresh then
@@ -2382,18 +2146,7 @@ begin
          begin
             CB := Layer2CB(Board.CurrentLayer);
 
-            if CurrentLayerCB <> nil then
-            begin
-               CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
-               CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-            end;
-
-            if CB <> nil then
-            begin
-               CurrentLayerCB := CB;
-               CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-               CurrentLayerCB.Font.Style := CBBold.Font.Style;
-            end;
+            SetBoldedCB(CB);
          end;
       end;
 
@@ -2437,15 +2190,7 @@ begin
    begin
       Board.CurrentLayer := String2Layer(Name);
 
-      if CurrentLayerCB <> nil then
-      begin
-         CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
-         CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-      end;
-
-      CurrentLayerCB := Str2CBOther(Name);
-      CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-      CurrentLayerCB.Font.Style := CBBold.Font.Style;
+      SetBoldedCB(Str2CBOther(Name));
 
       Board.ViewManager_FullUpdate;
       Board.ViewManager_UpdateLayerTabs;
@@ -3371,15 +3116,7 @@ begin
       begin
          Board.CurrentLayer := String2Layer('Top Overlay');
 
-         if CurrentLayerCB <> nil then
-         begin
-            CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
-            CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-         end;
-
-         CurrentLayerCB := CBTopOverlay;
-         CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-         CurrentLayerCB.Font.Style := CBBold.Font.Style;
+         SetBoldedCB(CBTopOverlay);
 
          Board.ViewManager_UpdateLayerTabs;
          Board.ViewManager_FullUpdate;
@@ -3391,18 +3128,7 @@ begin
 
          CB := Layer2CB(Board.CurrentLayer);
 
-         if CurrentLayerCB <> nil then
-         begin
-            CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
-            CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-         end;
-
-         if CB <> nil then
-         begin
-            CurrentLayerCB := CB;
-            CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-            CurrentLayerCB.Font.Style := CBBold.Font.Style;
-         end;
+         SetBoldedCB(CB);
       end;
 
       if      OtherEnabled('')  = False then CBOtherAll.Checked := False
@@ -3435,15 +3161,7 @@ begin
       begin
          Board.CurrentLayer := String2Layer('Top Solder Mask');
 
-         if CurrentLayerCB <> nil then
-         begin
-            CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
-            CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-         end;
-
-         CurrentLayerCB := CBTopSolder;
-         CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-         CurrentLayerCB.Font.Style := CBBold.Font.Style;
+         SetBoldedCB(CBTopSolder);
 
          Board.ViewManager_UpdateLayerTabs;
          Board.ViewManager_FullUpdate;
@@ -3455,18 +3173,7 @@ begin
 
          CB := Layer2CB(Board.CurrentLayer);
 
-         if CurrentLayerCB <> nil then
-         begin
-            CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
-            CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-         end;
-
-         if CB <> nil then
-         begin
-            CurrentLayerCB := CB;
-            CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-            CurrentLayerCB.Font.Style := CBBold.Font.Style;
-         end;
+         SetBoldedCB(CB);
       end;
 
       if      OtherEnabled('')  = False then CBOtherAll.Checked := False
@@ -3495,15 +3202,7 @@ begin
       begin
          Board.CurrentLayer := String2Layer('Drill Guide');
 
-         if CurrentLayerCB <> nil then
-         begin
-            CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
-            CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-         end;
-
-         CurrentLayerCB := CBDrillGuide;
-         CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-         CurrentLayerCB.Font.Style := CBBold.Font.Style;
+         SetBoldedCB(CBDrillGuide);
 
          Board.ViewManager_UpdateLayerTabs;
          Board.ViewManager_FullUpdate;
@@ -3515,18 +3214,7 @@ begin
 
          CB := Layer2CB(Board.CurrentLayer);
 
-         if CurrentLayerCB <> nil then
-         begin
-            CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
-            CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-         end;
-
-         if CB <> nil then
-         begin
-            CurrentLayerCB := CB;
-            CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-            CurrentLayerCB.Font.Style := CBBold.Font.Style;
-         end;
+         SetBoldedCB(CB);
       end;
 
       if      OtherEnabled('')  = False then CBOtherAll.Checked := False
@@ -3555,15 +3243,7 @@ begin
       begin
          Board.CurrentLayer := String2Layer('Keep Out Layer');
 
-         if CurrentLayerCB <> nil then
-         begin
-            CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
-            CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-         end;
-
-         CurrentLayerCB := CBKeepOut;
-         CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-         CurrentLayerCB.Font.Style := CBBold.Font.Style;
+         SetBoldedCB(CBKeepOut);
 
          Board.ViewManager_UpdateLayerTabs;
          Board.ViewManager_FullUpdate;
@@ -3575,18 +3255,7 @@ begin
 
          CB := Layer2CB(Board.CurrentLayer);
 
-         if CurrentLayerCB <> nil then
-         begin
-            CurrentLayerCB.Font.Style := CBUnbold.Font.Style;
-            CurrentLayerCB.Width := FormLayersPanel.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-         end;
-
-         if CB <> nil then
-         begin
-            CurrentLayerCB := CB;
-            CurrentLayerCB.Width := Image1.Canvas.TextWidth(CurrentLayerCB.Caption) + 16;
-            CurrentLayerCB.Font.Style := CBBold.Font.Style;
-         end;
+         SetBoldedCB(CB); 
       end;
 
       if      OtherEnabled('')  = False then CBOtherAll.Checked := False
@@ -3883,3 +3552,61 @@ begin
 end;
 
 
+procedure TFormLayersPanel.FormLayersPanelMouseEnter(Sender: TObject);
+begin
+   if PanelRefreshControl or (Board.FileName <> PCBServer.GetCurrentPCBBoard.FileName) then
+      RefreshPanel('');
+
+   PanelRefreshControl := False;
+   FormLayersPanel.Activate;
+end;
+
+procedure TFormLayersPanel.FormLayersPanelDeactivate(Sender: TObject);
+begin
+   PanelRefreshControl := True;
+end;
+
+procedure TFormLayersPanel.GroupBoxObjectsMouseEnter(Sender: TObject);
+begin
+   if PanelRefreshControl or (Board.FileName <> PCBServer.GetCurrentPCBBoard.FileName) then
+      RefreshPanel('');
+
+   PanelRefreshControl := False;
+   FormLayersPanel.Activate;
+end;
+
+
+procedure TFormLayersPanel.FormLayersPanelMouseLeave(Sender: TObject);
+begin
+   PanelRefreshControl := True;
+   FormLayersPanel.Activate;
+end;
+
+procedure TFormLayersPanel.GroupBoxCopperMouseEnter(Sender: TObject);
+begin
+   if PanelRefreshControl or (Board.FileName <> PCBServer.GetCurrentPCBBoard.FileName) then
+      RefreshPanel('');
+
+   PanelRefreshControl := False;
+   FormLayersPanel.Activate;
+end;
+
+
+procedure TFormLayersPanel.GroupBoxMechMouseEnter(Sender: TObject);
+begin
+   if PanelRefreshControl or (Board.FileName <> PCBServer.GetCurrentPCBBoard.FileName) then
+      RefreshPanel('');
+
+   PanelRefreshControl := False;
+   FormLayersPanel.Activate;
+end;
+
+
+procedure TFormLayersPanel.GroupBoxOtherMouseEnter(Sender: TObject);
+begin
+   if PanelRefreshControl or (Board.FileName <> PCBServer.GetCurrentPCBBoard.FileName) then
+      RefreshPanel('');
+
+   PanelRefreshControl := False;
+   FormLayersPanel.Activate;
+end;

@@ -13,6 +13,9 @@ object FormLayersPanel: TFormLayersPanel
   OldCreateOrder = False
   OnActivate = FormLayersPanelActivate
   OnClose = FormLayersPanelClose
+  OnDeactivate = FormLayersPanelDeactivate
+  OnMouseEnter = FormLayersPanelMouseEnter
+  OnMouseLeave = FormLayersPanelMouseLeave
   OnResize = FormLayersPanelResize
   OnShow = FormLayersPanelShow
   PixelsPerInch = 96
@@ -26,6 +29,7 @@ object FormLayersPanel: TFormLayersPanel
     ParentBackground = False
     ParentColor = False
     TabOrder = 0
+    OnMouseEnter = GroupBoxCopperMouseEnter
     object Image1: TImage
       Left = 1
       Top = 0
@@ -1121,32 +1125,6 @@ object FormLayersPanel: TFormLayersPanel
       Visible = False
       OnClick = CBPlanesClick
     end
-    object CBUnbold: TCheckBox
-      Left = 64
-      Top = 24
-      Width = 64
-      Height = 17
-      Caption = 'CBUnbold'
-      Enabled = False
-      TabOrder = 52
-      Visible = False
-    end
-    object CBBold: TCheckBox
-      Left = 8
-      Top = 24
-      Width = 56
-      Height = 17
-      Caption = 'CBBold'
-      Enabled = False
-      Font.Charset = DEFAULT_CHARSET
-      Font.Color = clWindowText
-      Font.Height = -11
-      Font.Name = 'Tahoma'
-      Font.Style = [fsBold]
-      ParentFont = False
-      TabOrder = 53
-      Visible = False
-    end
   end
   object GroupBoxMech: TGroupBox
     Left = 280
@@ -1154,6 +1132,7 @@ object FormLayersPanel: TFormLayersPanel
     Width = 245
     Height = 696
     TabOrder = 1
+    OnMouseEnter = GroupBoxMechMouseEnter
     object Image2: TImage
       Left = 1
       Top = 0
@@ -1744,6 +1723,7 @@ object FormLayersPanel: TFormLayersPanel
       TabOrder = 19
       Visible = False
       OnClick = CBMech18Click
+      OnMouseEnter = GroupBoxObjectsMouseEnter
     end
     object CBMech19: TCheckBox
       Left = 32
@@ -1936,6 +1916,7 @@ object FormLayersPanel: TFormLayersPanel
     Width = 245
     Height = 256
     TabOrder = 2
+    OnMouseEnter = GroupBoxOtherMouseEnter
     object Image3: TImage
       Left = 1
       Top = 0
@@ -2260,6 +2241,7 @@ object FormLayersPanel: TFormLayersPanel
     Width = 245
     Height = 196
     TabOrder = 3
+    OnMouseEnter = GroupBoxObjectsMouseEnter
     object Image4: TImage
       Left = 1
       Top = 0
@@ -2341,7 +2323,7 @@ object FormLayersPanel: TFormLayersPanel
     end
     object CBFills: TCheckBox
       Left = 16
-      Top = 148
+      Top = 168
       Width = 40
       Height = 17
       AllowGrayed = True
@@ -2353,7 +2335,7 @@ object FormLayersPanel: TFormLayersPanel
     end
     object CBRegions: TCheckBox
       Left = 16
-      Top = 128
+      Top = 148
       Width = 64
       Height = 17
       AllowGrayed = True
@@ -2365,8 +2347,8 @@ object FormLayersPanel: TFormLayersPanel
       OnClick = CBRegionsClick
     end
     object CBStrings: TCheckBox
-      Left = 16
-      Top = 168
+      Left = 96
+      Top = 48
       Width = 48
       Height = 17
       AllowGrayed = True
@@ -2426,7 +2408,7 @@ object FormLayersPanel: TFormLayersPanel
     end
     object CBComponents: TCheckBox
       Left = 96
-      Top = 48
+      Top = 88
       Width = 80
       Height = 17
       AllowGrayed = True
@@ -2438,8 +2420,8 @@ object FormLayersPanel: TFormLayersPanel
       OnClick = CBComponentsClick
     end
     object CBPolygons: TCheckBox
-      Left = 96
-      Top = 68
+      Left = 16
+      Top = 128
       Width = 64
       Height = 17
       AllowGrayed = True
@@ -2451,7 +2433,7 @@ object FormLayersPanel: TFormLayersPanel
     end
     object CBDimensions: TCheckBox
       Left = 96
-      Top = 108
+      Top = 128
       Width = 80
       Height = 17
       AllowGrayed = True
@@ -2474,7 +2456,7 @@ object FormLayersPanel: TFormLayersPanel
     end
     object CBRooms: TCheckBox
       Left = 96
-      Top = 148
+      Top = 108
       Width = 56
       Height = 17
       AllowGrayed = True
@@ -2515,7 +2497,7 @@ object FormLayersPanel: TFormLayersPanel
     end
     object CB3DModels: TCheckBox
       Left = 96
-      Top = 88
+      Top = 68
       Width = 64
       Height = 17
       AllowGrayed = True
@@ -2528,7 +2510,7 @@ object FormLayersPanel: TFormLayersPanel
     end
     object CBCoordinates: TCheckBox
       Left = 96
-      Top = 128
+      Top = 148
       Width = 80
       Height = 17
       AllowGrayed = True
