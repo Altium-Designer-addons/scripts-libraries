@@ -1,9 +1,18 @@
 object FormLayersPanel: TFormLayersPanel
   Left = 0
   Top = 0
+  Width = 826
+  Height = 785
+  VertScrollBar.ButtonSize = 10
+  VertScrollBar.Color = clBtnShadow
+  VertScrollBar.Margin = 10
+  VertScrollBar.ParentColor = False
+  VertScrollBar.Range = 100
+  VertScrollBar.Smooth = True
+  VertScrollBar.Size = 10
+  VertScrollBar.ThumbSize = 10
+  VertScrollBar.Tracking = True
   Caption = 'Layers & Objects'
-  ClientHeight = 747
-  ClientWidth = 810
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -11,6 +20,7 @@ object FormLayersPanel: TFormLayersPanel
   Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
+  ScreenSnap = True
   OnActivate = FormLayersPanelActivate
   OnClose = FormLayersPanelClose
   OnDeactivate = FormLayersPanelDeactivate

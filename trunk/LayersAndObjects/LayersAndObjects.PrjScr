@@ -57,6 +57,12 @@ GenerateBOM=0
 [Generic_ScriptingSystem]
 StartProcName=LayersAndObjects.pas>Start
 
+[Generic_ScriptingSystemBreakpoints]
+ModuleName1=D:\Altium files\Skripte\Altium Designer Addons\LayersAndObjects\LayersAndObjects.pas
+Line1=305
+Condition1=
+Enabled1=True
+
 [OutputGroup1]
 Name=Netlist Outputs
 Description=

@@ -317,7 +317,7 @@ begin
    end;
 end;
 
-procedure RefreshPanel(dummy : String);
+procedure RefreshPanel(FirstTime : Boolean);
 var
    LayerObj         : IPCB_LayerObject;
    MechLayer        : IPCB_MechanicalLayer;
@@ -391,6 +391,13 @@ begin
          CBSignals.Visible := True;
          CBPlanes.Enabled  := True;
          CBPlanes.Visible  := True;
+      end
+      else
+      begin
+         CBSignals.Enabled := False;
+         CBSignals.Visible := False;
+         CBPlanes.Enabled  := False;
+         CBPlanes.Visible  := False;
       end;
 
       FoundCurrentLayer := False;
@@ -442,6 +449,14 @@ begin
          LayerObj := TheLayerStack.NextLayer(LayerObj);
       end;
 
+      // Now we need to modify size of copper group,
+
+      GetCB := Int2CBCopper(i);
+      if ImageArrowUpCopper.Enabled then
+         GroupBoxCopper.Height := GetCB.Top + 10
+      else
+         GroupBoxCopper.Height := 48;
+
       while i <= 48 do
       begin
          GetCB := Int2CBCopper(i);
@@ -471,15 +486,7 @@ begin
       else                                 CBPlanes.State   := cbGrayed;
 
 
-      // Now we need to modify size of copper group,
-      // and mech groupbox position
-
-      GetCB := Int2CBCopper(i);
-      if ImageArrowUpCopper.Enabled then
-         GroupBoxCopper.Height := GetCB.Top + 10
-      else
-         GroupBoxCopper.Height := 48;
-
+      // modify mech groupbox position
       GroupBoxMech.Left := GroupBoxCopper.Left;
       GroupBoxMech.Top  := GroupBoxCopper.Top + GroupBoxCopper.Height + 10;
 
@@ -591,7 +598,15 @@ begin
 
             CBUnPaired.Visible := True;
             CBUnPaired.Enabled := True;
-         end;
+         end
+         else
+         begin
+            CBPaired.Visible := False;
+            CBPaired.Enabled := False;
+
+            CBUnPaired.Visible := False;
+            CBUnPaired.Enabled := False;
+         end
       end;
 
       GroupBoxOther.Left  := GroupBoxMech.Left;
@@ -664,8 +679,11 @@ begin
       else
          GroupBoxOther.Height := 48;
 
-      FormLayersPanel.Width := 3 * GroupBoxCopper.Left + GroupBoxCopper.Width + 2;
-      FormLayersPanel.Height:= GroupBoxOther.Top + GroupBoxOther.Height + 50;
+      if FirstTime then
+      begin
+         FormLayersPanel.Width := 3 * GroupBoxCopper.Left + GroupBoxCopper.Width + 2;
+         FormLayersPanel.Height:= GroupBoxOther.Top + GroupBoxOther.Height + 50;
+      end;
 
       // finally read are connection lines shown
       CBConnections.Checked := Board.LayerIsDisplayed[eConnectLayer];
@@ -765,12 +783,12 @@ End;
 
 procedure TFormLayersPanel.FormLayersPanelActivate(Sender: TObject);
 begin
-//   RefreshPanel('');
+//   RefreshPanel(False);
 end;
 
 procedure TFormLayersPanel.FormLayersPanelShow(Sender: TObject);
 begin
-   RefreshPanel('');
+   RefreshPanel(True);
 end;
 
 Procedure Start;
@@ -3555,7 +3573,7 @@ end;
 procedure TFormLayersPanel.FormLayersPanelMouseEnter(Sender: TObject);
 begin
    if PanelRefreshControl or (Board.FileName <> PCBServer.GetCurrentPCBBoard.FileName) then
-      RefreshPanel('');
+      RefreshPanel(False);
 
    PanelRefreshControl := False;
    FormLayersPanel.Activate;
@@ -3569,7 +3587,7 @@ end;
 procedure TFormLayersPanel.GroupBoxObjectsMouseEnter(Sender: TObject);
 begin
    if PanelRefreshControl or (Board.FileName <> PCBServer.GetCurrentPCBBoard.FileName) then
-      RefreshPanel('');
+      RefreshPanel(False);
 
    PanelRefreshControl := False;
    FormLayersPanel.Activate;
@@ -3585,7 +3603,7 @@ end;
 procedure TFormLayersPanel.GroupBoxCopperMouseEnter(Sender: TObject);
 begin
    if PanelRefreshControl or (Board.FileName <> PCBServer.GetCurrentPCBBoard.FileName) then
-      RefreshPanel('');
+      RefreshPanel(False);
 
    PanelRefreshControl := False;
    FormLayersPanel.Activate;
@@ -3595,7 +3613,7 @@ end;
 procedure TFormLayersPanel.GroupBoxMechMouseEnter(Sender: TObject);
 begin
    if PanelRefreshControl or (Board.FileName <> PCBServer.GetCurrentPCBBoard.FileName) then
-      RefreshPanel('');
+      RefreshPanel(False);
 
    PanelRefreshControl := False;
    FormLayersPanel.Activate;
@@ -3605,7 +3623,7 @@ end;
 procedure TFormLayersPanel.GroupBoxOtherMouseEnter(Sender: TObject);
 begin
    if PanelRefreshControl or (Board.FileName <> PCBServer.GetCurrentPCBBoard.FileName) then
-      RefreshPanel('');
+      RefreshPanel(False);
 
    PanelRefreshControl := False;
    FormLayersPanel.Activate;
