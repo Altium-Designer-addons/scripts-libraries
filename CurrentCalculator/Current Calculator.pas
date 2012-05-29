@@ -98,7 +98,7 @@ Procedure CurrentCalc;
                      eTrackObject :
                       begin
                            wz := MyTrack.Width; //Get track width in Mils
-                             Wire_Length := sqrt(pow(MyTrack.x2 - MyTrack.x1,2) + pow(myTrack.y2 - MyTrack.Y1,2)); //GET WIRE LENGTH
+                             Wire_Length := sqrt(sqr(MyTrack.x2 - MyTrack.x1) + sqr(myTrack.y2 - MyTrack.Y1)); //GET WIRE LENGTH
                       end;
 
                      eArcObject :
