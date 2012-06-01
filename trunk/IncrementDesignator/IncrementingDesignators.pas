@@ -63,7 +63,7 @@ End;
 {..............................................................................}
 
 
-function IncrSpatialIterator;
+function IncrSpatialIterator(Dummy:String);
 // This function was taken from the examples and modified for my convenience.
 //
 Var
@@ -480,7 +480,7 @@ End;
 {..............................................................................}
 
 
-function Start_Incr;
+function Start_Incr(Dummy:String);
 // This function is called via the "Start" button.
 // It contains a very little bit of error handling, but this does not go very far yet.
 // The function containing the spatial iterator is called within the loop. When it
@@ -499,7 +499,7 @@ Begin
      boolGoOn := True;      // intialising boolean value
      While boolGoOn = True Do
      Begin
-           boolGoOn := IncrSpatialIterator;     //boolean value for remebering escape via right-click
+           boolGoOn := IncrSpatialIterator('');     //boolean value for remebering escape via right-click
      End;
 
      Form1.Visible := True;
@@ -517,7 +517,7 @@ End;
 procedure TForm1.Button1Click(Sender: TObject);
 Begin
 //   Form1.Visible := False;
-   Start_Incr;
+   Start_Incr('');
 End;
 {..............................................................................}
 
@@ -554,7 +554,7 @@ begin
 
    // Form1.Visible := False;
 
-   Start_Incr;
+   Start_Incr('');
 end;
 
 
