@@ -21,9 +21,10 @@
 
 // Global Variables:
 Var
-SchDoc   : ISch_Document;
-PCBBoard : IPCB_Board;
-DocKind  : String;
+   SchDoc   : ISch_Document;
+   PCBBoard : IPCB_Board;
+   DocKind  : String;
+   UsedDes : TStringList;
 {..............................................................................}
 
 
@@ -51,14 +52,28 @@ Begin
     DesText := Designator;
     SetLength(DesText, TextLength);
 
+    if (Dockind = 'SCH') and CheckBoxPinName.Checked then
+    begin
+       UsedDes.Delete(UsedDes.IndexOf(Designator));
 
-    NrNew := Edit_inc.Text;
-    intcount := StrToInt(NrNew);
-    NrNew := Edit_Nr.Text;
-    IntCount := IntCount + StrToInt(NrNew);
-    Edit_Nr.Text := IntToStr(IntCount);
+       IntCount := 1;
 
-    Result := DesText + NrNew;
+       While (UsedDes.IndexOf(DesText + IntToStr(IntCount)) >= 0) do Inc(IntCount);
+
+       UsedDes.Add(DesText + IntToStr(IntCount));
+
+       Result := DesText + IntToStr(IntCount);
+    end
+    else
+    begin
+       NrNew := Edit_inc.Text;
+       intcount := StrToInt(NrNew);
+       NrNew := Edit_Nr.Text;
+       IntCount := IntCount + StrToInt(NrNew);
+       Edit_Nr.Text := IntToStr(IntCount);
+
+       Result := DesText + NrNew;
+    end;
 End;
 {..............................................................................}
 
@@ -129,7 +144,7 @@ Begin
            Component := SpatialIterator.FirstSchObject;
            While Component <> Nil Do
            Begin
-               if CheckBoxSwap.Checked = False then
+               if (CheckBoxSwap.Checked = False) then
                begin
                    DesignatorOld := Component.Designator.Text;   // read old designator
                    DesignatorNew := IncrDesignator(DesignatorOld);  // compose new designator
@@ -140,6 +155,7 @@ Begin
                end
                else
                begin
+                  // This is when swap designators is done
                   OldComponent := Component;
                end;
                Component := SpatialIterator.NextSchObject;
@@ -358,7 +374,11 @@ Begin
         if CheckBoxSwap.Checked then Tekst := 'Choose First Component'
         else                         Tekst := 'Choose Component';
 
+        PCBComp := nil;
+        PcbComp2 := nil;
         PCBComp := PCBBoard.GetObjectAtCursor(MkSet(eComponentObject),AllLayers, Tekst);
+
+
         if (CheckBoxSwap.Checked and Assigned(PCBComp))  then
            PCBComp2 := PCBBoard.GetObjectAtCursor(MkSet(eComponentObject),AllLayers,'Choose Second Component');
 
@@ -486,37 +506,65 @@ function Start_Incr(Dummy:String);
 // The function containing the spatial iterator is called within the loop. When it
 // returns False, the loop will be aborted.
 Var
-boolGoOn;
-
+   boolGoOn : Boolean;
+   Proj     : IProject;
+   Doc      : IDocument;
+   i        : Integer;
 Begin
-     If Edit_Nr.GetTextLen = 0 Then    // Error if empty Edit box
-     Begin
-          ShowInfo('Please enter starting number.');
-          Edit_Nr.SetFocus;
-          Exit;
-     End;
-
-     boolGoOn := True;      // intialising boolean value
-     While boolGoOn = True Do
-     Begin
-           boolGoOn := IncrSpatialIterator('');     //boolean value for remebering escape via right-click
-     End;
-
-     Form1.Visible := True;
-     Form1.SetFocus;        // Form ist brought up front again
-
-     if not CheckBoxSwap.Checked then
-     begin
+   If Edit_Nr.GetTextLen = 0 Then    // Error if empty Edit box
+   Begin
+        ShowInfo('Please enter starting number.');
         Edit_Nr.SetFocus;
-        Edit_Nr.SelectAll;
-     end;
+        Exit;
+   End;
+
+   If (DocKind = 'SCH') and (CheckBoxPinName.Checked) Then
+   begin
+      CheckBoxPinName.Caption := 'Assign next free Designator';
+
+      UsedDes := TStringList.Create;
+
+      if GetWorkspace.DM_FocusedProject.DM_ProjectFileName = 'Free Documents' then
+      begin
+         Doc := GetWorkspace.DM_FocusedDocument;
+         Doc.DM_Compile;
+
+         for i := 0 to Doc.DM_ComponentCount - 1 do
+            UsedDes.Add(Doc.DM_Components(i).DM_LogicalDesignator);
+
+         UsedDes.Sort;
+      end
+      else
+      begin
+         GetWorkspace.DM_FocusedProject.DM_Compile;
+         Doc := GetWorkspace.DM_FocusedProject.DM_DocumentFlattened;
+
+         for i := 0 to Doc.DM_ComponentCount - 1 do
+            UsedDes.Add(Doc.DM_Components(i).DM_PhysicalDesignator);
+
+         UsedDes.Sort;
+      end;
+   end;
+
+   // Form1.Hide;       // I get access violations with this - don't know why - but it would be nice to have this
+   boolGoOn := True;      // intialising boolean value
+   While boolGoOn do
+      boolGoOn := IncrSpatialIterator('');     //boolean value for remebering escape via right-click
+
+   Form1.Show;
+   Form1.SetFocus;        // Form ist brought up front again
+
+   //  if not CheckBoxSwap.Checked then
+   //  begin
+   //     Edit_Nr.SetFocus;
+   //     Edit_Nr.SelectAll;
+   //  end;
 End;
 {..............................................................................}
 
 
 procedure TForm1.Button1Click(Sender: TObject);
 Begin
-//   Form1.Visible := False;
    Start_Incr('');
 End;
 {..............................................................................}
@@ -539,9 +587,15 @@ begin
       SchDoc := SchServer.GetCurrentSchDocument;
       If SchDoc = Nil Then Exit;
 
-      If DocKind = 'SCHLIB' Then
+      CheckBoxPinName.Visible := True;
+      CheckBoxPinName.Enabled := True;
+
+      If DocKind = 'SCH' Then
       begin
-         CheckBoxPinName.Visible := True;
+         CheckBoxPinName.Caption := 'Assign next free Designator';
+
+         Edit_Nr.Enabled := False;
+         Edit_inc.Enabled := False;
       end;
    end
    else if ((DocKind = 'PCB') or (DocKind = 'PCBLIB')) then
@@ -552,16 +606,14 @@ begin
    end
    else exit;
 
-   // Form1.Visible := False;
 
    Start_Incr('');
 end;
 
 
-
 procedure TForm1.CheckBoxSwapClick(Sender: TObject);
 begin
-   if CheckboxSwap.Checked then
+   if CheckboxSwap.Checked or (CheckBoxPinName.Checked and CheckBoxPinName.Visible)  then
    begin
       Edit_inc.Enabled := False;
       Edit_Nr.Enabled  := False;
@@ -573,5 +625,29 @@ begin
       Edit_Nr.SetFocus;
       Edit_Nr.SelectAll;
    end;
+
+   if (DocKind = 'SCH') and CheckBoxPinName.Checked and CheckBoxSwap.Checked then
+         CheckBoxPinName.Checked := False;
+end;
+
+
+
+procedure TForm1.CheckBoxPinNameClick(Sender: TObject);
+begin
+   if CheckboxSwap.Checked or CheckBoxPinName.Checked then
+   begin
+      Edit_inc.Enabled := False;
+      Edit_Nr.Enabled  := False;
+   end
+   else
+   begin
+      Edit_inc.Enabled := True;
+      Edit_Nr.Enabled  := True;
+      Edit_Nr.SetFocus;
+      Edit_Nr.SelectAll;
+   end;
+
+   if (DocKind = 'SCH') and CheckBoxPinName.Checked and CheckBoxSwap.Checked then
+         CheckBoxSwap.Checked := False;
 end;
 

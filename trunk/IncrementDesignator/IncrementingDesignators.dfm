@@ -59,13 +59,15 @@ object Form1: TForm1
   object CheckBoxPinName: TCheckBox
     Left = 24
     Top = 88
-    Width = 96
+    Width = 152
     Height = 17
     Caption = 'Move Pin Name'
     Checked = True
+    Enabled = False
     State = cbChecked
     TabOrder = 3
     Visible = False
+    OnClick = CheckBoxPinNameClick
   end
   object CheckBoxSwap: TCheckBox
     Left = 24
