@@ -126,6 +126,7 @@ procedure TTestPointMakerForm.ButtonOKClick(Sender: TObject);
 var
 
    Iterator     : IPCB_BoardIterator;
+   GrIter       : IPCB_GroupIterator;
    NetClass     : IPCB_ObjectClass;
    Comp         : IPCB_Component;
    Primitive    : IPCB_Primitive;
@@ -189,7 +190,7 @@ begin
    Mid  := (Rectangle.Left + Rectangle.Right) / 2;
 
    PosX := Rectangle.Right;
-   PosY := Rectangle.Top + MilsToCoord(50);
+   PosY := Rectangle.Top + MilsToCoord(50) + TestPoint.TopXSize/2;
 
    // We will get net class
    Iterator := Board.BoardIterator_Create;
@@ -229,34 +230,30 @@ begin
          if (CheckBoxFabTop.Checked  or CheckBoxFabBottom.Checked)  then FabFlag  := 0;
          if (CheckBoxAssyTop.Checked or CheckBoxAssyBottom.Checked) then AssyFlag := 0;
 
-         (*
+
          if not CheckBoxForce.Checked then
          begin
             // Test pads to see weather we have testpoint on this net
-            for j := 0 to Net.GetPrimitiveCount(ePadObject) - 1 do
-            begin
-               Primitive := Net.GetPrimitiveAt(j, ePadObject);
 
+            GrIter := Net.GroupIterator_Create;
+            GrIter.AddFilter_ObjectSet(Mkset(ePadObject, eViaObject));
+            GrIter.AddFilter_AllLayers;
+
+            Primitive := GrIter.firstPCBObject;
+
+            While (Primitive <> nil) do
+            begin
                if ((Primitive.IsTestpoint_Top or Primitive.IsTestpoint_Bottom) and (CheckBoxFabTop.Checked or CheckBoxFabBottom.Checked)) then
                   FabFlag := 1;
 
                if ((Primitive.IsAssyTestpoint_Top or Primitive.IsAssyTestpoint_Bottom) and (CheckBoxAssyTop.Checked or CheckBoxAssyBottom.Checked)) then
                   AssyFlag := 1;
+
+               Primitive := GrIter.NextPCBObject;
             end;
-
-            // Test vias to see weather we have testpoint on this net
-            for j := 0 to Net.GetPrimitiveCount(eViaObject) - 1 do
-            begin
-               Primitive := Net.GetPrimitiveAt(j, ePadObject);
-
-               if ((Primitive.IsTestpoint_Top or Primitive.IsTestpoint_Bottom) and (CheckBoxFabTop.Checked or CheckBoxFabBottom.Checked)) then
-                  FabFlag := 1;
-
-               if ((Primitive.IsAssyTestpoint_Top or Primitive.IsAssyTestpoint_Bottom) and (CheckBoxAssyTop.Checked or CheckBoxAssyBottom.Checked)) then
-                  AssyFlag := 1;
-            end;
+            Net.GroupIterator_Destroy(GrIter);
          end;
-         *)
+
 
          // Now we have to test weather to add TestPoints or not
          if ((FabFlag = 0) or (AssyFlag = 0)) then
@@ -279,6 +276,7 @@ begin
             NewTestPoint.EndModify;
 
             Board.AddPCBObject(NewTestPoint);
+            Net.AddPCBObject(NewTestPoint);
             PCBServer.PostProcess;
 
             PosX := PosX - SizeX - MilsToCoord(50);
