@@ -199,5 +199,13 @@ object TestPointMakerForm: TTestPointMakerForm
       Text = '1'
       OnChange = EditHoleSizeChange
     end
+    object CheckBoxForce: TCheckBox
+      Left = 16
+      Top = 128
+      Width = 97
+      Height = 17
+      Caption = 'Force Testpoints'
+      TabOrder = 9
+    end
   end
 end
