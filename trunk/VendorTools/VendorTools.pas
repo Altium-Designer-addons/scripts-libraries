@@ -1269,7 +1269,7 @@ begin
             Begin
                 if (Comp.Designator.Text = Part.DM_LogicalDesignator) and (Part.DM_PartID = Comp.CurrentPartID) and (Comp.OwnerDocument.DocumentName = SchDoc.DocumentName) then
                    begin
-                   Try
+                   Try       
                        // We have found the sub-part - now cycle through all pins in it and make iterator that will catch all
                        // Net Labels this pins connect to
                        CompItr := Comp.SchIterator_Create;
