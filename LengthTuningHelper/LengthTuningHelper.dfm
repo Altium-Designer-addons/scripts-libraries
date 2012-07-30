@@ -105,7 +105,7 @@ object FormLengthTuning: TFormLengthTuning
   end
   object OpenFileDialog: TOpenDialog
     DefaultExt = 'csv'
-    Filter = 'CSV File | *.csv|Pkg File|*.pkg'
+    Filter = 'Pkg File|*.pkg|CSV File | *.csv'
     Left = 200
     Top = 88
   end
