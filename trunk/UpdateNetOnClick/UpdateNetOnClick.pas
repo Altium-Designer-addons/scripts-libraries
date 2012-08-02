@@ -47,10 +47,12 @@ begin
 
       if LSet.Contains(Prim.Layer) then
       Begin
-         if (Net = nil) and Board.SelectecObject[i].InNet then
-            Board.SelectecObject[i].Net.RemovePCBObject(Board.SelectecObject[i])
-         else if (Net <> nil) then
-            Net.AddPCBObject(Board.SelectecObject[i])
+         if (Prim.ObjectId = ePolyObject) then
+            Prim.Net := Net
+         else if (Net = nil) and Board.SelectecObject[i].InNet then
+            Prim.Net.RemovePCBObject(Prim)
+         else if (Net <> nil) and (Prim.ObjectId <> ePolyObject) then
+            Net.AddPCBObject(Prim)
          else continue;
 
          Board.ViewManager_GraphicallyInvalidatePrimitive(Board.SelectecObject[i]);
