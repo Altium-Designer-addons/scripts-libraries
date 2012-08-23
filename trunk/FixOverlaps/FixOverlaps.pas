@@ -779,8 +779,8 @@ begin
                  end
                  else if (Prim.ObjectID = eArcObject) then
                  begin
-                    if ((Prim1.EndAngle - Prim1.StartAngle) < 1) then
-                       Prim1.Selected := True;
+                    if ((Prim.EndAngle - Prim.StartAngle) < 1) then
+                       Prim.Selected := True;
                  end;
 
               Prim := GrIter.NextPCBObject;
@@ -902,39 +902,46 @@ Var
    net      : IPCB_Net;
    GrIter   : IPCB_GroupIterator;
    Prim     : IPCB_Prim;
+   NetName  : TPCBString;
 begin
 
    Iterator := Board.BoardIterator_Create;
-
    Iterator.SetState_FilterAll;
    Iterator.AddFilter_ObjectSet(MkSet(eNetObject));
    Net := Iterator.FirstPCBObject;
-   While Net <> NIl Do
-   Begin
-       If NetClass.IsMember(Net) Then
-       begin
-          GrIter := Net.GroupIterator_Create;
-          GrIter.AddFilter_ObjectSet(MkSet(eTrackObject, eArcObject));
+   NetName := Net.Name;
 
-          Prim := GrIter.FirstPCBObject;
-          While Prim <> NIl Do
-          Begin
-             if (not Prim.TearDrop) and Prim.IsFreePrimitive and (not Prim.Selected) then
-                if (Prim.ObjectID = eTrackObject) then
-                begin
-                   CheckConnection(Prim, Prim.x1, Prim.y1);
-                   CheckConnection(Prim, Prim.x2, Prim.y2);
-                end
-                else if (Prim.ObjectID = eArcObject) then
-                begin
-                   CheckConnection(Prim, Prim.StartX, Prim.StartY);
-                   CheckConnection(Prim, Prim.EndX, Prim.EndY);
-                end;
-             Prim := GrIter.NextPCBObject;
-          End;
-          Net.GroupIterator_Destroy(GrIter);
-       end;
-       Net := Iterator.NextPCBObject;
+   While Net <> nil do
+   begin
+     // ShowMessage(Net.Name);
+      If NetClass.IsMember(Net) Then
+      begin
+         GrIter := Net.GroupIterator_Create;
+         GrIter.AddFilter_ObjectSet(MkSet(eTrackObject, eArcObject));
+
+         Prim := GrIter.FirstPCBObject;
+         While Prim <> NIl Do
+         Begin
+            if (not Prim.TearDrop) and Prim.IsFreePrimitive and (not Prim.Selected) then
+               if (Prim.ObjectID = eTrackObject) then
+               begin
+                  CheckConnection(Prim, Prim.x1, Prim.y1);
+                  CheckConnection(Prim, Prim.x2, Prim.y2);
+               end
+               else if (Prim.ObjectID = eArcObject) and (not((Prim.StartAngle = 0) and (Prim.EndAngle = 360))) then
+               begin
+                  CheckConnection(Prim, Prim.StartX, Prim.StartY);
+                  CheckConnection(Prim, Prim.EndX, Prim.EndY);
+               end;
+            Prim := GrIter.NextPCBObject;
+         End;
+         Net.GroupIterator_Destroy(GrIter);
+      end;
+      Net := Iterator.NextPCBObject;
+      // I got a bug here - iterator would never break out of this loop inone of
+      // my test cases, so I needed to add this funny two lines.
+      if Net = nil then break
+      else if NetName = Net.Name then break;
    End;
    Board.BoardIterator_Destroy(Iterator);
 end;
@@ -1416,10 +1423,10 @@ begin
    AddStringParameter('Scope','All');
    RunProcess('PCB:DeSelect');
 
-   KillList := TStringList.Create;
 
    if CheckBoxShortBadConnections.Checked then
    begin
+      KillList := TStringList.Create;
       while True do
       begin
          KillList.Clear;
@@ -1441,7 +1448,7 @@ begin
                end
                else if (Prim.ObjectID = eArcObject) then
                begin
-                  if ((Prim1.EndAngle - Prim1.StartAngle) < 1) then
+                  if ((Prim.EndAngle - Prim.StartAngle) < 1) then
                      KillList.AddObject(IntToStr(i),Prim);
                end;
             end;
@@ -1457,7 +1464,8 @@ begin
             ResetParameters;
             AddStringParameter('Scope','All');
             RunProcess('PCB:DeSelect');
-         end;
+         end
+         else break;
       end;
    end
    else if CheckBoxSelectBadConnections.Checked then
