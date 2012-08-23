@@ -30,7 +30,7 @@
 {           - Select Bad connections - basically executes script that selects  }
 {             bad connections, so user can fix them himself.                   }
 {           - Remove Short Bad connections - cycles through bad connections    }
-{             and deletes those whose length = Width / 10. Mostly these are    }
+{             and deletes those whose length < Width / 10. Mostly these are    }
 {             unnecessary.                                                     }
 {                                                                              }
 {                                                                              }
@@ -530,7 +530,8 @@ begin
                      SplitPrim1 := False;
                   end;
 
-                  if (SplitPrim1) and (IsPointOnTrack(Prim1,X,Y)) then
+                  if (SplitPrim1) and (IsPointOnTrack(Prim1,X,Y)) and
+                     ((PointToLinedistance(k1,c1,IsPrim1Vert,X21, Y21) < MinDist) or (PointToLinedistance(k1,c1,IsPrim1Vert,X22, Y22) < MinDist)) then
                   begin
                      NewPrim := Prim1.Replicate;
                      Prim1.BeginModify;
@@ -552,7 +553,8 @@ begin
                      exit;
                   end;
 
-                  if (SplitPrim2) and (IsPointOnTrack(Prim2,X,Y)) then
+                  if (SplitPrim2) and (IsPointOnTrack(Prim2,X,Y)) and
+                     ((PointToLinedistance(k2,c2,IsPrim2Vert,X11, Y11) < MinDist) or (PointToLinedistance(k2,c2,IsPrim2Vert,X12, Y12) < MinDist)) then
                   begin
                      NewPrim := Prim2.Replicate;
 
@@ -944,6 +946,101 @@ begin
       else if NetName = Net.Name then break;
    End;
    Board.BoardIterator_Destroy(Iterator);
+end;
+
+
+// Procedure that selects bad connections and removes short tracks found
+Procedure RemoveShortBadConnectionsOnNetClass(NetClass : IPCB_ObjectClass);
+var
+   SIter     : IPCB_SpatialIterator;
+   KillList  : TStringList;
+   Prim1     : IPCB_Primitive;
+   Prim2     : IPCB_Primitive;
+   i         : Integer;
+   Rectangle : TCoordRect;
+   Net       : IPCB_Net;
+begin
+   KillList := TStringList.Create;
+
+   // ResetParameters;
+   // AddStringParameter('Scope','All');
+   // RunProcess('PCB:DeSelect');
+
+   SelectBadConnectionsInNetClass(ComboBoxClasses.Items.GetObject(ComboBoxClasses.ItemIndex));
+
+   for i := 0 to Board.SelectecObjectCount - 1 do
+   begin
+      Prim1 := Board.SelectecObject[i];
+
+      if (Prim1.ObjectID = eTrackObject) then
+      begin
+         if (PointToPointDistance(Prim1.x1, Prim1.y1, Prim1.x2, Prim1.y2) < (Prim1.Width / 10)) then
+            KillList.AddObject(IntToStr(i),Prim1);
+      end
+      else if (Prim1.ObjectID = eArcObject) then
+      begin
+         if ((Prim1.EndAngle - Prim1.StartAngle) < 1) then
+            KillList.AddObject(IntToStr(i),Prim1);
+      end;
+   end;
+
+   Rectangle := TCoordRect;
+
+   i := 0;
+   while (i < KillList.Count) Do
+   begin
+      Prim1 := KillList.GetObject(i);
+
+      Rectangle := Prim1.BoundingRectangle;
+      Net       := Prim1.Net;
+
+      // Check if there is another track/arc in hotspot
+      SIter := Board.SpatialIterator_Create;
+      SIter.AddFilter_ObjectSet(MkSet(eTrackObject, eArcObject));
+      SIter.AddFilter_LayerSet(MkSet(Prim1.Layer));
+      SIter.AddFilter_Area(Rectangle.left, Rectangle.bottom, Rectangle.Right, Rectangle.Top);
+
+      Prim2 := SIter.FirstPCBObject;
+      Board.RemovePCBObject(Prim1);
+
+      While (Prim2 <> nil) do
+      begin
+         If (Prim2.InNet) and (Prim2.Net.Name = Net.Name) and (Prim2.I_ObjectAddress <> Prim1.I_ObjectAddress) and
+            (not Prim2.TearDrop) and (Prim2.IsFreePrimitive) and (not Prim2.Selected) and (Prim2.Board <> nil) then
+         begin
+            if (Prim2.ObjectID = eTrackObject) then
+            begin
+               CheckConnection(Prim2, Prim2.x1, Prim2.y1);
+               CheckConnection(Prim2, Prim2.x2, Prim2.y2);
+            end
+            else if (Prim2.ObjectID = eArcObject) and (not((Prim2.StartAngle = 0) and (Prim2.EndAngle = 360))) then
+            begin
+               CheckConnection(Prim2, Prim2.StartX, Prim2.StartY);
+               CheckConnection(Prim2, Prim2.EndX, Prim2.EndY);
+            end;
+
+            if Prim2.Selected then
+            begin
+               if (Prim2.ObjectID = eTrackObject) then
+               begin
+                  if ((Abs(Prim2.x2 - Prim2.x1) < Tolerance) and (Abs(Prim2.y2 - Prim2.y1) < Tolerance)) then
+                     KillList.AddObject('a',Prim2);
+               end
+               else if (Prim2.ObjectID = eArcObject) then
+               begin
+                  if ((Prim2.EndAngle - Prim2.StartAngle) < 1) then
+                     KillList.AddObject('a',Prim2);
+               end;
+            end;
+         end;
+
+         Prim2 := SIter.NextPCBObject;
+      end;
+      Board.SpatialIterator_Destroy(SIter);
+
+      PCBServer.DestroyPCBObject(Prim1);
+      Inc(i);
+   end;
 end;
 
 
@@ -1367,9 +1464,6 @@ procedure TFixOverlapsForm.ButtonOKClick(Sender: TObject);
 var
    StringTolerance : String;
    OnLineDRC       : Boolean;
-   KillList        : TStringList;
-   Prim            : IPCB_Primitive;
-   i               : Integer;
 begin
    StringTolerance := EditTolerance.Text;
    if (LastDelimiter(',.', StringTolerance) <> 0) then StringTolerance[LastDelimiter(',.', StringTolerance)] := DecimalSeparator;
@@ -1425,49 +1519,7 @@ begin
 
 
    if CheckBoxShortBadConnections.Checked then
-   begin
-      KillList := TStringList.Create;
-      while True do
-      begin
-         KillList.Clear;
-
-         SelectBadConnectionsInNetClass(ComboBoxClasses.Items.GetObject(ComboBoxClasses.ItemIndex));
-
-         if Board.SelectecObjectCount > 0 then
-         begin
-            // We have selected bad connections, and on them we will check if they are short. If yes, then we will remove them
-
-            for i := 0 to Board.SelectecObjectCount - 1 do
-            begin
-               Prim := Board.SelectecObject[i];
-
-               if (Prim.ObjectID = eTrackObject) then
-               begin
-                  if (PointToPointDistance(Prim.x1, Prim.y1, Prim.x2, Prim.y2) < (Prim.Width / 10)) then
-                     KillList.AddObject(IntToStr(i),Prim);
-               end
-               else if (Prim.ObjectID = eArcObject) then
-               begin
-                  if ((Prim.EndAngle - Prim.StartAngle) < 1) then
-                     KillList.AddObject(IntToStr(i),Prim);
-               end;
-            end;
-
-            if KillList.Count = 0 then break;
-
-            For i := 0 TO KillList.Count - 1 Do
-            begin
-               Prim := KillList.GetObject(i);
-               Board.RemovePCBObject(Prim);
-            end;
-
-            ResetParameters;
-            AddStringParameter('Scope','All');
-            RunProcess('PCB:DeSelect');
-         end
-         else break;
-      end;
-   end
+      RemoveShortBadConnectionsOnNetClass(ComboBoxClasses.Items.GetObject(ComboBoxClasses.ItemIndex))
    else if CheckBoxSelectBadConnections.Checked then
       SelectBadConnectionsInNetClass(ComboBoxClasses.Items.GetObject(ComboBoxClasses.ItemIndex));
 
@@ -1506,5 +1558,3 @@ begin
    CheckBoxShortBadConnections.Enabled := CheckBoxSelectBadConnections.Checked;
    CheckBoxShortBadConnections.Checked := CheckBoxSelectBadConnections.Checked;
 end;
-
-
