@@ -1,7 +1,7 @@
 {..............................................................................}
 {                                                                              }
 { Summary   This Script rounds connections on selected tracks, by fixed radius }
-{           value. It supports only horizontal and vertical lines              } 
+{           value. It supports only horizontal and vertical lines              }
 {                                                                              }
 { Created by:    Petar Perisin                                                 }
 {..............................................................................}
@@ -285,6 +285,7 @@ begin
 
                Prim.y1  := Y + Radius;
                Arc.LineWidth := Prim.Width;
+               Arc.layer := Prim.Layer;
                Board.AddPCBObject(Arc);
                ModifyList.AddObject('1',Arc);
 
@@ -345,6 +346,7 @@ begin
 
                Prim.y2  := Y - Radius;
                Arc.LineWidth := Prim.Width;
+               Arc.layer := Prim.Layer;
                Board.AddPCBObject(Arc);
                ModifyList.AddObject('1',Arc);
 
