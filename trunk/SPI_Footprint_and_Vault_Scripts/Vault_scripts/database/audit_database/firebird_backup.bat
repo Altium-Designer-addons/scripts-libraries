@@ -3,9 +3,9 @@ rem  * The Sierra Photonics, Inc. Software License, Version 1.0:
 rem  *  
 rem  * Copyright (c) 2012 by Sierra Photonics Inc.  All rights reserved.
 rem  *  Author:        Jeff Collins, jcollins@sierraphotonics.com
-rem  *  Author:        $Author: jcollins $
-rem  *  Check-in Date: $Date: 2012-12-13 10:56:51 -0800 (Thu, 13 Dec 2012) $ 
-rem  *  Version #:     $Revision: 2804 $
+rem  *  Author:        $Author$
+rem  *  Check-in Date: $Date$ 
+rem  *  Version #:     $Revision$
 rem  *  
 rem  * Redistribution and use in source and binary forms, with or without
 rem  * modification, are permitted provided that the following conditions

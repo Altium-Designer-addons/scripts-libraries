@@ -6,9 +6,9 @@
 ;;  *
 ;;  * Copyright (c) 2012 by Sierra Photonics Inc.  All rights reserved.
 ;;  *  Author:        Jeff Collins, jcollins@sierraphotonics.com
-;;  *  Author:        $Author: jcollins $
-;;  *  Check-in Date: $Date: 2012-12-13 10:17:29 -0800 (Thu, 13 Dec 2012) $ 
-;;  *  Version #:     $Revision: 2803 $
+;;  *  Author:        $Author$
+;;  *  Check-in Date: $Date$ 
+;;  *  Version #:     $Revision$
 ;;  *  
 ;;  *  License:  GNU General Public License version 2, or (at your option)
 ;;  *   any later version.

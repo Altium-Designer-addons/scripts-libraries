@@ -14,9 +14,9 @@ rem  * The Sierra Photonics, Inc. Software License, Version 1.0:
 rem  *  
 rem  * Copyright (c) 2012 by Sierra Photonics Inc.  All rights reserved.
 rem  *  Author:        Jeff Collins, jcollins@sierraphotonics.com
-rem  *  Author:        $Author: jcollins $
-rem  *  Check-in Date: $Date: 2012-12-13 10:17:29 -0800 (Thu, 13 Dec 2012) $ 
-rem  *  Version #:     $Revision: 2803 $
+rem  *  Author:        $Author$
+rem  *  Check-in Date: $Date$ 
+rem  *  Version #:     $Revision$
 rem  *  
 rem  * Redistribution and use in source and binary forms, with or without
 rem  * modification, are permitted provided that the following conditions
@@ -73,7 +73,7 @@ rem  *  http://code.google.com/p/altium-designer-addons/wiki/Release_Manager
 rem * Copyright (c) 2011 XIA LLC.
 rem *  Author:        Jeff Collins, jcollins@xia.com
 rem *  Author:        Author: jcollins 
-rem *  Check-in Date: $Date: 2012-12-13 10:17:29 -0800 (Thu, 13 Dec 2012) $ 
+rem *  Check-in Date: $Date$ 
 rem *  Version #:     Revision: 20198 
 rem *  
 rem * Redistribution and use in source and binary forms, 
