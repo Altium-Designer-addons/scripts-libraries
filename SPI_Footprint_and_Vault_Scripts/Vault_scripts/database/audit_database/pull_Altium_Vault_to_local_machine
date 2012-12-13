@@ -1,0 +1,134 @@
+#!/bin/tcsh
+
+### Pull raw database files from Altium Vault server to local machine. 
+
+#***************************************************************************
+# * The Sierra Photonics, Inc. Software License, Version 1.0:
+# *  
+# * Copyright (c) 2012 by Sierra Photonics Inc.  All rights reserved.
+# *  Author:        Jeff Collins, jcollins@sierraphotonics.com
+# *  Author:        $Author: jcollins $
+# *  Check-in Date: $Date: 2012-12-13 10:56:51 -0800 (Thu, 13 Dec 2012) $ 
+# *  Version #:     $Revision: 2804 $
+# *  
+# * Redistribution and use in source and binary forms, with or without
+# * modification, are permitted provided that the following conditions
+# * are met and the person seeking to use or redistribute such software hereby
+# * agrees to and abides by the terms and conditions below:
+# *
+# * 1. Redistributions of source code must retain the above copyright
+# * notice, this list of conditions and the following disclaimer.
+# *
+# * 2. Redistributions in binary form must reproduce the above copyright
+# * notice, this list of conditions and the following disclaimer in
+# * the documentation and/or other materials provided with the
+# * distribution.
+# *
+# * 3. The end-user documentation included with the redistribution,
+# * if any, must include the following acknowledgment:
+# * "This product includes software developed by Sierra Photonics Inc." 
+# * Alternately, this acknowledgment may appear in the software itself,
+# * if and wherever such third-party acknowledgments normally appear.
+# *
+# * 4. The Sierra Photonics Inc. names or marks must
+# * not be used to endorse or promote products derived from this
+# * software without prior written permission. For written
+# * permission, please contact:
+# *  
+# *  Sierra Photonics Inc.
+# *  attn:  Legal Department
+# *  7563 Southfront Rd.
+# *  Livermore, CA  94551  USA
+# * 
+# * IN ALL CASES AND TO THE FULLEST EXTENT PERMITTED UNDER APPLICABLE LAW,
+# * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED
+# * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# * DISCLAIMED.  IN NO EVENT SHALL SIERRA PHOTONICS INC. OR 
+# * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
+# * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+# * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+# * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
+# * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+# * SUCH DAMAGE.
+# *
+# * This software consists of voluntary contributions made by many
+# * individuals on behalf of the Altium Community Software.
+# *
+# * See also included file SPI_License.txt.
+# ***************************************************************************
+
+# Stop the Altium Vault service on the server machine.
+# Note:  It is no longer necessary to stop the Altium Vault service in order to rsync files to the local machine.
+#ssh 192.168.10.244 -l "Sierra Photonics" "/cygdrive/c/Program\ Files\ \(x86\)/Altium\ Satellite\ Vault\ Server/AltiumVault/altium_vault_scripts/stop_specified_service AltiumSatelliteVaultService"
+
+# Stop the local Firebird service so that we may overwrite the raw database file.
+# Note:  We're ssh'ing to localhost to elevate privilege.
+# Warning:  The privileged account doesn't know about my SUBST drive to create H:, so we have to specify full path via C: drive.
+ssh localhost /cygdrive/c/cygwin/home/jcollins/projects/altium_libraries/trunk/database/altium_vault_files/altium_vault_scripts/stop_specified_service FirebirdGuardianDefaultInstance
+
+## Pull raw database files from Altium Vault server using rsync.
+# Loop until rsync reports that we have no more files to transfer (eg. in case someone else is writing to 
+# the database simultaneously to us reading it).
+#
+# Note that we don't really care about anyone else accessing the Vault server at the same time, per se.
+# We're just using this as a proxy to hopefully make sure that the raw firebird database file is in a 
+# consistent state by the time we try to use it here locally.  Hopefully if we transfer it once and it's 
+# in an inconsistent state, rsync will want to transfer it a 2nd time.  We'll then try to transfer it a 
+# 3rd time and see that nothing changes.  We'll call it good, and hopefully everything will be happy.
+#
+# We're trying to move away from stopping and restarting the Altium Vault server just to audit and checkin
+# the Vault database and associated files.
+
+# Set this to 1 initially so that we loop at least once.
+set numFiles=1
+
+# Loop until rsync reports that it had 0 files to transfer to us.
+while ($numFiles > 0)
+
+	echo ""
+	echo "Pulling Vault database files from server to local machine...."
+
+	# Delete rsync log files.
+	rm -f rsync.log
+	rm -f rsync.log2
+	
+	# Pull raw database files from Altium Vault server using rsync.
+	# Note:  Exclude .svn/ directories so that we don't confuse subversion!
+	# Note:  Exclude database backup files ending in ".fbk" because these are created on the local machine, not on the server.
+	rsync -avt --exclude=.svn --exclude="*.fbk" --delete "Sierra Photonics@192.168.10.244::Altium_Vault_files" ../altium_vault_files/ |& tee rsync.log
+	
+	# Examine rsync log file to see if any files actually got transferred.
+    # Remove status lines that are always present.
+	cat rsync.log | grep -v "receiving incremental file list" | grep -v "^sent [0-9]\+ bytes" | grep -v "^total size is [0-9]\+" | grep -v '^$' > rsync.log2
+	
+	# Count the number of lines remaining in this file using wc -l.
+	set numFiles=`wc -l rsync.log2 | awk '{print $1}'`
+	echo "Number of files transferred is $numFiles"
+
+	# Delete rsync log files.
+	rm -f rsync.log
+	rm -f rsync.log2
+	
+#    echo "sleeping..."
+#    sleep 20
+#    echo "resuming..."
+
+end
+
+echo ""
+
+# Start the Altium Vault service on the server machine.
+# Note:  It is no longer necessary to stop the Altium Vault service in order to rsync files to the local machine.
+#ssh 192.168.10.244 -l "Sierra Photonics" "/cygdrive/c/Program\ Files\ \(x86\)/Altium\ Satellite\ Vault\ Server/AltiumVault/altium_vault_scripts/start_specified_service AltiumSatelliteVaultService"
+
+# Allow us access to the raw Vault database
+chmod go+rw "../altium_vault_files/Data/EmbFirebirdDb.fdb"
+
+# Start the local Firebird service so that we may directly query the raw Altium Vault database.
+ssh localhost /cygdrive/c/cygwin/home/jcollins/projects/altium_libraries/trunk/database/altium_vault_files/altium_vault_scripts/start_specified_service FirebirdGuardianDefaultInstance
+
+# Sleep for a bit to allow the Firebird service to be ready to go.
+sleep 5
