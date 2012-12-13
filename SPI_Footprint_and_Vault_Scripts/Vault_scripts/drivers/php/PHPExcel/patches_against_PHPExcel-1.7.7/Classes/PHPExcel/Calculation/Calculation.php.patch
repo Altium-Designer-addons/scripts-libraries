@@ -1,0 +1,19 @@
+*** Classes/PHPExcel/Calculation.php	2012-05-19 13:53:14.000000000 -0700
+--- ../Classes/PHPExcel/Calculation.php	2012-09-11 17:52:19.833000000 -0700
+***************
+*** 679,685 ****
+  												 'argumentCount'	=>	'1'
+  												),
+  				'EXACT'					=> array('category'			=>	PHPExcel_Calculation_Function::CATEGORY_TEXT_AND_DATA,
+! 												 'functionCall'		=>	'PHPExcel_Calculation_Functions::DUMMY',
+  												 'argumentCount'	=>	'2'
+  												),
+  				'EXP'					=> array('category'			=>	PHPExcel_Calculation_Function::CATEGORY_MATH_AND_TRIG,
+--- 679,685 ----
+  												 'argumentCount'	=>	'1'
+  												),
+  				'EXACT'					=> array('category'			=>	PHPExcel_Calculation_Function::CATEGORY_TEXT_AND_DATA,
+! 												 'functionCall'		=>	'PHPExcel_Calculation_TextData::EXACT',
+  												 'argumentCount'	=>	'2'
+  												),
+  				'EXP'					=> array('category'			=>	PHPExcel_Calculation_Function::CATEGORY_MATH_AND_TRIG,

@@ -1,0 +1,82 @@
+*** Classes/PHPExcel/Calculation/TextData.php	2012-05-19 13:53:14.000000000 -0700
+--- ../Classes/PHPExcel/Calculation/TextData.php	2012-09-11 17:52:20.128000000 -0700
+***************
+*** 589,592 ****
+--- 589,665 ----
+  		return (string) PHPExcel_Style_NumberFormat::toFormattedString($value,$format);
+  	}	//	function TEXTFORMAT()
+  
++ 
++ 	/**
++ 	 * EXACT
++ 	 *
++ 	 * @param	mixed	$a	Scalar or array "a" to compare to "b"
++ 	 * @param	mixed	$b	Scalar or array "b" to compare to "a"
++ 	 * @return	mixed
++ 	 */
++ 	public static function EXACT($a,$b) {
++ 
++       //      echo "Hello world from EXACT()!\n";
++       //      echo "a is:";
++       //      print_r($a);
++       //
++       //      echo "\nb is:";
++       //      print_r($b);
++ 
++       /* If a and b are both non-arrays, then do a simple comparison and call it good. 
++        If a and b are both arrays, then do the same thing.  */
++       /* FIXME:  I think if both are arrays, we need to go through piecewise and compare
++        values element by element, without regard to row and column numbers! */
++       if (  ( (!is_array($a)) && (!is_array($b)) ) ||
++             ( (is_array($a)) && (is_array($b)) )  )
++         return ($a == $b);
++ 
++       /* Else one is an array and the other not. */
++       else
++         {
++           /* Allocate an array. */
++           $arr = array();
++           $val = 0;
++ 
++           /* Assign the array and the scalar value. */
++           if (is_array($a))
++             {
++               $arr = $a;
++               $val = $b;
++             }
++           else
++             {
++               $arr = $b;
++               $val = $a;
++             }
++ 
++           /** Iterate through the array and check for equality between the scalar and each array element. **/
++           /* Iterate over the rows. */
++           foreach ($arr as $row => $elem)
++             {
++               //              echo "Examining array element: ";
++               //              print_r($arr[$row]);
++ 
++               /* Iterate over the columns. */
++               foreach ($arr[$row] as $col => $elem)
++                 {
++                   //                  echo "2nd level element is $elem2\n";
++ 
++                   /* Assign this array element to be true or false depending on whether it is an exact match for scalar value. */
++                   $arr[$row][$col] = ($elem == $val);
++                 }
++ 
++             } /* end foreach */
++ 
++           //          echo "After running EXACT()!\n";
++           //          echo "arr is:";
++           //          print_r($arr);
++           
++           /* Return an array of booleans to caller. */
++           return ($arr);
++ 
++         } /* endelse */
++ 
++ 	}	//	function EXACT()
++ 
+  }	//	class PHPExcel_Calculation_TextData
