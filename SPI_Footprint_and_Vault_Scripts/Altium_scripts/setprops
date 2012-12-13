@@ -1,0 +1,3 @@
+#!/bin/tcsh
+
+svn propset svn:keywords 'Id Author Date Rev' $*

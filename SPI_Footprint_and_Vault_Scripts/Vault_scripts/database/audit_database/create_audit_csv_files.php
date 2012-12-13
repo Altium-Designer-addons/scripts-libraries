@@ -10,10 +10,10 @@
 					components, aided by the various audit .csv files that this script generates.
 
 	@version		1.14.5
-					   $Rev:: 2804                                                                   $:
-	@date			  $Date:: 2012-12-13 10:56:51 -0800 (Thu, 13 Dec 2012)                           $:
-	@author			$Author:: jcollins                                                               $:
-					    $Id:: create_audit_csv_files.php 2804 2012-12-13 18:56:51Z jcollins          $:
+					   $Rev::                                                                        $:
+	@date			  $Date::                                                                        $:
+	@author			$Author::                                                                        $:
+					    $Id::                                                                        $:
 
 	@copyright      Copyright (c) 2012 by Sierra Photonics, Inc.  All rights reserved.
 	
@@ -21,9 +21,9 @@
     
    Copyright (c) 2012 by Sierra Photonics Inc.  All rights reserved.
     Author:        Jeff Collins, jcollins@sierraphotonics.com
-    Author:        $Author: jcollins $
-    Check-in Date: $Date: 2012-12-13 10:56:51 -0800 (Thu, 13 Dec 2012) $ 
-    Version #:     $Revision: 2804 $
+    Author:        $Author$
+    Check-in Date: $Date$ 
+    Version #:     $Revision$
     
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions

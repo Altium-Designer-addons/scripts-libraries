@@ -10,9 +10,9 @@
  *  
  * Copyright (c) 2012 by Sierra Photonics Inc.  All rights reserved.
  *  Author:        Jeff Collins, jcollins@sierraphotonics.com
- *  Author:        $Author: jcollins $
- *  Check-in Date: $Date: 2012-12-13 10:17:29 -0800 (Thu, 13 Dec 2012) $ 
- *  Version #:     $Revision: 2803 $
+ *  Author:        $Author$
+ *  Check-in Date: $Date$ 
+ *  Version #:     $Revision$
  *  
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -69,7 +69,7 @@
  ***************************************************************************}
 const
 {* Declare the version and name of this script. *}
-   constScriptVersion          = 'v0.0.1 $Revision: 2803 $';
+   constScriptVersion          = 'v0.0.1 $Revision$';
    constThisScriptNameNoExt    = 'SPI_Setup_PCB_Layers';
    constThisScriptName         = constThisScriptNameNoExt + '.pas';
 
