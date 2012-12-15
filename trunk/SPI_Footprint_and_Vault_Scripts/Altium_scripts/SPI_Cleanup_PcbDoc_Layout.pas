@@ -1,8 +1,9 @@
 {***************************************************************************
  SPI_Cleanup_PcbDoc_Layout.pas
  Altium DelphiScript (basically Pascal) that will attempt to cleanup SPI-specific
- features in a PcbDoc file.  Currently this only includes multi-line instruction
- footprints.
+ features in a PcbDoc file.  Currently this only includes:
+ 1.  Split .Comment text into lines for multi-line instruction footprints.
+ 2.  Cleanup Drill Chart footprint so that gerber generation actually works.
  ***************************************************************************}
 
 {***************************************************************************
@@ -121,6 +122,8 @@
  *  1.  Examine all Pcb components in the selected & open PcbDoc file.
  *  2.  For any that match a pre-defined list of Vault components, proceed to split a
  *      long Comment string into multiple lines (.Comment1, .Comment2, etc.)
+ *  3.  On finding the Drill Chart component, move the ".Legend" string out of the
+ *      footprint so that gerber generation will actually work.
  
  * WHAT THIS SCRIPT WILL *NOT* DO:
  *  
@@ -143,6 +146,7 @@
  *  3.  Update split text when Comment changes.
  *  4.  Open PcbDoc file in the selected project, rather than requiring that it
  *      already be open.
+ *  5.  Check that freestanding .Legend text is present and in the right place!
  *
  *  TODO for schematic side script:
  *  1.  Audit length of Comment and choose footprint with appropriate number
@@ -155,7 +159,7 @@
  ***************************************************************************}
 const
 {* Declare the version and name of this script. *}
-   constScriptVersion          = 'v0.1.0 $Revision$';
+   constScriptVersion          = 'v0.2.0 $Revision$';
    constThisScriptNameNoExt    = 'SPI_Cleanup_PcbDoc_Layout';
    constThisScriptName         = constThisScriptNameNoExt + '.pas';
 {}
@@ -168,8 +172,9 @@ const
  * function CPL_Init()
  *  Initialize any string lists we need for this script.
  ***************************************************************************}
-function CPL_Init(var multiLineFootprintLibRefs : TStringList;
-                      )                         : Integer;
+function CPL_Init(var multiLineFootprintLibRefs  : TStringList;
+                  var drillChartFootprintLibRefs : TStringList;
+                      )                          : Integer;
 
 var
    i         : Integer;
@@ -179,11 +184,16 @@ begin
    { Assume success. }
    result := 0;
 
-   { Initialize stringlist. }
-   multiLineFootprintLibRefs         := TStringList.Create();
+   { Initialize stringlists. }
+   multiLineFootprintLibRefs  := TStringList.Create();
+   drillChartFootprintLibRefs := TStringList.Create();
 
    { Create a list of all the Vault components which have multi-line instruction footprints attached to them. }
    { TODO:  Currently we're only handling 2-line footprints! }
+   { TODO:  Currently we don't attempt to handle freeform instructions which may
+    or may not be using multi-line footprints.  Such part #'s are not currently in this list! }
+   { TODO:  We should be keying off the names of multiline footprints, rather
+    than defining components that use them a priori! }
    { NOTE:  The "=foo" is so that we can treat these as name-value pairs, and re-use related code. }
    multiLineFootprintLibRefs.Add('00512-001-10300' + '=foo');
    multiLineFootprintLibRefs.Add('00512-001-10400' + '=foo');
@@ -196,14 +206,18 @@ begin
    multiLineFootprintLibRefs.Add('00512-001-15001' + '=foo');
    multiLineFootprintLibRefs.Add('00512-001-15002' + '=foo');
    multiLineFootprintLibRefs.Add('00512-001-15003' + '=foo');
+   multiLineFootprintLibRefs.Add('00512-001-16100' + '=foo');
+   multiLineFootprintLibRefs.Add('00512-001-16101' + '=foo');
    multiLineFootprintLibRefs.Add('00512-001-19000' + '=foo');
    multiLineFootprintLibRefs.Add('00512-001-19001' + '=foo');
-   multiLineFootprintLibRefs.Add('00513-001-00100' + '=foo');
-   multiLineFootprintLibRefs.Add('00518-001-10200' + '=foo');
+   multiLineFootprintLibRefs.Add('00513-001-10200' + '=foo');
    multiLineFootprintLibRefs.Add('00518-001-10300' + '=foo');
    multiLineFootprintLibRefs.Add('00518-001-15000' + '=foo');
    multiLineFootprintLibRefs.Add('00518-001-15100' + '=foo');
    multiLineFootprintLibRefs.Add('00518-001-20100' + '=foo');
+
+   { Create a list of all the Vault components which are the drill chart component. }
+   drillChartFootprintLibRefs.Add('00513-001-30100' + '=foo');
    
 end; { end CPL_Init() }
 
@@ -354,13 +368,13 @@ end; { end CPL_SplitCommentIntoMultipleLines() }
 
 
 {***************************************************************************
- * function CPL_IsThisMultiLineInsnFootprint()
- *  Determine if a given component is a multi-line instruction footprint that
- *  we need to worry about. 
+ * function CPL_IsThisFootprintOfInterest()
+ *  Determine if a given component is a member of the interstingFootprints list.
  ***************************************************************************}
-function CPL_IsThisMultiLineInsnFootprint(multiLineFootprintLibRefs : TStringList;
-                                          component                 : IPCB_Component;
-                                          )                         : Boolean;
+function CPL_IsThisFootprintOfInterest(interestingFootprints : TStringList;
+                                       component             : IPCB_Component;
+                                       debugNote             : TString;
+                                       )                     : Boolean;
 
 var
    i          : Integer;
@@ -383,32 +397,79 @@ begin
    WriteToDebugFile('* item is       "' + item + '".');
 
    { See if the item code is in our stringlist. }
-   if (CLF_IsNameInStringList(item, multiLineFootprintLibRefs)) then
+   if (CLF_IsNameInStringList(item, interestingFootprints)) then
    begin
 
-      WriteToDebugFile('*  This is a multi-line instruction footprint!!');
+      WriteToDebugFile('*  ' + debugNote);
 
       { Flag that we found such a thing. }
       result := True;
 
    end;
    
+end; { end CPL_IsThisFootprintOfInterest() }
+
+
+{***************************************************************************
+ * function CPL_IsThisMultiLineInsnFootprint()
+ *  Determine if a given component is a multi-line instruction footprint that
+ *  we need to worry about. 
+ ***************************************************************************}
+function CPL_IsThisMultiLineInsnFootprint(multiLineFootprintLibRefs : TStringList;
+                                          component                 : IPCB_Component;
+                                          )                         : Boolean;
+
+var
+   i         : Integer;
+   debugNote : TString;
+   
+begin
+
+   { Call CPL_IsThisFootprintOfInterest() to do all the real work. }
+   debugNote := 'This is a multi-line instruction footprint!!';
+   result := CPL_IsThisFootprintOfInterest({interestingFootprints} multiLineFootprintLibRefs,
+                                           component,
+                                           debugNote);
+   
 end; { end CPL_IsThisMultiLineInsnFootprint() }
 
 
 {***************************************************************************
- * function CPL_AlterTextInFootprint()
+ * function CPL_IsThisDrillChart()
+ *  Determine if a given component is the drill chart component/footprint.
+ ***************************************************************************}
+function CPL_IsThisDrillChart(drillChartFootprintLibRefs : TStringList;
+                              component                  : IPCB_Component;
+                              )                          : Boolean;
+
+var
+   i         : Integer;
+   debugNote : TString;
+   
+begin
+
+   { Call CPL_IsThisFootprintOfInterest() to do all the real work. }
+   debugNote := 'This is the drill chart footprint!!';
+   result := CPL_IsThisFootprintOfInterest({interestingFootprints} drillChartFootprintLibRefs,
+                                           component,
+                                           debugNote);
+   
+end; { end CPL_IsThisDrillChart() }
+
+
+{***************************************************************************
+ * function CPL_AlterTextInMultilineFootprint()
  *  Now that we have identified a multi-line instruction footprint, proceed
  *  to alter its .Comment1, .Comment2, etc. text to contain the .Comment text.
  ***************************************************************************}
-function CPL_AlterTextInFootprint(    board     : IPCB_Board;
-                                  var component : IPCB_Component;
-                                      )         : Integer;
+function CPL_AlterTextInMultilineFootprint(    board     : IPCB_Board;
+                                           var component : IPCB_Component;
+                                               )         : Integer;
 
 var
    i            : Integer;
    iterator     : IPCB_GroupIterator;
-   textObj         : IPCB_Text;
+   textObj      : IPCB_Text;
    commentLines : TStringList;
    
 begin
@@ -416,7 +477,7 @@ begin
    { Assume success. }
    result := 0;
 
-   WriteToDebugFile('*Hello from CPL_AlterTextInFootprint()');
+   WriteToDebugFile('*Hello from CPL_AlterTextInMultilineFootprint()');
 
    { Split the .Comment string into multiple lines. }
    CPL_SplitCommentIntoMultipleLines(component,
@@ -472,7 +533,98 @@ begin
    { Free string lists. }
    commentLines.Free();
 
-end; { end CPL_AlterTextInFootprint() }
+end; { end CPL_AlterTextInMultilineFootprint() }
+
+
+{***************************************************************************
+ * function CPL_AlterDrillChartFootprint()
+ *  Now that we have identified the Drill Chart footprint, proceed to move
+ *  its .Legend text out of the footprint, so that it works in gerber generation.
+ ***************************************************************************}
+function CPL_AlterDrillChartFootprint(    board     : IPCB_Board;
+                                      var component : IPCB_Component;
+                                          )         : Integer;
+
+var
+   i          : Integer;
+   iterator   : IPCB_GroupIterator;
+   textObj    : IPCB_Text;
+   textObjNew : IPCB_Text;
+   found      : Boolean;
+   
+begin
+
+   { Assume success. }
+   result := 0;
+
+   WriteToDebugFile('*Hello from CPL_AlterDrillChartFootprint()');
+
+   { Setup an iterator so that we can iterate over all texts in this PCB component. }
+   iterator        := component.GroupIterator_Create;
+   iterator.AddFilter_ObjectSet(MkSet(eTextObject));
+   iterator.AddFilter_LayerSet(AllLayers);
+
+   { Get a reference to the first PCB object. }
+   textObj := iterator.FirstPCBObject;
+
+   { Loop over all objects in this PcbDoc file. }
+   found      := False;
+   while ( (textObj <> nil) and (not found) ) do
+   begin
+      
+      WriteToDebugFile('*Found text ' + textObj.Text);
+
+      { See if we have a line of Comment text to assign to this text string. }
+      if ( (textObj.Text = '.Legend') or (textObj.Text = 'Legend is not interpreted until output') ) then
+      begin
+         
+         WriteToDebugFile('*About to move Legend text to standalone string!');
+
+         { Flag that we have found the string in question. }
+         found      := True;
+
+         { Create new string.  Replicating results in the new string also being part of the footprint, which we don't want! }
+         textObjNew := PCBServer.PCBObjectFactory(eTextObject, eNoDimension, eCreate_Default);
+         
+         { Notify Altium that PCB object will be modified. }
+         PCBServer.SendMessageToRobots(textObjNew.I_ObjectAddress, c_Broadcast, PCBM_BeginModify, c_NoEventData);
+
+         { Copy properties from old text object to new one. }
+         { NOTE:  SPI-ism:  We are moving the .Legend string by magic numbers.
+          It seemed pointless to update the footprint, since the .Legend string needs to be moved
+          out of the footprint anyway! }
+         textObjNew.Text			:= '.Legend';
+         textObjNew.Xlocation		:= textObj.Xlocation + MilsToCoord(70);
+         textObjNew.Ylocation 		:= textObj.Ylocation + MilsToCoord(10);
+         textObjNew.Layer			:= textObj.Layer;
+         textObjNew.Size			:= textObj.Size;
+         textObjNew.Rotation		:= textObj.Rotation;
+         textObjNew.Width			:= textObj.Width;
+
+         { Add new string to board. }
+         board.AddPCBObject(textObjNew);
+
+         { Notify Altium that board has been modified. }
+         PCBServer.SendMessageToRobots(textObjNew.I_ObjectAddress, c_Broadcast, PCBM_EndModify, c_NoEventData);
+         PCBServer.SendMessageToRobots(board.I_ObjectAddress, c_Broadcast, PCBM_BoardRegisteration, textObjNew.I_ObjectAddress);
+
+         { Delete the .Legend string from the footprint. }
+         board.RemovePCBObject(textObj);
+         
+         { Notify Altium that board has been modified. }
+         PcbServer.PostProcess;
+
+      end; { endif }
+      
+      { Advance to next textObj in this Pcb component. }
+      textObj := iterator.NextPCBObject;
+
+   end;  { endwhile loop over all PCB texts in this Pcb component. }
+
+   { Free group iterator. }
+   component.GroupIterator_Destroy(iterator);
+
+end; { end CPL_AlterDrillChartFootprint() }
 
 
 {***************************************************************************
@@ -480,8 +632,9 @@ end; { end CPL_AlterTextInFootprint() }
  *  Iterate through all footprints in PcbDoc file and try to find instruction-type
  *  footprints.
  ***************************************************************************}
-function CPL_FindInstructionPcbComponents(multiLineFootprintLibRefs : TStringList;
-                                          )                         : Integer;
+function CPL_FindInstructionPcbComponents(multiLineFootprintLibRefs  : TStringList;
+                                          drillChartFootprintLibRefs : TStringList;
+                                          )                          : Integer;
 
 var
    board           : IPCB_Board;
@@ -490,6 +643,7 @@ var
    component       : IPCB_Component;
    numComps        : Integer;
    isMultiLineInsn : Boolean;
+   isDrillChart    : Boolean;
    
 begin
 
@@ -555,10 +709,24 @@ begin
       { If so, then proceed to alter certain text strings within this Pcb component. }
       if (isMultiLineInsn) then
          begin
-            CPL_AlterTextInFootprint(board,
-                                     {var} component);
+            CPL_AlterTextInMultilineFootprint(board,
+                                              {var} component);
 
          end; { endif }
+
+      
+      { See if this is the drill-chart footprint. }
+      isDrillChart := CPL_IsThisDrillChart(drillChartFootprintLibRefs,
+                                           component);
+      
+      { If so, then proceed to move ".Legend" text outside the footprint. }
+      if (isDrillChart) then
+         begin
+            CPL_AlterDrillChartFootprint(board,
+                                         {var} component);
+
+         end; { endif }
+
 
       { Advance to next component in this PcbDoc file. }
       component := iterator.NextPCBObject;
@@ -599,21 +767,22 @@ end; { end CPL_FindInstructionPcbComponents() }
  ***************************************************************************}
 procedure SPI_Cleanup_PcbDoc_Layout;
 var
-   WorkSpace                 : IWorkSpace;
-   project                   : IProject;
-   projectPath               : TDynamicString;
-   projOutPath               : TDynamicString;
-   projectName               : TDynamicString;
-   projLogPath               : TDynamicString;
-   scriptsPath               : TDynamicString;
-   document                  : IDocument;
-   timestamp                 : TDynamicString;
-   startTime                 : TDateTime;
-   endTime                   : TDateTime;
-   rc                        : Integer;
-   i                         : Integer;
-   step                      : Integer;
-   multiLineFootprintLibRefs : TStringList;
+   WorkSpace                  : IWorkSpace;
+   project                    : IProject;
+   projectPath                : TDynamicString;
+   projOutPath                : TDynamicString;
+   projectName                : TDynamicString;
+   projLogPath                : TDynamicString;
+   scriptsPath                : TDynamicString;
+   document                   : IDocument;
+   timestamp                  : TDynamicString;
+   startTime                  : TDateTime;
+   endTime                    : TDateTime;
+   rc                         : Integer;
+   i                          : Integer;
+   step                       : Integer;
+   multiLineFootprintLibRefs  : TStringList;
+   drillChartFootprintLibRefs : TStringList;
    
 begin
 
@@ -660,20 +829,23 @@ begin
    step := 1;
 
    { Initialize string lists used by this script. }
-   CPL_Init({var} multiLineFootprintLibRefs);
+   CPL_Init({var} multiLineFootprintLibRefs,
+            {var} drillChartFootprintLibRefs);
 
    { Issue confirmation modal dialog box with specified confirmation message,
     specified reply after clicking Ok, and specified reply after clicking Cancel. }
    IssueConfirmationWithOkOrCancel('Welcome to script ' + constThisScriptNameNoExt + ', ' + constScriptVersion + '.' + constLineBreak + constLineBreak + 
-                                   'This script will attempt to cleanup all SPI-specific instruction footprints in the PcbDoc layout file in project "' + projectName + '".' + constLineBreak + constLineBreak + 
+                                   'This script will attempt to cleanup all SPI-specific instruction footprints in the PcbDoc layout file in project "' + projectName + '".' + constLineBreak +
+                                   'It will also do a cleanup operation on the Drill Chart component.' + constLineBreak +
+                                   constLineBreak + 
                                    'Shall I run on this project (OK) or shall I Cancel running this script?',
                                    '',
                                    'Canceled at user request.');
 
 
    { Try to find all instruction-type PCB components and modify them as needed. }
-   CPL_FindInstructionPcbComponents(multiLineFootprintLibRefs);
-
+   CPL_FindInstructionPcbComponents(multiLineFootprintLibRefs,
+                                    drillChartFootprintLibRefs);
    
    { Try to close all project documents for the actual project. }
 //   CLF_UpdateGuiStatusMessage('Closing all documents in project before starting script.');
@@ -701,6 +873,10 @@ begin
 
    {****** Wrap things up ******}
    { Call AtExit() procedure to write debug outputs to file. }
+
+   { Free string lists. }
+   multiLineFootprintLibRefs.Free;
+   drillChartFootprintLibRefs.Free;
    
    WriteToDebugFile('**About to exit script.');
 //   ShowMessage('About to call AtExit()');
