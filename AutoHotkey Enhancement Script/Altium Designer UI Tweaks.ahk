@@ -6,7 +6,7 @@ Menu, Tray, Icon, %A_AhkPath%, 6
 
 /*
 [Altium Designer UI Tweaks]
-version = 0.004
+version = 0.006
 
 Description:
 This is an AutoHotkey script, and thus requires that AutoHotkey be installed. Tested with
@@ -28,8 +28,25 @@ Features:
 * Teardrop speeder and primitive reselector
 * Mouse wheel can scroll through Shift+W routing width dialog
 * Rubber-stamping with net preservation (see comments in code)
+* Every 15 minutes, check for DXP.EXE and close Altium Download Manager if DXP is not found
 
 */
+
+Loop 
+{
+	Process, Wait, DXP.EXE
+	Process, WaitClose, DXP.EXE
+	FoundPID = %ErrorLevel%  ; Save the value immediately since ErrorLevel is often changed.
+	if FoundPID = 0
+	{
+		Process, Exist, AltiumDownloadManager.exe
+		FoundPID = %ErrorLevel%  ; Save the value immediately since ErrorLevel is often changed.
+		if FoundPID <> 0
+		{
+			Process, Close, AltiumDownloadManager.exe
+		}
+	}
+}
 
 ; Autocomplete section for filter expressions. If you add to this, be mindful of adding enough
 ; characters to distinguish from common words. For example, "incomp" could start the words
@@ -89,6 +106,7 @@ RButton::Send, {Esc}
 
 ; Teardrop reselector: after teardrop operation, reselects primitives that were selected before
 ; This is one of my favorite scripts. Note that this uses selection memory slot 8.
+#If GetControlUnderMouse("View_Graphical1")
 $^t::
 	Send, ^8
 	Send, ^t
@@ -104,7 +122,7 @@ $^t::
 	Send, !8 ; Sometimes this attempt is missed esp. in the case of long teardrop operations
 	Sleep, 400
 	Send, !8 ; Send second time after a longer delay in case the first one was missed
-	IfWinActive
+#IfWinActive
 Return
 ; End Teardrop dialog mod
 
