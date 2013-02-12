@@ -1,5 +1,5 @@
+#summary Recomendations for smooth cooperation on Altium Addons page
 #labels addons,general,commit
- # Recomendations for smooth cooperation on Altium Addons page
 
 = How to commit your script and keep life of other committers easy =
 
