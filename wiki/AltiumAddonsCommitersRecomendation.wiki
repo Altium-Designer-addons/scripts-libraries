@@ -3,6 +3,7 @@
 
 = How to commit your script and keep life of other committers easy =
 
+ * Please commit only YOUR OWN work or work which you are 100% SURE AUTHOR APPOVED to be shared by Altium Addons page.
  * The scripts are maintained by SVN repository. 
  * Every script has its own folder in the repository. 
  * Please test your script prior commit, please ask someone else to test it separately if it is possible. 
