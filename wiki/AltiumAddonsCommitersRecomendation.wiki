@@ -3,9 +3,9 @@
 
 = How to commit your script =
 
-* The scripts are maintained by SVN repository. 
-* Every script has its own folder in the repository. 
-* Every commit should contain reasonable description of changes.  
-* Everytime you change some file in the script folder please zip entire script folder and place the file into the downloads folder in the repository (Petar liked to leave older files there, me not but doesn't really matter) . 
-* Once the commit is done, please go to the Downloads section on the Addons page and delete previous download link of the modified script and create new one from the zip file in the download folder in repository. Attach all tags and description from previous download link if applicable and update is to comply with current script state. 
-* Front page with list of scripts must be maintained by administrator. But the page itself let the admnistrator know when some commit is done so main page will be updated asap. It is not needed to let administrator know. 
+ * The scripts are maintained by SVN repository. 
+ * Every script has its own folder in the repository. 
+ * Every commit should contain reasonable description of changes.  
+ * Everytime you change some file in the script folder please zip entire script folder and place the file into the downloads folder in the repository (Petar liked to leave older files there, me not but doesn't really matter) . 
+ * Once the commit is done, please go to the Downloads section on the Addons page and delete previous download link of the modified script and create new one from the zip file in the download folder in repository. Attach all tags and description from previous download link if applicable and update is to comply with current script state. 
+ * Front page with list of scripts must be maintained by administrator. But the page itself let the admnistrator know when some commit is done so main page will be updated asap. It is not needed to let administrator know. 
