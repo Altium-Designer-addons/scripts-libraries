@@ -1,0 +1,21 @@
+Obligatory Disclaimer:
+----------------------
+Ryan Rutledge is furnishing these libraries "as is". I do not provide any warranty of the item whatsoever, whether express, implied, or statutory, including, but not limited to, any warranty of merchantability or fitness for a particular purpose or any warranty that the contents of the item will be error-free.
+
+In no respect shall I or any other person incur any liability for any damages, including, but limited to, direct, indirect, special, or consequential damages arising out of, resulting from, or any way connected to the use of the item, whether or not based upon warranty, contract, tort, or otherwise; whether or not injury was sustained by persons or property or otherwise; and whether or not loss was sustained from, or arose out of, the results of, the item, or any services that may be provided herein.
+
+Use of these libraries or any elements thereof constitutes acknowledgement and acceptance of the preceeding statements.
+----------------------
+
+That being said, I'm providing these Altium Designer libraries in good faith, in the hopes that they will be useful to others. You are not required to pay for these or compensate me in any way, but one always enjoys being acknowledged for their work, so thanks are always welcome. Appreciation or questions may be sent to "ryandrutledge" at gmail.
+
+Note that a few footprints may seem strange or unconventional because they were used in a specific situation. Nearly all footprints have 3D STEP models included. My usual practice is to dimension my models to represent max tolerances, but some older models may have nominal dimensions. Nearly all surface-mount passives and IC packages will be at max tolerance. As always, verify fitness for your application. Having said that, I have used each and every one of these footprints without any show-stopping issues and few if any issues. If you should find some issues, by all means please let me know so I can correct them!
+
+As for the schematic libraries, my company has a convention of having one library entry per part; which means that a 1k, 10k, and 100k resistor in 0603, 0805, and 1206 sizes would be 9 separate library components. Not all components have supplier entries, but a great many do have DigiKey or Mouser supplier links which makes it much easier to generate a parts list for prototype builds. Once again, not everything is perfect because these libraries span the roughly 4 years since I used Altium Designer for the first time. Again, email me with any significant issues you encounter so I can fix them. Additionally, some schematic symbols may refer to footprints that have been renamed since they were created (a lot can happen in 4 years!), or to footprints that exist in company libraries that I am not able to share.
+
+You may also direct special requests for footprints, symbols, and 3D CAD models of components to my email (read above for the address), but understand that I may not be able to answer all of them if there are too many requests (though I will try).
+
+Sincerely,
+Ryan Rutledge
+gmail address ryandrutledge
+Wednesday, January 30, 2013
