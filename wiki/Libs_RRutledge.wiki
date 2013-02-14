@@ -347,12 +347,12 @@
 
 == Resistors ==
 || LIBRARYREFERENCE	|| DESCRIPTION	|| FOOTPRINT1	|| 
-|| RESPACK_100R_5%_4X	|| Resistor array 100 Ohm 4-pack 62.5mW 5% 1206 SMD	|| RESCAXS50P160X320X70-8N	|| 
-|| RESPACK_10K_5%_4X	|| Resistor array 10K Ohm 4-pack 62.5mW 5% 1608 SMD	|| RESCAXS50P160X320X70-8N	|| 
-|| RESPACK_10K_5%_8X	|| Resistor array 10K Ohm 8-pack 62.5mW 5% 1608 SMD	|| RESP4021N8X	|| 
-|| RESPACK_1K_5%_4X	|| Resistor array 1K Ohm 4-pack 62.5mW 5% 1608 SMD	|| RESCAXS50P160X320X70-8N	|| 
-|| RESPACK_2K2_5%_4X	|| Resistor array 2.2K Ohm 4-pack 62.5mW 5% 1608 SMD	|| RESCAXS50P160X320X70-8N	|| 
-|| RESPACK_39R_5%_4X	|| Resistor array 39 Ohm 4-pack 62.5mW 5% 1206 SMD	|| RESCAXS50P160X320X70-8N	|| 
+|| RESPACK`_`100R`_`5%`_`4X	|| Resistor array 100 Ohm 4-pack 62.5mW 5% 1206 SMD	|| RESCAXS50P160X320X70-8N	|| 
+|| RESPACK`_`10K`_`5%`_`4X	|| Resistor array 10K Ohm 4-pack 62.5mW 5% 1608 SMD	|| RESCAXS50P160X320X70-8N	|| 
+|| RESPACK`_`10K`_`5%`_`8X	|| Resistor array 10K Ohm 8-pack 62.5mW 5% 1608 SMD	|| RESP4021N8X	|| 
+|| RESPACK`_`1K`_`5%`_`4X	|| Resistor array 1K Ohm 4-pack 62.5mW 5% 1608 SMD	|| RESCAXS50P160X320X70-8N	|| 
+|| RESPACK`_`2K2`_`5%`_`4X	|| Resistor array 2.2K Ohm 4-pack 62.5mW 5% 1608 SMD	|| RESCAXS50P160X320X70-8N	|| 
+|| RESPACK`_`39R`_`5%`_`4X	|| Resistor array 39 Ohm 4-pack 62.5mW 5% 1206 SMD	|| RESCAXS50P160X320X70-8N	|| 
 || RES_0R022_1206_0.5W_2%	|| Resistor SMD chip 22 milliohm 0.5W 2% 1206	|| RESC3216N	|| 
 || RES_0R_0603	|| Resistor SMD chip 0.0 Ohm 0.1W 0603	|| RESC1608N_ZERO	|| 
 || RES_0R_0805	|| Resistor SMD chip 0.0 Ohm 0.125W 0805	|| RESC2012N_ZERO	|| 
