@@ -813,7 +813,7 @@ As for the schematic libraries, my company has a convention of having one librar
 
 You may also direct special requests for footprints, symbols, and 3D CAD models of components to my email (read above for the address), but understand that I may not be able to answer all of them if there are too many requests (though I will try).
 
-Sincerely,
-Ryan Rutledge
-gmail address ryandrutledge
-Wednesday, January 30, 2013
+Sincerely,<br>
+Ryan Rutledge<br>
+gmail address ryandrutledge<br>
+Wednesday, January 30, 2013<br>
