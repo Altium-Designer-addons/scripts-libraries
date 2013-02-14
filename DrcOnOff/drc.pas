@@ -14,4 +14,11 @@ If (PcbSystemOptions.DoOnlineDRC = False) Then
 PcbSystemOptions.DoOnlineDRC := True
 Else PcbSystemOptions.DoOnlineDRC := False ;
 
+
+If (Client <> Nil) And (Client.GUIManager <> Nil) Then
+Begin
+    Client.GUIManager.StatusBar_SetState(2, PcbSystemOptions.DoOnlineDRC);
+End;
+
+
 End;
