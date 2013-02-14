@@ -3,116 +3,116 @@
 
 = Summary =
 
- * Release date 30.1.2013
+ * Release date 2013-01-30
  * Number of components 459 (list below)
  * Plain SchLib and PcbLib files split by component categories
  * Many additional component parameters attached as Manufacturer part numbers and Supplier links to Digikey and Mouser
- * Several components has multiple footprints
+ * Some components has multiple footprints (beware that sometimes only the default matches the supplier link part number)
  * Please read and respect TERMS OF USE at the bottom!
 
 = Components list =
 
-== PBL - Batteries ==
-|| LIBRARYREFERENCE	|| DESCRIPTION	|| FOOTPRINT1	||
-|| BATT_AAAx2_600mAh	|| Battery pack, 2-cell AAA	|| BAT-AAA-2	||
-|| BATT_AAx2_1300mAh	|| Battery pack, 2-cell AA	|| BAT-AA-2	||
-|| BATT_AAx2_600mAh	|| Battery pack NiMH 600mAh 2-cell AA	|| BAT-AA-2	||
-|| BATT_AAx2_900mAh	|| Battery pack, 2-cell AA	|| BAT-AA-2	||
+== Batteries ==
+|| LIBRARYREFERENCE	|| DESCRIPTION				|| FOOTPRINT1		||
+|| BATT_AAAx2_600mAh	|| Battery pack, 2-cell AAA		|| BAT-AAA-2		||
+|| BATT_AAx2_1300mAh	|| Battery pack, 2-cell AA		|| BAT-AA-2		||
+|| BATT_AAx2_600mAh	|| Battery pack NiMH 600mAh 2-cell AA	|| BAT-AA-2		||
+|| BATT_AAx2_900mAh	|| Battery pack, 2-cell AA		|| BAT-AA-2		||
 || BATT_AAx2_Holder	|| Battery holder 2xAA PCB mount	|| BATT_HOLDER_2XAA	||
 
-== PBL - Capacitors ==
-|| LIBRARYREFERENCE	|| DESCRIPTION	|| FOOTPRINT1	||
-|| CAPC_100n_0402_16V_10%	|| Capacitor SMD Cer 100nF 10% 16V X5R 0402	|| CAPC1005N	||
-|| CAPC_100n_0603	|| Capacitor SMD Cer 100nF 10% 50V X7R 0603	|| CAPC1608N	||
-|| CAPC_100n_0805	|| Capacitor SMD Cer 100nF 10% 50V X7R 0805	|| CAPC1608N	||
-|| CAPC_100n_0805_100V	|| Capacitor SMD Cer 100nF 10% 100V X7R 0805	|| CAPC2012N	||
-|| CAPC_10n_0402_16V_10%	|| Capacitor SMD Cer 10nF 10% 16V X7R 0402	|| CAPC1005N	||
-|| CAPC_10n_0603_50V_10%	|| Capacitor SMD Cer 10nF 10% 50V X7R 0603	|| CAPC1608N	||
-|| CAPC_10n_100V_0603	|| Capacitor SMD Cer 10nF 10% 100V X7R 0603	|| CAPC1608N	||
-|| CAPC_10p_0603_NP0_1%_50V	|| Capacitor SMD Cer 10pF 5% 50V NP0 0603	|| CAPC1608N	||
-|| CAPC_10u_0805_10V	|| Capacitor SMD Cer 10uF 10% 10V X5R 0805	|| CAPC2012N	||
-|| CAPC_10u_0805_16V	|| Capacitor SMD Cer 10uF 10% 16V X7R 0805	|| CAPC1608N	||
-|| CAPC_10u_1206_10V	|| Capacitor SMD Cer 10uF 10% 10V X5R 1206	|| CAPC3216N	||
-|| CAPC_10u_1206_16V	|| Capacitor SMD Cer 10uF 10% 16V X7R 1206	|| CAPC3216N	||
-|| CAPC_10u_1210_50V	|| Capacitor SMD Cer 10uF 20% 16V X5R 1210	|| CAPC3225N	||
-|| CAPC_120p_0603_C0G_50V	|| Capacitor SMD Cer 120pF 10% 50V C0G 0603	|| CAPC1608N	||
-|| CAPC_150p_0603_C0G_50V	|| Capacitor SMD Cer 150pF 10% 50V C0G 0603	|| CAPC1608N	||
-|| CAPC_15n_0603_50V	|| Capacitor SMD Cer 15nF 10% 50V X7R 0603	|| CAPC1608N	||
-|| CAPC_15p_0603_NP0_5%_100V	|| Capacitor SMD Cer 15pF 5% 100V NP0 0603	|| CAPC1608N	||
-|| CAPC_180p_0402_NP0_50V_5%	|| Capacitor SMD Cer 180pF 5% 50V NP0 0402	|| CAPC1005N	||
-|| CAPC_180p_1206_NP0_50V	|| Capacitor SMD Cer 180pF 10% 50V NP0 1206	|| CAPC3216N	||
-|| CAPC_18p_0603_100V	|| Capacitor SMD Cer 18pF 2% 100V NP0 0603	|| CAPC1608N	||
-|| CAPC_1n8_50V_0805	|| Capacitor SMD Cer 1.8nF 10% 50V X7R 0805	|| CAPC2012N	||
-|| CAPC_1n_0402_10%	|| Capacitor SMD Cer 1nF 10% 16V X7R 0402	|| CAPC1005N	||
-|| CAPC_1n_0603_100V	|| Capacitor SMD Cer 1nF 10% 100V X7R 0603	|| CAPC1608N	||
-|| CAPC_1u_0603	|| Capacitor SMD Cer 1uF 10% 16V X7R 0603	|| CAPC1608N	||
-|| CAPC_1u_0805	|| Capacitor SMD Cer 1uF 10% 16V X7R 0805	|| CAPC2012N	||
-|| CAPC_220n_0603	|| Capacitor SMD Cer 220nF 10% 16V X7R 0603	|| CAPC1608N	||
-|| CAPC_220n_0805	|| Capacitor SMD Cer 220nF 10% 25V X7R 0805	|| CAPC2012N	||
-|| CAPC_220p_0603_NP0_50V_1%	|| Capacitor SMD Cer 220pF 1% 50V NP0 0603	|| CAPC1608N	||
-|| CAPC_220p_0603_NP0_50V_5%	|| Capacitor SMD Cer 220pF 5% 50V NP0 0603	|| CAPC1608N	||
-|| CAPC_22u_1206_16V	|| Capacitor SMD Cer 22uF 10% 16V X7R 1206	|| CAPC3216N	||
-|| CAPC_22u_1210_16V	|| Capacitor SMD Cer 22uF 20% 16V X7R 1210	|| CAPC3225N	||
-|| CAPC_22u_1210_6V3_X5R	|| Capacitor SMD Cer 22uF 20% 6.3V X5R 1210	|| CAPC3225N	||
-|| CAPC_22u_1812_25V	|| Capacitor SMD Cer 22uF 20% 25V X5R 1812	|| CAPC4532N	||
-|| CAPC_27p_0805_50V	|| Capacitor SMD Cer 27pF 5% 50V X7R 0805	|| CAPC2012N	||
-|| CAPC_27p_100V_0603	|| Capacitor SMD Cer 27pF 1% 100V NP0 0603	|| CAPC1608N	||
-|| CAPC_2u2_0603_10V_10%	|| Capacitor SMD Cer 2.2uF 10% 10V X5R 0603	|| CAPC1608N	||
-|| CAPC_2u2_0805	|| Capacitor SMD Cer 2.2uF 10% 16V X7R 0805	|| CAPC2012N	||
-|| CAPC_330n_0805	|| Capacitor SMD Cer 330nF 10% 25V X7R 0805	|| CAPC2012N	||
-|| CAPC_33p_0402_NP0_50V_5%	|| Capacitor SMD Cer 33pF 5% 50V NP0 0402	|| CAPC1005N	||
-|| CAPC_39n_0603_25V	|| Capacitor SMD Cer 39nF 10% 25V X7R 0603	|| CAPC1608N	||
-|| CAPC_39p_0603_NP0_100V_1%	|| Capacitor SMD Cer 39pF 1% 100V NP0 0603	|| CAPC1608N	||
-|| CAPC_470n_0603	|| Capacitor SMD Cer 470nF 10% 16V X7R 0603	|| CAPC1608N	||
-|| CAPC_470n_0805	|| Capacitor SMD Cer 470nF 10% 16V X7R 0805	|| CAPC2012N	||
-|| CAPC_470p_0603_5%	|| Capacitor SMD Cer 470pF 5% 50V NP0 0603	|| CAPC1608N	||
-|| CAPC_47n_0603	|| Capacitor SMD Cer 47nF 10% 50V X7R 0603	|| CAPC1608N	||
-|| CAPC_47n_1206_50V_X7R_10%	|| Capacitor SMD Cer 47nF 10% 50V 1206	|| CAPC3216N	||
-|| CAPC_4p7_100V_0603	|| Capacitor SMD Cer 4.7pF ?0.25pF 100V NP0 0603	|| CAPC1608N	||
-|| CAPC_4u7_0805	|| Capacitor SMD Cer 4.7uF 10% 16V X5R 0805	|| CAPC2012N	||
-|| CAPC_4u7_100V_2220	|| Capacitor SMD Cer 4.7uF 10% 100V X7R 2220	|| CAPC5750N	||
-|| CAPC_560p_0603_5%	|| Capacitor SMD Cer 560pF 5% 50V NP0 0603	|| CAPC1608N	||
-|| CAPC_6n8_1206_NP0_50V	|| Capacitor SMD Cer 6.8nF 5% 50V NP0 1206	|| CAPC3216N	||
-|| CAPC_82p_0603_NP0_50V_1%	|| Capacitor SMD Cer 82pF 1% 50V NP0 0603	|| CAPC1608N	||
-|| CAPC_8p_0402_NP0_50V	|| Capacitor SMD Cer 8pF ?0.5pF 50V NP0 0402	|| CAPC1005N	||
-|| CAPE_100u_16V_THD	|| Capacitor THD Electrolytic 100uF 20% 16V Radial	|| CAPAE200P550X1200_FLAT2	||
-|| CAPE_10u_100V_SMD	|| Capacitor SMD Electrolytic 10uF 20% 100V Radial	|| CAP_ELEC_Size E	||
-|| CAPE_1m_10V_SMD	|| Capacitor SMD Alum Elec 1mF 20% 10V	|| CAP_ELEC_Size G	||
-|| CAPE_220u_10V_SMD	|| Capacitor SMD Alum Elec 220uF 20% 10V	|| CAP_ELEC_Size E	||
-|| CAPE_220u_16V_THD	|| Capacitor THT Alum Elec 220uF 20% 16V	|| CAPE3.5mm	||
+== Capacitors ==
+|| LIBRARYREFERENCE		|| DESCRIPTION						|| FOOTPRINT1	||
+|| CAPC_100n_0402_16V_10%	|| Capacitor SMD Cer 100nF 10% 16V X5R 0402		|| CAPC1005N	||
+|| CAPC_100n_0603		|| Capacitor SMD Cer 100nF 10% 50V X7R 0603		|| CAPC1608N	||
+|| CAPC_100n_0805		|| Capacitor SMD Cer 100nF 10% 50V X7R 0805		|| CAPC1608N	||
+|| CAPC_100n_0805_100V		|| Capacitor SMD Cer 100nF 10% 100V X7R 0805		|| CAPC2012N	||
+|| CAPC_10n_0402_16V_10%	|| Capacitor SMD Cer 10nF 10% 16V X7R 0402		|| CAPC1005N	||
+|| CAPC_10n_0603_50V_10%	|| Capacitor SMD Cer 10nF 10% 50V X7R 0603		|| CAPC1608N	||
+|| CAPC_10n_100V_0603		|| Capacitor SMD Cer 10nF 10% 100V X7R 0603		|| CAPC1608N	||
+|| CAPC_10p_0603_NP0_1%_50V	|| Capacitor SMD Cer 10pF 5% 50V NP0 0603		|| CAPC1608N	||
+|| CAPC_10u_0805_10V		|| Capacitor SMD Cer 10uF 10% 10V X5R 0805		|| CAPC2012N	||
+|| CAPC_10u_0805_16V		|| Capacitor SMD Cer 10uF 10% 16V X7R 0805		|| CAPC1608N	||
+|| CAPC_10u_1206_10V		|| Capacitor SMD Cer 10uF 10% 10V X5R 1206		|| CAPC3216N	||
+|| CAPC_10u_1206_16V		|| Capacitor SMD Cer 10uF 10% 16V X7R 1206		|| CAPC3216N	||
+|| CAPC_10u_1210_50V		|| Capacitor SMD Cer 10uF 20% 16V X5R 1210		|| CAPC3225N	||
+|| CAPC_120p_0603_C0G_50V	|| Capacitor SMD Cer 120pF 10% 50V C0G 0603		|| CAPC1608N	||
+|| CAPC_150p_0603_C0G_50V	|| Capacitor SMD Cer 150pF 10% 50V C0G 0603		|| CAPC1608N	||
+|| CAPC_15n_0603_50V		|| Capacitor SMD Cer 15nF 10% 50V X7R 0603		|| CAPC1608N	||
+|| CAPC_15p_0603_NP0_5%_100V	|| Capacitor SMD Cer 15pF 5% 100V NP0 0603		|| CAPC1608N	||
+|| CAPC_180p_0402_NP0_50V_5%	|| Capacitor SMD Cer 180pF 5% 50V NP0 0402		|| CAPC1005N	||
+|| CAPC_180p_1206_NP0_50V	|| Capacitor SMD Cer 180pF 10% 50V NP0 1206		|| CAPC3216N	||
+|| CAPC_18p_0603_100V		|| Capacitor SMD Cer 18pF 2% 100V NP0 0603		|| CAPC1608N	||
+|| CAPC_1n8_50V_0805		|| Capacitor SMD Cer 1.8nF 10% 50V X7R 0805		|| CAPC2012N	||
+|| CAPC_1n_0402_10%		|| Capacitor SMD Cer 1nF 10% 16V X7R 0402		|| CAPC1005N	||
+|| CAPC_1n_0603_100V		|| Capacitor SMD Cer 1nF 10% 100V X7R 0603		|| CAPC1608N	||
+|| CAPC_1u_0603			|| Capacitor SMD Cer 1uF 10% 16V X7R 0603		|| CAPC1608N	||
+|| CAPC_1u_0805			|| Capacitor SMD Cer 1uF 10% 16V X7R 0805		|| CAPC2012N	||
+|| CAPC_220n_0603		|| Capacitor SMD Cer 220nF 10% 16V X7R 0603		|| CAPC1608N	||
+|| CAPC_220n_0805		|| Capacitor SMD Cer 220nF 10% 25V X7R 0805		|| CAPC2012N	||
+|| CAPC_220p_0603_NP0_50V_1%	|| Capacitor SMD Cer 220pF 1% 50V NP0 0603		|| CAPC1608N	||
+|| CAPC_220p_0603_NP0_50V_5%	|| Capacitor SMD Cer 220pF 5% 50V NP0 0603		|| CAPC1608N	||
+|| CAPC_22u_1206_16V		|| Capacitor SMD Cer 22uF 10% 16V X7R 1206		|| CAPC3216N	||
+|| CAPC_22u_1210_16V		|| Capacitor SMD Cer 22uF 20% 16V X7R 1210		|| CAPC3225N	||
+|| CAPC_22u_1210_6V3_X5R	|| Capacitor SMD Cer 22uF 20% 6.3V X5R 1210		|| CAPC3225N	||
+|| CAPC_22u_1812_25V		|| Capacitor SMD Cer 22uF 20% 25V X5R 1812		|| CAPC4532N	||
+|| CAPC_27p_0805_50V		|| Capacitor SMD Cer 27pF 5% 50V X7R 0805		|| CAPC2012N	||
+|| CAPC_27p_100V_0603		|| Capacitor SMD Cer 27pF 1% 100V NP0 0603		|| CAPC1608N	||
+|| CAPC_2u2_0603_10V_10%	|| Capacitor SMD Cer 2.2uF 10% 10V X5R 0603		|| CAPC1608N	||
+|| CAPC_2u2_0805		|| Capacitor SMD Cer 2.2uF 10% 16V X7R 0805		|| CAPC2012N	||
+|| CAPC_330n_0805		|| Capacitor SMD Cer 330nF 10% 25V X7R 0805		|| CAPC2012N	||
+|| CAPC_33p_0402_NP0_50V_5%	|| Capacitor SMD Cer 33pF 5% 50V NP0 0402		|| CAPC1005N	||
+|| CAPC_39n_0603_25V		|| Capacitor SMD Cer 39nF 10% 25V X7R 0603		|| CAPC1608N	||
+|| CAPC_39p_0603_NP0_100V_1%	|| Capacitor SMD Cer 39pF 1% 100V NP0 0603		|| CAPC1608N	||
+|| CAPC_470n_0603		|| Capacitor SMD Cer 470nF 10% 16V X7R 0603		|| CAPC1608N	||
+|| CAPC_470n_0805		|| Capacitor SMD Cer 470nF 10% 16V X7R 0805		|| CAPC2012N	||
+|| CAPC_470p_0603_5%		|| Capacitor SMD Cer 470pF 5% 50V NP0 0603		|| CAPC1608N	||
+|| CAPC_47n_0603		|| Capacitor SMD Cer 47nF 10% 50V X7R 0603		|| CAPC1608N	||
+|| CAPC_47n_1206_50V_X7R_10%	|| Capacitor SMD Cer 47nF 10% 50V 1206			|| CAPC3216N	||
+|| CAPC_4p7_100V_0603		|| Capacitor SMD Cer 4.7pF ?0.25pF 100V NP0 0603	|| CAPC1608N	||
+|| CAPC_4u7_0805		|| Capacitor SMD Cer 4.7uF 10% 16V X5R 0805		|| CAPC2012N	||
+|| CAPC_4u7_100V_2220		|| Capacitor SMD Cer 4.7uF 10% 100V X7R 2220		|| CAPC5750N	||
+|| CAPC_560p_0603_5%		|| Capacitor SMD Cer 560pF 5% 50V NP0 0603		|| CAPC1608N	||
+|| CAPC_6n8_1206_NP0_50V	|| Capacitor SMD Cer 6.8nF 5% 50V NP0 1206		|| CAPC3216N	||
+|| CAPC_82p_0603_NP0_50V_1%	|| Capacitor SMD Cer 82pF 1% 50V NP0 0603		|| CAPC1608N	||
+|| CAPC_8p_0402_NP0_50V		|| Capacitor SMD Cer 8pF ?0.5pF 50V NP0 0402		|| CAPC1005N	||
+|| CAPE_100u_16V_THD		|| Capacitor THD Electrolytic 100uF 20% 16V Radial	|| CAPAE200P550X1200_FLAT2	||
+|| CAPE_10u_100V_SMD		|| Capacitor SMD Electrolytic 10uF 20% 100V Radial	|| CAP_ELEC_Size E	||
+|| CAPE_1m_10V_SMD		|| Capacitor SMD Alum Elec 1mF 20% 10V			|| CAP_ELEC_Size G	||
+|| CAPE_220u_10V_SMD		|| Capacitor SMD Alum Elec 220uF 20% 10V		|| CAP_ELEC_Size E	||
+|| CAPE_220u_16V_THD		|| Capacitor THT Alum Elec 220uF 20% 16V		|| CAPE3.5mm	||
 || CAPE_220u_16V_THD_2.5mmLS	|| Capacitor THT Alum Elec 220uF 20% 16V 2.5mmLS	|| CAPE2.5mm_max6.8x12.5mm	||
-|| CAPE_33u_200V_THT	|| Capacitor THT Alum Elec 33uF 20% 200V	|| CAPE5.0mm	||
-|| CAPE_470u_16V_THT	|| Capacitor THT Alum Elec 470uF 20% 16V	|| CAPE10.0MM_Rad_10x14mm	||
-|| CAPE_47u_100V_SMD	|| Capacitor SMD Electrolytic 47uF 20% 100V Radial	|| CAP_ELEC_Size H13	||
-|| CAPE_5m6_THT_80V	|| Capacitor THT Electrolytic 5600uF 20% 80V	|| CAPE10.0MM_Rad_30x45mm	||
-|| CAPF_120n_2416_PPS_50V	|| Capacitor SMD PPS Film 120nF 2% 50V 2416	|| CAPC6041X210N	||
-|| CAPF_15n_1210_PPS_50V	|| Capacitor SMD PPS Film 15nF 2% 50V 1210	|| CAPC3225N	||
+|| CAPE_33u_200V_THT		|| Capacitor THT Alum Elec 33uF 20% 200V		|| CAPE5.0mm	||
+|| CAPE_470u_16V_THT		|| Capacitor THT Alum Elec 470uF 20% 16V		|| CAPE10.0MM_Rad_10x14mm	||
+|| CAPE_47u_100V_SMD		|| Capacitor SMD Electrolytic 47uF 20% 100V Radial	|| CAP_ELEC_Size H13	||
+|| CAPE_5m6_THT_80V		|| Capacitor THT Electrolytic 5600uF 20% 80V		|| CAPE10.0MM_Rad_30x45mm	||
+|| CAPF_120n_2416_PPS_50V	|| Capacitor SMD PPS Film 120nF 2% 50V 2416		|| CAPC6041X210N	||
+|| CAPF_15n_1210_PPS_50V	|| Capacitor SMD PPS Film 15nF 2% 50V 1210		|| CAPC3225N	||
 || CAPMF_100n_250V_MPET_TH	|| Capacitor THD Metallized PET Film 100nF 10% 250V	|| CAPM75P1000500X1050_FLAT_Dual250V100nF	||
-|| CAPMF_220n_100V_MPR	|| Capacitor THD MPR Film 220nF 5% 100V	|| CAPMF5_3.5-5.0-7.5mm	||
-|| CAPMF_220n_63V	|| Capacitor, THT, metallized polyester	|| CAPMF7.5mm	||
-|| CAPMF_22n_250V_MK	|| Capacitor THD MK Film 22nF 10% 250V	|| CAPMF12.5x4.5x9.0x10mmLS	||
-|| CAPMF_3n3_400V_MPET	|| Capacitor THD Metallized PET Film 3.3nF 10% 400V	|| CAPMF5.0-7.5mm_SL	||
-|| CAPMF_3n9_400V_MPET	|| Capacitor THD Metallized PET Film 3.9nF 10% 400V	|| CAPMF5.0-7.5mm_SL	||
-|| CAPMF_470n_100V_MK	|| Capacitor THD MK Film 470nF 10% 100V	|| CAPR7.62-6.8x2.5	||
+|| CAPMF_220n_100V_MPR		|| Capacitor THD MPR Film 220nF 5% 100V			|| CAPMF5_3.5-5.0-7.5mm	||
+|| CAPMF_220n_63V		|| Capacitor, THT, metallized polyester			|| CAPMF7.5mm	||
+|| CAPMF_22n_250V_MK		|| Capacitor THD MK Film 22nF 10% 250V			|| CAPMF12.5x4.5x9.0x10mmLS	||
+|| CAPMF_3n3_400V_MPET		|| Capacitor THD Metallized PET Film 3.3nF 10% 400V	|| CAPMF5.0-7.5mm_SL	||
+|| CAPMF_3n9_400V_MPET		|| Capacitor THD Metallized PET Film 3.9nF 10% 400V	|| CAPMF5.0-7.5mm_SL	||
+|| CAPMF_470n_100V_MK		|| Capacitor THD MK Film 470nF 10% 100V			|| CAPR7.62-6.8x2.5	||
 || CAPMF_47n_250V_MPET_TH	|| Capacitor THD Metallized PET Film 47nF 5% 250V	|| CAPM75P1000500X1050_FLAT_Dual250V100nF	||
-|| CAPMF_82n_250V_MK	|| Capacitor THD MK Film 82nF 10% 250V	|| CAPMF12.5x4.5x9.0x10mmLS	||
+|| CAPMF_82n_250V_MK		|| Capacitor THD MK Film 82nF 10% 250V			|| CAPMF12.5x4.5x9.0x10mmLS	||
 || CAPMKP_6n8_1kV_P10.0mm	|| Capacitor THT metallized polypropylene 6.8nF 5% 1kV 10.0mm pitch	|| CAPMF13.0x5.0x11.0x10.0mm LxWxHxP	||
 || CAPMKP_6n8_400V_P7.5mm	|| Capacitor THT metallized polypropylene 6.8nF 5% 400V 7.5mm pitch	|| CAPMF13.0x5.0x11.0x10.0mm LxWxHxP	||
-|| CAPR_220n_Radial_5mm	|| Capacitor Ceramic 220nF 10% 50V X7R radial 5mm lead spacing	|| CAPC2012N	||
-|| CAPT_100u_1210_6V3	|| Capacitor SMD Tantalum 100uF 20% 6.3V 1210	|| CAPMP3528X210N	||
-|| CAPT_10u_0805_10V	|| Capacitor SMD Tantalum 10uF 20% 10V 0805	|| CAPMP2012X150USR	||
-|| CAPT_10u_6032_16V	|| Capacitor SMD Tantalum 10uF 20% 16V EIA 6032-28	|| CAPMP6032X280N	||
-|| CAPT_1u_0805_10V	|| Capacitor SMD Tantalum 1uF 20% 10V 0805	|| CAPMP2012X150USR	||
-|| CAPT_1u_6032_50V	|| Capacitor SMD Tantalum 1uF 10% 50V EIA 6032-28	|| CAPMP6032X280N	||
-|| CAPT_22u_3216_6V3	|| Capacitor SMD Tantalum 22uF 10% 6.3V 3216-18	|| CAPMP3216X180N	||
-|| CAPT_330u_2917_6V3	|| Capacitor SMD Tant 330uF 20% 6V3 2917	|| CAPMP7343X310N	||
-|| CAPT_33u_3216_6V3	|| Capacitor SMD Tantalum 33uF 10% 6.3V 3216-18	|| CAPMP3216X180N	||
-|| CAPT_47u_1210_6V3	|| Capacitor SMD Tantalum 47uF 20% 6.3V 1210	|| CAPMP3528X210N	||
-|| CAPT_47u_6032_16V	|| Capacitor SMD Tantalum 47uF 10% 16V 6032-28	|| CAPMP6032X280N	||
-|| CAPT_4u7_3216_16V	|| Capacitor SMD Tantalum 4.7uF 10% 16V 3216-18	|| CAPMP3216X180N	||
-|| CAPT_68u_3216_6V3	|| Capacitor SMD Tantalum 68uF 10% 6.3V EIA 3216-18	|| CAPMP3216X180N	||
+|| CAPR_220n_Radial_5mm		|| Capacitor Ceramic 220nF 10% 50V X7R radial 5mm lead spacing	|| CAPC2012N	||
+|| CAPT_100u_1210_6V3		|| Capacitor SMD Tantalum 100uF 20% 6.3V 1210		|| CAPMP3528X210N	||
+|| CAPT_10u_0805_10V		|| Capacitor SMD Tantalum 10uF 20% 10V 0805		|| CAPMP2012X150USR	||
+|| CAPT_10u_6032_16V		|| Capacitor SMD Tantalum 10uF 20% 16V EIA 6032-28	|| CAPMP6032X280N	||
+|| CAPT_1u_0805_10V		|| Capacitor SMD Tantalum 1uF 20% 10V 0805		|| CAPMP2012X150USR	||
+|| CAPT_1u_6032_50V		|| Capacitor SMD Tantalum 1uF 10% 50V EIA 6032-28	|| CAPMP6032X280N	||
+|| CAPT_22u_3216_6V3		|| Capacitor SMD Tantalum 22uF 10% 6.3V 3216-18		|| CAPMP3216X180N	||
+|| CAPT_330u_2917_6V3		|| Capacitor SMD Tant 330uF 20% 6V3 2917		|| CAPMP7343X310N	||
+|| CAPT_33u_3216_6V3		|| Capacitor SMD Tantalum 33uF 10% 6.3V 3216-18		|| CAPMP3216X180N	||
+|| CAPT_47u_1210_6V3		|| Capacitor SMD Tantalum 47uF 20% 6.3V 1210		|| CAPMP3528X210N	||
+|| CAPT_47u_6032_16V		|| Capacitor SMD Tantalum 47uF 10% 16V 6032-28		|| CAPMP6032X280N	||
+|| CAPT_4u7_3216_16V		|| Capacitor SMD Tantalum 4.7uF 10% 16V 3216-18		|| CAPMP3216X180N	||
+|| CAPT_68u_3216_6V3		|| Capacitor SMD Tantalum 68uF 10% 6.3V EIA 3216-18	|| CAPMP3216X180N	||
 
-== PBL - Connectors ==
+== Connectors ==
 || LIBRARYREFERENCE	|| DESCRIPTION	|| FOOTPRINT1	||
 || 10P_ScrewTerm	|| TERM BLOCK 10POS SIDE ENT 3.81MM	|| 10P_PCB_ScrewTerm	||
 || 12P_TERM PLUG_KEYENCE	|| Terminal Block Plug, 12-position, Keyence Laser Controller	|| 	||
@@ -172,7 +172,7 @@
 || USB_Mini-B	|| Connector SMD USB Type Mini-B	|| USB_Mini-B_Molex_SMT	||
 || USB_TypeB	|| Connector THT Type B USB connector	|| USB_TypeB_Tyco	||
 
-== PBL - Diodes ==
+== Diodes ==
 || LIBRARYREFERENCE	|| DESCRIPTION	|| FOOTPRINT1	|| 
 || DIODE_100V_1.5A_SMA	|| Diode SMD 100V 1.5A SMA	|| DO-214AC, SMA	|| 
 || DIODE_100V_500mW_MELF	|| Diode SMD 100V 150mA 500mW SOD80	|| SOD80, LL-34	|| 
@@ -190,7 +190,7 @@
 || DIODE_ZENER_3V3_SOD323	|| Diode Zener SMD 3.3V 200mW SOD-323	|| SOD323	|| 
 || DIODE_ZENER_4.7V_500mW	|| Diode Zener SMD 4.7V 0.5W SOD-123	|| SOD123	|| 
 
-== PBL - Electromechanical ==
+== Electromechanical ==
 || LIBRARYREFERENCE	|| DESCRIPTION	|| FOOTPRINT1	|| 
 || BZ_12x8.5x6.5_2kHz	|| Speaker, Magnetic Transducer	|| BUZZER_12.0X8.5MM	|| 
 || BZ_12x9.0x6.5mm_sealed	|| Buzzer THD sealed 12.0 x 9.0mm DxH 6.5mm pitch	|| BUZZER_12.0X8.5MM	|| 
@@ -203,7 +203,7 @@
 || SENS_OPTO_LIQUID_OPB350W250Z	|| Sensor, Photointerrupter, Liquid, 0.250" 	|| 	|| 
 || SOLENOID_PUSH_12VDC_1in_80oz	|| Solenoid, Linear, Continuous, 12VDC, Push, 1" @ 5 lbs.	|| 	|| 
 
-== PBL - Fuses and Protection ==
+== Fuses and Protection ==
 || LIBRARYREFERENCE	|| DESCRIPTION	|| FOOTPRINT1	|| 
 || BREAKER_4A5_ETA_1410-L2	|| Circuit breaker 4.5A PCB mount	|| BREAKER_1410-L2	|| 
 || ESD_SUPPRESSOR_24VDC	|| ESD Suppressor 24VDC 0603 SMD	|| 0603ESDA	|| 
@@ -217,20 +217,20 @@
 || TCO_Radial_130degC	|| Thermal cutoff radial 1 Amp 130 degrees C	|| 	|| 
 || Varistor_MOV	|| Varistor 420V min	|| Varistor_7.62and10mm	|| 
 
-== PBL - Inductors ==
+== Inductors ==
 || LIBRARYREFERENCE	|| DESCRIPTION	|| FOOTPRINT1	|| 
 || FERRITE_120R-100MHz_0603	|| Ferrite bead 120 Ohm at 100 MHz 2A 0603 SMD	|| INDC1608N	|| 
 || FERRITE_2K2-100MHz_0805	|| Ferrite bead 2.2K Ohm at 100 MHz 200mA 0805 SMD	|| FBC2012N	|| 
 || FERRITE_600R-100MHz_0805	|| Ferrite bead 600 Ohm at 100 MHz 200mA 0805 SMD	|| FBC2012N	|| 
-|| INDC_10u_DR73-100-R	|| Inductor Power 10ﾵH 2.1A 7.6x7.6mm SMD	|| IND_WW_DR73	|| 
-|| INDC_10u_LowRDC	|| Inductor SMD Low DCR 10 ﾵH 900mA 20% 1210	|| INDC3225X250N	|| 
+|| INDC_10u_DR73-100-R	|| Inductor Power 10?H 2.1A 7.6x7.6mm SMD	|| IND_WW_DR73	|| 
+|| INDC_10u_LowRDC	|| Inductor SMD Low DCR 10 ?H 900mA 20% 1210	|| INDC3225X250N	|| 
 || INDC_120u_LPS4018	|| Inductor shielded 120uH 300mA LPS4018 SMD	|| IND_COILCRAFT_LPS4018	|| 
 || INDC_150n_1008	|| Inductor SMD chip 150nH 1008	|| INDM2520X190N	|| 
-|| INDC_180u_Toroid	|| Power Inductor 180ﾵH 10% SMD Toroid	|| IND_SMD_TOROID_1.2x1.0in	|| 
-|| INDC_22u_DO3316P-223	|| Inductor Power SMD 22ﾵH	|| IND_Coilcraft_DO3316P_SM	|| 
+|| INDC_180u_Toroid	|| Power Inductor 180?H 10% SMD Toroid	|| IND_SMD_TOROID_1.2x1.0in	|| 
+|| INDC_22u_DO3316P-223	|| Inductor Power SMD 22?H	|| IND_Coilcraft_DO3316P_SM	|| 
 || INDC_47n_1008_1A	|| Inductor SMD chip 47nH 1008	|| INDM2520X190N	|| 
 
-== PBL - Integrated Circuits ==
+== Integrated Circuits ==
 || LIBRARYREFERENCE	|| DESCRIPTION	|| FOOTPRINT1	|| 
 || DAC_MCP4921	|| IC DAC 12-bit SPI 8-SOIC	|| SOIC127P600X175-8AN	|| 
 || EEPROM_24AA00	|| EEPROM 128BIT 400KHZ SOT23-5	|| SOT23-5	|| 
@@ -255,10 +255,10 @@
 || MAX4561	|| IC SMD Analog Switch SOT23-6	|| SOT23-6	|| 
 || RFID_CR95HF	|| IC RFID Reader 13.56MHz CR95HF	|| QFN50P500X500X100-33N	|| 
 || ZXSC310	|| LED Driver IC SMD SOT23-5	|| SOT23-5	|| 
-|| ﾵPD78F0500MC	|| IC SMD NEC 8-Bit Single-Chip Microcontroller	|| SOP65P810X120-30N	|| 
-|| ﾵPD78F0501AMC	|| IC SMD Renesas 8-Bit Single-Chip Microcontroller 16KB flash	|| SOP65P810X120-30N	|| 
+|| ?PD78F0500MC	|| IC SMD NEC 8-Bit Single-Chip Microcontroller	|| SOP65P810X120-30N	|| 
+|| ?PD78F0501AMC	|| IC SMD Renesas 8-Bit Single-Chip Microcontroller 16KB flash	|| SOP65P810X120-30N	|| 
 
-== PBL - Light Sources ==
+== Light Sources ==
 || LIBRARYREFERENCE	|| DESCRIPTION	|| FOOTPRINT1	|| 
 || LEDPACK_GREEN_3HIGH_3MM	|| LED array PCB mount 3-high 3mm green	|| LED_3-HIGH_3MM	|| 
 || LED_Blue_GullWing	|| LED, Gull-wing SMD, High-intensity blue	|| LED_GULL1	|| 
@@ -279,7 +279,7 @@
 || LED_SMD_White_0603_109mcd	|| LED 0603 SMD White 8700K 108.5mcd 5mA	|| LED-0603-WHITE	|| 
 || LED_SMD_Yellow_0603_150mcd	|| LED 0603 SMD Yellow 590nm 150mcd 20mA	|| LED-0603-YELLOW	|| 
 
-== PBL - Mechanical ==
+== Mechanical ==
 || LIBRARYREFERENCE	|| DESCRIPTION	|| FOOTPRINT1	|| 
 || BANANAJACK_PANEL_BLACK	|| Banana jack panel mount black	|| 	|| 
 || BANANAJACK_PANEL_RED	|| Banana jack panel mount red	|| 	|| 
@@ -301,14 +301,14 @@
 || mech_knob_0.125x0.250in	|| Knob plastic 0.125in diameter black	|| 	|| 
 || mech_labelsticker-rotary	|| Label sticker for rotary switch	|| 	|| 
 
-== PBL - Optical Components ==
+== Optical Components ==
 || LIBRARYREFERENCE	|| DESCRIPTION	|| FOOTPRINT1	|| 
 || ENCODER_OPT_0.25in shaft_with cable	|| Encoder optical rotary panel mount no pushbutton	|| 	|| 
 || LCD_20x4	|| LCD character display module 20x4	|| 	|| 
-|| PHOTODIODE_BPW34	|| Photodiode 30V 50ﾵA TO-5	|| HDR_Photodiode_TO-5	|| 
+|| PHOTODIODE_BPW34	|| Photodiode 30V 50?A TO-5	|| HDR_Photodiode_TO-5	|| 
 || PHOTOTRANS_SD5443-3	|| Transistor Photo 30V 8mA 150mW TO-46	|| HDR_Phototrans_TO-46	|| 
 
-== PBL - Pads and Jumpers ==
+== Pads and Jumpers ==
 || LIBRARYREFERENCE	|| DESCRIPTION	|| FOOTPRINT1	|| 
 || JUMP1	|| SMD jumper	|| JUMP1	|| 
 || JUMP2	|| SMD jumper	|| JUMP2	|| 
@@ -323,7 +323,7 @@
 || Term1	|| 	|| THP_D38_T75_B125	|| 
 || Term_small	|| 	|| THP_D38_T75_B75	|| 
 
-== PBL - Power Supplies ==
+== Power Supplies ==
 || LIBRARYREFERENCE	|| DESCRIPTION	|| FOOTPRINT1	|| 
 || PSU_24VDC_2.1x5.5mm plug	|| Power Supply 24VDC 2.5A 2.1mm ID x 5.5mm OD plug	|| 	|| 
 || PSU_48VDC_4-PIN_DIN	|| Power Supply 48VDC 100W 4-pin DIN plug	|| 	|| 
@@ -331,7 +331,7 @@
 || TRANS_WALL_MNT_12VDC_1.25A	|| Transformer, Wall-Mount, 12VDC	|| 	|| 
 || TRANS_WALL_MNT_5VDC_2.6A	|| Transformer, Wall-Mount, 5VDC	|| 	|| 
 
-== PBL - Regulators ==
+== Regulators ==
 || LIBRARYREFERENCE	|| DESCRIPTION	|| FOOTPRINT1	|| 
 || ADJREG_2A_XRP2997	|| IC Adjustable Regulator 2A 8-SOIC-EP SMD	|| SOIC127P600X175-9N	|| 
 || LM317D2TG	|| Voltage Regulator IC, D2PAK SMD, LM317D2TG	|| D2PAK-3	|| 
@@ -345,7 +345,7 @@
 || VREG_5V_Buck_LMZ23610	|| Voltage Regulator 10A 5V TO-PMOD-11	|| NATIONALSEMI-TZA11A	|| 
 || VREG_ADJ_Buck_ADP2300	|| Regulator adjustable switching step-down DC/DC converter	|| SOT23-6	|| 
 
-== PBL - Resistors ==
+== Resistors ==
 || LIBRARYREFERENCE	|| DESCRIPTION	|| FOOTPRINT1	|| 
 || RESPACK_100R_5%_4X	|| Resistor array 100 Ohm 4-pack 62.5mW 5% 1206 SMD	|| RESCAXS50P160X320X70-8N	|| 
 || RESPACK_10K_5%_4X	|| Resistor array 10K Ohm 4-pack 62.5mW 5% 1608 SMD	|| RESCAXS50P160X320X70-8N	|| 
@@ -475,14 +475,14 @@
 || RES_TRIMMER_20K_25T_THT	|| Trimmer THD 20K 500mW 25-turn	|| TrimPot_THT_PV36X	|| 
 || RES_TRIMMER_2K_25T_THT	|| Trimmer THD 2K 500mW 25-turn	|| TrimPot_THT_PV36X	|| 
 
-== PBL - Resonators ==
+== Resonators ==
 || LIBRARYREFERENCE	|| DESCRIPTION	|| FOOTPRINT1	|| 
 || CRYSTAL_27M12	|| Oscillator Crystal 27.12 MHz 10ppm	|| CRYSTAL_4-LCC	|| 
 || Crystal_6MHz_CMR309T	|| Resonator Ceramic 6.00 MHz 30ppm	|| CRYSTAL_CMR309T	|| 
 || Crystal_6MHz_HC49/US	|| Resonator Ceramic 6.00 MHz 30ppm	|| CRYSTAL_HC49-US-SM	|| 
 || Resonator_Ceramic	|| Resonator Ceramic 4.91 MHz 0.5%	|| RESON_CER_SMD	|| 
 
-== PBL - Switches ==
+== Switches ==
 || LIBRARYREFERENCE	|| DESCRIPTION	|| FOOTPRINT1	|| 
 || MRF403-RO	|| SW ROTARY 4P 2-3POS PC	|| SW_MRF403	|| 
 || SW_EVQ-PQHB55	|| SWITCH TACTILE SPST-NO 0.02A 15V	|| SWITCH_TACT-EVQPQxB55	|| 
@@ -499,14 +499,14 @@
 || SW_THT_PB_7.0mm	|| Switch, tact, 7.0mm stem	|| TACT-SWITCH-TS1170	|| 
 || SW_THT_PB_8.0mm	|| Switch Tact THD 8.0mm Stem	|| TACT-SWITCH-TS1180	|| 
 
-== PBL - Test Points ==
+== Test Points ==
 || LIBRARYREFERENCE	|| DESCRIPTION	|| FOOTPRINT1	|| 
 || TESTPOINT	|| SMD test pin	|| TP-R60	|| 
 || TESTPOINT_LEAD	|| TEST POINT	|| THP_D46_T80_B80	|| 
 || TESTPOINT_THT	|| Test Point PCB mount Multi-purpose Yellow	|| TP-THT-MULTI	|| 
 || TESTPOINT_THT_MINI	|| Test Point PCB mount Miniature White	|| TP-THT-MINI	|| 
 
-== PBL - Transistors ==
+== Transistors ==
 || LIBRARYREFERENCE	|| DESCRIPTION	|| FOOTPRINT1	|| 
 || MOSFET_AO4420	|| MOSFET N-CH 30V 13.7A SOIC-8 SMD	|| SOIC127P600X175-8AN	|| 
 || MOSFET_AO4806	|| MOSFET Dual-Channel 20V 9.4A SOIC-8 SMD	|| SOIC127P600X175-8AN	|| 
@@ -529,7 +529,7 @@
 || PNP_NSS60600MZ4T1G	|| Transistor SMD PNP 60V 6A 800mW SOT-223	|| SOT223	|| 
 
 = Footprints =
-== PBL - SMD Packages ==
+== SMD Packages ==
 || 0603ESDA ||
 || CAP_ELEC_5x5.7 ||
 || CAP_ELEC_6.3x4.2 ||
@@ -656,7 +656,7 @@
 || WPAK(3F) ||
 || ZIF_CONN_4P_TE84953-4 ||
 
-== PBL - THD Packages ==
+== THD Packages ==
 || 1x1POS_HEAD-SOCK_LOWPROF ||
 || 1x1POS_HEADER_LOWPROF ||
 || 1x1POS_SOCKET_LOWPROF ||
