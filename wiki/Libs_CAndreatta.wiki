@@ -13,6 +13,7 @@
  * Please read and respect TERMS OF USE at the bottom!
 
 Nice opportunity to start with DbLib or with Vault
+
 Tutorial to [http://wiki.altium.com/display/ADOH/Linking+Existing+Components+to+Your+Company+Database DbLib]
 Tutorial to [http://wiki.altium.com/display/ADOH/Vault-Based+Components Vault Component libraries]
 
@@ -415,4 +416,5 @@ Every component in our library has its own SchLib and PcbLib file. This might be
 Any comments, improvements or bugs are welcome to the above mentioned email adress.
 
 happy layouting,
+
 Cyril
