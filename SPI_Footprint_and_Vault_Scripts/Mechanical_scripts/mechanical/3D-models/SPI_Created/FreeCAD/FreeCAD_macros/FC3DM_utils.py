@@ -148,7 +148,83 @@ def FC3DM_FuseObjects(App, Gui,
 
 
 ###################################################################
-# Function to cut an object with a box that we create for this purpose.
+# Function to fuse a set of objects together
+#
+###################################################################
+def FC3DM_FuseSetOfObjects(App, Gui,
+                           docName, objNameList, fusionName):
+
+    print("Hello world from FuseSetOfObjects!")
+
+    # Configure active document
+    App.ActiveDocument=None
+    Gui.ActiveDocument=None
+    App.setActiveDocument(docName)
+    App.ActiveDocument=App.getDocument(docName)
+    Gui.ActiveDocument=Gui.getDocument(docName)
+
+    # Create list of objects, starting with object names
+    __objs__=[]
+    for i in objNameList:
+        
+        __objs__.append(App.activeDocument().getObject(i))
+
+    # Prepare to do the multi-fusion
+    Gui.activateWorkbench("PartWorkbench")
+    App.activeDocument().addObject("Part::MultiFuse","temp")
+    App.activeDocument().getObject("temp").Shapes = __objs__
+    App.ActiveDocument.recompute()
+
+    # Output all data related to body object
+    print App.ActiveDocument.getObject("Body").ViewObject.toString()
+    print App.ActiveDocument.getObject("Body").ViewObject.ShapeColor
+
+    # Copy the temp fusion object and call it the desired fusion name
+    newTermShape = FreeCAD.getDocument(docName).getObject("temp").Shape.copy()
+    newTermObj = App.activeDocument().addObject("Part::Feature",fusionName)
+    newTermObj.Shape = newTermShape
+
+
+    # Find faces in final object
+    vobj = newTermObj.ViewObject
+    print vobj.toString()
+
+    print("Shapetype of object is:")
+    print newTermObj.Shape.ShapeType
+
+    print newTermObj.ViewObject.PropertiesList
+    print newTermObj.ViewObject.getAllDerivedFrom()
+
+    for xp in newTermObj.Shape.Faces:
+        print("Found face in object!")
+#        print xp.PropertiesList
+#        print xp.ShapeType
+
+        # Set it blue
+#        xp.ViewObject.ShapeColor = (0.00,0.00,1.00)
+
+    # TODO:  Preserve face colors for the body and pin1Mark!
+    # Currently I can't figure out how to modify shape face colors through python,
+    # although I can do it interactively with the FC GUI.
+    
+    
+    # Delete the original objects that comprised the fusion
+    for i in objNameList:
+
+        App.activeDocument().removeObject(i)
+
+    # Remove the temp fusion
+    App.getDocument(docName).removeObject("temp")
+    App.ActiveDocument.recompute()
+
+    # Deallocate list
+    del __objs__
+
+    return 0
+
+
+###################################################################
+# Function to cut an object with a filleted box that we create for this purpose.
 #
 ###################################################################
 def FC3DM_CutWithFilletedBox(App, Gui,
@@ -677,7 +753,13 @@ def FC3DM_CreateIcPin(App, Gui,
 
     # Zoom in on pin model
     Gui.SendMsgToActiveView("ViewFit")
-   
+
+    # Color pin red.  FIXME--remove this!
+    Gui.getDocument(docName).getObject(pinName).ShapeColor = (1.00,0.00,0.00)
+
+    # Color pin bright tin
+#    Gui.getDocument(docName).getObject(pinsName).ShapeColor = (0.80,0.80,0.75)
+
     return 0
 
 
@@ -705,6 +787,14 @@ def FC3DM_CopyObject(App, Gui,
     FC3DM_TranslateObjectAndRotateAboutZ(App, Gui,
                                          docName, newObjName,
                                          x, y, rotDeg)
+
+    # Copy the original object's color to the new object
+    Color = Gui.getDocument(docName).getObject(objName).ShapeColor
+    Gui.getDocument(docName).getObject(newObjName).ShapeColor = Color
+    
+#    Color = App.ActiveDocument.getObject(objName).ShapeColor
+#    App.ActiveDocument.getObject(newObjName).ShapeColor = Color
+    
 
     return 0
 
