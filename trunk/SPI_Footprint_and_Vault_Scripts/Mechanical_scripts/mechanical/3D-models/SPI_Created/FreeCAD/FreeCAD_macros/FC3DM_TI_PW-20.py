@@ -79,11 +79,23 @@ import string
 import sys
 
 # Add our path to the python system path
-sys.path.append("r:\\trunk\\mechanical\\3D-models\\SPI_Created\\FreeCAD\\FreeCAD_macros")
+#sys.path.append("r:\\trunk\\mechanical\\3D-models\\SPI_Created\\FreeCAD\\FreeCAD_macros")
+sys.path.append("c:\\projects\\altium-designer-addons\\trunk\\SPI_Footprint_and_Vault_Scripts\\Mechanical_scripts\\mechanical\\3D-models\\SPI_Created\\FreeCAD\\FreeCAD_macros")
+
+sys.path.append("c:\\projects\\altium-designer-addons\\trunk\\SPI_Footprint_and_Vault_Scripts\\Mechanical_scripts\\mechanical\\3D-models\\SPI_Created\\FreeCAD\\reimport-read-only")
+
+#import reimport
 
 # Import our utilities module
+import FC3DM_utils
+
+# Reload utilities module, since this changes often!
+reload(FC3DM_utils)
+
+# Explicitly load all functions within it
 from FC3DM_utils import *
 
+#FreeCAD.Console.PrintMessage("Hello World!\n")
 
 
 ###################################
@@ -91,8 +103,9 @@ from FC3DM_utils import *
 ###################################
 
 # Invariant information
-newModelPath = "R:/trunk/mechanical/3D-models/SPI_Created/FreeCAD/IC_Gullwing/"
-stepSuffix = "_SPI1"
+#newModelPath = "R:/trunk/mechanical/3D-models/SPI_Created/FreeCAD/IC_Gullwing/"
+newModelPath = "C:/projects/altium-designer-addons/trunk/SPI_Footprint_and_Vault_Scripts/Mechanical_scripts/mechanical/3D-models/SPI_Created/FreeCAD/IC_Gullwing/"
+stepSuffix = "_TRT1"
 suffix = "_SvnRev_"
 
 
@@ -106,8 +119,6 @@ newStepPathNameExt = newModelPath + newModelName + stepSuffix + ".step"
 bodyName = "Body"
 moldName = "Mold"
 pinName = "Pin"
-pin2Name = "Pin2"
-pinsName = "Pins"
 pin1MarkName = "Pin1Mark"
 
 # Strip out all "-" characters for use as the FreeCAD document name
@@ -334,81 +345,50 @@ FC3DM_CopyObject(App, Gui,
                  x, y, rotDeg,
                  docName,
                  pinName,
-                 pinsName) #"Pin10")
+                 "Pin10")
 
 
-## Fuse all the pins together
-FC3DM_FuseObjects(App, Gui,
-                  docName, pinsName, "Pin1")
-
-FC3DM_FuseObjects(App, Gui,
-                  docName, pinsName, "Pin2")
-
-FC3DM_FuseObjects(App, Gui,
-                  docName, pinsName, "Pin3")
-
-FC3DM_FuseObjects(App, Gui,
-                  docName, pinsName, "Pin4")
-
-FC3DM_FuseObjects(App, Gui,
-                  docName, pinsName, "Pin5")
-
-FC3DM_FuseObjects(App, Gui,
-                  docName, pinsName, "Pin6")
-
-FC3DM_FuseObjects(App, Gui,
-                  docName, pinsName, "Pin7")
-
-FC3DM_FuseObjects(App, Gui,
-                  docName, pinsName, "Pin8")
-
-FC3DM_FuseObjects(App, Gui,
-                  docName, pinsName, "Pin9")
-
-FC3DM_FuseObjects(App, Gui,
-                  docName, pinsName, "Pin11")
-
-FC3DM_FuseObjects(App, Gui,
-                  docName, pinsName, "Pin12")
-
-FC3DM_FuseObjects(App, Gui,
-                  docName, pinsName, "Pin13")
-
-FC3DM_FuseObjects(App, Gui,
-                  docName, pinsName, "Pin14")
-
-FC3DM_FuseObjects(App, Gui,
-                  docName, pinsName, "Pin15")
-
-FC3DM_FuseObjects(App, Gui,
-                  docName, pinsName, "Pin16")
-
-FC3DM_FuseObjects(App, Gui,
-                  docName, pinsName, "Pin17")
-
-FC3DM_FuseObjects(App, Gui,
-                  docName, pinsName, "Pin18")
-
-FC3DM_FuseObjects(App, Gui,
-                  docName, pinsName, "Pin19")
-
-FC3DM_FuseObjects(App, Gui,
-                  docName, pinsName, "Pin20")
-
-
-# Remove the objects that made up the fillet
+# Remove the pin template object
 App.getDocument(docName).removeObject(pinName)
+
+# Color body black FIXME!
+FreeCADGui.getDocument(docName).getObject(bodyName).ShapeColor = (0.10,0.10,0.10)
+#FreeCADGui.getDocument(docName).getObject(bodyName).ShapeColor = (0.0,1.0,0.0)
+App.ActiveDocument.recompute()
+
+# Color pins
+FreeCADGui.getDocument(docName).getObject("Pin1").ShapeColor = (0.0,0.0,1.0)
+App.ActiveDocument.recompute()
+
+
+# Fuse all objects together
+objNameList = [bodyName, pin1MarkName, "Pin1", "Pin2", "Pin3", "Pin4", "Pin5", "Pin6", "Pin7", "Pin8", "Pin9", "Pin10", "Pin11", "Pin12", "Pin13", "Pin14", "Pin15", "Pin16", "Pin17", "Pin18", "Pin19", "Pin20"]
+fusionName = docName
+FC3DM_FuseSetOfObjects(App, Gui,
+                       docName, objNameList, fusionName)
+
+# Color fusion red.  FIXME:  Change to bright tin!
+#Gui.getDocument(docName).getObject(fusionName).ShapeColor = (0.0,1.0,0.0)
+
+# Color fusion bright tin
+Gui.getDocument(docName).getObject(fusionName).ShapeColor = (0.80,0.80,0.75)
+App.ActiveDocument.recompute()
+
+# TODO:  I've been unable to find a way in python to go in and change the color of individual
+# faces with the fused shape.  The plan is to fuse everything together, so that it will be
+# a STEP part, rather than a STEP assembly.  But I need to change the color of the faces
+# that were part of the body back to black, and the color of the pin 1 mark back to white.
 
 
 ## Wrap up
 # Color body black
-FreeCADGui.getDocument(docName).getObject(bodyName).ShapeColor = (0.10,0.10,0.10)
+#FreeCADGui.getDocument(docName).getObject(bodyName).ShapeColor = (0.10,0.10,0.10)
 
 # Color pins bright tin
-FreeCADGui.getDocument(docName).getObject(pinsName).ShapeColor = (0.80,0.80,0.75)
+#FreeCADGui.getDocument(docName).getObject(pinsName).ShapeColor = (0.80,0.80,0.75)
 
 # Color Pin1Mark white
-FreeCADGui.getDocument(docName).getObject(pin1MarkName).ShapeColor = (1.00,1.00,1.00)
+#FreeCADGui.getDocument(docName).getObject(pin1MarkName).ShapeColor = (1.00,1.00,1.00)
 
 
 # Zoom in
@@ -416,9 +396,10 @@ App.ActiveDocument.recompute()
 Gui.SendMsgToActiveView("ViewFit")
 
 ## Save file to native format and export to STEP
-objNameList = [bodyName, pinsName, pin1MarkName]
+objNameList = [fusionName]
 FC3DM_SaveAndExport(App, Gui,
                     docName,
                     newModelPathNameExt,
                     newStepPathNameExt,
                     objNameList)
+
