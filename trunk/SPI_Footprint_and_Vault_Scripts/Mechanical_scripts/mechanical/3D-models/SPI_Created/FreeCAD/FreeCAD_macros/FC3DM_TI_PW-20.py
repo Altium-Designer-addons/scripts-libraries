@@ -2,7 +2,7 @@
 #
 #	@file			FC3DM_TI_PW-20.py
 #
-#	@brief			Python script to create an SMT fuse 3D model in FreeCAD.
+#	@brief			Python script to create a 3D model of TI's 20 pin TSSOP IC package in FreeCAD.
 #
 #	@details		
 #
@@ -77,14 +77,75 @@ import Part
 import math
 import string
 import sys
+import csv
+
+# Function below was stolen from Daniel Goldberg's post at:
+#  http://stackoverflow.com/questions/354038/how-do-i-check-if-a-string-is-a-number-in-python
+def is_number(s):
+    try:
+        float(s)
+        return True
+    except ValueError:
+        return False
+    
+## Prepare to read ini file for this component.
+iniFileName = "c:\\projects\\altium-designer-addons\\trunk\\SPI_Footprint_and_Vault_Scripts\\Mechanical_scripts\\mechanical\\3D-models\\SPI_Created\\FreeCAD\\FreeCAD_macros\\TI_PW-20.ini"
+
+# Clear the parms associative array
+parms = {}
+
+# Open ini file with our paths and parameters
+print "About to open ini file"
+
+#ins = open(iniFileName, "rb" )
+lines = [line.strip() for line in open(iniFileName, "r")]
+
+array = []
+for line in lines:
+    array.append( line )
+
+    # Exclude all lines beginning with '#' comment character
+    if (not (line.startswith('#'))):
+#        print line
+
+        # Split at '#' char to strip off any within-line comments
+        tup = line.partition('#')
+        line = tup[0];
+
+        # Look for '=' sign to indicate name=value pair
+        if (line.find('=') > -1):
+#            print "Found name=value pair!"
+
+            # Split at '=' sign and strip off leading/trailing whitespace
+            tup = line.partition('=')
+            name = tup[0].strip()
+            value = tup[2].strip()
+#            print("name=:" + name + ":")
+#            print("value=:" + value + ":")
+
+            # Determine if this a numeric or string value
+            if (is_number(value)):
+
+                print "Found numeric value! " + value
+                
+                # Add name=value pair (numeric value) to our parms associative array 
+                parms[name] = float(value)
+
+            else:
+
+                # Add name=value pair (string value) to our parms associative array
+                # Strip off '"' chars that have somehow propagated to this point
+                parms[name] = value.replace("\"", "")
+    
+
+# Write parms to console window
+print "Parms are:"
+print parms
+
 
 # Add our path to the python system path
 #sys.path.append("r:\\trunk\\mechanical\\3D-models\\SPI_Created\\FreeCAD\\FreeCAD_macros")
 sys.path.append("c:\\projects\\altium-designer-addons\\trunk\\SPI_Footprint_and_Vault_Scripts\\Mechanical_scripts\\mechanical\\3D-models\\SPI_Created\\FreeCAD\\FreeCAD_macros")
-
-sys.path.append("c:\\projects\\altium-designer-addons\\trunk\\SPI_Footprint_and_Vault_Scripts\\Mechanical_scripts\\mechanical\\3D-models\\SPI_Created\\FreeCAD\\reimport-read-only")
-
-#import reimport
 
 # Import our utilities module
 import FC3DM_utils
@@ -102,24 +163,18 @@ from FC3DM_utils import *
 #### Main function
 ###################################
 
-# Invariant information
-#newModelPath = "R:/trunk/mechanical/3D-models/SPI_Created/FreeCAD/IC_Gullwing/"
-newModelPath = "C:/projects/altium-designer-addons/trunk/SPI_Footprint_and_Vault_Scripts/Mechanical_scripts/mechanical/3D-models/SPI_Created/FreeCAD/IC_Gullwing/"
-stepSuffix = "_TRT1"
-suffix = "_SvnRev_"
+# Extract relevant parameter values from parms associative array
+# TODO:  Currently no error checking!
+newModelPath = parms["newModelPath"]
+newModelName = parms["newModelName"]
+stepSuffix = parms["stepSuffix"]
+pinName = parms["pinName"]
+pin1MarkName = parms["pin1MarkName"]
+bodyName = parms["bodyName"]
 
-
-
-###################################
-## Prepare for next model
-###################################
-newModelName = "SOP65P640X120-20N_TI_PW-20_Blk_BLNK_IPC_LPW"
+# Calculate derived strings
 newModelPathNameExt = newModelPath + newModelName + ".FCStd"
 newStepPathNameExt = newModelPath + newModelName + stepSuffix + ".step"
-bodyName = "Body"
-moldName = "Mold"
-pinName = "Pin"
-pin1MarkName = "Pin1Mark"
 
 # Strip out all "-" characters for use as the FreeCAD document name
 docName = string.replace(newModelName, "-", "_")
@@ -131,73 +186,17 @@ App.ActiveDocument=App.getDocument(docName)
 Gui.ActiveDocument=Gui.getDocument(docName)
 
 
-## Parameters off datasheet
-L=6.6
-T=0.75
-W=0.3
-A=4.5
-B=6.6
-H=1.2
-K=0.05
-
-# Thickness of pin (in Z)
-Tp = 0.15
-
-## Parameters that we have to make up, since they're not usually specified on datasheet
-
-# Mold angle (in degrees) (not specified in datasheet--make something up)
-maDeg = 12
-
-# Pivot points (in Z) for chamfering the IC body
-#Hpph = (0.5*H) + (0.5*Tp)
-#Hppl = (0.5*H) - (0.5*Tp)
-
-Hpph = (0.5*H)
-Hppl = Hpph
-
-
-# Fillet radius for pin edges
-Fr = Tp
-
-# Height of entry of pin (center) to IC body
-Hpe = Hpph + (0.5*Tp)
-
-# Fillet radius for body
-Frbody = 0.1
-
-# Offset in X and Y from the pin 1 corner to the start of the pin 1 marker cylinder
-P1markOffset = 0.07
-
-# Radius of pin 1 marker cylinder
-P1markRadius = 0.15
-
-# How much to indent the pin 1 marker into IC body
-P1markIndent = 0.02
-
-# Height of marking ink
-markHeight = 0.001
-
-
 ## Start creating the component model.
 
 # Call CreateIcBody() to create the plastic molded IC body
 FC3DM_CreateIcBody(App, Gui,
-                   A, B, H, K,
-                   maDeg, Hpph, Hppl,
-                   Frbody, P1markOffset, P1markRadius, P1markIndent, markHeight, 
-                   docName,
-                   bodyName,
-                   pin1MarkName)
-
+                   parms,
+                   docName)
 
 # Call CreateIcPin() to create first (template) IC pin
 FC3DM_CreateIcPin(App, Gui,
-                  L, A, B, 
-                  W, T, Tp, Fr, Hpe,
-                  maDeg, Hpph, Hppl,
-                  docName,
-                  pinName,
-                  bodyName)
+                  parms,
+                  docName)
 
 # Copy IC pins to other locations
 rotDeg = 0.0
