@@ -78,6 +78,7 @@ import Part
 import math
 import string
 
+
 ###################################################################
 # Function to fillet edges of a given object
 #
@@ -85,12 +86,14 @@ import string
 def FC3DM_FilletObjectEdges(App, Gui,
                             docName, filletMe, edges, radius):
 
-    # Fillet the sharp edges of the termination sheet metal
+    # Init
     App.ActiveDocument=None
     Gui.ActiveDocument=None
     App.setActiveDocument(docName)
     App.ActiveDocument=App.getDocument(docName)
     Gui.ActiveDocument=Gui.getDocument(docName)
+
+    # Fillet the sharp edges of the termination sheet metal
     Gui.activateWorkbench("PartDesignWorkbench")
     App.activeDocument().addObject("PartDesign::Fillet","Fillet")
     App.activeDocument().Fillet.Base = (App.ActiveDocument.getObject(filletMe),edges)
@@ -515,12 +518,31 @@ def FC3DM_CreateCylinderVert(App, Gui,
 # def CreateIcBody
 ###################################################################
 def FC3DM_CreateIcBody(App, Gui,
-                       A, B, H, K,
-                       maDeg, Hpph, Hppl,
-                       Frbody, P1markOffset, P1markRadius, P1markIndent, markHeight, 
-                       docName,
-                       bodyName,
-                       pin1MarkName):
+                       parms,
+                       docName):
+
+    # Extract relevant parameter values from parms associative array
+    # TODO:  Currently no error checking!
+    A = parms["A"]
+    B = parms["B"]
+    H = parms["H"]
+    K = parms["K"]
+    maDeg = parms["maDeg"]
+    Hpph = parms["Hpph"]
+    Hppl = parms["Hppl"]
+    Frbody = parms["Frbody"]
+    P1markOffset = parms["P1markOffset"]
+    P1markRadius = parms["P1markRadius"]
+    P1markIndent = parms["P1markIndent"]
+    markHeight = parms["markHeight"]
+    bodyName = parms["bodyName"]
+    pin1MarkName = parms["pin1MarkName"]
+
+#    markHeight = parms["foo"]
+
+    print "docName is :" + docName + ":"
+    print "bodyName is:" + bodyName + ":"
+    print "B is       :" + str(B) + ":"
 
     # Constant pi
     pi = 3.141592654
@@ -528,15 +550,22 @@ def FC3DM_CreateIcBody(App, Gui,
     # Mold angle (in radians)
     ma = math.radians(maDeg)
 
+    # Configure active document
+    App.ActiveDocument=None
+    Gui.ActiveDocument=None
+    App.setActiveDocument(docName)
+    App.ActiveDocument=App.getDocument(docName)
+    Gui.ActiveDocument=Gui.getDocument(docName)
+
     # Create box to model IC body
     App.ActiveDocument.addObject("Part::Box",bodyName)
     App.ActiveDocument.recompute()
     Gui.SendMsgToActiveView("ViewFit")
 
     # Set body size
-    FreeCAD.getDocument(docName).getObject(bodyName).Length = B
-    FreeCAD.getDocument(docName).getObject(bodyName).Width = A
-    FreeCAD.getDocument(docName).getObject(bodyName).Height = (H-K)
+    App.ActiveDocument.getObject(bodyName).Length = B
+    App.ActiveDocument.getObject(bodyName).Width = A
+    App.ActiveDocument.getObject(bodyName).Height = (H-K)
 
     # Choose initial rotation of 90 degrees about z axis
     # We want pin 1 to be in the upper left corner to match the assumptions in Mentor LP Wizard
@@ -704,13 +733,32 @@ def FC3DM_CreateIcBody(App, Gui,
 # def CreateIcPin
 ###################################################################
 def FC3DM_CreateIcPin(App, Gui,
-                      L, A, B, 
-                      W, T, Tp, Fr, Hpe,
-                      maDeg, Hpph, Hppl,
-                      docName,
-                      pinName,
-                      bodyName):
+                      parms,
+                      docName):
                 
+    # Extract relevant parameter values from parms associative array
+    # TODO:  Currently no error checking!
+    L = parms["L"]
+    A = parms["A"]
+    B = parms["B"]
+    W = parms["W"]
+    T = parms["T"]
+    Tp = parms["Tp"]
+    Fr = parms["Fr"]
+    Hpe = parms["Hpe"]
+    maDeg = parms["maDeg"]
+    Hpph = parms["Hpph"]
+    Hppl = parms["Hppl"]
+    pinName = parms["pinName"]
+    bodyName = parms["bodyName"]
+    
+    # Configure active document
+    App.ActiveDocument=None
+    Gui.ActiveDocument=None
+    App.setActiveDocument(docName)
+    App.ActiveDocument=App.getDocument(docName)
+    Gui.ActiveDocument=Gui.getDocument(docName)
+
     # Create box to model IC pin
     App.ActiveDocument.addObject("Part::Box",pinName)
     App.ActiveDocument.recompute()
