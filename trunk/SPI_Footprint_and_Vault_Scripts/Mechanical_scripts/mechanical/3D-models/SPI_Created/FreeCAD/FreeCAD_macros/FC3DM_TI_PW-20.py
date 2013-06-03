@@ -363,34 +363,12 @@ FreeCADGui.getDocument(docName).getObject("Pin1").ShapeColor = (0.0,0.0,1.0)
 App.ActiveDocument.recompute()
 
 
-# Fuse all objects together
+# Fuse all objects together & retain proper coloring
 objNameList = [bodyName, pin1MarkName, "Pin1", "Pin2", "Pin3", "Pin4", "Pin5", "Pin6", "Pin7", "Pin8", "Pin9", "Pin10", "Pin11", "Pin12", "Pin13", "Pin14", "Pin15", "Pin16", "Pin17", "Pin18", "Pin19", "Pin20"]
 fusionName = "Final"
 FC3DM_FuseSetOfObjects(App, Gui,
+                       parms,
                        docName, objNameList, fusionName)
-
-# Color fusion red.  FIXME:  Change to bright tin!
-#Gui.getDocument(docName).getObject(fusionName).ShapeColor = (0.0,1.0,0.0)
-
-# Color fusion bright tin
-#Gui.getDocument(docName).getObject(fusionName).ShapeColor = (0.80,0.80,0.75)
-#App.ActiveDocument.recompute()
-
-# TODO:  I've been unable to find a way in python to go in and change the color of individual
-# faces with the fused shape.  The plan is to fuse everything together, so that it will be
-# a STEP part, rather than a STEP assembly.  But I need to change the color of the faces
-# that were part of the body back to black, and the color of the pin 1 mark back to white.
-
-
-## Wrap up
-# Color body black
-#FreeCADGui.getDocument(docName).getObject(bodyName).ShapeColor = (0.10,0.10,0.10)
-
-# Color pins bright tin
-#FreeCADGui.getDocument(docName).getObject(pinsName).ShapeColor = (0.80,0.80,0.75)
-
-# Color Pin1Mark white
-#FreeCADGui.getDocument(docName).getObject(pin1MarkName).ShapeColor = (1.00,1.00,1.00)
 
 
 # Zoom in

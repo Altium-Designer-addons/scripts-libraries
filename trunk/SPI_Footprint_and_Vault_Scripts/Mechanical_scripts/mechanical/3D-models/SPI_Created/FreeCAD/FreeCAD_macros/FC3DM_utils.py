@@ -77,7 +77,7 @@ import FreeCAD
 import Part
 import math
 import string
-
+import cStringIO
 
 ###################################################################
 # Function to fillet edges of a given object
@@ -155,9 +155,17 @@ def FC3DM_FuseObjects(App, Gui,
 #
 ###################################################################
 def FC3DM_FuseSetOfObjects(App, Gui,
+                           parms,
                            docName, objNameList, fusionName):
 
     print("Hello world from FuseSetOfObjects!")
+
+    # Extract relevant parameter values from parms associative array
+    # TODO:  Currently no error checking!
+    bodyName = parms["bodyName"]
+    pin1MarkName = parms["pin1MarkName"]
+    print "pin1MarkName is :" + pin1MarkName + ":"
+
 
     # Configure active document
     App.ActiveDocument=None
@@ -179,18 +187,117 @@ def FC3DM_FuseSetOfObjects(App, Gui,
     App.ActiveDocument.recompute()
 
     # TODO:  Preserve face colors for the body and pin1Mark!
-    # Figure out which faces came from the body and pin1mark and set colors accordingly.
+    # Figure out which faces came from the body and pin1Mark and set colors accordingly.
 
-    # Create face colors
-    faceColorsRef=[(1.,0.,0.),(0.,1.,0.),(0.,0.,1.)]
+    # Loop over all faces in the pin1Mark object
+    pin1MarkVerts=[]
+    for i in App.ActiveDocument.getObject(pin1MarkName).Shape.Faces:
+        print("Found face in pin1Mark object!")
+
+        # Loop over all the vertexes in this face
+        buf = cStringIO.StringIO()
+        for j in i.Vertexes:
+
+            print >> buf, j.Point
+
+        # Store all the vertexes for this face as a string array
+        pin1MarkVerts.append(buf.getvalue())
+
+        print "Vertexes for this face are:"
+        print buf.getvalue()
+
+    # Loop over all faces in the body object
+    bodyVerts=[]
+    for i in App.ActiveDocument.getObject(bodyName).Shape.Faces:
+        print("Found face in body object!")
+
+        # Loop over all the vertexes in this face
+        buf = cStringIO.StringIO()
+        for j in i.Vertexes:
+
+            print >> buf, j.Point
+
+        # Store all the vertexes for this face as a string array
+        bodyVerts.append(buf.getvalue())
+
+        print "Vertexes for this face are:"
+        print buf.getvalue()
+
+
+    ## Prepare to compare all faces in the fusion with pin1Mark and body faces
     faceColors=[]
-    faceColorsNum=0
+
+    # Loop over all the faces in the fusion object
     for xp in App.ActiveDocument.getObject("Temp").Shape.Faces:
         print("Found face in temp object!")
 
-        faceColors.append(faceColorsRef[faceColorsNum % 3])
-        faceColorsNum=faceColorsNum+1
+        isPin1Mark = False;
+        isBody = False;
 
+        # Loop over all the vertexes in this fusion shape face
+        buf = cStringIO.StringIO()
+        for j in xp.Vertexes:
+
+            # Record this vertex in a string buffer
+            print >> buf, j.Point
+
+        print "Vertexes for this face are:"
+        print buf.getvalue()
+
+        # See if this face is the same as a face from the pin1Mark object
+        for i in pin1MarkVerts:
+
+            # I can't get Faces.isSame() to actually work.  That's why I'm doing this
+            # kludge with sprint'ing vertex info to a string.
+#            print xp.isSame(i)
+        
+            # See if the i string (from a pin1Mark vertex string) equals our current vertex string
+            if (buf.getvalue() == i):
+                isPin1Mark = True;
+
+        # See if this face is the same as a face from the body object
+        for i in bodyVerts:
+
+            # I can't get Faces.isSame() to actually work.  That's why I'm doing this
+            # kludge with sprint'ing vertex info to a string.
+#            print xp.isSame(i)
+        
+            # See if the i string (from a body vertex string) equals our current vertex string
+            if (buf.getvalue() == i):
+                isBody = True;
+
+            # TODO:  We need a fuzzy match to compare the IC body sides to the fusion sides.
+            # Currently this doesn't fit an exact match, since the body doesn't have vertexes
+            # for where all the pins hit, but the fusion does!
+                
+
+        # See if we found a face that derives from our pin1Mark
+        if (isPin1Mark):
+
+            # Color Pin1Mark white
+            faceColors.append((1.00,1.00,1.00))
+
+        # Else it's not derived from our pin1Mark
+        else:
+
+            # See if we found a face that derives from our body
+            if (isBody):
+
+                # Color body black
+                faceColors.append((0.10,0.10,0.10))
+
+            # Else this face is part of a pin.
+            else:
+
+                # Color pin bright tin.
+                faceColors.append((0.80,0.80,0.75))
+            
+
+    # Now that we have a list of all the face colors that we want, proceed to apply it
+    # to the fusion shape.
+    # A special thanks here to FC guru wmayer for his forum post at
+    # https://sourceforge.net/apps/phpbb/free-cad/viewtopic.php?f=19&t=4117
+    # which pointed me in the right direction to make this actually work.                
     print("Attempting to set temp face colors")
     Gui.ActiveDocument.getObject("Temp").DiffuseColor=faceColors
     App.ActiveDocument.recompute()
