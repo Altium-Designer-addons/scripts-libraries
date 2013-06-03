@@ -142,10 +142,12 @@ for line in lines:
 print "Parms are:"
 print parms
 
+# Extract relevant parameter values from parms associative array
+# TODO:  Currently no error checking!
+FC3DM_utils_path = parms["FC3DM_utils_path"]
 
-# Add our path to the python system path
-#sys.path.append("r:\\trunk\\mechanical\\3D-models\\SPI_Created\\FreeCAD\\FreeCAD_macros")
-sys.path.append("c:\\projects\\altium-designer-addons\\trunk\\SPI_Footprint_and_Vault_Scripts\\Mechanical_scripts\\mechanical\\3D-models\\SPI_Created\\FreeCAD\\FreeCAD_macros")
+# Add the path to our utilities script to the python system path
+sys.path.append(FC3DM_utils_path)
 
 # Import our utilities module
 import FC3DM_utils
@@ -171,10 +173,11 @@ stepSuffix = parms["stepSuffix"]
 pinName = parms["pinName"]
 pin1MarkName = parms["pin1MarkName"]
 bodyName = parms["bodyName"]
+stepExt = parms["stepExt"]
 
 # Calculate derived strings
 newModelPathNameExt = newModelPath + newModelName + ".FCStd"
-newStepPathNameExt = newModelPath + newModelName + stepSuffix + ".step"
+newStepPathNameExt = newModelPath + newModelName + stepSuffix + stepExt
 
 # Strip out all "-" characters for use as the FreeCAD document name
 docName = string.replace(newModelName, "-", "_")
@@ -362,7 +365,7 @@ App.ActiveDocument.recompute()
 
 # Fuse all objects together
 objNameList = [bodyName, pin1MarkName, "Pin1", "Pin2", "Pin3", "Pin4", "Pin5", "Pin6", "Pin7", "Pin8", "Pin9", "Pin10", "Pin11", "Pin12", "Pin13", "Pin14", "Pin15", "Pin16", "Pin17", "Pin18", "Pin19", "Pin20"]
-fusionName = docName
+fusionName = "Final"
 FC3DM_FuseSetOfObjects(App, Gui,
                        docName, objNameList, fusionName)
 
@@ -370,8 +373,8 @@ FC3DM_FuseSetOfObjects(App, Gui,
 #Gui.getDocument(docName).getObject(fusionName).ShapeColor = (0.0,1.0,0.0)
 
 # Color fusion bright tin
-Gui.getDocument(docName).getObject(fusionName).ShapeColor = (0.80,0.80,0.75)
-App.ActiveDocument.recompute()
+#Gui.getDocument(docName).getObject(fusionName).ShapeColor = (0.80,0.80,0.75)
+#App.ActiveDocument.recompute()
 
 # TODO:  I've been unable to find a way in python to go in and change the color of individual
 # faces with the fused shape.  The plan is to fuse everything together, so that it will be
