@@ -174,50 +174,45 @@ def FC3DM_FuseSetOfObjects(App, Gui,
 
     # Prepare to do the multi-fusion
     Gui.activateWorkbench("PartWorkbench")
-    App.activeDocument().addObject("Part::MultiFuse","temp")
-    App.activeDocument().getObject("temp").Shapes = __objs__
+    App.activeDocument().addObject("Part::MultiFuse","Temp")
+    App.activeDocument().getObject("Temp").Shapes = __objs__
     App.ActiveDocument.recompute()
 
-    # Output all data related to body object
-    print App.ActiveDocument.getObject("Body").ViewObject.toString()
-    print App.ActiveDocument.getObject("Body").ViewObject.ShapeColor
+    # TODO:  Preserve face colors for the body and pin1Mark!
+    # Figure out which faces came from the body and pin1mark and set colors accordingly.
+
+    # Create face colors
+    faceColorsRef=[(1.,0.,0.),(0.,1.,0.),(0.,0.,1.)]
+    faceColors=[]
+    faceColorsNum=0
+    for xp in App.ActiveDocument.getObject("Temp").Shape.Faces:
+        print("Found face in temp object!")
+
+        faceColors.append(faceColorsRef[faceColorsNum % 3])
+        faceColorsNum=faceColorsNum+1
+
+    print("Attempting to set temp face colors")
+    Gui.ActiveDocument.getObject("Temp").DiffuseColor=faceColors
+    App.ActiveDocument.recompute()
+    print("Attempted to set temp face colors")
 
     # Copy the temp fusion object and call it the desired fusion name
-    newTermShape = FreeCAD.getDocument(docName).getObject("temp").Shape.copy()
-    newTermObj = App.activeDocument().addObject("Part::Feature",fusionName)
+    newTermShape = FreeCAD.getDocument(docName).getObject("Temp").Shape.copy()
+    newTermObj = App.activeDocument().addObject("Part::Feature", fusionName)
     newTermObj.Shape = newTermShape
+    App.ActiveDocument.recompute()
+
+    Gui.ActiveDocument.getObject(fusionName).DiffuseColor=faceColors
+    App.ActiveDocument.recompute()
 
 
-    # Find faces in final object
-    vobj = newTermObj.ViewObject
-    print vobj.toString()
-
-    print("Shapetype of object is:")
-    print newTermObj.Shape.ShapeType
-
-    print newTermObj.ViewObject.PropertiesList
-    print newTermObj.ViewObject.getAllDerivedFrom()
-
-    for xp in newTermObj.Shape.Faces:
-        print("Found face in object!")
-#        print xp.PropertiesList
-#        print xp.ShapeType
-
-        # Set it blue
-#        xp.ViewObject.ShapeColor = (0.00,0.00,1.00)
-
-    # TODO:  Preserve face colors for the body and pin1Mark!
-    # Currently I can't figure out how to modify shape face colors through python,
-    # although I can do it interactively with the FC GUI.
-    
-    
     # Delete the original objects that comprised the fusion
     for i in objNameList:
 
         App.activeDocument().removeObject(i)
 
     # Remove the temp fusion
-    App.getDocument(docName).removeObject("temp")
+    App.getDocument(docName).removeObject("Temp")
     App.ActiveDocument.recompute()
 
     # Deallocate list
