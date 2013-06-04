@@ -2,6 +2,7 @@
 { TweakAPDesignators Script - Taken from AdjustDesignators script              }
 {   - written by Mattias Ericson, Omnisys Instruments AB                       }
 {   - Modified by Tony Chilco, Yorkville Sound                                 }
+{   - Modified by Ryan Rutledge, Pacific Bioscience Laboratories Products, Inc.}
 {                                                                              }
 { Written for Altium Designer 10                                               }
 {                                                                              }
@@ -14,6 +15,7 @@
 { Change log:                                                                  }
 { Ver 1.0 - Initial release                                                    }
 { Ver 1.1 - Corrected post process position so undo will work                  }
+{ Ver 1.2 - fixed bug with mirrored designators moving the wrong direction     }
 {                                                                              }
 
 {******************************************************************************}
@@ -84,24 +86,41 @@ begin
             else DesignatorXmove := MilsToCoord(TweakDesForm.AdjustAmtEdit.Text);
 
 
-           tc_AutoPos:= Component.GetState_NameAutoPos; // Get current AP state
-
+			tc_AutoPos:= Component.GetState_NameAutoPos; // Get current AP state
+		   
             // Set AP to manual
             Component.ChangeNameAutoposition  :=   eAutoPos_Manual;
-
-            // Move designator depending on current AP setting
-            Case tc_AutoPos of
-              eAutoPos_Manual:;
-              eAutoPos_TopLeft:Designator.Ylocation := Designator.Ylocation - DesignatorXmove;
-              eAutoPos_CenterLeft:Designator.xlocation := Designator.xlocation + DesignatorXmove;
-              eAutoPos_BottomLeft:Designator.Ylocation := Designator.Ylocation + DesignatorXmove;
-              eAutoPos_TopCenter:Designator.Ylocation := Designator.Ylocation - DesignatorXmove;
-              eAutoPos_BottomCenter:Designator.Ylocation := Designator.Ylocation + DesignatorXmove;
-              eAutoPos_TopRight:Designator.Ylocation := Designator.Ylocation - DesignatorXmove;
-              eAutoPos_CenterRight:Designator.xlocation := Designator.xlocation - DesignatorXmove;
-              eAutoPos_BottomRight:Designator.Ylocation := Designator.Ylocation + DesignatorXmove;
-              eAutoPos_CenterCenter:;
-            End; {case tc_AutoPos}
+			
+			Case Designator.GetState_Mirror of
+				true:		// If designator is mirrored, we will assume that X-axis movement should be reversed
+					// Move designator depending on current AP setting
+					Case tc_AutoPos of
+					  eAutoPos_Manual:;
+					  eAutoPos_TopLeft:Designator.Ylocation := Designator.Ylocation - DesignatorXmove;
+					  eAutoPos_CenterLeft:Designator.Xlocation := Designator.Xlocation - DesignatorXmove;
+					  eAutoPos_BottomLeft:Designator.Ylocation := Designator.Ylocation + DesignatorXmove;
+					  eAutoPos_TopCenter:Designator.Ylocation := Designator.Ylocation - DesignatorXmove;
+					  eAutoPos_BottomCenter:Designator.Ylocation := Designator.Ylocation + DesignatorXmove;
+					  eAutoPos_TopRight:Designator.Ylocation := Designator.Ylocation - DesignatorXmove;
+					  eAutoPos_CenterRight:Designator.Xlocation := Designator.Xlocation + DesignatorXmove;
+					  eAutoPos_BottomRight:Designator.Ylocation := Designator.Ylocation + DesignatorXmove;
+					  eAutoPos_CenterCenter:;
+					End; {case tc_AutoPos}
+				false:
+					// Move designator depending on current AP setting
+					Case tc_AutoPos of
+					  eAutoPos_Manual:;
+					  eAutoPos_TopLeft:Designator.Ylocation := Designator.Ylocation - DesignatorXmove;
+					  eAutoPos_CenterLeft:Designator.Xlocation := Designator.Xlocation + DesignatorXmove;
+					  eAutoPos_BottomLeft:Designator.Ylocation := Designator.Ylocation + DesignatorXmove;
+					  eAutoPos_TopCenter:Designator.Ylocation := Designator.Ylocation - DesignatorXmove;
+					  eAutoPos_BottomCenter:Designator.Ylocation := Designator.Ylocation + DesignatorXmove;
+					  eAutoPos_TopRight:Designator.Ylocation := Designator.Ylocation - DesignatorXmove;
+					  eAutoPos_CenterRight:Designator.Xlocation := Designator.Xlocation - DesignatorXmove;
+					  eAutoPos_BottomRight:Designator.Ylocation := Designator.Ylocation + DesignatorXmove;
+					  eAutoPos_CenterCenter:;
+					End; {case tc_AutoPos}
+			End; {case Designator.Layer}
 
            // notify that the pcb object is modified
             PCBServer.SendMessageToRobots(Designator.I_ObjectAddress, c_Broadcast, PCBM_EndModify , c_NoEventData);
