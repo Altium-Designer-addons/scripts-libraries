@@ -3104,6 +3104,9 @@ begin
 
    { Flag that debug file is not yet open. }
    isDebugFileOpen	 := False;
+
+   { Flag that scripts path is not yet known. }
+   scriptsPath := '';   
    
    { Attempt to get reference to current workspace. }
    Workspace  := GetWorkspace;
@@ -3169,6 +3172,18 @@ begin
       end;
       
    end;
+
+   { Make sure we found our scripts project. }
+   if (scriptsPath = '') then
+   begin
+      ShowError('Could not find script project "' + constScriptProjectName + '"open in Altium!  Exiting now!!!');
+      
+      { Set error return code. }
+      rc := 1;
+      result := rc;
+      Exit;
+   end;
+      
 
    { Return to focused project. }
    Project := Workspace.DM_FocusedProject;
