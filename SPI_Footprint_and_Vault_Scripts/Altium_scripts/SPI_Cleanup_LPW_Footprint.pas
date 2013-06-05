@@ -5814,7 +5814,8 @@ begin
   
 
    { Nuke remaining files in the original imported directory (eg. useless project file, History/ files, etc.) }
-   CLF_DeleteFilesAndDirs(ExtractFilePath(oldProjPath));   
+   { FIXME:  Figure out why we are unable to delete the annoying __Previews directory!  Commenting out operation for now. }
+//   CLF_DeleteFilesAndDirs(ExtractFilePath(oldProjPath));   
 
    
    { Retrieve a reference to this "new" PcbDoc document. }

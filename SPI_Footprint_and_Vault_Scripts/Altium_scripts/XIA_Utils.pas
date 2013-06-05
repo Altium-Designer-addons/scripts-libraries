@@ -1420,14 +1420,20 @@ begin
 
 //   ShowMessage('Writing this to DebugFile: "' + msg + '"');
 
-   { Reopen file in append mode. }
-   Append(DebugFile);
+   { Sanity check to see if DebugFile is actually open. }
+   if (DebugFile <> '') then
+   begin
    
-   { Write new line of text to debug file. }
-   WriteLn(DebugFile, msg);
+      { Reopen file in append mode. }
+      Append(DebugFile);
+      
+      { Write new line of text to debug file. }
+      WriteLn(DebugFile, msg);
+      
+      { Close debug file. }
+      CloseFile(DebugFile);
 
-   { Close debug file. }
-   CloseFile(DebugFile);
+   end;
 
 end; { end WriteToDebugFile() }
 
@@ -3092,6 +3098,9 @@ begin
    { For now, assume/hope/pray that we will succeed. }
    rc := 0;
 
+   { Set a nil debug file for now. }
+   DebugFile := '';
+   
    { Attempt to get reference to current workspace. }
    Workspace  := GetWorkspace;
    if (Workspace = nil) then
