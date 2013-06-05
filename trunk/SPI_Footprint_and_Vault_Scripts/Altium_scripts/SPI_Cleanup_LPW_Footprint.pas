@@ -2127,7 +2127,19 @@ begin
       
       { Sanity check. }
       if (not rc) then
-         CLF_Abort('Unable to delete directory "' + dirPath + '"!');
+      begin
+
+	 { Delay for 500 us before we make the second attempt to delete dir. }
+	 Sleep(500);
+
+	 { Try again to delete the directory. }
+	 rc := RemoveDir(dirPath);
+	 
+	 { Sanity check. }
+	 if (not rc) then
+	    CLF_Abort('Unable to delete directory "' + dirPath + '"!');
+
+      end;
       
    end; { endif }
    
