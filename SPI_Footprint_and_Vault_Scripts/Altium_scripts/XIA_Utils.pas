@@ -170,7 +170,7 @@ const
    constWhichScriptCrt           = 'CRT';     { SPI_Commit_Release_Tag.pas }
 
 {* Declare the name of the script project of which this script must be part. }
-   constScriptProjectName        = 'SPI_Altium_Scripts';
+   constScriptProjectName        = 'TRT_Std_Scripts';
 
 {* Declare the global working copy (with scripts and libraries) that must be up-to-date before we allow this script to actually run. *}
    constGlobalScriptsAndLibsWc   = 'R:\ALTIUM_LIBRARIES\'; { Leave the trailing "\" char there! }
