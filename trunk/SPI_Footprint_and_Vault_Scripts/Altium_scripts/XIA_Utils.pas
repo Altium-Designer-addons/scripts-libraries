@@ -359,12 +359,13 @@ const
  * Global variables.  Highly evil.  Ick ick.
  ***************************************************************************}
 var
-   whichScriptIsThis             : TString;
-   DebugFile                     : TextFile;
-   SummaryFile                   : TextFile;
-   SummaryMessages               : TStringList;
-   enableGenerateOutputs         : Boolean;
-   enableSvnCommits              : Boolean;
+   whichScriptIsThis	 : TString;
+   DebugFile		 : TextFile;
+   isDebugFileOpen	 : Boolean;
+   SummaryFile		 : TextFile;
+   SummaryMessages	 : TStringList;
+   enableGenerateOutputs : Boolean;
+   enableSvnCommits	 : Boolean;
 
 
 {***************************************************************************
@@ -1403,7 +1404,10 @@ begin
       CloseFile(DebugFile);
       
    end; { endelse }
-   
+
+   { Flag that debug file is now open. }
+   isDebugFileOpen := True;
+  
 end; { end OpenDebugFile() }
 
 
@@ -1421,7 +1425,7 @@ begin
 //   ShowMessage('Writing this to DebugFile: "' + msg + '"');
 
    { Sanity check to see if DebugFile is actually open. }
-   if (DebugFile <> '') then
+   if (isDebugFileOpen) then
    begin
    
       { Reopen file in append mode. }
@@ -3098,8 +3102,8 @@ begin
    { For now, assume/hope/pray that we will succeed. }
    rc := 0;
 
-   { Set a nil debug file for now. }
-   DebugFile := '';
+   { Flag that debug file is not yet open. }
+   isDebugFileOpen	 := False;
    
    { Attempt to get reference to current workspace. }
    Workspace  := GetWorkspace;
