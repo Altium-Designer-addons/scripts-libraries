@@ -3183,7 +3183,15 @@ begin
       result := rc;
       Exit;
    end;
-      
+
+   { Dirty kludge to support having some SPI/XIA era files in a separate directory using svn externals. }
+   { FIXME:  Kludge!! }
+   if (constScriptProjectName = 'TRT_Std_Scripts') then
+   begin
+
+      scriptsPath := scriptsPath + '..\GoogleCode_SPI\Altium_scripts\';
+
+   end;
 
    { Return to focused project. }
    Project := Workspace.DM_FocusedProject;
