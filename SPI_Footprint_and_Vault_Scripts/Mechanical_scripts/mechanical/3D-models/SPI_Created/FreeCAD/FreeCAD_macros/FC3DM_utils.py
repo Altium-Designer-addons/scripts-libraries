@@ -80,6 +80,70 @@ import string
 import cStringIO
 
 ###################################################################
+# is_number
+# Function below was stolen from Daniel Goldberg's post at:
+#  http://stackoverflow.com/questions/354038/how-do-i-check-if-a-string-is-a-number-in-python
+###################################################################
+def is_number(s):
+    try:
+        float(s)
+        return True
+    except ValueError:
+        return False
+
+
+###################################################################
+# FC3DM_ReadIniFile
+#	Function to read an ini file.  File format is "key=value".
+###################################################################
+def FC3DM_ReadIniFile(iniFileName,
+                      parms):
+
+    # Open ini file with our paths and parameters
+    print ("About to open ini file :" + iniFileName + ":")
+
+    #ins = open(iniFileName, "rb" )
+    lines = [line.strip() for line in open(iniFileName, "r")]
+
+    array = []
+    for line in lines:
+        array.append( line )
+
+        # Exclude all lines beginning with '#' comment character
+        if (not (line.startswith('#'))):
+#            print line
+
+            # Split at '#' char to strip off any within-line comments
+            tup = line.partition('#')
+            line = tup[0];
+
+            # Look for '=' sign to indicate name=value pair
+            if (line.find('=') > -1):
+#                print "Found name=value pair!"
+
+                # Split at '=' sign and strip off leading/trailing whitespace
+                tup = line.partition('=')
+                name = tup[0].strip()
+                value = tup[2].strip()
+#                print("name=:" + name + ":")
+#                print("value=:" + value + ":")
+
+                # Determine if this a numeric or string value
+                if (is_number(value)):
+
+                    print "Found numeric value! " + value
+
+                    # Add name=value pair (numeric value) to our parms associative array 
+                    parms[name] = float(value)
+
+                else:
+
+                    # Add name=value pair (string value) to our parms associative array
+                    # Strip off '"' chars that have somehow propagated to this point
+                    parms[name] = value.replace("\"", "")
+
+
+###################################################################
 # Function to fillet edges of a given object
 #
 ###################################################################

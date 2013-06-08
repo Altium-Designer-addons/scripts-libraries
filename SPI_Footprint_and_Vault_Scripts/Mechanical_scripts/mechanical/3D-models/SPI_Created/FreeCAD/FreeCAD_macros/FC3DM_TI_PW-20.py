@@ -77,78 +77,22 @@ import Part
 import math
 import string
 import sys
-import csv
+import os
 
-# Function below was stolen from Daniel Goldberg's post at:
-#  http://stackoverflow.com/questions/354038/how-do-i-check-if-a-string-is-a-number-in-python
-def is_number(s):
-    try:
-        float(s)
-        return True
-    except ValueError:
-        return False
+## Get cwd
+cwd = os.getcwd()
+print("cwd is :" + cwd + ":")
+
+# Replace all "\" chars with "\\" so that we can use it as a path in sys.path.append()
+# FIXME:  Probably this is a Windows only thing!
+cwd = cwd.replace("\\", "\\\\")
+print("cwd is :" + cwd + ":")
+
+# Add cwd to system path so that we can pick up our FC3DM_Utils.py file.
+# Note:  In absence of this file being in our cwd, FreeCAD may need to be passed a
+# "-p path" command line parameter!
+sys.path.append(cwd)
     
-## Prepare to read ini file for this component.
-iniFileName = "c:\\projects\\altium-designer-addons\\trunk\\SPI_Footprint_and_Vault_Scripts\\Mechanical_scripts\\mechanical\\3D-models\\SPI_Created\\FreeCAD\\FreeCAD_macros\\TI_PW-20.ini"
-
-# Clear the parms associative array
-parms = {}
-
-# Open ini file with our paths and parameters
-print "About to open ini file"
-
-#ins = open(iniFileName, "rb" )
-lines = [line.strip() for line in open(iniFileName, "r")]
-
-array = []
-for line in lines:
-    array.append( line )
-
-    # Exclude all lines beginning with '#' comment character
-    if (not (line.startswith('#'))):
-#        print line
-
-        # Split at '#' char to strip off any within-line comments
-        tup = line.partition('#')
-        line = tup[0];
-
-        # Look for '=' sign to indicate name=value pair
-        if (line.find('=') > -1):
-#            print "Found name=value pair!"
-
-            # Split at '=' sign and strip off leading/trailing whitespace
-            tup = line.partition('=')
-            name = tup[0].strip()
-            value = tup[2].strip()
-#            print("name=:" + name + ":")
-#            print("value=:" + value + ":")
-
-            # Determine if this a numeric or string value
-            if (is_number(value)):
-
-                print "Found numeric value! " + value
-                
-                # Add name=value pair (numeric value) to our parms associative array 
-                parms[name] = float(value)
-
-            else:
-
-                # Add name=value pair (string value) to our parms associative array
-                # Strip off '"' chars that have somehow propagated to this point
-                parms[name] = value.replace("\"", "")
-    
-
-# Write parms to console window
-print "Parms are:"
-print parms
-
-# Extract relevant parameter values from parms associative array
-# TODO:  Currently no error checking!
-FC3DM_utils_path = parms["FC3DM_utils_path"]
-
-# Add the path to our utilities script to the python system path
-sys.path.append(FC3DM_utils_path)
-
 # Import our utilities module
 import FC3DM_utils
 
@@ -158,7 +102,32 @@ reload(FC3DM_utils)
 # Explicitly load all functions within it
 from FC3DM_utils import *
 
-#FreeCAD.Console.PrintMessage("Hello World!\n")
+
+###################################
+#### Read ini files to get all our parameters.
+###################################
+
+## Prepare to read ini file for this component.
+iniFileName = "TI_PW-20.ini"
+
+# Clear the parms associative array
+parms = {}
+
+# Read ini file
+FC3DM_ReadIniFile(iniFileName,
+                  parms)
+
+# Write parms to console window
+print "Parms are:"
+print parms
+
+# Extract relevant parameter values from parms associative array
+# TODO:  Currently no error checking!
+#FC3DM_utils_path = parms["FC3DM_utils_path"]
+
+# Add the path to our utilities script to the python system path
+#sys.path.append(FC3DM_utils_path)
+
 
 
 ###################################
