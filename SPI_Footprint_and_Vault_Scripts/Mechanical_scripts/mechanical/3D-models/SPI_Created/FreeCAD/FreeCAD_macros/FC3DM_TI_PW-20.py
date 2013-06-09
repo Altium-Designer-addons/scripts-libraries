@@ -72,6 +72,9 @@
 # * See also included file SPI_License.txt.
 # ***************************************************************************
 
+###################################
+#### Load external libraries.
+###################################
 import FreeCAD
 import Part
 import math
@@ -107,27 +110,19 @@ from FC3DM_utils import *
 #### Read ini files to get all our parameters.
 ###################################
 
-## Prepare to read ini file for this component.
-iniFileName = "TI_PW-20.ini"
-
 # Clear the parms associative array
 parms = {}
 
-# Read ini file
-FC3DM_ReadIniFile(iniFileName,
-                  parms)
+# Workaround needed because otherwise parms doesn't actually get created until
+# after the function call, and then we have a reference to a blank parms.
+parms["foo"] = "bar"
+
+# Read both the global and component-specific ini files.
+FC3DM_ReadIniFiles(parms)
 
 # Write parms to console window
-print "Parms are:"
+print "Back in main(), Parms are:"
 print parms
-
-# Extract relevant parameter values from parms associative array
-# TODO:  Currently no error checking!
-#FC3DM_utils_path = parms["FC3DM_utils_path"]
-
-# Add the path to our utilities script to the python system path
-#sys.path.append(FC3DM_utils_path)
-
 
 
 ###################################
