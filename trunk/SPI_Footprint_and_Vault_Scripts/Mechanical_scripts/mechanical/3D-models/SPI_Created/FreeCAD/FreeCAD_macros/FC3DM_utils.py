@@ -81,7 +81,7 @@ import cStringIO
 
 ###################################################################
 # is_number
-# Function below was stolen from Daniel Goldberg's post at:
+# 	Function below was stolen from Daniel Goldberg's post at:
 #  http://stackoverflow.com/questions/354038/how-do-i-check-if-a-string-is-a-number-in-python
 ###################################################################
 def is_number(s):
@@ -141,6 +141,44 @@ def FC3DM_ReadIniFile(iniFileName,
                     # Add name=value pair (string value) to our parms associative array
                     # Strip off '"' chars that have somehow propagated to this point
                     parms[name] = value.replace("\"", "")
+
+
+###################################################################
+# FC3DM_ReadIniFiles
+#	Function to read both global and component-specific ini files.
+###################################################################
+def FC3DM_ReadIniFiles(parms):
+
+    ## Prepare to read global ini file.
+    iniFileName = "FC3DM_global.ini"
+
+    # Read global ini file
+    FC3DM_ReadIniFile(iniFileName,
+                      parms)
+
+    # Write parms to console window
+    print "Parms are:"
+    print parms
+
+    ## Prepare to read component-specific ini file.
+    # Extract relevant parameter values from parms associative array
+    # TODO:  Currently no error checking!
+    iniFileName = parms["iniFileName"]
+
+    # Read component-specific ini file
+    FC3DM_ReadIniFile(iniFileName,
+                      parms)
+
+    # Write parms to console window
+    print "Parms are:"
+    print parms
+
+    # Extract relevant parameter values from parms associative array
+    # TODO:  Currently no error checking!
+    #FC3DM_utils_path = parms["FC3DM_utils_path"]
+
+    # Add the path to our utilities script to the python system path
+    #sys.path.append(FC3DM_utils_path)
 
 
 ###################################################################
