@@ -114,7 +114,7 @@ from FC3DM_utils import *
 parms = {}
 
 # Workaround needed because otherwise parms doesn't actually get created until
-# after the function call, and then we have a reference to a blank parms.
+# after the function call, and then we end up with a reference to a blank parms dict.
 parms["foo"] = "bar"
 
 # Read both the global and component-specific ini files.
