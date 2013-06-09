@@ -80,7 +80,7 @@ import string
 import cStringIO
 
 ###################################################################
-# is_number
+# is_number()
 # 	Function below was stolen from Daniel Goldberg's post at:
 #  http://stackoverflow.com/questions/354038/how-do-i-check-if-a-string-is-a-number-in-python
 ###################################################################
@@ -93,7 +93,7 @@ def is_number(s):
 
 
 ###################################################################
-# FC3DM_ReadIniFile
+# FC3DM_ReadIniFile()
 #	Function to read an ini file.  File format is "key=value".
 ###################################################################
 def FC3DM_ReadIniFile(iniFileName,
@@ -142,9 +142,11 @@ def FC3DM_ReadIniFile(iniFileName,
                     # Strip off '"' chars that have somehow propagated to this point
                     parms[name] = value.replace("\"", "")
 
+    return 0
 
+                
 ###################################################################
-# FC3DM_ReadIniFiles
+# FC3DM_ReadIniFiles()
 #	Function to read both global and component-specific ini files.
 ###################################################################
 def FC3DM_ReadIniFiles(parms):
@@ -180,10 +182,12 @@ def FC3DM_ReadIniFiles(parms):
     # Add the path to our utilities script to the python system path
     #sys.path.append(FC3DM_utils_path)
 
+    return 0
+
 
 ###################################################################
-# Function to fillet edges of a given object
-#
+# FC3DM_FilletObjectEdges()
+# 	Function to fillet edges of a given object.
 ###################################################################
 def FC3DM_FilletObjectEdges(App, Gui,
                             docName, filletMe, edges, radius):
@@ -221,8 +225,8 @@ def FC3DM_FilletObjectEdges(App, Gui,
 
 
 ###################################################################
-# Function to fuse two objects together
-#
+# FC3DM_FuseObjects()
+#	Function to fuse two objects together.
 ###################################################################
 def FC3DM_FuseObjects(App, Gui,
                       docName, fuseMe, addMeToFusion):
@@ -253,8 +257,8 @@ def FC3DM_FuseObjects(App, Gui,
 
 
 ###################################################################
-# Function to fuse a set of objects together
-#
+# FC3DM_FuseSetOfObjects()
+#	Function to fuse a set of objects together and preserve face colors.
 ###################################################################
 def FC3DM_FuseSetOfObjects(App, Gui,
                            parms,
@@ -277,21 +281,29 @@ def FC3DM_FuseSetOfObjects(App, Gui,
     Gui.ActiveDocument=Gui.getDocument(docName)
 
     # Create list of objects, starting with object names
-    __objs__=[]
+    objs=[]
     for i in objNameList:
         
-        __objs__.append(App.activeDocument().getObject(i))
+        objs.append(App.activeDocument().getObject(i))
 
-    # Prepare to do the multi-fusion
+    # Do the multi-fusion.  Write to "Temp".
     Gui.activateWorkbench("PartWorkbench")
     App.activeDocument().addObject("Part::MultiFuse","Temp")
-    App.activeDocument().getObject("Temp").Shapes = __objs__
+    App.activeDocument().getObject("Temp").Shapes = objs
     App.ActiveDocument.recompute()
 
-    # TODO:  Preserve face colors for the body and pin1Mark!
-    # Figure out which faces came from the body and pin1Mark and set colors accordingly.
+    # Copy the temp fusion object and call it the desired fusion name
+    newTermShape = FreeCAD.getDocument(docName).getObject("Temp").Shape.copy()
+    newTermObj = App.activeDocument().addObject("Part::Feature", fusionName)
+    newTermObj.Shape = newTermShape
+    App.ActiveDocument.recompute()
 
-    # Loop over all faces in the pin1Mark object
+
+    ### Preserve face colors for the body and pin1Mark!
+    # Cache vertex lists for the body and pin1Mark, so that we may find them later
+    # in the fused object.
+
+    ## Loop over all faces in the pin1Mark object
     pin1MarkVerts=[]
     for i in App.ActiveDocument.getObject(pin1MarkName).Shape.Faces:
         print("Found face in pin1Mark object!")
@@ -308,7 +320,7 @@ def FC3DM_FuseSetOfObjects(App, Gui,
         print "Vertexes for this face are:"
         print buf.getvalue()
 
-    # Loop over all faces in the body object
+    ## Loop over all faces in the body object
     bodyVerts=[]
     for i in App.ActiveDocument.getObject(bodyName).Shape.Faces:
         print("Found face in body object!")
@@ -326,15 +338,43 @@ def FC3DM_FuseSetOfObjects(App, Gui,
         print buf.getvalue()
 
 
-    ## Prepare to compare all faces in the fusion with pin1Mark and body faces
+    ## Loop over all faces in the pin objects
+    pinVerts=[]
+    for k in objNameList:
+
+        # See if this object name is the body or pin 1 marker.
+        if ( (k != bodyName) and (k != pin1MarkName) ):
+
+            print("Found pin object named " + k + ".")
+
+            # Loop over all the vertexes in this face
+            for i in App.ActiveDocument.getObject(k).Shape.Faces:
+                print("Found face in pin object!")
+
+                # Loop over all the vertexes in this face
+                buf = cStringIO.StringIO()
+                for j in i.Vertexes:
+
+                    print >> buf, j.Point
+
+                # Store all the vertexes for this face as a string array
+                pinVerts.append(buf.getvalue())
+
+                print "Vertexes for this face are:"
+                print buf.getvalue()
+
+
+    ## Prepare to compare all faces in the fusion with pin1Mark, pin, and body faces
     faceColors=[]
 
     # Loop over all the faces in the fusion object
-    for xp in App.ActiveDocument.getObject("Temp").Shape.Faces:
-        print("Found face in temp object!")
+    for xp in App.ActiveDocument.getObject(fusionName).Shape.Faces:
+        print("Found face in fusion object!")
 
+        # Clear found flags for pin1Mark, body, and pin
         isPin1Mark = False;
         isBody = False;
+        isPin = False;
 
         # Loop over all the vertexes in this fusion shape face
         buf = cStringIO.StringIO()
@@ -357,6 +397,17 @@ def FC3DM_FuseSetOfObjects(App, Gui,
             if (buf.getvalue() == i):
                 isPin1Mark = True;
 
+        # See if this face is the same as a face from the pin1Mark object
+        for i in pinVerts:
+
+            # I can't get Faces.isSame() to actually work.  That's why I'm doing this
+            # kludge with sprint'ing vertex info to a string.
+#            print xp.isSame(i)
+        
+            # See if the i string (from a pin vertex string) equals our current vertex string
+            if (buf.getvalue() == i):
+                isPin = True;
+
         # See if this face is the same as a face from the body object
         for i in bodyVerts:
 
@@ -368,52 +419,66 @@ def FC3DM_FuseSetOfObjects(App, Gui,
             if (buf.getvalue() == i):
                 isBody = True;
 
-            # TODO:  We need a fuzzy match to compare the IC body sides to the fusion sides.
-            # Currently this doesn't fit an exact match, since the body doesn't have vertexes
-            # for where all the pins hit, but the fusion does!
-                
 
         # See if we found a face that derives from our pin1Mark
         if (isPin1Mark):
 
+            print("Found face in fusion that exactly matched a pin1Mark face.")
+
             # Color Pin1Mark white
             faceColors.append((1.00,1.00,1.00))
 
-        # Else it's not derived from our pin1Mark
+        # See if we found a face that derives from a pin
+        elif (isPin):
+
+            print("Found face in fusion that exactly matched a pin face.")
+
+            # Color pin bright tin.
+            faceColors.append((0.80,0.80,0.75))
+        
+        # See if we found a face that derives from our body
+        elif (isBody):
+
+            print("Found face in fusion that exactly matched a body face.")
+
+            # Color body black
+            faceColors.append((0.10,0.10,0.10))
+
+        # Else we're not sure what it is.  Assume that it's part of the body
+        # that got modified as pins fused to it, and thus wasn't an exact match.
         else:
 
-            # See if we found a face that derives from our body
-            if (isBody):
+            print("Found face in fusion that didn't match a known face!")
+
+            # Count the number of vertex lines in this string.
+            numLines = len(buf.getvalue().splitlines())
+
+            # Empirically I've seen that unmatched pin faces have only 4 vertexes.
+            # TODO:  Will this simple distinction be true for non-gullwing ICs???
+            if (numLines <= 4):
+                print(" numLines is " + str(numLines) + ".  Hoping it's part of a pin!")
+
+                # Color pin bright tin.
+                faceColors.append((0.80,0.80,0.75))
+        
+            # Else we assume that it's part of the body.
+            else:
+           
+                print(" numLines is " + str(numLines) + ".  Hoping it's part of the body!")
 
                 # Color body black
                 faceColors.append((0.10,0.10,0.10))
 
-            # Else this face is part of a pin.
-            else:
-
-                # Color pin bright tin.
-                faceColors.append((0.80,0.80,0.75))
-            
 
     # Now that we have a list of all the face colors that we want, proceed to apply it
     # to the fusion shape.
-    # A special thanks here to FC guru wmayer for his forum post at
+    # A special thanks here to FC guru/author WMayer for his forum post at
     # https://sourceforge.net/apps/phpbb/free-cad/viewtopic.php?f=19&t=4117
     # which pointed me in the right direction to make this actually work.                
-    print("Attempting to set temp face colors")
-    Gui.ActiveDocument.getObject("Temp").DiffuseColor=faceColors
-    App.ActiveDocument.recompute()
-    print("Attempted to set temp face colors")
-
-    # Copy the temp fusion object and call it the desired fusion name
-    newTermShape = FreeCAD.getDocument(docName).getObject("Temp").Shape.copy()
-    newTermObj = App.activeDocument().addObject("Part::Feature", fusionName)
-    newTermObj.Shape = newTermShape
-    App.ActiveDocument.recompute()
-
+    print("Attempting to set fusion face colors")
     Gui.ActiveDocument.getObject(fusionName).DiffuseColor=faceColors
     App.ActiveDocument.recompute()
-
+    print("Attempted to set fusion face colors")
 
     # Delete the original objects that comprised the fusion
     for i in objNameList:
@@ -425,14 +490,14 @@ def FC3DM_FuseSetOfObjects(App, Gui,
     App.ActiveDocument.recompute()
 
     # Deallocate list
-    del __objs__
+    del objs
 
     return 0
 
 
 ###################################################################
-# Function to cut an object with a filleted box that we create for this purpose.
-#
+# FC3DM_CutWithFilletedBox()
+#	Function to cut an object with a filleted box that we create for this purpose.
 ###################################################################
 def FC3DM_CutWithFilletedBox(App, Gui,
                              docName, cutMe,
@@ -487,8 +552,8 @@ def FC3DM_CutWithFilletedBox(App, Gui,
 
 
 ###################################################################
-# Function to cut an object with a box that we create for this purpose.
-#
+# FC3DM_CutWithBox()
+#	Function to cut an object with a box that we create for this purpose.
 ###################################################################
 def FC3DM_CutWithBox(App, Gui,
                      docName, cutMe,
@@ -510,9 +575,9 @@ def FC3DM_CutWithBox(App, Gui,
 
 
 ###################################################################
-# Function to cut an object with a tool object, but keep tool object
-#  when we're all done.
-#
+# FC3DM_CutObjectWithToolAndKeepTool()
+#	Function to cut an object with a tool object, but keep tool
+# object when we're all done.
 ###################################################################
 def FC3DM_CutObjectWithToolAndKeepTool(App, Gui,
                                        docName, cutMe, cuttingTool):
@@ -551,9 +616,9 @@ def FC3DM_CutObjectWithToolAndKeepTool(App, Gui,
 
 
 ###################################################################
-# Function to cut an object with a tool object, but keep tool object
-#  when we're all done.
-#
+# FC3DM_CutObjectWithToolAndDiscardTool
+#	Function to cut an object with a tool object, and discard
+# tool object when we're all done.
 ###################################################################
 def FC3DM_CutObjectWithToolAndDiscardTool(App, Gui,
                                           docName, cutMe, cuttingTool):
@@ -570,8 +635,8 @@ def FC3DM_CutObjectWithToolAndDiscardTool(App, Gui,
 
 
 ###################################################################
-# Function to translate an object in x,y and then rotate it about Z axis
-#
+# FC3DM_TranslateObjectAndRotateAboutZ()
+#	Function to translate an object in x,y and then rotate it about Z axis.
 ###################################################################
 def FC3DM_TranslateObjectAndRotateAboutZ(App, Gui,
                                          docName, rotMe,
@@ -592,8 +657,8 @@ def FC3DM_TranslateObjectAndRotateAboutZ(App, Gui,
 
 
 ###################################################################
-# Function to rotate an object about Z axis
-#
+# FC3DM_RotateObjectAboutZ()
+#	Function to rotate an object about Z axis.
 ###################################################################
 def FC3DM_RotateObjectAboutZ(App, Gui,
                              docName, rotMe, rotDeg):
@@ -607,7 +672,8 @@ def FC3DM_RotateObjectAboutZ(App, Gui,
 
 
 ###################################################################
-# Function to create and place a box
+# FC3DM_CreateBox()
+#	Function to create and place a box.
 #
 # Parameter names are per Mentor LP Wizard tool:
 # L == width of body
@@ -619,8 +685,6 @@ def FC3DM_RotateObjectAboutZ(App, Gui,
 # x == x coordinate of body
 # y == y coordinate of body
 # rotDeg == rotation about Z axis, in degrees
-#
-# def FC3DM_CreateBox
 ###################################################################
 def FC3DM_CreateBox(App, Gui,
                     L, W, H, K,
@@ -651,7 +715,8 @@ def FC3DM_CreateBox(App, Gui,
 
 
 ###################################################################
-# Function to create and place a box
+# FC3DM_CreateAndCenterBox()
+#	Function to create and center a box
 #
 # Parameter names are per Mentor LP Wizard tool:
 # L == width of body
@@ -659,10 +724,8 @@ def FC3DM_CreateBox(App, Gui,
 # H == height of body
 # K == standoff height of body
 #
-# Other parameters
+# Other parameters:
 # rotDeg == rotation about Z axis, in degrees
-#
-# def FC3DM_CreateAndCenterBox
 ###################################################################
 def FC3DM_CreateAndCenterBox(App, Gui,
                              L, W, H, K,
@@ -686,8 +749,8 @@ def FC3DM_CreateAndCenterBox(App, Gui,
 
 
 ###################################################################
-# Function to create a vertical (oriented in Z-axis) cylinder
-#
+# FC3DM_CreateCylinderVert()
+#	Function to create a vertical (oriented in Z-axis) cylinder.
 ###################################################################
 def FC3DM_CreateCylinderVert(App, Gui,
                              docName, cylName, x, y, z, radius, height):
@@ -704,7 +767,8 @@ def FC3DM_CreateCylinderVert(App, Gui,
 
 
 ###################################################################
-# Function to create an IC body
+# FC3DM_CreateIcBody()
+# 	Function to create an IC body
 #
 # Parameter names are per Mentor LP Wizard tool:
 # A == width of body
@@ -718,8 +782,6 @@ def FC3DM_CreateCylinderVert(App, Gui,
 # Hppl == height of low pivot point
 # Frbody == fillet radius (for top and bottom faces)
 # P1markOffset == Offset in X and Y from pin1 corner to start of pin 1 marker
-#
-# def CreateIcBody
 ###################################################################
 def FC3DM_CreateIcBody(App, Gui,
                        parms,
@@ -925,16 +987,20 @@ def FC3DM_CreateIcBody(App, Gui,
 
 
 ###################################################################
+# FC3DM_CreateIcPin()
+#	Function to create a gullwing IC pin.
+#
+# Parameter names are per Mentor LP Wizard tool:
 # L == Overall component width (pin tip to pin tip)
 # A == Overall body width
 # B == Overall body length
 # W == Pin width
 # T == Pin landing length
+#
+# Other parameters:
 # Tp == Pin thickness (z dimension)
 # Fr == Fillet radius for pin edges
 # Hpe == Height of pin entry to body (center)
-#
-# def CreateIcPin
 ###################################################################
 def FC3DM_CreateIcPin(App, Gui,
                       parms,
@@ -1016,7 +1082,9 @@ def FC3DM_CreateIcPin(App, Gui,
 
 
 ###################################################################
-# def CopyObject
+# FC3DM_CopyObject()
+#	Function to copy a FreeCAD object, then translate in x,y
+# and rotate in z.
 ###################################################################
 def FC3DM_CopyObject(App, Gui,
                      x, y, rotDeg,
@@ -1052,7 +1120,9 @@ def FC3DM_CopyObject(App, Gui,
 
 
 ###################################################################
-# def SaveAndExport
+# FC3DM_SaveAndExport()
+#	Function to save a FreeCAD native CAD file, as well as export
+# the specified objects to a STEP file.
 ###################################################################
 def FC3DM_SaveAndExport(App, Gui,
                         docName,
@@ -1080,14 +1150,14 @@ def FC3DM_SaveAndExport(App, Gui,
     App.getDocument(docName).save()
 
     # Create list of objects, starting with object names
-    __objs__=[]
+    objs=[]
     for i in objNameList:
         
-        __objs__.append(FreeCAD.getDocument(docName).getObject(i))
+        objs.append(FreeCAD.getDocument(docName).getObject(i))
 
     # Do export to STEP
     import ImportGui
-    ImportGui.export(__objs__,newStepPathNameExt)
-    del __objs__
+    ImportGui.export(objs,newStepPathNameExt)
+    del objs
     
     return 0
