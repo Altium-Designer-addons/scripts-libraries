@@ -146,7 +146,7 @@
  *  Both of these scripts must be in the same script project.
  *  
  * Notes:
- *  1.  Tested with Altium 10.  (May or may not work with Altium 9--not tested.)
+ *  1.  Tested with Altium 10 & 13.  (May or may not work with Altium 9--not tested.)
  *  2.  Tested with Windows 7 x64.
  *  3.  This file should no longer have TAB characters in it.
  *
@@ -259,7 +259,7 @@ function CLF_ExtrudeGeometricPolygonInto3d(    boardSide         : Integer;
  ***************************************************************************}
 const
 {* Declare the version and name of this script. *}
-   constScriptVersion          = 'v0.15.5 $Revision$';
+   constScriptVersion          = 'v0.15.6 $Revision$';
    constThisScriptNameNoExt    = 'SPI_Cleanup_LPW_Footprint';
    constThisScriptName         = constThisScriptNameNoExt + '.pas';
 {}
@@ -586,7 +586,7 @@ const
 {}
    { Constants for some directory structures. }
    constLpWizardFilesDir           = '..\..\Mentor_LP-Wizard\';
-   constSpi3dModelsDir             = '..\..\..\mechanical\3D-models\SPI_Created\';
+   constSpi3dModelsDir             = '..\..\..\Mechanical\3D-models\TRT_Created\';
 {}
    { Constants describing some Altium behaviors. }
    constAltiumHistoryDir           = 'History';     { Name of annoying History/ dir that is part of all Altium projects. }
@@ -5568,7 +5568,7 @@ begin
    result := 0;
 
    WriteToDebugFile('Hello from CLF_ImportFromPads()');
-   CLF_UpdateGuiStatusMessage('Proceeding to import PADS .asc footprint into Altium.  Click "Next" 8 times.  Then find the hidden Altium window and click "Finish".');
+   CLF_UpdateGuiStatusMessage('Proceeding to import PADS .asc footprint into Altium.  Click "Next" 8 times.  Then click "Finish".');
 
    { Record our original focused project full path. }
    origProjPath        := Workspace.DM_FocusedProject.DM_ProjectFullPath;
@@ -14835,7 +14835,9 @@ end; { end CLF_Create3dExtrudedCompBody() }
 
 {***************************************************************************
  * function CLF_CreateNewFeatures3dCompbody()
- *  Create all new 3D features on the ComptBody layer.
+ *  Create all new 3D features on the CompBody layer.
+ *  This will typically be a pre-created STEP model or an extruded 3D model.
+ *  It may also include 3D text.
  *  
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
