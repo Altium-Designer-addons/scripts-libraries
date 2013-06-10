@@ -1,16 +1,16 @@
 #================================================================================================
 #
-#	@file			FC3DM_TI_PW-20.py
+#	@file			FC3DM_IC_Gullwing.py
 #
-#	@brief			Python script to create a 3D model of TI's 20 pin TSSOP IC package in FreeCAD.
+#	@brief			Python script to create a 3D model of a parameterized Gullwing IC in FreeCAD.
 #
 #	@details		
 #
-#    @version		0.1.12
+#    @version		0.2.0
 #					   $Rev::                                                                        $:
 #	@date			  $Date::                                                                        $:
 #	@author			$Author::                                                                        $:
-#					    $Id::                                                                          $:
+#					    $Id::                                                                             $:
 #
 #	@copyright      Copyright (c) 2012 Sierra Photonics, Inc.  All rights reserved.
 #	
@@ -144,7 +144,7 @@ newModelPathNameExt = newModelPath + newModelName + ".FCStd"
 newStepPathNameExt = newModelPath + newModelName + stepSuffix + stepExt
 
 # Strip out all "-" characters for use as the FreeCAD document name
-docName = string.replace(newModelName, "-", "_")
+docName = string.replace(newModelName + stepSuffix, "-", "_")
 
 # Create new document
 App.newDocument(docName)
@@ -160,184 +160,25 @@ FC3DM_CreateIcBody(App, Gui,
                    parms,
                    docName)
 
-# Call CreateIcPin() to create first (template) IC pin
-FC3DM_CreateIcPin(App, Gui,
-                  parms,
-                  docName)
-
-# Copy IC pins to other locations
-rotDeg = 0.0
-x = 0.0
-y = (0 * 0.65) + (0.5*0.65)
-FC3DM_CopyObject(App, Gui,
-                 x, y, rotDeg,
-                 docName,
-                 pinName,
-                 "Pin16")
-
-y = (1 * 0.65) + (0.5*0.65)
-FC3DM_CopyObject(App, Gui,
-                 x, y, rotDeg,
-                 docName,
-                 pinName,
-                 "Pin17")
-
-y = (2 * 0.65) + (0.5*0.65)
-FC3DM_CopyObject(App, Gui,
-                 x, y, rotDeg,
-                 docName,
-                 pinName,
-                 "Pin18")
-
-y = (3 * 0.65) + (0.5*0.65)
-FC3DM_CopyObject(App, Gui,
-                 x, y, rotDeg,
-                 docName,
-                 pinName,
-                 "Pin19")
-
-y = (4 * 0.65) + (0.5*0.65)
-FC3DM_CopyObject(App, Gui,
-                 x, y, rotDeg,
-                 docName,
-                 pinName,
-                 "Pin20")
-
-
-y = (0 * 0.65) - (0.5*0.65)
-FC3DM_CopyObject(App, Gui,
-                 x, y, rotDeg,
-                 docName,
-                 pinName,
-                 "Pin15")
-
-y = (-1 * 0.65) - (0.5*0.65)
-FC3DM_CopyObject(App, Gui,
-                 x, y, rotDeg,
-                 docName,
-                 pinName,
-                 "Pin14")
-
-y = (-2 * 0.65) - (0.5*0.65)
-FC3DM_CopyObject(App, Gui,
-                 x, y, rotDeg,
-                 docName,
-                 pinName,
-                 "Pin13")
-
-y = (-3 * 0.65) - (0.5*0.65)
-FC3DM_CopyObject(App, Gui,
-                 x, y, rotDeg,
-                 docName,
-                 pinName,
-                 "Pin12")
-
-y = (-4 * 0.65) - (0.5*0.65)
-FC3DM_CopyObject(App, Gui,
-                 x, y, rotDeg,
-                 docName,
-                 pinName,
-                 "Pin11")
-
-
-rotDeg = 180.0
-x = 0.0
-y = (0 * 0.65) + (0.5*0.65)
-FC3DM_CopyObject(App, Gui,
-                 x, y, rotDeg,
-                 docName,
-                 pinName,
-                 "Pin5")
-
-y = (1 * 0.65) + (0.5*0.65)
-FC3DM_CopyObject(App, Gui,
-                 x, y, rotDeg,
-                 docName,
-                 pinName,
-                 "Pin4")
-
-y = (2 * 0.65) + (0.5*0.65)
-FC3DM_CopyObject(App, Gui,
-                 x, y, rotDeg,
-                 docName,
-                 pinName,
-                 "Pin3")
-
-y = (3 * 0.65) + (0.5*0.65)
-FC3DM_CopyObject(App, Gui,
-                 x, y, rotDeg,
-                 docName,
-                 pinName,
-                 "Pin2")
-
-y = (4 * 0.65) + (0.5*0.65)
-FC3DM_CopyObject(App, Gui,
-                 x, y, rotDeg,
-                 docName,
-                 pinName,
-                 "Pin1")
-
-
-y = (0 * 0.65) - (0.5*0.65)
-FC3DM_CopyObject(App, Gui,
-                 x, y, rotDeg,
-                 docName,
-                 pinName,
-                 "Pin6")
-
-y = (-1 * 0.65) - (0.5*0.65)
-FC3DM_CopyObject(App, Gui,
-                 x, y, rotDeg,
-                 docName,
-                 pinName,
-                 "Pin7")
-
-y = (-2 * 0.65) - (0.5*0.65)
-FC3DM_CopyObject(App, Gui,
-                 x, y, rotDeg,
-                 docName,
-                 pinName,
-                 "Pin8")
-
-y = (-3 * 0.65) - (0.5*0.65)
-FC3DM_CopyObject(App, Gui,
-                 x, y, rotDeg,
-                 docName,
-                 pinName,
-                 "Pin9")
-
-y = (-4 * 0.65) - (0.5*0.65)
-FC3DM_CopyObject(App, Gui,
-                 x, y, rotDeg,
-                 docName,
-                 pinName,
-                 "Pin10")
-
-
-# Remove the pin template object
-App.getDocument(docName).removeObject(pinName)
-
-# Color body black FIXME!
-FreeCADGui.getDocument(docName).getObject(bodyName).ShapeColor = (0.10,0.10,0.10)
-#FreeCADGui.getDocument(docName).getObject(bodyName).ShapeColor = (0.0,1.0,0.0)
-App.ActiveDocument.recompute()
-
-# Color pins
-FreeCADGui.getDocument(docName).getObject("Pin1").ShapeColor = (0.0,0.0,1.0)
-App.ActiveDocument.recompute()
-
+# Create all IC gullwing pins
+pinNames = list()
+FC3DM_CreateIcPins(App, Gui,
+                   parms, pinNames,
+                   docName)
 
 # Fuse all objects together & retain proper coloring
-objNameList = [bodyName, pin1MarkName, "Pin1", "Pin2", "Pin3", "Pin4", "Pin5", "Pin6", "Pin7", "Pin8", "Pin9", "Pin10", "Pin11", "Pin12", "Pin13", "Pin14", "Pin15", "Pin16", "Pin17", "Pin18", "Pin19", "Pin20"]
-fusionName = "Final"
+objNameList = list(pinNames)
+objNameList.append(bodyName)
+objNameList.append(pin1MarkName)
+fusionName = docName
 FC3DM_FuseSetOfObjects(App, Gui,
                        parms,
                        docName, objNameList, fusionName)
 
-
 # Zoom in
 App.ActiveDocument.recompute()
 Gui.SendMsgToActiveView("ViewFit")
+
 
 ## Save file to native format and export to STEP
 objNameList = [fusionName]

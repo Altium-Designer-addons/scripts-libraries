@@ -6,7 +6,7 @@
 #
 #	@details		
 #
-#    @version		0.2.0
+#    @version		0.3.0
 #					   $Rev::                                                                        $:
 #	@date			  $Date::                                                                        $:
 #	@author			$Author::                                                                        $:
@@ -78,6 +78,7 @@ import Part
 import math
 import string
 import cStringIO
+import sys
 
 ###################################################################
 # is_number()
@@ -91,6 +92,30 @@ def is_number(s):
     except ValueError:
         return False
 
+
+###################################################################
+# FC3DM_SortPinNames()
+#	Function to do custom comparison for pin names.
+###################################################################
+def FC3DM_SortPinNames(a, b):
+
+    # Strip off leading "Pin" from a & b pin names
+    aStr = a.replace("Pin", "");
+    bStr = b.replace("Pin", "");
+
+    ## TODO:  Support BGA pin names, as well as "EP"!
+
+    # Convert remaining name to integer
+    aInt = int(aStr);
+    bInt = int(bStr);
+    
+    if aInt > bInt:
+        return 1
+    elif aInt == bInt:
+        return 0
+    else:
+        return -1
+    
 
 ###################################################################
 # FC3DM_ReadIniFile()
@@ -1077,6 +1102,115 @@ def FC3DM_CreateIcPin(App, Gui,
 
     # Color pin bright tin
 #    Gui.getDocument(docName).getObject(pinsName).ShapeColor = (0.80,0.80,0.75)
+
+    return 0
+
+
+###################################################################
+# FC3DM_CreateIcPins()
+#	Function to create all gullwing IC pins.
+###################################################################
+def FC3DM_CreateIcPins(App, Gui,
+                       parms, pinNames,
+                       docName):
+                
+    print("Hello from FC3DM_CreateIcPins()!")
+
+    # Call CreateIcPin() to create first (template) IC pin
+    FC3DM_CreateIcPin(App, Gui,
+                      parms,
+                      docName)
+
+    print("Back from FC3DM_CreateIcPin()")
+
+    # Extract relevant parameter values from parms associative array
+    # TODO:  Currently no error checking!
+    pinName = parms["pinName"]
+
+    # Configure active document
+    App.ActiveDocument=None
+    Gui.ActiveDocument=None
+    App.setActiveDocument(docName)
+    App.ActiveDocument=App.getDocument(docName)
+    Gui.ActiveDocument=Gui.getDocument(docName)
+
+    # Loop over all the entries in the parms array
+    for parm in parms:
+
+        print("Examining parm " + parm + ".")
+
+        # See if this parm is a pin definition
+        if parm.startswith("Pin"): #and (parm != pinName) ):
+
+            # Add this pin to the pinNames list.
+            print("Found pin named " + parm + ".")
+            pinNames.append(parm)
+
+    # Sort the list of pinNames, using our custom pin name sort function.
+    pinNames.sort(FC3DM_SortPinNames)
+
+    print("pinNames is:")
+    print(pinNames)
+
+    # Loop over all the pin names.
+    for pin in pinNames:
+
+        # Split the pin definition string on ',' chars.
+        # Format is "type, side, x, y"
+        lis = []
+        lis = parms[pin].rsplit(",")
+
+        # Sanity check that we have exactly 4 fields in the list
+        if (len(lis) != 4):
+            print("Expected to find 4 fields in pin description.  Actually saw " + str(len(lis)) + "!")
+            sys.exit(-1)
+
+        print("Found pin named " + pin + ", lis is:")
+        print(lis)
+
+        ## Examine pin type
+        if (lis[0] != "Gullwing"):
+            print("Unsupported pin type " + lis[0])
+            sys.exit(-1)
+
+        ## Examine pin side
+        # Look for an east side pin.
+        if (lis[1] == "East"):
+
+            # Our template pin was created on the east side, so no rotation required.
+            rotDeg = 0.0
+
+        # Else see if this is a west side pin.
+        elif (lis[1] == "West"):
+
+            # Our template pin was created on the east side, so rotate 180 degrees
+            rotDeg = 180.0
+
+        # Else unsupported!
+        else:
+            print("Unsupported pin side " + lis[1])
+            sys.exit(-1)
+
+        ## Get pin x coordinate
+        # Currently we're ignoring this datum from the ini file.
+        # The way we currently have things arranged, x is either 0.0 because this pin
+        # is on the same (East) side as our template pin.  Or else it's 0.0 because this
+        # pin will get rotated 180deg around to the West side.
+        # TODO:  Revisit this for QFNs, QFPs, BGAs, etc.!
+        x = 0.0
+
+        ## Get pin y coordinate
+        y = float(lis[3])
+
+        ## Copy template pin to the commanded location
+        FC3DM_CopyObject(App, Gui,
+                         x, y, rotDeg,
+                         docName,
+                         pinName,
+                         pin)
+
+    # Remove the pin template object
+    App.getDocument(docName).removeObject(pinName)
 
     return 0
 
