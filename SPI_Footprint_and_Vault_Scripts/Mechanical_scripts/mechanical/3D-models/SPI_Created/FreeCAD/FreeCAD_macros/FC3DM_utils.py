@@ -6,7 +6,7 @@
 #
 #	@details		
 #
-#    @version		0.3.1
+#    @version		0.3.2
 #					   $Rev::                                                                        $:
 #	@date			  $Date::                                                                        $:
 #	@author			$Author::                                                                        $:
@@ -237,6 +237,8 @@ def FC3DM_ReadIniFiles(parms):
     parms["logFilePathNameExt"] = logFilePathNameExt
     parms["docName"] = docName
 
+    ## Remove bogus parms
+    del parms["foo"]
 
     # Write parms to console window
     print "Parms are:"
@@ -963,8 +965,6 @@ def FC3DM_CreateIcBody(App, Gui,
     bodyName = parms["bodyName"]
     pin1MarkName = parms["pin1MarkName"]
 
-#    markHeight = parms["foo"]
-
     print "docName is :" + docName + ":"
     print "bodyName is:" + bodyName + ":"
     print "B is       :" + str(B) + ":"
@@ -1071,54 +1071,46 @@ def FC3DM_CreateIcBody(App, Gui,
                              docName, bodyName, 90)
 
 
-    # Fillet all edges on the bottom faces
-    edges=["Edge4","Edge6","Edge14","Edge11"]
+    ## Attempt to analyze the faces in the body, to find which ones to fillet.
+    # Loop over all the faces in this pin.
+    print("Here are the edges!")
+    numEdges = len(App.ActiveDocument.getObject(bodyName).Shape.Edges)
+    print(" Number of edges is " + str(numEdges))
+
+    # Workaround for the fact that edge.Name doesn't work.
+    # Since we now know the number of edges, and we know FC's naming convention, we shall
+    # iterate through the edges by name, rather than by reference.
+#    for edgeNum in range(1, numEdges):
+
+#        edgeName = "Edge" + str(edgeNum)
+#        print("Examining " + edgeName)
+
+#        edge = App.ActiveDocument.getObject(edgeName)
+
+
+    # Attempt to iterate over all the edges in the shape.
+    # For each edge, analyze its vertexes and find ones that are on the top or bottom faces.
+    # Then select such edges for filleting.
+    # The problem is that I can't find a way to extract the edge name.
+    # Thus, this is currently useless.
+    for edge in App.ActiveDocument.getObject(bodyName).Shape.Edges:
+        print edge #.PropertiesList #Label #str(edge)
+
+        # Loop over all the vertexes in this edge
+        for vertex in edge.Vertexes:
+            
+            # Write this vertex
+            print(str(vertex.Point))
+
+
+    ## Fillet all edges on the top & bottom faces
+    # Note:  Do them all at once, because I've had a hard time with finding edge names on
+    # the top face after filleting the bottom face, and vice versa.
+    # TODO:  This is currently hardcoded!
+    # TODO:  This must be revisited for SOIC (due to chamfer), QFN, BGA, etc.!
+    edges=["Edge4","Edge6","Edge14","Edge11","Edge9","Edge17","Edge19","Edge20"]
     FC3DM_FilletObjectEdges(App, Gui,
                             docName, bodyName, edges, Frbody)
-
-
-
-## I can't get the filleting of the top faces to work at all right now.  Commenting out.
-
-##	edges=[]
-##    edges.append("Edge20")
-#
-#    edges=["Edge16"]
-#
-#    # Fillet edges on top faces
-##    FC3DM_FilletObjectEdges(App, Gui,
-##                            docName, bodyName, edges, Frbody)
-##    del __edges__
-#
-##    edges=["Edge1"]
-#
-#    # Fillet edges on top faces
-##    FC3DM_FilletObjectEdges(App, Gui,
-##                            docName, bodyName, edges, Frbody)
-#
-#
-#    ## Fillet all edges on the top faces
-#    # If the 2 pivot points are the same Z coordinate, then we have fewer edges than normal
-#    if (Hpph == Hppl) :
-#        edges2=["Edge24"]
-#
-#    else :
-#        edges2=["Edge27"] #["Edge28","Edge27","Edge12"] #["Edge20"] #["Edge25"] #,"Edge20","Edge28","Edge29"] # FIXME:  These are certainly wrong!
-#
-#    # Fillet edges on top faces
-#    FC3DM_FilletObjectEdges(App, Gui,
-#                            docName, bodyName, edges2, Frbody)
-#
-#
-##    del edges
-##	edges=[]
-##    edges.append("Edge5") #["Edge25"] #,"Edge20","Edge28","Edge29"] # FIXME:  These are certainly wrong!
-#
-#    # Fillet edges on top faces
-#    edges=["Edge5"]
-##    FC3DM_FilletObjectEdges(App, Gui,
-##                            docName, bodyName, edges, Frbody)
-
 
 
     ## Prepare to make pin 1 marker
