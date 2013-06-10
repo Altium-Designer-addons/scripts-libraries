@@ -6,7 +6,7 @@
 #
 #	@details		
 #
-#    @version		0.3.0
+#    @version		0.3.1
 #					   $Rev::                                                                        $:
 #	@date			  $Date::                                                                        $:
 #	@author			$Author::                                                                        $:
@@ -99,22 +99,35 @@ def is_number(s):
 ###################################################################
 def FC3DM_SortPinNames(a, b):
 
-    # Strip off leading "Pin" from a & b pin names
-    aStr = a.replace("Pin", "");
-    bStr = b.replace("Pin", "");
+    # See if we're even sorting a pair of valid pin names
+    if (a.startswith("Pin") and b.startswith("Pin")):
 
-    ## TODO:  Support BGA pin names, as well as "EP"!
+        # Strip off anything after an '=' char.
+        tup = a.partition('=')
+        a = tup[0];
+        tup = b.partition('=')
+        b = tup[0];
 
-    # Convert remaining name to integer
-    aInt = int(aStr);
-    bInt = int(bStr);
-    
-    if aInt > bInt:
-        return 1
-    elif aInt == bInt:
-        return 0
+        # Strip off leading "Pin" from a & b pin names
+        aStr = a.replace("Pin", "");
+        bStr = b.replace("Pin", "");
+
+        ## TODO:  Support BGA pin names, as well as "EP"!
+
+        # Convert remaining name to integer
+        aInt = int(aStr);
+        bInt = int(bStr);
+
+        if aInt > bInt:
+            return 1
+        elif aInt == bInt:
+            return 0
+        else:
+            return -1
+
+    # Else at least one of these is not a valid pin name.  Do simple comparison using builtin.
     else:
-        return -1
+        return cmp(a,b)
     
 
 ###################################################################
@@ -196,16 +209,38 @@ def FC3DM_ReadIniFiles(parms):
     FC3DM_ReadIniFile(iniFileName,
                       parms)
 
+    ## Set standard colors for our component
+    # TODO:  We should be reading these from ini file also!
+    parms["colorPin1Mark"] = ((1.00,1.00,1.00)) # White for pin1Mark
+    parms["colorPins"] = ((0.80,0.80,0.75)) 	# Bright tin for all pins
+    parms["colorBody"] = ((0.10,0.10,0.10))	# Black for body    
+
+
+    ## Extract relevant parameter values from parms associative array
+    # TODO:  Currently no error checking!
+    newModelPath = parms["newModelPath"]
+    newModelName = parms["newModelName"]
+    stepSuffix = parms["stepSuffix"]
+    stepExt = parms["stepExt"]
+
+    ## Calculate derived strings
+    newModelPathNameExt = newModelPath + newModelName + ".FCStd"
+    newStepPathNameExt = newModelPath + newModelName + stepSuffix + stepExt
+    logFilePathNameExt = newModelPath + newModelName + stepSuffix + ".log"
+
+    # Strip out all "-" characters for use as the FreeCAD document name
+    docName = string.replace(newModelName + stepSuffix, "-", "_")
+
+    ## Store derived strings to parms
+    parms["newModelPathNameExt"] = newModelPathNameExt
+    parms["newStepPathNameExt"] = newStepPathNameExt
+    parms["logFilePathNameExt"] = logFilePathNameExt
+    parms["docName"] = docName
+
+
     # Write parms to console window
     print "Parms are:"
     print parms
-
-    # Extract relevant parameter values from parms associative array
-    # TODO:  Currently no error checking!
-    #FC3DM_utils_path = parms["FC3DM_utils_path"]
-
-    # Add the path to our utilities script to the python system path
-    #sys.path.append(FC3DM_utils_path)
 
     return 0
 
@@ -246,6 +281,105 @@ def FC3DM_FilletObjectEdges(App, Gui,
     # Remove the fillet itself
     App.getDocument(docName).removeObject("Fillet")
 
+    return 0
+
+
+###################################################################
+# FC3DM_DescribeObjectsToLogFile()
+#	Function to describe all objects to a log file.
+###################################################################
+def FC3DM_DescribeObjectsToLogFile(App, Gui,
+                                   parms, pinNames,
+                                   docName):
+
+    # Extract relevant parameter values from parms associative array
+    # TODO:  Currently no error checking!
+    bodyName = parms["bodyName"]
+    pin1MarkName = parms["pin1MarkName"]
+    logFilePathNameExt = parms["logFilePathNameExt"]
+
+    # Init
+    App.ActiveDocument=None
+    Gui.ActiveDocument=None
+    App.setActiveDocument(docName)
+    App.ActiveDocument=App.getDocument(docName)
+    Gui.ActiveDocument=Gui.getDocument(docName)
+
+    ## Dump all parms to string list
+    strList = list()
+
+    # Loop over all parms
+    for parm in parms:
+
+        # Append this to string list
+        strList.append(parm + "=" + str(parms[parm]))
+
+    # Sort the string list
+    strList.sort(FC3DM_SortPinNames)
+
+    ## Open the logfile
+    fileP = open(logFilePathNameExt, 'w')
+
+    # Log all the parms to logfile
+    fileP.write("Parms:\n")
+    for i in strList:
+        fileP.write(i + '\n')
+
+    ## Log all pin vertices to logfile.
+    # Loop over all the pin names.
+    for pin in pinNames:
+
+        # Declare the name of this object
+        fileP.write("\n" + pin + ':\n')
+
+        # Declare the soon-to-be color of this object
+        fileP.write("Color " + str(parms["colorPins"]) + "\n")
+
+        # Loop over all the faces in this pin.
+        for face in App.ActiveDocument.getObject(pin).Shape.Faces:
+
+            # Loop over all the vertexes in this pin
+            for vertex in face.Vertexes:
+
+                # Write this vertex to file
+                fileP.write(str(vertex.Point) + '\n')
+
+    ## Log all body vertices to logfile.
+    # Declare the name of this object
+    fileP.write("\n" + bodyName + ':\n')
+
+    # Declare the soon-to-be color of this object
+    fileP.write("Color " + str(parms["colorBody"]) + "\n")
+
+    # Loop over all the faces in this body.
+    for face in App.ActiveDocument.getObject(bodyName).Shape.Faces:
+
+        # Loop over all the vertexes in this body
+        for vertex in face.Vertexes:
+
+            # Write this vertex to file
+            fileP.write(str(vertex.Point) + '\n')
+
+    ## Log all pin1Mark vertices to logfile.
+    # Declare the name of this object
+    fileP.write("\n" + pin1MarkName + ':\n')
+
+    # Declare the soon-to-be color of this object
+    fileP.write("Color " + str(parms["colorPin1Mark"]) + "\n")
+
+    # Loop over all the faces in this pin1Mark.
+    for face in App.ActiveDocument.getObject(pin1MarkName).Shape.Faces:
+
+        # Loop over all the vertexes in this pin1Mark
+        for vertex in face.Vertexes:
+
+            # Write this vertex to file
+            fileP.write(str(vertex.Point) + '\n')
+
+
+    # Close the logfile
+    fileP.close()
+        
     return 0
 
 
@@ -451,7 +585,7 @@ def FC3DM_FuseSetOfObjects(App, Gui,
             print("Found face in fusion that exactly matched a pin1Mark face.")
 
             # Color Pin1Mark white
-            faceColors.append((1.00,1.00,1.00))
+            faceColors.append(parms["colorPin1Mark"])
 
         # See if we found a face that derives from a pin
         elif (isPin):
@@ -459,7 +593,7 @@ def FC3DM_FuseSetOfObjects(App, Gui,
             print("Found face in fusion that exactly matched a pin face.")
 
             # Color pin bright tin.
-            faceColors.append((0.80,0.80,0.75))
+            faceColors.append(parms["colorPins"])
         
         # See if we found a face that derives from our body
         elif (isBody):
@@ -467,7 +601,7 @@ def FC3DM_FuseSetOfObjects(App, Gui,
             print("Found face in fusion that exactly matched a body face.")
 
             # Color body black
-            faceColors.append((0.10,0.10,0.10))
+            faceColors.append(parms["colorBody"])
 
         # Else we're not sure what it is.  Assume that it's part of the body
         # that got modified as pins fused to it, and thus wasn't an exact match.
@@ -484,7 +618,7 @@ def FC3DM_FuseSetOfObjects(App, Gui,
                 print(" numLines is " + str(numLines) + ".  Hoping it's part of a pin!")
 
                 # Color pin bright tin.
-                faceColors.append((0.80,0.80,0.75))
+                faceColors.append(parms["colorPins"])
         
             # Else we assume that it's part of the body.
             else:
@@ -492,7 +626,7 @@ def FC3DM_FuseSetOfObjects(App, Gui,
                 print(" numLines is " + str(numLines) + ".  Hoping it's part of the body!")
 
                 # Color body black
-                faceColors.append((0.10,0.10,0.10))
+                faceColors.append(parms["colorBody"])
 
 
     # Now that we have a list of all the face colors that we want, proceed to apply it
@@ -1100,9 +1234,6 @@ def FC3DM_CreateIcPin(App, Gui,
     # Color pin red.  FIXME--remove this!
     Gui.getDocument(docName).getObject(pinName).ShapeColor = (1.00,0.00,0.00)
 
-    # Color pin bright tin
-#    Gui.getDocument(docName).getObject(pinsName).ShapeColor = (0.80,0.80,0.75)
-
     return 0
 
 
@@ -1140,7 +1271,7 @@ def FC3DM_CreateIcPins(App, Gui,
         print("Examining parm " + parm + ".")
 
         # See if this parm is a pin definition
-        if parm.startswith("Pin"): #and (parm != pinName) ):
+        if parm.startswith("Pin"):
 
             # Add this pin to the pinNames list.
             print("Found pin named " + parm + ".")
@@ -1246,10 +1377,6 @@ def FC3DM_CopyObject(App, Gui,
     Color = Gui.getDocument(docName).getObject(objName).ShapeColor
     Gui.getDocument(docName).getObject(newObjName).ShapeColor = Color
     
-#    Color = App.ActiveDocument.getObject(objName).ShapeColor
-#    App.ActiveDocument.getObject(newObjName).ShapeColor = Color
-    
-
     return 0
 
 
@@ -1260,10 +1387,14 @@ def FC3DM_CopyObject(App, Gui,
 ###################################################################
 def FC3DM_SaveAndExport(App, Gui,
                         docName,
-                        newModelPathNameExt,
-                        newStepPathNameExt,
+                        parms,
                         objNameList):
     
+    # Extract relevant parameter values from parms associative array
+    # TODO:  Currently no error checking!
+    newModelPathNameExt = parms["newModelPathNameExt"]
+    newStepPathNameExt = parms["newStepPathNameExt"]
+
     ## Save to disk in native format
     App.ActiveDocument=None
     Gui.ActiveDocument=None

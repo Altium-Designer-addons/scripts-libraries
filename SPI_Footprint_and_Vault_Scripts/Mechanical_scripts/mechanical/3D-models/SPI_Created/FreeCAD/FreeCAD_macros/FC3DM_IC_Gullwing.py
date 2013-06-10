@@ -6,7 +6,7 @@
 #
 #	@details		
 #
-#    @version		0.2.0
+#    @version		0.2.1
 #					   $Rev::                                                                        $:
 #	@date			  $Date::                                                                        $:
 #	@author			$Author::                                                                        $:
@@ -131,20 +131,9 @@ print parms
 
 # Extract relevant parameter values from parms associative array
 # TODO:  Currently no error checking!
-newModelPath = parms["newModelPath"]
-newModelName = parms["newModelName"]
-stepSuffix = parms["stepSuffix"]
-pinName = parms["pinName"]
 pin1MarkName = parms["pin1MarkName"]
 bodyName = parms["bodyName"]
-stepExt = parms["stepExt"]
-
-# Calculate derived strings
-newModelPathNameExt = newModelPath + newModelName + ".FCStd"
-newStepPathNameExt = newModelPath + newModelName + stepSuffix + stepExt
-
-# Strip out all "-" characters for use as the FreeCAD document name
-docName = string.replace(newModelName + stepSuffix, "-", "_")
+docName = parms["docName"]
 
 # Create new document
 App.newDocument(docName)
@@ -166,6 +155,11 @@ FC3DM_CreateIcPins(App, Gui,
                    parms, pinNames,
                    docName)
 
+# Describe all objects in this component to a logfile.
+FC3DM_DescribeObjectsToLogFile(App, Gui,
+                               parms, pinNames,
+                               docName)
+
 # Fuse all objects together & retain proper coloring
 objNameList = list(pinNames)
 objNameList.append(bodyName)
@@ -184,7 +178,6 @@ Gui.SendMsgToActiveView("ViewFit")
 objNameList = [fusionName]
 FC3DM_SaveAndExport(App, Gui,
                     docName,
-                    newModelPathNameExt,
-                    newStepPathNameExt,
+                    parms,
                     objNameList)
 
