@@ -1,0 +1,4 @@
+#!/bin/sh
+
+# Simple script to push our altium_delphi.el mode script to xemacs site-lisp
+cp -p altium_delphi.el /usr/share/xemacs-21.4.22/lisp/
