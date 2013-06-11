@@ -6,7 +6,7 @@
 #
 #	@details		
 #
-#    @version		0.2.1
+#    @version		0.2.2
 #					   $Rev::                                                                        $:
 #	@date			  $Date::                                                                        $:
 #	@author			$Author::                                                                        $:
@@ -95,6 +95,12 @@ print("cwd is :" + cwd + ":")
 # Note:  In absence of this file being in our cwd, FreeCAD may need to be passed a
 # "-p path" command line parameter!
 sys.path.append(cwd)
+
+## Get path to this script
+#scriptPath, fr = os.path.split(sys.argv[0]) #__path__)
+scriptPath = os.getcwd()
+sys.path.append(scriptPath)
+
     
 # Import our utilities module
 import FC3DM_utils
@@ -118,7 +124,7 @@ parms = {}
 parms["foo"] = "bar"
 
 # Read both the global and component-specific ini files.
-FC3DM_ReadIniFiles(parms)
+FC3DM_ReadIniFiles(scriptPath, parms)
 
 # Write parms to console window
 print "Back in main(), Parms are:"
