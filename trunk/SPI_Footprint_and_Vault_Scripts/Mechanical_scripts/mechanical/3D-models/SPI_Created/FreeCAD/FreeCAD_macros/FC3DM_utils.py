@@ -6,7 +6,7 @@
 #
 #	@details		
 #
-#    @version		0.3.3
+#    @version		0.3.4
 #					   $Rev::                                                                        $:
 #	@date			  $Date::                                                                        $:
 #	@author			$Author::                                                                        $:
@@ -79,6 +79,7 @@ import math
 import string
 import cStringIO
 import sys
+import os
 
 ###################################################################
 # is_number()
@@ -187,14 +188,11 @@ def FC3DM_ReadIniFile(iniFileName,
 # FC3DM_ReadIniFiles()
 #	Function to read both global and component-specific ini files.
 ###################################################################
-def FC3DM_ReadIniFiles(parms):
+def FC3DM_ReadIniFiles(scriptPath, parms):
 
     ## Prepare to read global ini file.
-    # Get the path to our current script file.
-    iniFileName = os.path.realpath(__file__)
-
     # Append ini file name.
-    iniFileName = iniFileName + "\\" + "FC3DM_global.ini"
+    iniFileName = scriptPath + "\\" + "FC3DM_global.ini"
 
     # Read global ini file
     FC3DM_ReadIniFile(iniFileName,
@@ -209,7 +207,7 @@ def FC3DM_ReadIniFiles(parms):
     # TODO:  Currently no error checking!
     # Note:  Assumes that iniFileName from file is a relative directory!
     #  Thus, we must pre-pend our path to this.
-    iniFileName = os.path.realpath(__file__) + "\\" + parms["iniFileName"]
+    iniFileName = scriptPath + "\\" + parms["iniFileName"]
 
     # Read component-specific ini file
     FC3DM_ReadIniFile(iniFileName,
