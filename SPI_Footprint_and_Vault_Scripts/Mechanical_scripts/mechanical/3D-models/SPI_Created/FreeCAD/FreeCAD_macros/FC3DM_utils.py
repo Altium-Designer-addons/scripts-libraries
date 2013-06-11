@@ -6,7 +6,7 @@
 #
 #	@details		
 #
-#    @version		0.3.2
+#    @version		0.3.3
 #					   $Rev::                                                                        $:
 #	@date			  $Date::                                                                        $:
 #	@author			$Author::                                                                        $:
@@ -190,7 +190,11 @@ def FC3DM_ReadIniFile(iniFileName,
 def FC3DM_ReadIniFiles(parms):
 
     ## Prepare to read global ini file.
-    iniFileName = "FC3DM_global.ini"
+    # Get the path to our current script file.
+    iniFileName = os.path.realpath(__file__)
+
+    # Append ini file name.
+    iniFileName = iniFileName + "\\" + "FC3DM_global.ini"
 
     # Read global ini file
     FC3DM_ReadIniFile(iniFileName,
@@ -203,7 +207,9 @@ def FC3DM_ReadIniFiles(parms):
     ## Prepare to read component-specific ini file.
     # Extract relevant parameter values from parms associative array
     # TODO:  Currently no error checking!
-    iniFileName = parms["iniFileName"]
+    # Note:  Assumes that iniFileName from file is a relative directory!
+    #  Thus, we must pre-pend our path to this.
+    iniFileName = os.path.realpath(__file__) + "\\" + parms["iniFileName"]
 
     # Read component-specific ini file
     FC3DM_ReadIniFile(iniFileName,
