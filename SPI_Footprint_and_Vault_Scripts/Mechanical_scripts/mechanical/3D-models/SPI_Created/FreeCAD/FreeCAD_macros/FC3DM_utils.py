@@ -6,7 +6,7 @@
 #
 #	@details		
 #
-#    @version		0.3.4
+#    @version		0.3.5
 #					   $Rev::                                                                        $:
 #	@date			  $Date::                                                                        $:
 #	@author			$Author::                                                                        $:
@@ -80,6 +80,8 @@ import string
 import cStringIO
 import sys
 import os
+
+scriptPathUtils = ""
 
 ###################################################################
 # is_number()
@@ -189,6 +191,10 @@ def FC3DM_ReadIniFile(iniFileName,
 #	Function to read both global and component-specific ini files.
 ###################################################################
 def FC3DM_ReadIniFiles(scriptPath, parms):
+
+    # Store to global variable
+    global scriptPathUtils
+    scriptPathUtils = scriptPath
 
     ## Prepare to read global ini file.
     # Append ini file name.
@@ -1290,7 +1296,7 @@ def FC3DM_CreateIcPins(App, Gui,
         # Sanity check that we have exactly 4 fields in the list
         if (len(lis) != 4):
             print("Expected to find 4 fields in pin description.  Actually saw " + str(len(lis)) + "!")
-            sys.exit(-1)
+            FC3DM_MyExit(-1)
 
         print("Found pin named " + pin + ", lis is:")
         print(lis)
@@ -1298,7 +1304,7 @@ def FC3DM_CreateIcPins(App, Gui,
         ## Examine pin type
         if (lis[0] != "Gullwing"):
             print("Unsupported pin type " + lis[0])
-            sys.exit(-1)
+            FC3DM_MyExit(-1)
 
         ## Examine pin side
         # Look for an east side pin.
@@ -1316,7 +1322,7 @@ def FC3DM_CreateIcPins(App, Gui,
         # Else unsupported!
         else:
             print("Unsupported pin side " + lis[1])
-            sys.exit(-1)
+            FC3DM_MyExit(-1)
 
         ## Get pin x coordinate
         # Currently we're ignoring this datum from the ini file.
@@ -1422,3 +1428,25 @@ def FC3DM_SaveAndExport(App, Gui,
     del objs
     
     return 0
+
+
+###################################################################
+# FC3DM_MyExit()
+#	Function to write our return code to "rc file" and then exit.
+###################################################################
+def FC3DM_MyExit(rc):    
+
+    ## Open the rc file
+    fileP = open(scriptPathUtils + '\\python.rc', 'w')
+
+    # Write return code to file
+    fileP.write(str(rc))
+
+    # Close the rc file
+    fileP.close()
+
+    # Actually do the sys.exit() call
+    sys.exit(rc)
+
+    return 0
+
