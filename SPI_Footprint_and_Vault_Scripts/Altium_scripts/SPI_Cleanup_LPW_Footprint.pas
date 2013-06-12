@@ -259,7 +259,7 @@ function CLF_ExtrudeGeometricPolygonInto3d(    boardSide         : Integer;
  ***************************************************************************}
 const
 {* Declare the version and name of this script. *}
-   constScriptVersion          = 'v0.16.0 $Revision$';
+   constScriptVersion          = 'v0.16.2 $Revision$';
    constThisScriptNameNoExt    = 'SPI_Cleanup_LPW_Footprint';
    constThisScriptName         = constThisScriptNameNoExt + '.pas';
 {}
@@ -14339,6 +14339,7 @@ var
    Zrot                  : Integer;
    ZoffsetMm             : Real;
    freeCadPath           : TString;
+   cmd                   : TString;
 
 begin
 
@@ -14551,17 +14552,21 @@ begin
    { Find FreeCAD.exe on this system. }
    if (FileExists('c:\Program Files\FreeCAD0.13\bin\FreeCAD.exe')) then
    begin
-      freeCadPath = 'c:\Program Files\FreeCAD0.13\bin\FreeCAD.exe';
+      freeCadPath := 'c:\Program Files\FreeCAD0.13\bin\FreeCAD.exe';
    end
    else if (FileExists('c:\Program Files (x86)\FreeCAD0.13\bin\FreeCAD.exe')) then
    begin
-      freeCadPath = 'c:\Program Files\FreeCAD0.13 (x86)\bin\FreeCAD.exe';
+      freeCadPath := 'c:\Program Files (x86)\FreeCAD0.13\bin\FreeCAD.exe';
    end
    else
       CLF_Abort('Could not find path to FreeCAD.exe!');
+   WriteToDebugFile('*Path to FreeCAD is "' + freeCadPath + '".');
+
    
    { Run FreeCAD and tell it to launch our python script. }
-   RunSystemCommand(freeCadPath + ' -l ' + fcMacrosPath + '\FC3DM_IC_Gullwing.py');
+   cmd := '"' + freeCadPath + '"' + ' -l ' + fcMacrosPath + '\FC3DM_IC_Gullwing.py';
+   WriteToDebugFile('*About to call command "' + cmd + '".');
+   RunSystemCommand(cmd);
 
    { Wait for FreeCAD python script to complete and get its return code. }
    AwaitSvnCompletion(genRcPath,
