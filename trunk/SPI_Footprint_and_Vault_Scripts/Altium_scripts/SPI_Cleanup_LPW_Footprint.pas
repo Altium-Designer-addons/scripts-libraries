@@ -14338,6 +14338,7 @@ var
    Yrot                  : Integer;
    Zrot                  : Integer;
    ZoffsetMm             : Real;
+   freeCadPath           : TString;
 
 begin
 
@@ -14546,9 +14547,21 @@ begin
    { Setup path to rc file that we will use to test if FreeCAD is done. }
    genRcPath := fcMacrosPath + '\python.rc';
    DeleteFileWithVerify(genRcPath);
+
+   { Find FreeCAD.exe on this system. }
+   if (FileExists('c:\Program Files\FreeCAD0.13\bin\FreeCAD.exe')) then
+   begin
+      freeCadPath = 'c:\Program Files\FreeCAD0.13\bin\FreeCAD.exe';
+   end
+   else if (FileExists('c:\Program Files (x86)\FreeCAD0.13\bin\FreeCAD.exe')) then
+   begin
+      freeCadPath = 'c:\Program Files\FreeCAD0.13 (x86)\bin\FreeCAD.exe';
+   end
+   else
+      CLF_Abort('Could not find path to FreeCAD.exe!');
    
    { Run FreeCAD and tell it to launch our python script. }
-   RunSystemCommand('c:\Program Files\FreeCAD0.13\bin\FreeCAD.exe -l ' + fcMacrosPath + '\FC3DM_IC_Gullwing.py');
+   RunSystemCommand(freeCadPath + ' -l ' + fcMacrosPath + '\FC3DM_IC_Gullwing.py');
 
    { Wait for FreeCAD python script to complete and get its return code. }
    AwaitSvnCompletion(genRcPath,
