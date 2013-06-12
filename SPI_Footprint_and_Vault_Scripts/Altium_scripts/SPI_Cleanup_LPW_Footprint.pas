@@ -259,7 +259,7 @@ function CLF_ExtrudeGeometricPolygonInto3d(    boardSide         : Integer;
  ***************************************************************************}
 const
 {* Declare the version and name of this script. *}
-   constScriptVersion          = 'v0.16.2 $Revision$';
+   constScriptVersion          = 'v0.16.3 $Revision$';
    constThisScriptNameNoExt    = 'SPI_Cleanup_LPW_Footprint';
    constThisScriptName         = constThisScriptNameNoExt + '.pas';
 {}
@@ -284,6 +284,7 @@ const
    constLayerCompBody          = eMechanical5; { Mech layer for compbody in our destination libary. }
    constCompBodyColor          = 4404530;   { 3D color for compbody extrusion.  This is a mostly black color. }
    constCompBodyOpacity        = 1.0;       { 3D opacity for compbody extrusion.  (1 = completely opaque) }
+   constCompBodyOpacityThermal = 0.0;       { 3D opacity for compbody extrusion for thermal modeling.  (0 = completely hidden) }
    constCompBodyBallColor      = 10921648;  { 3D color for a compbody BGA sphere.  This is a medium gray color. }
    constCompBodyChipInd        = 8287349;   { 3D color for chip inductor body.  This is a darker gray color. }
    constCompBodyMoldCap        = 61183;     { 3D color for molded capacitor body.  This is a bright yellow color. }
@@ -294,6 +295,7 @@ const
    constCompBodyPinEscapeHeightSoicMult = 0.5; { Specify that for SOIC/SOP/QFP/etc., pins disappear into plastic body 50% of the way up the plastic body height. }
    constCompBodyPinEscapeHeightSotMult = 0.66; { Specify that for SOT, pins disappear into plastic body 66% of the way up the plastic body height. }
    constNameCompBody           = 'Component_body';
+   constNameCompBodyThermal    = 'Component_body_thermal';
 {}
    { Constants related to extruded 3D component body pin 1 marker. }
    constNomCompBodyPin1MarkArcRadMm   = 0.5;    { Nominal sized compbody pin 1 mark arc radius. }
@@ -14340,6 +14342,15 @@ var
    ZoffsetMm             : Real;
    freeCadPath           : TString;
    cmd                   : TString;
+   assemblyWestMm        : Real;
+   assemblyEastMm        : Real;
+   assemblyNorthMm       : Real;
+   assemblySouthMm       : Real;
+   borderWestMm          : Real;
+   borderEastMm          : Real;
+   borderNorthMm         : Real;
+   borderSouthMm         : Real;
+   bodyColor             : Integer;
 
 begin
 
@@ -14609,6 +14620,45 @@ begin
                     {var} csvReportStrs);
    CLF_WriteToSummaryAndDebugFilesWithStepNum('Added auto-generated STEP model "' + stepFilePath + '" to new .PcbLib file.');
 
+
+   {* Add 3D extrusion for body only, set to invisible.  This is used for exporting a simpler STEP version of board for thermal modeling. *}
+
+   { Retrieve the bounds for the assembly outline. }
+   CLF_RetrieveBoundingRectangleByNamePrefix({namePrefix} 'Assembly',
+                                             {var} cnfGalacticInfo,
+                                             {var boundaryWestMm} assemblyWestMm,
+                                             {var boundaryEastMm} assemblyEastMm,
+                                             {var boundaryNorthMm} assemblyNorthMm,
+                                             {var boundarySouthMm} assemblySouthMm);
+
+   { This is for gullwing ICs. }
+   borderWestMm := assemblyWestMm;
+   borderEastMm := assemblyEastMm;
+   borderNorthMm := assemblyNorthMm;
+   borderSouthMm := assemblySouthMm;
+   
+   bodyColor     := constCompBodyColor;
+   
+
+   { Extrude 3D body for component body. }
+   CLF_Create3dRectangularExtrusion({boardSide} constBoardSideCompBody,
+                                    {layer} constLayerCompBody,
+                                    {color} bodyColor,
+                                    {opacity} constCompBodyOpacityThermal,
+                                    borderWestMm,
+                                    borderEastMm,
+                                    borderNorthMm,
+                                    borderSouthMm,
+                                    {overallHeightMm} libHeightMm,
+                                    {standoffHeightMm} pkgDimsStandoffMin,
+                                    {identifier} constNameCompBodyThermal,
+                                    {var} bodyQueue,
+                                    {var} primNames,
+                                    {var} csvReportStrs
+                                    );
+
+
+   
 end; { end CLF_Create3dFreeCadCompBody() }
 
                                   
