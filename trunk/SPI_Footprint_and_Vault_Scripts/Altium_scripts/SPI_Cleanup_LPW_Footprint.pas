@@ -259,7 +259,7 @@ function CLF_ExtrudeGeometricPolygonInto3d(    boardSide         : Integer;
  ***************************************************************************}
 const
 {* Declare the version and name of this script. *}
-   constScriptVersion          = 'v0.15.6 $Revision$';
+   constScriptVersion          = 'v0.16.0 $Revision$';
    constThisScriptNameNoExt    = 'SPI_Cleanup_LPW_Footprint';
    constThisScriptName         = constThisScriptNameNoExt + '.pas';
 {}
@@ -300,7 +300,7 @@ const
    constMinCompBodyPin1MarkArcRadMm   = 0.3;    { Minimal sized compbody pin 1 mark arc radius. }
    constCompBodyPin1MarkColor  = 16777215;  { 3D color for compbody pin 1 marker.  This is a bright white. }
    constCompBodyMarkHeight     = 0.001;     { Height of the pin 1 marker cylinder over and above component height. }
-   constCompBodyMoldCapAnodeMarkLen = 0.4;	{ For molded capacitor, length of anode marker bar. }
+   constCompBodyMoldCapAnodeMarkLen = 0.4;  { For molded capacitor, length of anode marker bar. }
 {}
    { Constants related to pin landing drawing. }
    constBoardSidePinLand       = eBoardSide_Top; { Board side for pin landing drawing. }
@@ -342,7 +342,7 @@ const
    constSilkPin1MarkXThreshCenterMm = 1.00; { Threshold where if the silkscreen body is less than this, then center the pin 1 marking in x. }
    constSilkLayer                 = eTopOverlay;
    constWidthSilkMm               = 0.2;    { Width of silkscreen lines before and after. }
-   constYlenMoldCapTriangle       = 0.5;	{ Y length of leg of triangle anode marker for molded cap package. }
+   constYlenMoldCapTriangle       = 0.5;    { Y length of leg of triangle anode marker for molded cap package. }
    constLenMoldCapCross           = 0.5;    { X & Y length of cross marker for anode of molded cap package. }
    constWidthMoldCapCross         = 0.15;   { Line width of cross marker for molded cap package. }
    constLenAnodeExtMoldCap        = 0.5;    { Length of "extension" of anode bar that exists on silkscreen. }
@@ -587,6 +587,8 @@ const
    { Constants for some directory structures. }
    constLpWizardFilesDir           = '..\..\Mentor_LP-Wizard\';
    constSpi3dModelsDir             = '..\..\..\Mechanical\3D-models\TRT_Created\';
+   constSpi3dModelsScriptSubDir    = 'FreeCAD_macros\';
+   constSpi3dModelsGlobalIniFile   = 'FC3DM_global.ini';
 {}
    { Constants describing some Altium behaviors. }
    constAltiumHistoryDir           = 'History';     { Name of annoying History/ dir that is part of all Altium projects. }
@@ -2129,15 +2131,15 @@ begin
       if (not rc) then
       begin
 
-	 { Delay for 500 us before we make the second attempt to delete dir. }
-	 Sleep(500);
+     { Delay for 500 us before we make the second attempt to delete dir. }
+     Sleep(500);
 
-	 { Try again to delete the directory. }
-	 rc := RemoveDir(dirPath);
-	 
-	 { Sanity check. }
-	 if (not rc) then
-	    CLF_Abort('Unable to delete directory "' + dirPath + '"!');
+     { Try again to delete the directory. }
+     rc := RemoveDir(dirPath);
+     
+     { Sanity check. }
+     if (not rc) then
+        CLF_Abort('Unable to delete directory "' + dirPath + '"!');
 
       end;
       
@@ -5482,7 +5484,7 @@ begin
                                                 packageColorCode,           { Specify the color of the base footprint body. }
                                                 {packageMarkingMfgName} '', { Specify that the base footprint body is not marked. }
                                                 {packageMarkingMfgPn} '',   { " " " }
-                                                {packageMarkingText} '',	{ " " " }                                                
+                                                {packageMarkingText} '',    { " " " }                                                
                                                 cnfGalacticInfo,
                                                 {var} libFileNameSuffix,
                                                 {var} libDescription);
@@ -14004,11 +14006,15 @@ begin
    { Assume success. }
    result := 0;
 
+   WriteToDebugFile('Hello world from CLF_AddStepModel().');
+   WriteToDebugFile('stepFileName is "' + stepFileName + '".');
+
    {***************************************************************************
     * BEGIN code borrowed from AutoSTEPplacer.pas.
     ***************************************************************************}
    { Create a new component body object. }
    bodyDst := PcbServer.PCBObjectFactory(eComponentBodyObject,eNoDimension,eCreate_Default);
+   WriteToDebugFile(' Back from PCBObjectFactory.');
 
    { Set the board side and board layer. }
    bodyDst.BodyProjection := boardSide;
@@ -14271,6 +14277,323 @@ begin
 end; { end CLF_FindStepModel() }
 
 
+{***************************************************************************
+ * function CLF_Create3dExtrudedCompBody()
+ *  Create all new 3D features on the ComptBody layer.
+ *  
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function CLF_Create3dFreeCadCompBody(    scriptsPath     : TDynamicString;
+                                         projectPath     : TDynamicString;
+                                     var cnfGalacticInfo : TStringList;
+                                     var trackQueue      : TInterfaceList;
+                                     var arcQueue        : TInterfaceList;
+                                     var textQueue       : TInterfaceList;
+                                     var padQueue        : TInterfaceList;
+                                     var regionQueue     : TInterfaceList;
+                                     var fillQueue       : TInterfaceList;
+                                     var bodyQueue       : TInterfaceList;
+                                     var primNames       : TStringList;
+                                     var csvReportStrs   : TStringList;                               
+                                         )               : Integer;
+
+var
+   pkgDimsBallDiamNom    : Real;
+   pkgDimsPinWidthMax    : Real;
+   pkgDimsPinLandMax     : Real;
+   pkgDimsPinLandMin     : Real;
+   pkgDimsBodyWidthMax   : Real;
+   pkgDimsBodyLengthMax  : Real;
+   pkgDimsTotalWidthMax  : Real;
+   pkgDimsTotalLengthMax : Real;
+   pkgDimsStandoffMin    : Real;
+   libHeightMm           : Real;
+   pkgDimsHeightMax      : Real;
+   iniFileOut            : TStringList;
+   iniFilePath           : TString;
+   libFileName           : TString;
+   Tp                    : Real;
+   Hpph                  : Real;
+   Hppl                  : Real;
+   Fr                    : Real;
+   Hpe                   : Real;
+   padGroupName          : TString;
+   padType               : TString;
+   footprintType         : TString;
+   i                     : Integer;
+   padDst                : IPCB_Pad;
+   padXmm                : Real;
+   padYmm                : Real;
+   padGroupNum           : Integer;
+   parms                 : TStringList;
+   genOut                : TStringList;
+   fcMacrosPath          : TString;
+   genRcPath             : TString;
+   genRc                 : Integer;
+   newModelPath          : TString;
+   stepSuffix            : TString;
+   stepExt               : TString;
+   stepFilePath          : TString;
+   Xrot                  : Integer;
+   Yrot                  : Integer;
+   Zrot                  : Integer;
+   ZoffsetMm             : Real;
+
+begin
+
+   { Assume success. }
+   result := 0;
+
+   WriteToDebugFile('Hello from CLF_Create3dFreeCadCompBody().');
+   
+   { Retrieve package dimension fields from galactic string list. }
+   pkgDimsBallDiamNom   := StrToFloat(cnfGalacticInfo.Values(constGilPkgDimsBallDiamNom));
+   pkgDimsPinWidthMax   := StrToFloat(cnfGalacticInfo.Values(constGilPkgDimsPinWidthMax));
+   pkgDimsPinLandMax    := StrToFloat(cnfGalacticInfo.Values(constGilPkgDimsPinLandMax));
+   pkgDimsPinLandMin    := StrToFloat(cnfGalacticInfo.Values(constGilPkgDimsPinLandMin));
+
+   { Retrieve package dimension fields from galactic string list. }
+   pkgDimsBodyWidthMax  := StrToFloat(cnfGalacticInfo.Values(constGilPkgDimsBodyWidthMax));
+   pkgDimsBodyLengthMax := StrToFloat(cnfGalacticInfo.Values(constGilPkgDimsBodyLengthMax));
+   pkgDimsTotalWidthMax  := StrToFloat(cnfGalacticInfo.Values(constGilPkgDimsTotalWidthMax));
+   pkgDimsTotalLengthMax := StrToFloat(cnfGalacticInfo.Values(constGilPkgDimsTotalLengthMax));
+   pkgDimsStandoffMin := StrToFloat(cnfGalacticInfo.Values(constGilPkgDimsStandoffMin));
+
+   { Retrieve package height, as known by LPW tool. }
+   { TODO:  Override this with derived footprint height, as needed! }
+   pkgDimsHeightMax   := StrToFloat(cnfGalacticInfo.Values(constGilPkgDimsHeightMax));
+   libHeightMm   := pkgDimsHeightMax;
+   libFileName := cnfGalacticInfo.Values(constGilLibraryFileName);
+   footprintType      := cnfGalacticInfo.Values(constGilFootprintType);
+
+   { Create string list to hold ini file content. }
+   iniFileOut := TStringList.Create();
+
+   
+   {* Create global ini file. *}   
+   { Compute the iniFilePath for the global ini file. }
+   iniFilePath := projectPath + constSpi3dModelsDir + constSpi3dModelsScriptSubDir + constSpi3dModelsGlobalIniFile;
+   fcMacrosPath := projectPath + constSpi3dModelsDir + StripTrailingBackslash(constSpi3dModelsScriptSubDir); {iniFilePath;}
+
+   iniFileOut.add('# Global ini file for FC3DM scripts.');
+   iniFileOut.add('');
+   iniFileOut.add('# We currently have no way to pass command line parameters to our python scripts.');
+   iniFileOut.add('# Thus, we don''t have an obvious way to specify what component we want to build right now.');
+   iniFileOut.add('# So we use this ini file to point to another ini file.');
+   iniFileOut.add('');
+   iniFileOut.add('# Ini file that describes the component that we actually want to build now.');
+   iniFileOut.add('iniFileName = "' + '..\' + 'ICs_gullwing' + '\' + libFileName + '.ini"');
+
+   { Actually write string list to iniFile. }
+   iniFileOut.SaveToFile(iniFilePath);
+   
+   {* Create component-specific ini file. *}
+   { Clear string list in preparation for writing component-specific ini file. }
+   iniFileOut.Clear();
+   
+   { Compute the iniFilePath for the component-specific ini file. }
+   newModelPath := projectPath + constSpi3dModelsDir + 'ICs_gullwing' + '\';
+   iniFilePath  := newModelPath + libFileName + '.ini';
+   stepSuffix   := '_TRT1';
+   stepExt      := '.step';
+   stepFilePath := newModelPath + libFileName + stepSuffix + stepExt;
+
+   iniFileOut.add('# Parameters that describe how to generate a specific component''s 3D model');
+   iniFileOut.add('');
+   iniFileOut.add('###################################');
+   iniFileOut.add('## Invariant information');
+   iniFileOut.add('###################################');
+   iniFileOut.add('');
+   iniFileOut.add('# Directory to which to write our finished native and STEP models');
+   iniFileOut.add('newModelPath = "' + projectPath + constSpi3dModelsDir + 'ICs_gullwing' + '\');
+   iniFileOut.add('');
+   iniFileOut.add('# Suffix to add to STEP models');
+   iniFileOut.add('stepSuffix = "' + stepSuffix + '"');
+   iniFileOut.add('suffix = "_SvnRev_"');
+   iniFileOut.add('stepExt = "' + stepExt + '"');
+   iniFileOut.add('');
+   iniFileOut.add('');
+
+   
+   iniFileOut.add('###################################');
+   iniFileOut.add('## Parameters for this specific model');
+   iniFileOut.add('###################################');
+   iniFileOut.add('newModelName = "' + libFileName + '"');
+   iniFileOut.add('bodyName = "Body"');
+   iniFileOut.add('pinName = "Pin"');
+   iniFileOut.add('pin1MarkName = "Pin1Mark"');
+   iniFileOut.add('');
+
+   iniFileOut.add('## Parameters off datasheet');
+   iniFileOut.add('L=' + FloatToStr(pkgDimsTotalWidthMax) + ' #pkgDimsTotalWidthMax');
+   iniFileOut.add('T=' + FloatToStr(pkgDimsPinLandMax) + ' #pkgDimsPinLandMax');
+   iniFileOut.add('W=' + FloatToStr(pkgDimsPinWidthMax) + ' #pkgDimsPinWidthMax');
+   iniFileOut.add('A=' + FloatToStr(pkgDimsBodyWidthMax) + ' #pkgDimsBodyWidthMax');
+   iniFileOut.add('B=' + FloatToStr(pkgDimsBodyLengthMax) + ' #pkgDimsBodyLengthMax');
+   iniFileOut.add('H=' + FloatToStr(pkgDimsHeightMax) + ' #pkgDimsHeightMax');
+   iniFileOut.add('K=' + FloatToStr(pkgDimsStandoffMin) + ' #pkgDimsStandoffMin');
+   iniFileOut.add('');
+
+   iniFileOut.add('# Thickness of pin (in Z)');
+   Tp := 0.15;
+   iniFileOut.add('Tp = ' + FloatToStr(Tp));
+   iniFileOut.add('');
+
+   iniFileOut.add('## Parameters that we have to make up, since they''re not usually specified on datasheet.' );
+   iniFileOut.add('');
+   
+   iniFileOut.add('# Mold angle (in degrees) (not specified in datasheet--make something up)');
+   iniFileOut.add('maDeg = 12');
+   iniFileOut.add('');
+   
+   iniFileOut.add('# Pivot points (in Z) for chamfering the IC body');
+   {Hpph = (0.5*pkgDimsHeightMax) + (0.5*Tp)}
+   {Hppl = (0.5*pkgDimsHeightMax) - (0.5*Tp)}
+   Hpph := (0.5*pkgDimsHeightMax);
+   Hppl := Hpph;
+   iniFileOut.add('Hpph = ' + FloatToStr(Hpph) + ' #0.5*pkgDimsHeightMax');
+   iniFileOut.add('Hppl = ' + FloatToStr(Hppl) + ' #Hpph');
+   iniFileOut.add('');
+
+   iniFileOut.add('# Fillet radius for pin edges');
+   Fr := Tp;
+   iniFileOut.add('Fr = ' + FloatToStr(Fr) + ' #Tp');
+   iniFileOut.add('');
+   
+   iniFileOut.add('# Height of entry of pin (center) to IC body');
+   Hpe := Hpph + (0.5*Tp);
+   iniFileOut.add('Hpe = ' + FloatToStr(Hpe) + ' #Hpph + (0.5*Tp)');
+   iniFileOut.add('');
+   
+   iniFileOut.add('# Fillet radius for body');
+   iniFileOut.add('Frbody = 0.1');
+   iniFileOut.add('');
+   
+   iniFileOut.add('# Offset in X and Y from the pin 1 corner to the start of the pin 1 marker cylinder');
+   iniFileOut.add('P1markOffset = 0.07');
+   iniFileOut.add('');
+   
+   iniFileOut.add('# Radius of pin 1 marker cylinder');
+   iniFileOut.add('P1markRadius = 0.15');
+   iniFileOut.add('');
+   
+   iniFileOut.add('# How much to indent the pin 1 marker into IC body');
+   iniFileOut.add('P1markIndent = 0.02');
+   iniFileOut.add('');
+   
+   iniFileOut.add('# Height of marking ink');
+   iniFileOut.add('markHeight = 0.001');
+   iniFileOut.add('');
+
+
+   
+   {* Write pin information to output ini file. *}
+   iniFileOut.add('## Pin numbers, type, side, and x,y coordinates:');
+
+   { Compute the type of pad based on our footprint type. }
+
+   { Look for packages with gullwing pins. }
+   if ( (footprintType = 'SOIC') or (footprintType = 'SOT') or
+       (footprintType = 'SOP') or (footprintType = 'QFP') ) then
+   begin
+      padType                  := 'Gullwing';
+   end
+
+   { Else unsupported. }
+   else
+   begin
+      CLF_Abort('Don''t know how to create FreeCAD 3D model for footprintType ' + footprintType + '!');
+   end;
+   
+  
+   {* Output pin names, type, groups, and x,y coordinates for all pins. *}
+   { Loop over all the pads in the queue. }
+   for i := 0 to (padQueue.Count - 1) do
+   begin
+      
+      { Retrieve reference to queued pad. }
+      padDst := padQueue.items[i];
+      
+      { Retrieve group number of queued pad. }
+      padGroupNum := CLF_GetPadGroupNum(padDst);
+
+      { Retrieve group name of queued pad. }
+      padGroupName := primNames.Strings(padGroupNum);
+
+      { Strip off leading 'pads' from group name. }
+      padGroupName := StringReplace(padGroupName, 'pads', '', MkSet(rfReplaceAll));
+      
+      { Retrieve pad x,y coordinates. }
+      padXmm               := CoordToMMs(padDst.X);
+      padYmm               := CoordToMMs(padDst.Y);
+         
+      { Prepare output line. }
+      { Format: 'Pin'[pin_name]=[type],[group],[x],[y] }
+      { Example:  'Pin1=Gullwing,West,-3.3,2.925' }
+      iniFileOut.add('Pin' + padDst.Name + '=' + padType + ',' + padGroupName + ',' + FloatToStr(padXmm) + ',' + FloatToStr(padYmm));
+
+   end; { endfor }
+
+   { Actually write string list to iniFile. }
+   iniFileOut.SaveToFile(iniFilePath);
+   
+   { Free string list. }
+   iniFileOut.free();
+
+
+   {* Run FreeCAD script. *}   
+
+   { Setup path to rc file that we will use to test if FreeCAD is done. }
+   genRcPath := fcMacrosPath + '\python.rc';
+   DeleteFileWithVerify(genRcPath);
+   
+   { Run FreeCAD and tell it to launch our python script. }
+   RunSystemCommand('c:\Program Files\FreeCAD0.13\bin\FreeCAD.exe -l ' + fcMacrosPath + '\FC3DM_IC_Gullwing.py');
+
+   { Wait for FreeCAD python script to complete and get its return code. }
+   AwaitSvnCompletion(genRcPath,
+                      constStandardTimeoutLimit,
+                      {var} genRc);
+
+   { Check return code from external command. }
+   WriteToDebugFile('*Return code from FreeCAD was ' + genRc);
+   if (StrToInt(genRc) <> 0) then
+   begin
+      MyAbort('External FreeCAD command reported error.  Return code was ' + genRc + '!');
+   end;
+   CLF_WriteToSummaryAndDebugFilesWithStepNum('Used FreeCAD python script to auto-generate custom STEP model for this footprint.');
+
+   { Verify that we have a generated STEP file. }
+   if (not FileExists(stepFilePath)) then
+      CLF_Abort('Could not find STEP model file "' + stepFilePath + '"!');
+   
+
+   {* Add resulting STEP model to footprint queue. *}
+
+   { Our auto-generated STEP model will be such that we need no rotation or offset. }
+   Xrot                           := 0;
+   Yrot                           := 0;
+   Zrot                           := 0;
+   ZoffsetMm                      := 0.0;
+
+   { Add the STEP model to queue. }
+   CLF_AddStepModel({boardSide} constBoardSideCompBody,
+                    {layer} constLayerCompBody,
+                    {opacity} constCompBodyOpacity,
+                    {stepFileName} stepFilePath,
+                    Xrot,
+                    Yrot,
+                    Zrot,
+                    ZoffsetMm,
+                    {var} bodyQueue,
+                    cnfGalacticInfo,
+                    {var} primNames,
+                    {var} csvReportStrs);
+   CLF_WriteToSummaryAndDebugFilesWithStepNum('Added auto-generated STEP model "' + stepFilePath + '" to new .PcbLib file.');
+
+end; { end CLF_Create3dFreeCadCompBody() }
+
+                                  
 {***************************************************************************
  * function CLF_Create3dExtrudedCompBody()
  *  Create all new 3D features on the ComptBody layer.
@@ -14942,10 +15265,29 @@ begin
 
       end { endif }
 
-      { Else we have no choice but to extrude a simple 3D body. }
-      else
+      { Else create a 3D body. }
+      else if (true) then
       begin
-
+         
+         {** Create 3d model using FreeCAD **}
+         CLF_Create3dFreeCadCompBody(scriptsPath,
+                                     projectPath,
+                                     {var} cnfGalacticInfo,
+                                     {var} trackQueue,
+                                     {var} arcQueue,
+                                     {var} textQueue,
+                                     {var} padQueue,
+                                     {var} regionQueue,
+                                     {var} fillQueue,
+                                     {var} bodyQueue,
+                                     {var} primNames,
+                                     {var} csvReportStrs);
+         CLF_WriteToSummaryAndDebugFilesWithStepNum('Created FreeCAD 3D body for new .PcbLib file.');
+      end { endif }
+      
+      { Else this is the old code. It's not in use anymore. }
+      else
+      begin 
          { If we're not allowed to extrude a simple 3D body (eg. because we don't have code
           to support this type of footprint), then abort now. }
          if (not allow3dExtrusion) then
