@@ -259,7 +259,7 @@ function CLF_ExtrudeGeometricPolygonInto3d(    boardSide         : Integer;
  ***************************************************************************}
 const
 {* Declare the version and name of this script. *}
-   constScriptVersion          = 'v0.16.3 $Revision$';
+   constScriptVersion          = 'v0.16.4 $Revision$';
    constThisScriptNameNoExt    = 'SPI_Cleanup_LPW_Footprint';
    constThisScriptName         = constThisScriptNameNoExt + '.pas';
 {}
@@ -14379,6 +14379,40 @@ begin
    libFileName := cnfGalacticInfo.Values(constGilLibraryFileName);
    footprintType      := cnfGalacticInfo.Values(constGilFootprintType);
 
+   { Compute the type of pad based on our footprint type. }
+
+   { Look for packages with gullwing pins. }
+   if ( (footprintType = 'SOIC') or (footprintType = 'SOT') or
+       (footprintType = 'SOP') or (footprintType = 'QFP') ) then
+   begin
+      padType                  := 'Gullwing';
+   end
+
+   { Else unsupported. }
+   else
+   begin
+      CLF_Abort('Don''t know how to create FreeCAD 3D model for footprintType ' + footprintType + '!');
+   end;
+
+
+   { If footprint is SOT, set pivot point to two-thirds the body height. }
+   if ( (footprintType = 'SOT') ) then
+   begin
+     Hpph := ( (2.0/3.0) * pkgDimsHeightMax);
+   end
+   { If footprint is not SOT, set pivot point to half the body height. }
+   else
+   begin
+      { Hpph = (0.5*pkgDimsHeightMax) + (0.5*Tp) }
+      { Hppl = (0.5*pkgDimsHeightMax) - (0.5*Tp) }
+      Hpph := (0.5*pkgDimsHeightMax);
+   end;
+
+   { Set the entry point to be at the pivot point. }
+   Tp := 0.15;
+   Hppl := Hpph;
+   Hpe := Hpph + (0.5*Tp);
+   
    { Create string list to hold ini file content. }
    iniFileOut := TStringList.Create();
 
@@ -14448,7 +14482,6 @@ begin
    iniFileOut.add('');
 
    iniFileOut.add('# Thickness of pin (in Z)');
-   Tp := 0.15;
    iniFileOut.add('Tp = ' + FloatToStr(Tp));
    iniFileOut.add('');
 
@@ -14460,10 +14493,6 @@ begin
    iniFileOut.add('');
    
    iniFileOut.add('# Pivot points (in Z) for chamfering the IC body');
-   {Hpph = (0.5*pkgDimsHeightMax) + (0.5*Tp)}
-   {Hppl = (0.5*pkgDimsHeightMax) - (0.5*Tp)}
-   Hpph := (0.5*pkgDimsHeightMax);
-   Hppl := Hpph;
    iniFileOut.add('Hpph = ' + FloatToStr(Hpph) + ' #0.5*pkgDimsHeightMax');
    iniFileOut.add('Hppl = ' + FloatToStr(Hppl) + ' #Hpph');
    iniFileOut.add('');
@@ -14474,7 +14503,6 @@ begin
    iniFileOut.add('');
    
    iniFileOut.add('# Height of entry of pin (center) to IC body');
-   Hpe := Hpph + (0.5*Tp);
    iniFileOut.add('Hpe = ' + FloatToStr(Hpe) + ' #Hpph + (0.5*Tp)');
    iniFileOut.add('');
    
@@ -14503,20 +14531,7 @@ begin
    {* Write pin information to output ini file. *}
    iniFileOut.add('## Pin numbers, type, side, and x,y coordinates:');
 
-   { Compute the type of pad based on our footprint type. }
-
-   { Look for packages with gullwing pins. }
-   if ( (footprintType = 'SOIC') or (footprintType = 'SOT') or
-       (footprintType = 'SOP') or (footprintType = 'QFP') ) then
-   begin
-      padType                  := 'Gullwing';
-   end
-
-   { Else unsupported. }
-   else
-   begin
-      CLF_Abort('Don''t know how to create FreeCAD 3D model for footprintType ' + footprintType + '!');
-   end;
+   
    
   
    {* Output pin names, type, groups, and x,y coordinates for all pins. *}
