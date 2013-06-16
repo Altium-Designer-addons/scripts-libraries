@@ -6,7 +6,7 @@
 #
 #	@details		
 #
-#    @version		0.3.5
+#    @version		0.3.6
 #					   $Rev::                                                                        $:
 #	@date			  $Date::                                                                        $:
 #	@author			$Author::                                                                        $:
@@ -80,6 +80,7 @@ import string
 import cStringIO
 import sys
 import os
+import re
 
 scriptPathUtils = ""
 
@@ -292,6 +293,50 @@ def FC3DM_FilletObjectEdges(App, Gui,
     
     # Remove the fillet itself
     App.getDocument(docName).removeObject("Fillet")
+
+    return 0
+
+
+###################################################################
+# FC3DM_ChamferObjectEdges()
+# 	Function to chamfer edges of a given object.
+# NOTE:  This function is less useful than you may think.  If you
+#  want a 45 deg chamfer, then the two planes meeting at the edge
+#  that you want to chamfer must be perpendicular!  If, on the
+#  other hand, one is angled by the mold angle, then calling this
+#  function will NOT give you a 45 degree absolute chamfer!
+###################################################################
+def FC3DM_ChamferObjectEdges(App, Gui,
+                             docName, chamferMe, edges, size):
+
+    # Init
+    App.ActiveDocument=None
+    Gui.ActiveDocument=None
+    App.setActiveDocument(docName)
+    App.ActiveDocument=App.getDocument(docName)
+    Gui.ActiveDocument=Gui.getDocument(docName)
+
+    # Chamfer the sharp edges of the termination sheet metal
+    Gui.activateWorkbench("PartDesignWorkbench")
+    App.activeDocument().addObject("PartDesign::Chamfer","Chamfer")
+    App.activeDocument().Chamfer.Base = (App.ActiveDocument.getObject(chamferMe),edges)
+    Gui.activeDocument().hide(chamferMe)
+#    Gui.activeDocument().Fusion.Visibility=False
+    Gui.activeDocument().setEdit('Chamfer')
+    App.ActiveDocument.Chamfer.Size = size
+    App.ActiveDocument.recompute()
+    Gui.activeDocument().resetEdit()
+
+    # Remove the objects that made up the chamfer
+    App.getDocument(docName).removeObject(chamferMe)
+
+    # Copy the cut object and call it the original cutMe name
+    newTermShape = FreeCAD.getDocument(docName).getObject("Chamfer").Shape.copy()
+    newTermObj = App.activeDocument().addObject("Part::Feature",chamferMe)
+    newTermObj.Shape = newTermShape
+    
+    # Remove the chamfer itself
+    App.getDocument(docName).removeObject("Chamfer")
 
     return 0
 
@@ -974,6 +1019,25 @@ def FC3DM_CreateIcBody(App, Gui,
     markHeight = parms["markHeight"]
     bodyName = parms["bodyName"]
     pin1MarkName = parms["pin1MarkName"]
+    newModelName = parms["newModelName"]
+
+    # Figure out the footprintType for the current gullwing model.
+    # Do this by extracting just the leading characters in the newModelName.
+    # footprintType = echo $newModelName | sed 's/[0-9]+.*//g'
+    footprintType = re.sub('[0-9]+.*', '', newModelName)
+    print footprintType
+
+    # For SOIC packages, chamfer the upper long edge along pin 1        
+    if (footprintType == "SOIC"):
+
+        # Retrieve chamfer size
+        # FIXME:  Retrieve from ini file, rather than hardcoding here!
+        P1chamferOffset = 0.25
+
+    # Other packages have no chamfer of the body upper long edge along pin 1        
+    else:
+        P1chamferOffset = 0
+
 
     print "docName is :" + docName + ":"
     print "bodyName is:" + bodyName + ":"
@@ -984,6 +1048,16 @@ def FC3DM_CreateIcBody(App, Gui,
 
     # Mold angle (in radians)
     ma = math.radians(maDeg)
+
+    # Chamfer angle in degrees and radians
+    caDeg = 45
+    ca = math.radians(caDeg)
+
+    # The pin 1 chamfer is referenced to the cut-away body, not at the rectangular prism prior to all the cuts.
+    # moldOffset === offset due to mold angle
+    # tan (maDeg) = moldOffset / (H-Hpph)
+    # moldOffset = (H-Hpph) * tan(maDeg)
+    moldOffset = (H-Hpph) * math.tan(ma)
 
     # Configure active document
     App.ActiveDocument=None
@@ -1069,6 +1143,21 @@ def FC3DM_CreateIcBody(App, Gui,
                      B, B, B, -1*(B/2), 1*(A/2), Hpph,
                      math.sin(ma/2),0,0,math.cos(ma/2))
 
+
+    # See if we need to do the pin 1 chamfer on the body
+    if (P1chamferOffset > 0):
+
+        # TODO:  Add sanity check to ensure that the chamfer doesn't cut into the body below the
+        # level of where the top-most part of the pin enters the body.  If it does, then we
+        # would break our underlying assumption that the pins are symmetric side-to-side.
+        # Detect this and abort on error!
+
+        # Perform a cut at the north side of the IC body (chamfer on pin 1 long side of body)
+        FC3DM_CutWithBox(App, Gui,
+                         docName, bodyName,
+                         B, B, B, -1*(B/2), (1*(A/2) - moldOffset - P1chamferOffset), H,
+                         math.sin(-1*(ca/2)),0,0,math.cos(ca/2))
+
     # Perform a cut at the north side of the IC body (pivot point low)
     FC3DM_CutWithBox(App, Gui,
                      docName, bodyName,
@@ -1112,28 +1201,32 @@ def FC3DM_CreateIcBody(App, Gui,
             # Write this vertex
             print(str(vertex.Point))
 
+    # If we had a pin 1 chamfer, we only have 7 edges to fillet, not 8.
+    if (P1chamferOffset > 0):
 
-    ## Fillet all edges on the top & bottom faces
+        # Set the faces that need to be filleted
+        edges=["Edge4","Edge6","Edge9","Edge11","Edge14","Edge17","Edge21"]
+
+    else:
+
+        # Set the faces that need to be filleted
+        edges=["Edge4","Edge6","Edge14","Edge11","Edge9","Edge17","Edge19","Edge20"]
+
+    ## Fillet all non-chamfered edges on the top & bottom faces
     # Note:  Do them all at once, because I've had a hard time with finding edge names on
     # the top face after filleting the bottom face, and vice versa.
     # TODO:  This is currently hardcoded!
-    # TODO:  This must be revisited for SOIC (due to chamfer), QFN, BGA, etc.!
-    edges=["Edge4","Edge6","Edge14","Edge11","Edge9","Edge17","Edge19","Edge20"]
+    # TODO:  This must be revisited for QFN, BGA, etc.!
     FC3DM_FilletObjectEdges(App, Gui,
                             docName, bodyName, edges, Frbody)
 
 
     ## Prepare to make pin 1 marker
-    # The pin 1 marker is referenced to the cut-away body, not at the rectangular prism prior to all the cuts.
-    # off === offset due to mold angle
-    # tan (maDeg) = off / (H-Hpph)
-    # off = (H-Hpph) * tan(maDeg)
-    off = (H-Hpph) * math.tan(ma)
 
     # Create a cylinder to use for cutting out for pin 1 marker
     cylName = "CylCuttingTool"
     FC3DM_CreateCylinderVert(App, Gui,
-                             docName, cylName, (-1*(A/2))+off+Frbody+P1markOffset+P1markRadius, (B/2)-off-Frbody-P1markOffset-P1markRadius, (H-P1markIndent), P1markRadius, H)
+                             docName, cylName, (-1*(A/2))+moldOffset+P1chamferOffset+Frbody+P1markOffset+P1markRadius, (B/2)-moldOffset-Frbody-P1markOffset-P1markRadius, (H-P1markIndent), P1markRadius, H)
 
     # Use this dummy cylinder to cut into the IC body
     FC3DM_CutObjectWithToolAndDiscardTool(App, Gui,
@@ -1141,7 +1234,7 @@ def FC3DM_CreateIcBody(App, Gui,
 
     # Apply pin 1 marker ink inside cut
     FC3DM_CreateCylinderVert(App, Gui,
-                             docName, pin1MarkName, (-1*(A/2))+off+Frbody+P1markOffset+P1markRadius, (B/2)-off-Frbody-P1markOffset-P1markRadius, (H-P1markIndent), P1markRadius, markHeight)
+                             docName, pin1MarkName, (-1*(A/2))+moldOffset+P1chamferOffset+Frbody+P1markOffset+P1markRadius, (B/2)-moldOffset-Frbody-P1markOffset-P1markRadius, (H-P1markIndent), P1markRadius, markHeight)
 
 
     return 0
