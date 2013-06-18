@@ -64,6 +64,10 @@
  * See also included file SPI_License.txt.
  ***************************************************************************}
 
+{***************************************************************************
+ * Some code additons/changes authored by Kevin Yee kyee4@jhu.edu
+ ***************************************************************************}
+
 
 {***************************************************************************
  * Some code borrowed from FormatPaintBrush.pas downloaded from:
@@ -259,9 +263,12 @@ function CLF_ExtrudeGeometricPolygonInto3d(    boardSide         : Integer;
  ***************************************************************************}
 const
 {* Declare the version and name of this script. *}
-   constScriptVersion          = 'v0.16.5 $Revision$';
+   constScriptVersion          = 'v0.16.6 $Revision$';
    constThisScriptNameNoExt    = 'SPI_Cleanup_LPW_Footprint';
    constThisScriptName         = constThisScriptNameNoExt + '.pas';
+{}
+   { Suffix that will be appended to all 3d models searched for or generated. }
+   const3dModelCompanySuffix   = 'TRT';
 {}
    { Constants related to courtyard. }
    constOldWidthCourtyardMm    = 0.05;      { Width of courtyard lines in mm in LP Wizard source. }
@@ -591,7 +598,8 @@ const
 {}
    { Constants for some directory structures. }
    constLpWizardFilesDir           = '..\..\Mentor_LP-Wizard\';
-   constSpi3dModelsDir             = '..\..\..\Mechanical\3D-models\TRT_Created\';
+   constSpi3dModelsMeDir           = '..\..\..\Mechanical\3D-models\TRT_Created\SolidWorks\';
+   constSpi3dModelsFcDir           = '..\..\..\Mechanical\3D-models\TRT_Created\';
    constSpi3dModelsScriptSubDir    = 'FreeCAD_macros\';
    constSpi3dModelsGlobalIniFile   = 'FC3DM_global.ini';
 {}
@@ -14119,14 +14127,15 @@ end; { end CLF_AddStepModel() }
  *  
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function CLF_FindStepModel(    scriptsPath          : TDynamicString;
-                               projectPath          : TDynamicString;
-                               cnfGalacticInfo      : TStringList;
-                           var expectedStepFileName : TString;
-                           var bodyQueue            : TInterfaceList;
-                           var primNames            : TStringList;
-                           var csvReportStrs        : TStringList;                               
-                               )                    : Integer;
+function CLF_FindStepModel(    scriptsPath                            : TDynamicString;
+                               projectPath                            : TDynamicString;
+                               cnfGalacticInfo                        : TStringList;
+                               ModelsDir                              : TString;
+                               expectedStepFileName                   : TString;
+                           var highestRevMatchingStepFileNameTrueCase : TString;
+                           var highestRevNumber                       : Integer;
+                               )                                      : Integer;
+
 var
    i                                      : Integer;
    parms                                  : TStringList;
@@ -14140,23 +14149,16 @@ var
    foundStepFileName                      : TString;
    matchingStepFileName                   : TString;
    revNumber                              : Integer;
-   highestRevNumber                       : Integer;
    highestRevMatchingStepFileName         : Tstring;
-   highestRevMatchingStepFileNameTrueCase : TString;
    Xrot                                   : Integer;
    Yrot                                   : Integer;
    Zrot                                   : Integer;
    ZoffsetMm                              : Real;
-                         
+                           
 begin
 
    { Assume success. }
    result := 0;
-
-   { Retrieve necessary info from galactic string list. }
-   footprintType        := cnfGalacticInfo.Values(constGilFootprintType);
-   mfgName              := cnfGalacticInfo.Values(constGilPrefixLpWizardInfo + constLpWizardManufacturerField);
-   mfgPkgCode           := cnfGalacticInfo.Values(constGilPrefixLpWizardInfo + constLpWizardMfgPkgCodeField);
 
    WriteToDebugFile('Hello from CLF_FindStepModel().');
 
@@ -14165,7 +14167,7 @@ begin
    parms := TStringList.Create();
 
    { Add the directory we want to be svn updated. }
-   parms.Add(constSpi3dModelsDir);
+   parms.Add(ModelsDir);
 
    { Do an svn update of the directory structure where the 3D models live. }
    IssueSvnCommand(scriptsPath,
@@ -14182,19 +14184,15 @@ begin
 
    { Search for all .stp and .step files. }
    searchSubDirs := True;
-   FindFiles((projectPath + constSpi3dModelsDir), ('*' + constExtStepModel1), faAnyFile, searchSubDirs, stepFileList);
+   FindFiles((projectPath + ModelsDir), ('*' + constExtStepModel1), faAnyFile, searchSubDirs, stepFileList);
 
    { Re-use parms list for the second search for STEP files. }
-   FindFiles((projectPath + constSpi3dModelsDir), ('*' + constExtStepModel2), faAnyFile, searchSubDirs, stepFileList2);
+   FindFiles((projectPath + ModelsDir), ('*' + constExtStepModel2), faAnyFile, searchSubDirs, stepFileList2);
    stepFileList.AddStrings(stepFileList2);
 
    { Sort the list of STEP files. }
    stepFileList.Sort();
 
-   { Construct the expected STEP file name, based on the footprint type, mfg name, and mfg pkg code. }
-   { Note:  We have to convert to all upper case because FindFiles() will give all results as all upper case! }
-   expectedStepFileName := AnsiUpperCase(footprintType + '_' + mfgName + '_' + mfgPkgCode + '_SPI');
-   WriteToDebugFile(' expectedStepFileName is "' + expectedStepFileName + '".');
 
    { Loop over all the STEP files that we found. }
    for i := 0 to (stepFileList.Count - 1) do
@@ -14256,13 +14254,86 @@ begin
                                     {fileNameUpperCase} highestRevMatchingStepFileName, 
                                     {var fileNameTrueCase} highestRevMatchingStepFileNameTrueCase
                                     );
-      
+   end
+
+   { Else we found no matching STEP files! }
+   else
+   begin
+      { Return error code to caller. }
+      result := 1;
+   end; { endelse }
+
+   { Free string lists. }
+   parms.Free();
+   stepFileList.Free();
+   stepFileList2.Free();
+   matchingStepFileList.Free();
+
+end; { end CLF_FindStepModel() }
+
+
+{***************************************************************************
+ * function CLF_FindAndAddStepModel()
+ *  Find an existing STEP model and add it to the queue.
+ *  
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function CLF_FindAndAddStepModel(    scriptsPath          : TDynamicString;
+                                     projectPath          : TDynamicString;
+                                     cnfGalacticInfo      : TStringList;
+                                     ModelsDir            : TString;
+                                 var expectedStepFileName : TString;
+                                 var bodyQueue            : TInterfaceList;
+                                 var primNames            : TStringList;
+                                 var csvReportStrs        : TStringList;                               
+                               )                          : Integer;
+
+var
+   Xrot                                   : Integer;
+   Yrot                                   : Integer;
+   Zrot                                   : Integer;
+   ZoffsetMm                              : Real;
+   found                                  : Integer;
+   footprintType                          : TString;
+   mfgName                                : TString;
+   mfgPkgCode                             : TString;
+   highestRevMatchingStepFileNameTrueCase : TString;
+   highestRevNumber                       : Integer;
+
+begin
+
+   WriteToDebugFile('Hello from CLF_FindAndAddStepModel().');
+   result := 0;
+
+   { Retrieve necessary info from galactic string list. }
+   footprintType        := cnfGalacticInfo.Values(constGilFootprintType);
+   mfgName              := cnfGalacticInfo.Values(constGilPrefixLpWizardInfo + constLpWizardManufacturerField);
+   mfgPkgCode           := cnfGalacticInfo.Values(constGilPrefixLpWizardInfo + constLpWizardMfgPkgCodeField);
+
+   { Construct the expected STEP file name, based on the footprint type, mfg name, and mfg pkg code. }
+   { Note:  We have to convert to all upper case because FindFiles() will give all results as all upper case! }
+   expectedStepFileName := AnsiUpperCase(footprintType + '_' + mfgName + '_' + mfgPkgCode + '_' + const3dModelCompanySuffix);
+   WriteToDebugFile(' expectedStepFileName is "' + expectedStepFileName + '".');
+   
+   { Call the find function using same parameters. }
+   found := CLF_FindStepModel(scriptsPath,
+                              projectPath,
+                              cnfGalacticInfo,
+                              ModelsDir,
+                              expectedStepFileName,
+                              {var} highestRevMatchingStepFileNameTrueCase,
+                              {var} highestRevNumber);
+
+   { Proceed if found. }
+   if ( found = 0 ) then
+   begin
+
       { We must know a priori what the appropriate x,y,z rotation and z offset should be. }
       { FIXME:  This must be a function of footprint type! }
       Xrot                           := 0;
       Yrot                           := 0;
-      Zrot                           := 270;
-      ZoffsetMm                      := 0.05;
+      Zrot                           := 0;
+      ZoffsetMm                      := 0.0;
 
       { Add the STEP model to queue. }
       CLF_AddStepModel({boardSide} constBoardSideCompBody,
@@ -14277,30 +14348,22 @@ begin
                        cnfGalacticInfo,
                        {var} primNames,
                        {var} csvReportStrs);
+ 
       CLF_WriteToSummaryAndDebugFilesWithStepNum('Added auto-generated STEP model "' + highestRevMatchingStepFileNameTrueCase + '" to new .PcbLib file.');
 
-   end { endif found any matching STEP files }
+   end {end if}
 
-   { Else we found no matching STEP files! }
+   { Else, we did not find a matching STEP file. }
    else
    begin
-      
-      { Return error code to caller. }
       result := 1;
-      
-   end; { endelse }
-      
-   { Free string lists. }
-   parms.Free();
-   stepFileList.Free();
-   stepFileList2.Free();
-   matchingStepFileList.Free();
+   end; { end else. }
 
-end; { end CLF_FindStepModel() }
+end; { end CLF_FindAndAddStepModel() }
 
 
 {***************************************************************************
- * function CLF_Create3dExtrudedCompBody()
+ * function CLF_Create3dFreeCadCompBody()
  *  Create all new 3D features on the ComptBody layer.
  *  
  *  Returns:  0 on success, 1 if not successful.
@@ -14316,62 +14379,68 @@ function CLF_Create3dFreeCadCompBody(    scriptsPath     : TDynamicString;
                                      var fillQueue       : TInterfaceList;
                                      var bodyQueue       : TInterfaceList;
                                      var primNames       : TStringList;
-                                     var csvReportStrs   : TStringList;                               
+                                     var csvReportStrs   : TStringList;
                                          )               : Integer;
 
 var
-   pkgDimsBallDiamNom     : Real;
-   pkgDimsPinWidthMax     : Real;
-   pkgDimsPinLandMax      : Real;
-   pkgDimsPinLandMin      : Real;
-   pkgDimsBodyWidthMax    : Real;
-   pkgDimsBodyLengthMax   : Real;
-   pkgDimsTotalWidthMax   : Real;
-   pkgDimsTotalLengthMax  : Real;
-   pkgDimsStandoffMin     : Real;
-   pkgDimsPivotPointRatio : Real;
-   libHeightMm            : Real;
-   pkgDimsHeightMax       : Real;
-   iniFileOut             : TStringList;
-   iniFilePath            : TString;
-   libFileName            : TString;
-   Tp                     : Real;
-   Hpph                   : Real;
-   Hppl                   : Real;
-   Fr                     : Real;
-   Hpe                    : Real;
-   padGroupName           : TString;
-   padType                : TString;
-   footprintType          : TString;
-   i                      : Integer;
-   padDst                 : IPCB_Pad;
-   padXmm                 : Real;
-   padYmm                 : Real;
-   padGroupNum            : Integer;
-   parms                  : TStringList;
-   genOut                 : TStringList;
-   fcMacrosPath           : TString;
-   genRcPath              : TString;
-   genRc                  : Integer;
-   newModelPath           : TString;
-   stepSuffix             : TString;
-   stepExt                : TString;
-   stepFilePath           : TString;
-   Xrot                   : Integer;
-   Yrot                   : Integer;
-   Zrot                   : Integer;
-   ZoffsetMm              : Real;
-   freeCadPath            : TString;
-   cmd                    : TString;
-   assemblyWestMm         : Real;
-   assemblyEastMm         : Real;
-   assemblyNorthMm        : Real;
-   assemblySouthMm        : Real;
-   borderWestMm           : Real;
-   borderEastMm           : Real;
-   borderNorthMm          : Real;
-   borderSouthMm          : Real;
-   bodyColor              : Integer;
+   pkgDimsBallDiamNom                     : Real;
+   pkgDimsPinWidthMax                     : Real;
+   pkgDimsPinLandMax                      : Real;
+   pkgDimsPinLandMin                      : Real;
+   pkgDimsBodyWidthMax                    : Real;
+   pkgDimsBodyLengthMax                   : Real;
+   pkgDimsTotalWidthMax                   : Real;
+   pkgDimsTotalLengthMax                  : Real;
+   pkgDimsStandoffMin                     : Real;
+   pkgDimsPivotPointRatio                 : Real;
+   libHeightMm                            : Real;
+   pkgDimsHeightMax                       : Real;
+   iniFileOut                             : TStringList;
+   iniFilePath                            : TString;
+   libFileName                            : TString;
+   Tp                                     : Real;
+   Hpph                                   : Real;
+   Hppl                                   : Real;
+   Fr                                     : Real;
+   Hpe                                    : Real;
+   padGroupName                           : TString;
+   padType                                : TString;
+   footprintType                          : TString;
+   i                                      : Integer;
+   padDst                                 : IPCB_Pad;
+   padXmm                                 : Real;
+   padYmm                                 : Real;
+   padGroupNum                            : Integer;
+   parms                                  : TStringList;
+   genOut                                 : TStringList;
+   fcMacrosPath                           : TString;
+   genRcPath                              : TString;
+   genRc                                  : Integer;
+   newModelPath                           : TString;
+   stepSuffix                             : TString;
+   stepExt                                : TString;
+   stepFilePath                           : TString;
+   Xrot                                   : Integer;
+   Yrot                                   : Integer;
+   Zrot                                   : Integer;
+   ZoffsetMm                              : Real;
+   freeCadPath                            : TString;
+   cmd                                    : TString;
+   assemblyWestMm                         : Real;
+   assemblyEastMm                         : Real;
+   assemblyNorthMm                        : Real;
+   assemblySouthMm                        : Real;
+   borderWestMm                           : Real;
+   borderEastMm                           : Real;
+   borderNorthMm                          : Real;
+   borderSouthMm                          : Real;
+   bodyColor                              : Integer;
+   fcFound                                : Integer;
+   expectedFileName                       : TString;
+   highestRevMatchingStepFileNameTrueCase : TString;
+   modelPath                              : TSTring;
+   highestRevNumber                       : Integer;
+   nextRevNumber                          : Integer;
    
 
 begin
@@ -14380,6 +14449,66 @@ begin
    result := 0;
 
    WriteToDebugFile('Hello from CLF_Create3dFreeCadCompBody().');
+
+   { Build expected file name for existing STEP model. }
+   libFileName := cnfGalacticInfo.Values(constGilLibraryFileName);
+   stepSuffix   := '_' + const3dModelCompanySuffix;
+   stepExt      := '.step';
+   expectedFileName := AnsiUpperCase(libFileName + stepSuffix);
+
+   { Path for existing STEP model. }
+   modelPath := constSpi3dModelsFcDir + 'ICs_gullwing\';
+
+   { Call find function to check if there is an existing STEP model. }
+   fcFound := CLF_FindStepModel(scriptsPath,
+                                projectPath,
+                                cnfGalacticInfo,
+                                {ModelsDir} modelPath,
+                                {expectedStepFileName} expectedFileName,
+                                {var} highestRevMatchingStepFileNameTrueCase,
+                                {var} highestRevNumber);
+
+   { If there is an existing STEP file, check the most recent csv file against the new one. }
+   if ( fcFound = 0 ) then
+   begin
+      WriteToDebugFile('CreateFreeCad found the file');
+
+      WriteToDebugFile('highestRevMatchingStepFileNameTrueCase: ' + highestRevMatchingStepFileNameTrueCase);
+      nextRevNumber := highestRevNumber + 1;
+   end
+
+   { Else create a new STEP model. }
+   else
+   begin
+      WriteToDebugFile('CreateFreeCad did not find file');
+      nextRevNumber := 1;
+   end;
+
+
+    
+
+   
+   { See if the CSV report file has changed compared to before this script run.  If it has not,
+    then proceed to revert all generated files, so that user is not tempted to checkin effectively
+    unchanged binary file .PcbLib. }
+   //CLF_RevertGeneratedFilesIfNeeded(project,
+   //                                 projectPath,
+   //                                 scriptsPath,
+   //                                 libFileName,
+   //                                 reportFilePath,
+   //                                 csvReportFilePath,
+   //                                 {var} csvReportOld);
+
+
+
+
+
+
+
+
+
+
+      
    
    { Retrieve package dimension fields from galactic string list. }
    pkgDimsBallDiamNom   := StrToFloat(cnfGalacticInfo.Values(constGilPkgDimsBallDiamNom));
@@ -14393,14 +14522,12 @@ begin
    pkgDimsTotalWidthMax  := StrToFloat(cnfGalacticInfo.Values(constGilPkgDimsTotalWidthMax));
    pkgDimsTotalLengthMax := StrToFloat(cnfGalacticInfo.Values(constGilPkgDimsTotalLengthMax));
    pkgDimsStandoffMin := StrToFloat(cnfGalacticInfo.Values(constGilPkgDimsStandoffMin));
-   
-   
 
+   
    { Retrieve package height, as known by LPW tool. }
    { TODO:  Override this with derived footprint height, as needed! }
    pkgDimsHeightMax   := StrToFloat(cnfGalacticInfo.Values(constGilPkgDimsHeightMax));
    libHeightMm   := pkgDimsHeightMax;
-   libFileName := cnfGalacticInfo.Values(constGilLibraryFileName);
    footprintType      := cnfGalacticInfo.Values(constGilFootprintType);
 
    { Compute the type of pad based on our footprint type. }
@@ -14453,8 +14580,8 @@ begin
    
    {* Create global ini file. *}   
    { Compute the iniFilePath for the global ini file. }
-   iniFilePath := projectPath + constSpi3dModelsDir + constSpi3dModelsScriptSubDir + constSpi3dModelsGlobalIniFile;
-   fcMacrosPath := projectPath + constSpi3dModelsDir + StripTrailingBackslash(constSpi3dModelsScriptSubDir); {iniFilePath;}
+   iniFilePath := projectPath + constSpi3dModelsFcDir + constSpi3dModelsScriptSubDir + constSpi3dModelsGlobalIniFile;
+   fcMacrosPath := projectPath + constSpi3dModelsFcDir + StripTrailingBackslash(constSpi3dModelsScriptSubDir); {iniFilePath}
 
    iniFileOut.add('# Global ini file for FC3DM scripts.');
    iniFileOut.add('');
@@ -14473,9 +14600,11 @@ begin
    iniFileOut.Clear();
    
    { Compute the iniFilePath for the component-specific ini file. }
-   newModelPath := projectPath + constSpi3dModelsDir + 'ICs_gullwing' + '\';
+   newModelPath := projectPath + constSpi3dModelsFcDir + 'ICs_gullwing' + '\';
    iniFilePath  := newModelPath + libFileName + '.ini';
-   stepSuffix   := '_TRT1';
+
+
+   stepSuffix   := stepSuffix + nextRevNumber;
    stepExt      := '.step';
    stepFilePath := newModelPath + libFileName + stepSuffix + stepExt;
 
@@ -14486,7 +14615,7 @@ begin
    iniFileOut.add('###################################');
    iniFileOut.add('');
    iniFileOut.add('# Directory to which to write our finished native and STEP models');
-   iniFileOut.add('newModelPath = "' + projectPath + constSpi3dModelsDir + 'ICs_gullwing' + '\');
+   iniFileOut.add('newModelPath = "' + projectPath + constSpi3dModelsFcDir + 'ICs_gullwing' + '\');
    iniFileOut.add('');
    iniFileOut.add('# Suffix to add to STEP models');
    iniFileOut.add('stepSuffix = "' + stepSuffix + '"');
@@ -14559,15 +14688,10 @@ begin
    iniFileOut.add('# Height of marking ink');
    iniFileOut.add('markHeight = 0.001');
    iniFileOut.add('');
-
-
    
    {* Write pin information to output ini file. *}
    iniFileOut.add('## Pin numbers, type, side, and x,y coordinates:');
 
-   
-   
-  
    {* Output pin names, type, groups, and x,y coordinates for all pins. *}
    { Loop over all the pads in the queue. }
    for i := 0 to (padQueue.Count - 1) do
@@ -14653,7 +14777,8 @@ begin
    Yrot                           := 0;
    Zrot                           := 0;
    ZoffsetMm                      := 0.0;
-
+      
+   
    { Add the STEP model to queue. }
    CLF_AddStepModel({boardSide} constBoardSideCompBody,
                     {layer} constLayerCompBody,
@@ -14705,9 +14830,7 @@ begin
                                     {var} primNames,
                                     {var} csvReportStrs
                                     );
-
-
-   
+         
 end; { end CLF_Create3dFreeCadCompBody() }
 
                                   
@@ -15284,8 +15407,8 @@ end; { end CLF_Create3dExtrudedCompBody() }
 function CLF_CreateNewFeatures3dCompbody(    scriptsPath      : TDynamicString;
                                              projectPath      : TDynamicString;
                                              libHeightMm      : Real;
-                                             stepFilePath     : TString;                                         
-                                             allow3dExtrusion : Boolean;
+                                             stepFilePath     : TString;
+                                             allow3dExtrusion : Boolean; 
                                              doBaseFp         : Boolean;
                                              currDerivedFpNum : Integer;
                                          var cnfGalacticInfo  : TStringList;
@@ -15297,7 +15420,7 @@ function CLF_CreateNewFeatures3dCompbody(    scriptsPath      : TDynamicString;
                                          var fillQueue        : TInterfaceList;
                                          var bodyQueue        : TInterfaceList;
                                          var primNames        : TStringList;
-                                         var csvReportStrs    : TStringList;                               
+                                         var csvReportStrs    : TStringList;                                
                                              )                : Integer;
 var
    i                          : Integer;
@@ -15336,18 +15459,20 @@ begin
    result := 0;
 
    WriteToDebugFile('Hello from CLF_CreateNewFeatures3dCompbody().');
-   
+
+   WriteToDebugFile('expectedStepFileName: ' + expectedStepFileName);
    
    {** Attempt to find and add auto-generated STEP model to component. **}
    { TODO:  Should user-specified STEP file take precedence over this??? }
-   rc := CLF_FindStepModel(scriptsPath,
-                           projectPath,
-                           cnfGalacticInfo,
-                           {var} expectedStepFileName,
-                           {var} bodyQueue,
-                           {var} primNames,
-                           {var} csvReportStrs
-                           );
+   rc := CLF_FindAndAddStepModel(scriptsPath,
+                                 projectPath,
+                                 cnfGalacticInfo,
+                                 {ModelsDir} constSpi3dModelsMeDir,
+                                 {var} expectedStepFileName,
+                                 {var} bodyQueue,
+                                 {var} primNames,
+                                 {var} csvReportStrs
+                                 );
 
    { See if that failed. }
    if (rc <> 0) then
