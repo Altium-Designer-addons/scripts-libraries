@@ -6,7 +6,7 @@
 #
 #	@details		
 #
-#    @version		0.3.6
+#    @version		0.3.7
 #					   $Rev::                                                                        $:
 #	@date			  $Date::                                                                        $:
 #	@author			$Author::                                                                        $:
@@ -237,7 +237,7 @@ def FC3DM_ReadIniFiles(scriptPath, parms):
     ## Calculate derived strings
     newModelPathNameExt = newModelPath + newModelName + ".FCStd"
     newStepPathNameExt = newModelPath + newModelName + stepSuffix + stepExt
-    logFilePathNameExt = newModelPath + newModelName + stepSuffix + ".log"
+    logFilePathNameExt = newModelPath + newModelName + ".log"
 
     # Strip out all "-" characters for use as the FreeCAD document name
     docName = string.replace(newModelName + stepSuffix, "-", "_")
