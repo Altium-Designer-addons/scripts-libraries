@@ -6,7 +6,7 @@
 #
 #	@details		
 #
-#    @version		0.3.8
+#    @version		0.3.9
 #					   $Rev::                                                                        $:
 #	@date			  $Date::                                                                        $:
 #	@author			$Author::                                                                        $:
@@ -367,7 +367,6 @@ def FC3DM_DescribeObjectsToLogFile(App, Gui,
     ## This way, our generated logfile will not encode the rev number of this STEP file.
     # Strip off the trailing digits.  Eg. convert "_TRT1" to "_TRT".
     stepSuffixStripped = re.sub('[0-9]+$', '', stepSuffix)
-    
 
     ## Dump all parms to string list
     strList = list()
@@ -376,8 +375,8 @@ def FC3DM_DescribeObjectsToLogFile(App, Gui,
     for name in parms:
 
         # Strip off any trailing digits from stepSuffix and derived strings (eg. convert "_TRT1" to "_TRT")
-        valueStripped = str(parms[name])
-        valueStripped.replace(stepSuffix, stepSuffixStripped)
+        value = str(parms[name])
+        valueStripped = re.sub(stepSuffix, stepSuffixStripped, value)
 
         # Append this to string list
         strList.append(name + "=" + valueStripped)
