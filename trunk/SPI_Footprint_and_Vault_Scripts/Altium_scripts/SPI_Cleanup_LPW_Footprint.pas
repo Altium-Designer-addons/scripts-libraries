@@ -263,7 +263,7 @@ function CLF_ExtrudeGeometricPolygonInto3d(    boardSide         : Integer;
  ***************************************************************************}
 const
 {* Declare the version and name of this script. *}
-   constScriptVersion          = 'v0.16.6 $Revision$';
+   constScriptVersion          = 'v0.16.7 $Revision$';
    constThisScriptNameNoExt    = 'SPI_Cleanup_LPW_Footprint';
    constThisScriptName         = constThisScriptNameNoExt + '.pas';
 {}
@@ -2398,12 +2398,15 @@ begin
    svnRepoRevPcbLib      := '-1';
 
    
-   WriteToDebugFile('Hello from CLF_RevertOldCsvFileAndReadIn(), csvReportFilePath is "' + csvReportFilePath + '".');
+   WriteToDebugFile('Hello from CLF_RevertOldCsvFileAndReadIn(), csvReportFilePath is "' + csvReportFilePath + '". pcbLibFileName is: ' + pcbLibFileName);
 
+   WriteToDebugFile('csvReportFilePath: ' + csvReportFilePath);
+   WriteToDebugFile('pcbLibFileName: ' + pcbLibFileName);
    { If the csv report file does not yet exist, then write a 0 length file to it so that we may check svn status. }
    if (not FileExists(csvReportFilePath)) then
    begin
-      
+
+      WriteToDebugFile('File does not exist');
       { Create string list. }
       dummy := TStringList.Create();
       
@@ -2416,7 +2419,7 @@ begin
    end; { endif }
 
    
-   {* Issue "svn status -vu" command to determine status of csv report file and PcbLib file with respect to svn repo. *}
+   {* Issue "svn status -vu" command to determine status of csv/log file and PcbLib/FCStd file with respect to svn repo. *}
    { Initialize svnOut string list. }
    svnOut := TStringList.Create;
 
@@ -2439,8 +2442,8 @@ begin
    parms.Free;
 
    { Dump svn output to debug file. }
-//   for i := 0 to (svnOut.Count - 1) do
-//      WriteToDebugFile(' svnOut[' + IntToStr(i) + '] is "' + svnOut[i] + '".');
+   for i := 0 to (svnOut.Count - 1) do
+      WriteToDebugFile(' svnOut[' + IntToStr(i) + '] is "' + svnOut[i] + '".');
 
    { Remove junk lines from svn output. }
    for i := (svnOut.Count - 1) downto 0 do
@@ -2454,8 +2457,8 @@ begin
       CLF_Abort('Did not get expected number of lines of output from svn status -uv command!');
 
    { After removing junk lines (if needed), we should have 2 lines of output:
-    Line 0 will be the svn status of the .csv file.
-    Line 1 will be the svn status of the .PcbLib file. }
+    Line 0 will be the svn status of the .csv or .log file.
+    Line 1 will be the svn status of the .PcbLib or .FCStd file. }
 
    { Extract first char of this line of output. }
    firstCharCsvStatus :=    Copy(svnOut.Strings[0],1,1);
@@ -6020,11 +6023,11 @@ function CLF_AddGeneratedDocumentsToProjectAndSvn(    project           : IProje
                                                       )                 : Integer;
                                                                  
 var                                                              
-   i                   : Integer;
-   rc                  : Integer;
-   filesToAdd               : TStringList;
-   projectDoc          : IServerDocument;
-   dummy               : TStringList;
+   i          : Integer;
+   rc         : Integer;
+   filesToAdd : TStringList;
+   projectDoc : IServerDocument;
+   dummy      : TStringList;
 
 begin
 
@@ -6142,45 +6145,76 @@ end; { end CLF_AddGeneratedDocumentsToProjectAndSvn() }
  *  If our CSV report file is unchanged from before this script run, then
  *  proceed to revert CSV report file and .PcbLib file, so that the user
  *  is not tempted to check in effectively unchanged binary files (eg. .PcbLib).
+ *
+ *  When mode is true, function is in 3d mode. When mode is false, function is
+ *  footprint mode.
  *  
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function CLF_RevertGeneratedFilesIfNeeded(    project           : IProject;
-                                              projectPath       : TDynamicString;
-                                              scriptsPath       : TDynamicString;
-                                              pcbLibFileName    : TString;
-                                              reportFilePath    : TString;
-                                              csvReportFilePath : TString;
-                                          var csvReportOld      : TStringList;
-                                          var csvReportOut      : TStringList;
-                                              )                 : Integer;
+function CLF_RevertGeneratedFilesIfNeeded(    projectPath           : TDynamicString;
+                                              scriptsPath           : TDynamicString;
+                                              pcbLibOrFcstdFilePath : TString;
+                                              reportOrIniFilePath   : TString;
+                                              pcbDocOrStepFilePath  : TString;
+                                              csvOrLogFilePath      : TString;
+                                              mode                  : Boolean;
+                                          var csvOrLogFileOld       : TStringList;
+                                          var csvOrLogFileOut       : TStringList;
+                                              )                     : Integer;
 
 var                                                              
-   i                   : Integer;
-   rc                  : Integer;
-   parms               : TStringList;
+   i                  : Integer;
+   rc                 : Integer;
+   parms              : TStringList;
+   pcbLib             : TString;
+   csv                : TString;
+   csvOrLogFileOldStr : TString;
+   csvOrLogFileOutStr : TString;
+   footprint          : TString;
 
 begin
 
    { Assume success. }
    result := 0;
 
-   WriteToDebugFile('Hello from CLF_RevertGeneratedFilesIfNeeded().');
-   CLF_UpdateGuiStatusMessage('Proceeding to see if .PcbLib is changed compared to last svn checkin.');
+   { Depending on which mode (either footprint or 3d model) the function
+     is in, the notifications and the Debug file must be different}
+   if ( mode ) then
+   begin
+      pcbLib := 'FCStd';
+      csv := 'log';
+      csvOrLogFileOldStr := 'freeCadLogOld';
+      csvOrLogFileOutStr := 'freeCadLogNew';
+      footprint := 'model';
+   end
 
-   { See if the csvReportOld file is the same as the new csvReportOut file. }
+   else
+   begin
+      pcbLib := 'PcbLib';
+      csv := 'csv';
+      csvOrLogFileOldStr := 'csvReportOld';
+      csvOrLogFileOutStr := 'csvReportOut';
+      footprint := 'footprint';
+   end;
+      
+      
+
+   WriteToDebugFile('Hello from CLF_RevertGeneratedFilesIfNeeded().');
+   CLF_UpdateGuiStatusMessage('Proceeding to see if ' + pcbLib + ' file is changed compared to last svn checkin.');
+
+   { See if the csvOrLogFileOld file is the same as the new csvOrLogFileOut file. }
    { Note:  Previous code already handled cases where csv file was not previously checked in, etc.
-    by not populating the csvReportOld stringlist.  In such a case, comparing a null stringlist
+    by not populating the csvOrLogFileOld stringlist.  In such a case, comparing a null stringlist
     to our new stringlist is guaranteed to be different. }
-   rc := DiffStringLists({listA} csvReportOld,
-                         {listB} csvReportOut);
+   rc := DiffStringLists({listA} csvOrLogFileOld,
+                         {listB} csvOrLogFileOut);
 
    { If they are the same, then inform user. }
    if (rc = 0) then
    begin
 
-      CLF_WriteToSummaryAndDebugFilesWithStepNum('Upon checking, contents of new .csv file match previous .csv file contents.  Thus, about to revert changes to .csv and .PcbLib files!');
-      ShowMessage('This generated .PcbLib footprint is effectively unchanged since last svn checkin.  Therefore, script will revert files so that you don''t accidentally checkin meaningless changes.');
+      CLF_WriteToSummaryAndDebugFilesWithStepNum('Upon checking, contents of new .' + csv + ' file match previous .' + csv + ' file contents.  Thus, about to revert changes to .' + csv + ' and .' + pcbLib + ' files!');
+      ShowMessage('This generated .' + pcbLib + ' ' + footprint + ' is effectively unchanged since last svn checkin.  Therefore, script will revert files so that you don''t accidentally checkin meaningless changes.');
       
       {* Svn revert all generated files. *}
 
@@ -6188,10 +6222,22 @@ begin
       parms := TStringList.Create();
 
       { Setup which files to revert. }
-      parms.Add(pcbLibFileName);
-      parms.Add(reportFilePath);
-      parms.Add(csvReportFilePath);
-      
+      parms.Add(pcbLibOrFcstdFilePath);
+      parms.Add(reportOrIniFilePath);
+      parms.Add(csvOrLogFilePath);
+
+      { If in 3d model mode, delete the STEP file we just created. }
+      if ( mode ) then
+      begin
+         DeleteFileWithVerify(pcbDocOrStepFilePath);
+      end
+
+      { Else we're in footprint mode, so revert the PcbDoc. }
+      else
+      begin
+         parms.Add(pcbDocOrStepFilePath);
+      end;
+         
       { Call IssueSvnCommand() to do all the real work. }
       IssueSvnCommand(scriptsPath,
                       projectPath,
@@ -6209,22 +6255,22 @@ begin
    { Else report on the differences. }
    else
    begin
-      WriteToDebugFile(' csv files appear to be different.');
-      WriteToDebugFile(' csv report csvReportOld follows:');
+      WriteToDebugFile( csv + ' files appear to be different.');
+      WriteToDebugFile( csv + ' report ' + csvOrLogFileOldStr + ' follows:');
 
-      for i := 0 to (csvReportOld.Count - 1) do
-         WriteToDebugFile(csvReportOld.Strings[i]);
+      for i := 0 to (csvOrLogFileOld.Count - 1) do
+         WriteToDebugFile(csvOrLogFileOld.Strings[i]);
 
-      WriteToDebugFile(' csv report csvReportOut follows:');
+      WriteToDebugFile( csv + ' report ' + csvOrLogFileOutStr + ' follows:');
 
-      for i := 0 to (csvReportOut.Count - 1) do
-         WriteToDebugFile(csvReportOut.Strings[i]);
+      for i := 0 to (csvOrLogFileOut.Count - 1) do
+         WriteToDebugFile(csvOrLogFileOut.Strings[i]);
 
    end; { endelse }
       
    { Free both csv report stringlists. }
-   csvReportOld.Free();
-   csvReportOut.Free();
+   csvOrLogFileOld.Free();
+   csvOrLogFileOut.Free();
   
 end; { end CLF_RevertGeneratedFilesIfNeeded() }
 
@@ -14383,66 +14429,74 @@ function CLF_Create3dFreeCadCompBody(    scriptsPath     : TDynamicString;
                                          )               : Integer;
 
 var
-   pkgDimsBallDiamNom                     : Real;
-   pkgDimsPinWidthMax                     : Real;
-   pkgDimsPinLandMax                      : Real;
-   pkgDimsPinLandMin                      : Real;
-   pkgDimsBodyWidthMax                    : Real;
-   pkgDimsBodyLengthMax                   : Real;
-   pkgDimsTotalWidthMax                   : Real;
-   pkgDimsTotalLengthMax                  : Real;
-   pkgDimsStandoffMin                     : Real;
-   pkgDimsPivotPointRatio                 : Real;
-   libHeightMm                            : Real;
-   pkgDimsHeightMax                       : Real;
-   iniFileOut                             : TStringList;
-   iniFilePath                            : TString;
-   libFileName                            : TString;
-   Tp                                     : Real;
-   Hpph                                   : Real;
-   Hppl                                   : Real;
-   Fr                                     : Real;
-   Hpe                                    : Real;
-   padGroupName                           : TString;
-   padType                                : TString;
-   footprintType                          : TString;
-   i                                      : Integer;
-   padDst                                 : IPCB_Pad;
-   padXmm                                 : Real;
-   padYmm                                 : Real;
-   padGroupNum                            : Integer;
-   parms                                  : TStringList;
-   genOut                                 : TStringList;
-   fcMacrosPath                           : TString;
-   genRcPath                              : TString;
-   genRc                                  : Integer;
-   newModelPath                           : TString;
-   stepSuffix                             : TString;
-   stepExt                                : TString;
-   stepFilePath                           : TString;
-   Xrot                                   : Integer;
-   Yrot                                   : Integer;
-   Zrot                                   : Integer;
-   ZoffsetMm                              : Real;
-   freeCadPath                            : TString;
-   cmd                                    : TString;
-   assemblyWestMm                         : Real;
-   assemblyEastMm                         : Real;
-   assemblyNorthMm                        : Real;
-   assemblySouthMm                        : Real;
-   borderWestMm                           : Real;
-   borderEastMm                           : Real;
-   borderNorthMm                          : Real;
-   borderSouthMm                          : Real;
-   bodyColor                              : Integer;
-   fcFound                                : Integer;
-   expectedFileName                       : TString;
-   highestRevMatchingStepFileNameTrueCase : TString;
-   modelPath                              : TSTring;
-   highestRevNumber                       : Integer;
-   nextRevNumber                          : Integer;
+   pkgDimsBallDiamNom             : Real;
+   pkgDimsPinWidthMax             : Real;
+   pkgDimsPinLandMax              : Real;
+   pkgDimsPinLandMin              : Real;
+   pkgDimsBodyWidthMax            : Real;
+   pkgDimsBodyLengthMax           : Real;
+   pkgDimsTotalWidthMax           : Real;
+   pkgDimsTotalLengthMax          : Real;
+   pkgDimsStandoffMin             : Real;
+   pkgDimsPivotPointRatio         : Real;
+   libHeightMm                    : Real;
+   pkgDimsHeightMax               : Real;
+   iniFileOut                     : TStringList;
+   iniFilePath                    : TString;
+   libFileName                    : TString;
+   Tp                             : Real;
+   Hpph                           : Real;
+   Hppl                           : Real;
+   Fr                             : Real;
+   Hpe                            : Real;
+   padGroupName                   : TString;
+   padType                        : TString;
+   footprintType                  : TString;
+   i                              : Integer;
+   padDst                         : IPCB_Pad;
+   padXmm                         : Real;
+   padYmm                         : Real;
+   padGroupNum                    : Integer;
+   parms                          : TStringList;
+   genOut                         : TStringList;
+   fcMacrosPath                   : TString;
+   genRcPath                      : TString;
+   genRc                          : Integer;
+   newModelPath                   : TString;
+   companySuffix                  : TString;
+   stepExt                        : TString;
+   stepFilePath                   : TString;
+   Xrot                           : Integer;
+   Yrot                           : Integer;
+   Zrot                           : Integer;
+   ZoffsetMm                      : Real;
+   freeCadPath                    : TString;
+   cmd                            : TString;
+   assemblyWestMm                 : Real;
+   assemblyEastMm                 : Real;
+   assemblyNorthMm                : Real;
+   assemblySouthMm                : Real;
+   borderWestMm                   : Real;
+   borderEastMm                   : Real;
+   borderNorthMm                  : Real;
+   borderSouthMm                  : Real;
+   bodyColor                      : Integer;
+   fcFound                        : Integer;
+   fcstdFileName                  : TString;
+   highestRevMatchingStepFileName : TString;
+   modelPath                      : TSTring;
+   highestRevNumber               : Integer;
+   nextRevNumber                  : Integer;
+   freeCadLogOld                  : TStringList;
+   freeCadLogNew                  : TStringList;
+   fcstdExt                       : TString;
+   expectedStepFileName           : TString;
+   logFilePath                    : TString;
+   mode                           : Boolean;
+   iniFileName                    : TString;
+   iniPath                        : TString;
+   fcstdFilePath                  : TString;
    
-
 begin
 
    { Assume success. }
@@ -14452,20 +14506,40 @@ begin
 
    { Build expected file name for existing STEP model. }
    libFileName := cnfGalacticInfo.Values(constGilLibraryFileName);
-   stepSuffix   := '_' + const3dModelCompanySuffix;
-   stepExt      := '.step';
-   expectedFileName := AnsiUpperCase(libFileName + stepSuffix);
+   companySuffix := '_' + const3dModelCompanySuffix;
 
-   { Path for existing STEP model. }
+   {* Setting up RevertOld...ReadIn() parameters. *}
+   { FreeCAD Mode }
+   fcstdExt := '.FCStd';
+   fcstdFileName := libFileName + fcstdExt;
+   fcstdFilePath := projectPath + constSpi3dModelsFcDir + 'ICs_gullwing\' + fcstdFileName;
+   WriteToDebugFile('fcstdFilePath: ' + fcstdFilePath);
+   { Ini File }
+   iniFileName := libFileName + '.ini';
+   iniPath := projectPath + constSpi3dModelsFcDir + 'ICs_gullwing\' + iniFileName;
+   WriteToDebugFile('iniPath: ' + iniPath);
+   { Log File }
+   logFilePath := projectPath + constSpi3dModelsFcDir + 'ICs_gullwing\' + libFileName + '.log';
+   WriteToDebugFile('logFilePath: ' + logFilePath);
+
+   { Call RevertOld...ReadIn() }
+   CLF_RevertOldCsvFileAndReadIn(projectPath, 
+                                 scriptsPath,
+                                 fcstdFilePath,
+                                 logFilePath,
+                                 {var} freeCadLogOld
+                                 );
+   
+   expectedStepFileName := AnsiUpperCase(libFileName + companySuffix);
    modelPath := constSpi3dModelsFcDir + 'ICs_gullwing\';
-
+   
    { Call find function to check if there is an existing STEP model. }
    fcFound := CLF_FindStepModel(scriptsPath,
                                 projectPath,
                                 cnfGalacticInfo,
                                 {ModelsDir} modelPath,
-                                {expectedStepFileName} expectedFileName,
-                                {var} highestRevMatchingStepFileNameTrueCase,
+                                expectedStepFileName,
+                                {var} highestRevMatchingStepFileName,
                                 {var} highestRevNumber);
 
    { If there is an existing STEP file, check the most recent csv file against the new one. }
@@ -14473,7 +14547,7 @@ begin
    begin
       WriteToDebugFile('CreateFreeCad found the file');
 
-      WriteToDebugFile('highestRevMatchingStepFileNameTrueCase: ' + highestRevMatchingStepFileNameTrueCase);
+      WriteToDebugFile('highestRevMatchingStepFileName: ' + highestRevMatchingStepFileName);
       nextRevNumber := highestRevNumber + 1;
    end
 
@@ -14483,33 +14557,7 @@ begin
       WriteToDebugFile('CreateFreeCad did not find file');
       nextRevNumber := 1;
    end;
-
-
     
-
-   
-   { See if the CSV report file has changed compared to before this script run.  If it has not,
-    then proceed to revert all generated files, so that user is not tempted to checkin effectively
-    unchanged binary file .PcbLib. }
-   //CLF_RevertGeneratedFilesIfNeeded(project,
-   //                                 projectPath,
-   //                                 scriptsPath,
-   //                                 libFileName,
-   //                                 reportFilePath,
-   //                                 csvReportFilePath,
-   //                                 {var} csvReportOld);
-
-
-
-
-
-
-
-
-
-
-      
-   
    { Retrieve package dimension fields from galactic string list. }
    pkgDimsBallDiamNom   := StrToFloat(cnfGalacticInfo.Values(constGilPkgDimsBallDiamNom));
    pkgDimsPinWidthMax   := StrToFloat(cnfGalacticInfo.Values(constGilPkgDimsPinWidthMax));
@@ -14600,13 +14648,13 @@ begin
    iniFileOut.Clear();
    
    { Compute the iniFilePath for the component-specific ini file. }
-   newModelPath := projectPath + constSpi3dModelsFcDir + 'ICs_gullwing' + '\';
+   newModelPath := projectPath + modelPath;
    iniFilePath  := newModelPath + libFileName + '.ini';
 
 
-   stepSuffix   := stepSuffix + nextRevNumber;
+   companySuffix   := companySuffix + IntToStr(nextRevNumber);
    stepExt      := '.step';
-   stepFilePath := newModelPath + libFileName + stepSuffix + stepExt;
+   stepFilePath := newModelPath + libFileName + companySuffix + stepExt;
 
    iniFileOut.add('# Parameters that describe how to generate a specific component''s 3D model');
    iniFileOut.add('');
@@ -14618,7 +14666,7 @@ begin
    iniFileOut.add('newModelPath = "' + projectPath + constSpi3dModelsFcDir + 'ICs_gullwing' + '\');
    iniFileOut.add('');
    iniFileOut.add('# Suffix to add to STEP models');
-   iniFileOut.add('stepSuffix = "' + stepSuffix + '"');
+   iniFileOut.add('stepSuffix = "' + companySuffix + '"');
    iniFileOut.add('suffix = "_SvnRev_"');
    iniFileOut.add('stepExt = "' + stepExt + '"');
    iniFileOut.add('');
@@ -14793,6 +14841,31 @@ begin
                     {var} primNames,
                     {var} csvReportStrs);
    CLF_WriteToSummaryAndDebugFilesWithStepNum('Added auto-generated STEP model "' + stepFilePath + '" to new .PcbLib file.');
+
+   
+   {* See if resulting FreeCAD STEP model is any different from a previously-existing version of such. *}
+
+   { Initialize stringlist. }
+   freeCadLogNew  := TStringList.Create();
+   
+   { Read in python-generated features report to stringlist freeCadLogNew }
+   { Read old csv report file into stringlist. }
+   freeCadLogNew.LoadFromFile(logFilePath);
+   
+   { Set function mode }
+   mode := True;
+   
+   { Call Revert...IfNeeded(). }
+   CLF_RevertGeneratedFilesIfNeeded(projectPath,
+                                    scriptsPath,
+                                    {pcbLibOrFcstdFilePath} fcstdFilePath,
+                                    {reportOrIniFilePath} iniPath,
+                                    {pcbDocOrStepFilePath} stepFilePath,
+                                    {csvOrLogFilePath} logFilePath,
+                                    mode,
+                                    {var csvOrLogFileOld} freeCadLogOld,
+                                    {var csvOrLogFileOut} freeCadLogNew
+                                    );
 
 
    {* Add 3D extrusion for body only, set to invisible.  This is used for exporting a simpler STEP version of board for thermal modeling. *}
@@ -17863,7 +17936,9 @@ var
    pkgDimsHeightMax      : Real;
    stepFilePath          : TString;
    derivedByMethod       : TString;
-                         
+   mode                  : Boolean;
+   pcbDocFileName        : TString;
+                            
 begin
 
    { Assume success. }
@@ -17991,6 +18066,7 @@ begin
 
       { Construct the full path and name and extension for new PcbLib file that we are about to create. }
       pcbLibFileName := (projectPath + libSubDir + libFileName + '.PcbLib');
+      pcbDocFileName := (projectPath + libSubDir + libFileName + '.PcbDoc'); 
 
       { Write name of upcoming footprint to summary file. }
       CLF_WriteToSummaryAndDebugFilesWithStepNum('About to start work on footprint "' + libFileName + '".');
@@ -18074,15 +18150,17 @@ begin
 
       { See if the CSV report file has changed compared to before this script run.  If it has not,
        then proceed to revert all generated files, so that user is not tempted to checkin effectively
-       unchanged binary file .PcbLib. }
-      CLF_RevertGeneratedFilesIfNeeded(project,
-                                       projectPath,
+       unchanged binary file .PcbLib. Mode=False indicates footprint mode. }
+      mode := False;
+      CLF_RevertGeneratedFilesIfNeeded(projectPath,
                                        scriptsPath,
-                                       pcbLibFileName,
-                                       reportFilePath,
-                                       csvReportFilePath,
-                                       {var} csvReportOld,
-                                       {var} csvReportOut);
+                                       {pcbLibOrFcstdFilePath} pcbLibFileName,
+                                       {reportOrIniFilePath} reportFilePath,
+                                       {pcbDocOrStepFilePath} pcbDocFileName,
+                                       {csvOrLogFilePath} csvReportFilePath,
+                                       mode,
+                                       {var csvOrLogFileOld} csvReportOld,
+                                       {var csvOrLogFileOut} csvReportOut);                                      );
       
       {** See if we have a(nother) derived footprint that we have been ordered to create. **}
       WriteToDebugFile('Checking for order to derive new footprint # ' + IntToStr(derivedFpNum) + '.');
