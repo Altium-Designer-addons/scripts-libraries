@@ -6,7 +6,7 @@
 #
 #	@details		
 #
-#    @version		0.3.7
+#    @version		0.3.8
 #					   $Rev::                                                                        $:
 #	@date			  $Date::                                                                        $:
 #	@author			$Author::                                                                        $:
@@ -354,6 +354,7 @@ def FC3DM_DescribeObjectsToLogFile(App, Gui,
     bodyName = parms["bodyName"]
     pin1MarkName = parms["pin1MarkName"]
     logFilePathNameExt = parms["logFilePathNameExt"]
+    stepSuffix = parms["stepSuffix"]
 
     # Init
     App.ActiveDocument=None
@@ -362,14 +363,24 @@ def FC3DM_DescribeObjectsToLogFile(App, Gui,
     App.ActiveDocument=App.getDocument(docName)
     Gui.ActiveDocument=Gui.getDocument(docName)
 
+    ## Analyze stepSuffix so that we can strip the trailing digits from this from all parms.
+    ## This way, our generated logfile will not encode the rev number of this STEP file.
+    # Strip off the trailing digits.  Eg. convert "_TRT1" to "_TRT".
+    stepSuffixStripped = re.sub('[0-9]+$', '', stepSuffix)
+    
+
     ## Dump all parms to string list
     strList = list()
 
     # Loop over all parms
-    for parm in parms:
+    for name in parms:
+
+        # Strip off any trailing digits from stepSuffix and derived strings (eg. convert "_TRT1" to "_TRT")
+        valueStripped = str(parms[name])
+        valueStripped.replace(stepSuffix, stepSuffixStripped)
 
         # Append this to string list
-        strList.append(parm + "=" + str(parms[parm]))
+        strList.append(name + "=" + valueStripped)
 
     # Sort the string list
     strList.sort(FC3DM_SortPinNames)
