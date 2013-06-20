@@ -2407,12 +2407,28 @@ begin
    if (not FileExists(csvReportFilePath)) then
    begin
 
-      WriteToDebugFile('File does not exist');
+      WriteToDebugFile('CSV Report File does not exist');
       { Create string list. }
       dummy := TStringList.Create();
       
       { Write null string list to csv report file. }
       dummy.SaveToFile(csvReportFilePath);
+      
+      { Free string list. }
+      dummy.Free();
+
+   end; { endif }
+
+   { If the PcbLib file does not yet exist, then write a 0 length file to it so that we may check svn status. }
+   if (not FileExists(pcbLibFileName)) then
+   begin
+
+      WriteToDebugFile('PcbLib File does not exist');
+      { Create string list. }
+      dummy := TStringList.Create();
+      
+      { Write null string list to PcbLib file. }
+      dummy.SaveToFile(pcbLibFileName);
       
       { Free string list. }
       dummy.Free();
@@ -2642,7 +2658,7 @@ begin
    result := 0;
 
    WriteToDebugFile('Hello from CLF_ProjectAddRemoveFile()');
-
+   WriteToDebugFile('action is: ' + action);
    { Flag that we have not yet found the document we're looking for. }
    found := False;
 
