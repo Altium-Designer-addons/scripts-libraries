@@ -263,7 +263,7 @@ function CLF_ExtrudeGeometricPolygonInto3d(    boardSide         : Integer;
  ***************************************************************************}
 const
 {* Declare the version and name of this script. *}
-   constScriptVersion          = 'v0.16.8 $Revision$';
+   constScriptVersion          = 'v0.16.10 $Revision$';
    constThisScriptNameNoExt    = 'SPI_Cleanup_LPW_Footprint';
    constThisScriptName         = constThisScriptNameNoExt + '.pas';
 {}
@@ -2364,29 +2364,31 @@ end; { end CLF_MoveFileSvnAware() }
  *
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function CLF_RevertOldCsvFileAndReadIn(    projectPath       : TDynamicString;
-                                           scriptsPath       : TDynamicString;
-                                           pcbLibFileName    : TString;
-                                           csvReportFilePath : TString;
-                                       var csvReportOld      : TStringList;
-                                           )                 : Integer;
+function CLF_RevertOldCsvFileAndReadIn(    projectPath           : TDynamicString;
+                                           scriptsPath           : TDynamicString;
+                                           pcbLibOrFcstdFilePath : TString;
+                                           reportOrIniFilePath   : TString;
+                                           pcbDocOrStepFilePath  : TString;
+                                           csvOrLogFilePath      : TString;
+                                       var csvOrLogFileOld       : TStringList;
+                                           )                     : Integer;
 
 var
-   rc                    : Integer;
-   svnOut                : TStringList;
-   i                     : Integer;
-   doSvnRevert           : Boolean;
-   doReadIn              : Boolean;
-   parms                 : TStringList;
-   firstCharCsvStatus    : TString;
-   firstCharPcbLibStatus : TString;
-   ninthCharCsvStatus    : TString;
-   ninthCharPcbLibStatus : TString;
-   statusFieldsCsv       : TStringList;
-   statusFieldsPcbLib    : TStringList;
-   svnRepoRevCsv         : TString;
-   svnRepoRevPcbLib      : TString;
-   dummy                 : TStringList;
+   rc                 : Integer;
+   svnOut             : TStringList;
+   i                  : Integer;
+   doSvnRevert        : Boolean;
+   doReadIn           : Boolean;
+   parms              : TStringList;
+   firstCharStatus    : TString;
+   ninthCharStatus    : TString;
+   statusFieldsCsv    : TStringList;
+   statusFieldsPcbLib : TStringList;
+   svnRepoRevCsv      : TString;
+   svnRepoRevPcbLib   : TString;
+   dummy              : TStringList;
+   filePathList       : TStringList;
+   filePath           : TString;
 
 begin
 
@@ -2397,46 +2399,21 @@ begin
    svnRepoRevCsv         := '-1';
    svnRepoRevPcbLib      := '-1';
 
-   
-   WriteToDebugFile('Hello from CLF_RevertOldCsvFileAndReadIn(), csvReportFilePath is "' + csvReportFilePath + '". pcbLibFileName is: ' + pcbLibFileName);
+   WriteToDebugFile('Hello from CLF_RevertOldCsvFileAndReadIn()');
 
-   WriteToDebugFile('csvReportFilePath: ' + csvReportFilePath);
-   WriteToDebugFile('pcbLibFileName: ' + pcbLibFileName);
+   WriteToDebugFile('pcbLibOrFcstdFilePath: ' + pcbLibOrFcstdFilePath);
+   WriteToDebugFile('reportOrIniFilePath: ' + reportOrIniFilePath);
+   WriteToDebugFile('pcbDocOrStepFilePath: ' + pcbDocOrStepFilePath);
+   WriteToDebugFile('csvOrLogFilePath: ' + csvOrLogFilePath);   
 
-   { If the csv report file does not yet exist, then write a 0 length file to it so that we may check svn status. }
-   if (not FileExists(csvReportFilePath)) then
-   begin
+   { Store the 4 file names in a stringlist, so that we can loop over it. }
+   filePathList := TStringList.Create;
+   filePathList.Add(pcbLibOrFcstdFilePath);
+   filePathList.Add(reportOrIniFilePath);
+   filePathList.Add(pcbDocOrStepFilePath);
+   filePathList.Add(csvOrLogFilePath);
 
-      WriteToDebugFile('CSV Report File does not exist');
-      { Create string list. }
-      dummy := TStringList.Create();
-      
-      { Write null string list to csv report file. }
-      dummy.SaveToFile(csvReportFilePath);
-      
-      { Free string list. }
-      dummy.Free();
-
-   end; { endif }
-
-   { If the PcbLib file does not yet exist, then write a 0 length file to it so that we may check svn status. }
-   if (not FileExists(pcbLibFileName)) then
-   begin
-
-      WriteToDebugFile('PcbLib File does not exist');
-      { Create string list. }
-      dummy := TStringList.Create();
-      
-      { Write null string list to PcbLib file. }
-      dummy.SaveToFile(pcbLibFileName);
-      
-      { Free string list. }
-      dummy.Free();
-
-   end; { endif }
-
-   
-   {* Issue "svn status -vu" command to determine status of csv/log file and PcbLib/FCStd file with respect to svn repo. *}
+   {* Prepare to issue "svn status -vu" command to determine status of csv/log file and PcbLib/FCStd file with respect to svn repo. *}
    { Initialize svnOut string list. }
    svnOut := TStringList.Create;
 
@@ -2445,9 +2422,34 @@ begin
 
    { Tell svn which files to check status of. }
    parms.Add('-v');
-   parms.Add(csvReportFilePath);
-   parms.Add(pcbLibFileName);
+
+   { Loop over all 4 files }
+   for i := 0 to filePathList.Count - 1 do
+   begin
+
+      filePath := filePathList[i];
+      
+      { If the file does not yet exist, then write a 0 length file to it so that we may check svn status. }
+      if (not FileExists(filePath)) then
+      begin
+
+         WriteToDebugFile('File does not exist');
+         { Create string list. }
+         dummy := TStringList.Create();
+      
+         { Write null string list to file. }
+         dummy.SaveToFile(filePath);
+      
+         { Free string list. }
+         dummy.Free();
+
+      end; { endif }
    
+      parms.Add(filePath);
+
+   { End loop over all 4 files }
+   end;
+
    { Call IssueSvnCommandGetOutput() to do all the real work. }
    IssueSvnCommandGetOutput(scriptsPath,
                             projectPath,
@@ -2470,58 +2472,49 @@ begin
          svnOut.Delete(i);
 
    { Sanity check. }
-   if (svnOut.Count <> 2) then
+   if (svnOut.Count <> 4) then
       CLF_Abort('Did not get expected number of lines of output from svn status -uv command!');
 
-   { After removing junk lines (if needed), we should have 2 lines of output:
-    Line 0 will be the svn status of the .csv or .log file.
-    Line 1 will be the svn status of the .PcbLib or .FCStd file. }
+   { After removing junk lines (if needed), we should have 4 lines of output:
+    Line 0 will be the svn status of the PcbLib or FCStd file.
+    Line 1 will be the svn status of the report or ini file.
+    Line 2 will be the svn status of the PcbDoc or step file.
+    Line 3 will be the svn status of the csv or log file. }
 
-   { Extract first char of this line of output. }
-   firstCharCsvStatus :=    Copy(svnOut.Strings[0],1,1);
-   firstCharPcbLibStatus := Copy(svnOut.Strings[1],1,1);
-   WriteToDebugFile(' firstCharCsvStatus is "' + firstCharCsvStatus + '".');
-   WriteToDebugFile(' firstCharPcbLibStatus is "' + firstCharPcbLibStatus + '".');
 
-   { Extract ninth char of this line of output. }
-   ninthCharCsvStatus :=    Copy(svnOut.Strings[0],9,1);
-   ninthCharPcbLibStatus := Copy(svnOut.Strings[1],9,1);
-   WriteToDebugFile(' ninthCharCsvStatus is "' + ninthCharCsvStatus + '".');
-   WriteToDebugFile(' ninthCharPcbLibStatus is "' + ninthCharPcbLibStatus + '".');
+//   {* Obtain the latest revs on the svn server for these 2 files. *}
+//   statusFieldsCsv       := TStringList.Create();
+//   statusFieldsPcbLib    := TStringList.Create();
 
-   {* Obtain the latest revs on the svn server for these 2 files. *}
-   statusFieldsCsv       := TStringList.Create();
-   statusFieldsPcbLib    := TStringList.Create();
+   { This is related to old code to try to check the checkin numbers of the csv file vs.
+    the PcbLib file.  We've since decided not to try to do that, hence this is commented out. }
+//   { If these two files have just been added to svn or do not exist at all in svn,
+//    then it's hopeless to try to extract repo rev numbers, etc. }
+//   if (  not( (firstCharCsvStatus = constSvnRepStatusAdded) or
+//       (firstCharCsvStatus = constSvnRepStatusNotInSvn) or
+//       (firstCharPcbLibStatus = constSvnRepStatusAdded) or
+//       (firstCharPcbLibStatus = constSvnRepStatusNotInSvn) )  ) then
+//   begin
+//      
+//      { For an svn status -uv command, the first 9 columns are used for individual characters.
+//       The remaining fields (working copy svn rev, repo svn rev, etc. start at column 10, space delimited. }
+//      statusFieldsCsv.DelimitedText    := Copy(svnOut.Strings[0], constSvnStatusUvRemFieldsStartAtCol, MaxInt);
+//      for i := 0 to (statusFieldsCsv.Count - 1) do
+//         WriteToDebugFile(' statusFieldsCsv[' + IntToStr(i) + '] is "' + statusFieldsCsv[i] + '".');
+//      
+//      statusFieldsPcbLib.DelimitedText := Copy(svnOut.Strings[1], constSvnStatusUvRemFieldsStartAtCol, MaxInt);
+//      for i := 0 to (statusFieldsPcbLib.Count - 1) do
+//         WriteToDebugFile(' statusFieldsPcbLib[' + IntToStr(i) + '] is "' + statusFieldsPcbLib[i] + '".');
+//
+//      { Extract repo rev numbers for the 2 files in question. }
+//      svnRepoRevCsv         := statusFieldsCsv[1];
+//      svnRepoRevPcbLib      := statusFieldsPcbLib[1];
+//      WriteToDebugFile(' svnRepoRevCsv is "' + svnRepoRevCsv + '".');
+//      WriteToDebugFile(' svnRepoRevPcbLib is "' + svnRepoRevPcbLib + '".');
+//
+//   end; { endif }
 
-   { If these two files have just been added to svn or do not exist at all in svn,
-    then it's hopeless to try to extract repo rev numbers, etc. }
-   if (  not( (firstCharCsvStatus = constSvnRepStatusAdded) or
-       (firstCharCsvStatus = constSvnRepStatusNotInSvn) or
-       (firstCharPcbLibStatus = constSvnRepStatusAdded) or
-       (firstCharPcbLibStatus = constSvnRepStatusNotInSvn) )  ) then
-   begin
-      
-      { For an svn status -uv command, the first 9 columns are used for individual characters.
-       The remaining fields (working copy svn rev, repo svn rev, etc. start at column 10, space delimited. }
-      statusFieldsCsv.DelimitedText    := Copy(svnOut.Strings[0], constSvnStatusUvRemFieldsStartAtCol, MaxInt);
-      for i := 0 to (statusFieldsCsv.Count - 1) do
-         WriteToDebugFile(' statusFieldsCsv[' + IntToStr(i) + '] is "' + statusFieldsCsv[i] + '".');
-      
-      statusFieldsPcbLib.DelimitedText := Copy(svnOut.Strings[1], constSvnStatusUvRemFieldsStartAtCol, MaxInt);
-      for i := 0 to (statusFieldsPcbLib.Count - 1) do
-         WriteToDebugFile(' statusFieldsPcbLib[' + IntToStr(i) + '] is "' + statusFieldsPcbLib[i] + '".');
-
-      { Extract repo rev numbers for the 2 files in question. }
-      svnRepoRevCsv         := statusFieldsCsv[1];
-      svnRepoRevPcbLib      := statusFieldsPcbLib[1];
-      WriteToDebugFile(' svnRepoRevCsv is "' + svnRepoRevCsv + '".');
-      WriteToDebugFile(' svnRepoRevPcbLib is "' + svnRepoRevPcbLib + '".');
-
-   end; { endif }
-
-   { Sanity check. }
-   if ( (ninthCharCsvStatus = '*') or (ninthCharPcbLibStatus = '*') ) then
-      CLF_Abort('Svn working copy is out of date with respect to server!  You need to do an svn update of the project directory!');
+   
 
    { Free svnOut list. }
    svnOut.Free;
@@ -2531,106 +2524,117 @@ begin
    { Flag that by default, we will neither do an svn revert operation, nor read in old csv file. }
    doSvnRevert           := False;
    doReadIn              := False;
-   
-   { Look for an 'A' char (file has been added but not ever checked into svn) or for
-    a '?' char (meaning that it's not yet in subversion).  In either of these cases,
-    there's no reason for us to do a revert and no reason to bother reading the file in. }
-   if ( (firstCharCsvStatus = constSvnRepStatusAdded) or
-       (firstCharCsvStatus = constSvnRepStatusNotInSvn) or
-       (firstCharPcbLibStatus = constSvnRepStatusAdded) or
-       (firstCharPcbLibStatus = constSvnRepStatusNotInSvn) ) then
-   begin
-      
-      WriteToDebugFile(' Both files are not yet in svn.  Will not read in old csv file.');
 
-      { Flag that we will neither do an svn revert operation, nor read in old csv file. }
-      doSvnRevert           := False;
-      doReadIn              := False;
-      
-   end { end elsif }
+   { Initialize parms string list. }
+   parms := TStringList.Create;
 
-   { Else check for the case where .csv file and .PcbLib file were not checked in simultaneously. }
-   { NOTE:  We can no longer check this due to the dual checkins that now happen with PcbLib files! }
-//   else if (svnRepoRevCsv <> svnRepoRevPcbLib) then
-//   begin
-//      
-//      WriteToDebugFile(' Gaah!  Found differing repo revisions for .csv and .PcbLib files!');
-//      
-//      { Flag that we will neither do an svn revert operation, nor read in old csv file. }
-//      doSvnRevert           := False;
-//      doReadIn              := False;
-//      
-//   end { end elsif }
-
-   { Else look for a ' ' char (file is up-to-date with respect to server.  In this case,
-    we don't need to revert but we do want to read it in. }
-   else if ( (firstCharCsvStatus = constSvnRepStatusHappy) and
-            (firstCharPcbLibStatus = constSvnRepStatusHappy) ) then
+   { Loop over all 4 files }
+   for i := 0 to filePathList.Count - 1 do
    begin
 
-      WriteToDebugFile(' Everything looks happy.  Flagging to read in old csv file.');
-      
-      { Flag that we will in fact read in old csv file. }
-      doReadIn    := True;
-     
-   end { end elsif }
+      filePath := filePathList[i];
 
-   { In all other cases ('M', etc.), flag that we want to do an svn revert operation. }
-   else
-   begin
+      { Extract first char of this line of output. }
+      firstCharStatus :=    Copy(svnOut[i],1,1);
+      WriteToDebugFile( filePath + ' firstCharStatus is "' + firstCharStatus + '".');
       
-      WriteToDebugFile(' Got to else case, so both are presumably "M" status.  Flagging to do both svn revert and read in old csv file.');
+      { Extract ninth char of this line of output. }
+      ninthCharStatus :=    Copy(svnOut[i],9,1);
+      WriteToDebugFile( filePath + ' ninthCharStatus is "' + ninthCharStatus + '".');
 
-      { Flag that we want to do svn revert. }
-      doSvnRevert := True;
+      { Sanity check. }
+      if ( (ninthCharStatus = '*') ) then
+         CLF_Abort('Svn working copy is out of date with respect to server!  You need to do an svn update of the project directory!');
       
-      { Flag that we will in fact read in old csv file. }
-      doReadIn    := True;
-      
-   end; { endelse }
+      { Look for an 'A' char (file has been added but not ever checked into svn) or for
+       a '?' char (meaning that it's not yet in subversion).  In either of these cases,
+       there's no reason for us to do a revert and no reason to bother reading the file in. }
+      if ( (firstCharStatus = constSvnRepStatusAdded) or
+          (firstCharStatus = constSvnRepStatusNotInSvn) )  then
+      begin
+         
+         WriteToDebugFile( filePath + ' file are not yet in svn.  Will not read in old file.');
 
+         { Flag that we will neither do an svn revert operation, nor read in old csv file. }
+         //      doSvnRevert           := False;
+         //      doReadIn              := False;
+         
+      end { end if }
+
+      { Else check for the case where .csv file and .PcbLib file were not checked in simultaneously. }
+      { NOTE:  We can no longer check this due to the dual checkins that now happen with PcbLib files! }
+          //   else if (svnRepoRevCsv <> svnRepoRevPcbLib) then
+          //   begin
+          //      
+          //      WriteToDebugFile(' Gaah!  Found differing repo revisions for .csv and .PcbLib files!');
+          //      
+          //      { Flag that we will neither do an svn revert operation, nor read in old csv file. }
+          //      doSvnRevert           := False;
+          //      doReadIn              := False;
+          //      
+          //   end { end elsif }
+
+      { Else look for a ' ' char (file is up-to-date with respect to server.  In this case,
+       we don't need to revert but we do want to read it in. }
+          else if ( firstCharStatus = constSvnRepStatusHappy) then
+          begin
+
+          WriteToDebugFile(' Everything looks happy.  Flagging to read in old file.');
+          
+          { Flag that we will in fact read in old file. }
+          //      doReadIn    := True;
+               
+          end { end elsif }
+
+          { In all other cases ('M', etc.), flag that we want to do an svn revert operation. }
+          else
+          begin
+               
+          WriteToDebugFile(' Got to else case, so both are presumably "M" status.  Flagging to do both svn revert and read in old file.');
+
+          { Flag that we want to do svn revert. }
+          doSvnRevert := True;
+               
+          { Flag that we will in fact read in old csv file. }
+          //      doReadIn    := True;
+
+          { Add this file to list of files to revert. }
+          parms.Add(filePath);
+               
+          end; { endelse }
+
+   { end loop over all files }
+   end;
 
    {* Do an svn revert of the csv file if needed. }
    if (doSvnRevert) then
    begin
       
-      WriteToDebugFile(' About to revert csv report file!');
+      WriteToDebugFile(' About to revert files!');
 
-      { Initialize parms string list. }
-      parms := TStringList.Create;
-
-      { Tell svn which file to revert. }
-      parms.Add(csvReportFilePath);
-      
       { Call IssueSvnCommand() to do all the real work. }
       IssueSvnCommand(scriptsPath,
                       projectPath,
                       {command} constSvnCmdRevert,
                       parms);
 
-      { Free parms list. }
-      parms.Free;
-
    end; { endif }
+
+   { Free parms list. }
+   parms.Free;
 
    
    {* Read in the contents of the existing (reverted?) csv file. *}
    { Initialize stringlist. }
-   csvReportOld  := TStringList.Create();
+   csvOrLogFileOld  := TStringList.Create();
 
-   { Make sure that we've been flagged to read in the file and that file exists. }
-   if ( (doReadIn) and (FileExists(csvReportFilePath)) ) then
-   begin
+   WriteToDebugFile(' About to read in old csv or log file.');
 
-      WriteToDebugFile(' About to read in old csv file.');
-
-      { Make sure it's readable (eg. not still open and flocked by Excel). }
-      VerifyFileIsReadable(csvReportFilePath);
-
-      { Read old csv report file into stringlist. }
-      csvReportOld.LoadFromFile(csvReportFilePath);
+   { Make sure it's readable (eg. not still open and flocked by Excel). }
+   VerifyFileIsReadable(csvOrLogFilePath);
    
-   end { endif }
+   { Read old csv report file into stringlist. }
+   csvOrLogFileOld.LoadFromFile(csvOrLogFilePath);
    
 end; { end CLF_RevertOldCsvFileAndReadIn() }
 
@@ -6040,11 +6044,12 @@ function CLF_AddGeneratedDocumentsToProjectAndSvn(    project           : IProje
                                                       )                 : Integer;
                                                                  
 var                                                              
-   i          : Integer;
-   rc         : Integer;
-   filesToAdd : TStringList;
-   projectDoc : IServerDocument;
-   dummy      : TStringList;
+          i          : Integer;
+          rc         : Integer;
+          filesToAdd : TStringList;
+          projectDoc : IServerDocument;
+          dummy      : TStringList;
+          pcbDocFilePath : TString;
 
 begin
 
@@ -6079,15 +6084,20 @@ begin
 
 
    { Construct the full path and name and extension for new script csvReport file that we are about to create. }
-   csvReportFilePath       := (projectPath + libSubDir + libFileName + '_Features_Report.csv');
+   csvReportFilePath := (projectPath + libSubDir + libFileName + '_Features_Report.csv');
+
+   pcbDocFilePath := projectPath + libSubDir + libFileName + '.PcbDoc';
 
    {** Read in old CSV report file for later comparison with new CSV report file. **}
-   CLF_RevertOldCsvFileAndReadIn(projectPath,
-                                 scriptsPath,
-                                 pcbLibFileName,
-                                 csvReportFilePath,
-                                 {var} csvReportOld);
-   
+   CLF_RevertOldCsvFileAndReadIn( projectPath,
+                                  scriptsPath,
+                                  {pcbLibOrFcstdFilePath} pcbLibFileName,
+                                  {reportOrIniFilePath} reportFilePath,
+                                  {pcbDocOrStepFilePath} pcbDocFilePath,
+                                  {csvOrLogFilePath} csvReportFilePath,
+                                  {var csvOrLogFileOld} csvReportOld
+                                  );
+ 
    {** Save the CSV report file and add that file to project and svn. **}
    { Write null file to our CSV report file to the csvReportFilePath, which is named similarly to the .PcbLib file. }
    { Note:  We're not done with creating this report.  We're doing the project add and svn add operations
@@ -6222,6 +6232,11 @@ begin
 
    WriteToDebugFile('Hello from CLF_RevertGeneratedFilesIfNeeded().');
    CLF_UpdateGuiStatusMessage('Proceeding to see if ' + pcbLib + ' file is changed compared to last svn checkin.');
+
+   WriteToDebugFile('pcbLibOrFcstdFilePath is: ' + pcbLibOrFcstdFilePath);
+   WriteToDebugFile('reportOrIniFilePath is: ' + reportOrIniFilePath);
+   WriteToDebugFile('pcbDocOrStepFilePath is: ' + pcbDocOrStepFilePath);
+   WriteToDebugFile('csvOrLogFilePath is: ' + csvOrLogFilePath);
 
    { See if the csvOrLogFileOld file is the same as the new csvOrLogFileOut file. }
    { Note:  Previous code already handled cases where csv file was not previously checked in, etc.
@@ -14523,6 +14538,7 @@ var
    iniPath                        : TString;
    fcstdFilePath                  : TString;
    filesAreReverted               : Boolean;
+   stepFileName                   : TString;
    
 begin
 
@@ -14534,6 +14550,19 @@ begin
    { Build expected file name for existing STEP model. }
    libFileName := cnfGalacticInfo.Values(constGilLibraryFileName);
    companySuffix := '_' + const3dModelCompanySuffix;
+   
+   { Compose name of STEP model. }
+   expectedStepFileName := AnsiUpperCase(libFileName + companySuffix);
+   modelPath := constSpi3dModelsFcDir + 'ICs_gullwing\';
+
+   { Call find function to check if there is an existing STEP model. }
+   fcFound := CLF_FindStepModel(scriptsPath,
+                                projectPath,
+                                cnfGalacticInfo,
+                                {ModelsDir} modelPath,
+                                expectedStepFileName,
+                                {var} highestRevMatchingStepFileName,
+                                {var} highestRevNumber);
 
    {* Setting up RevertOld...ReadIn() parameters. *}
    { Setup the paths and names of the FreeCAD related files that we are expecting
@@ -14550,32 +14579,26 @@ begin
    iniPath := projectPath + constSpi3dModelsFcDir + 'ICs_gullwing\' + iniFileName;
    WriteToDebugFile('iniPath: ' + iniPath);
 
+   { STEP File }
+   stepExt      := '.step';
+   stepFileName := libFileName + companySuffix + IntToStr(highestRevNumber) + stepExt;
+   stepFilePath := projectPath + constSpi3dModelsFcDir + 'ICs_gullwing\' + stepFileName;
+
    { Log File (Features report generated by python script) }
    logFilePath := projectPath + constSpi3dModelsFcDir + 'ICs_gullwing\' + libFileName + '.log';
    WriteToDebugFile('logFilePath: ' + logFilePath);
 
    { Call RevertOld...ReadIn() }
-   CLF_RevertOldCsvFileAndReadIn(projectPath, 
-                                 scriptsPath,
-                                 fcstdFilePath,
-                                 logFilePath,
-                                 {var} freeCadLogOld
-                                 );
-
-   { Compose name of STEP model. }
-   expectedStepFileName := AnsiUpperCase(libFileName + companySuffix);
-   modelPath := constSpi3dModelsFcDir + 'ICs_gullwing\';
-   
-   { Call find function to check if there is an existing STEP model. }
-   fcFound := CLF_FindStepModel(scriptsPath,
-                                projectPath,
-                                cnfGalacticInfo,
-                                {ModelsDir} modelPath,
-                                expectedStepFileName,
-                                {var} highestRevMatchingStepFileName,
-                                {var} highestRevNumber);
-
-   { If there is an existing STEP file, check the most recent csv file against the new one. }
+   CLF_RevertOldCsvFileAndReadIn( projectPath,
+                                  scriptsPath,
+                                  {pcbLibOrFcstdFilePath} fcstdFilePath,
+                                  {reportOrIniFilePath} iniPath,
+                                  {pcbDocOrStepFilePath} stepFilePath,
+                                  {csvOrLogFilePath} logFilePath,
+                                  {var csvOrLogFileOld} freeCadLogOld
+                                  );
+          
+      { If there is an existing STEP file, check the most recent csv file against the new one. }
    if ( fcFound = 0 ) then
    begin
       WriteToDebugFile('CreateFreeCad found the file');
@@ -14590,7 +14613,10 @@ begin
       WriteToDebugFile('CreateFreeCad did not find file');
       nextRevNumber := 1;
    end;
-    
+
+   companySuffix   := companySuffix + IntToStr(nextRevNumber);
+   stepFilePath := newModelPath + libFileName + companySuffix + stepExt;
+   
    { Retrieve package dimension fields from galactic string list. }
    pkgDimsBallDiamNom   := StrToFloat(cnfGalacticInfo.Values(constGilPkgDimsBallDiamNom));
    pkgDimsPinWidthMax   := StrToFloat(cnfGalacticInfo.Values(constGilPkgDimsPinWidthMax));
@@ -14646,6 +14672,8 @@ begin
       pkgDimsPivotPointRatio := 0.5;
    end;
 
+   WriteToDebugFile('pkgDimsPivotPointRatio is: ' + FloatToStr(pkgDimsPivotPointRatio));
+
    { Ratio multiplied by package height. }
    Hpph := ( pkgDimsPivotPointRatio * pkgDimsHeightMax);
 
@@ -14683,11 +14711,6 @@ begin
    { Compute the iniFilePath for the component-specific ini file. }
    newModelPath := projectPath + modelPath;
    iniFilePath  := newModelPath + libFileName + '.ini';
-
-
-   companySuffix   := companySuffix + IntToStr(nextRevNumber);
-   stepExt      := '.step';
-   stepFilePath := newModelPath + libFileName + companySuffix + stepExt;
 
    iniFileOut.add('# Parameters that describe how to generate a specific component''s 3D model');
    iniFileOut.add('');
@@ -14894,7 +14917,7 @@ begin
    Zrot                           := 0;
    ZoffsetMm                      := 0.0;
       
-   WriteToDebugFile('stepFilePathXXX: ' + stepFilePath);
+   WriteToDebugFile('stepFilePath: ' + stepFilePath);
    { Add the STEP model to queue. }
    CLF_AddStepModel({boardSide} constBoardSideCompBody,
                     {layer} constLayerCompBody,
