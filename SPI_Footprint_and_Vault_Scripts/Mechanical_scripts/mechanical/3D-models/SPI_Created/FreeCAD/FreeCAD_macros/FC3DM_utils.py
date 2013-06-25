@@ -6,7 +6,7 @@
 #
 #	@details		
 #
-#    @version		0.3.9
+#    @version		0.3.10
 #					   $Rev::                                                                        $:
 #	@date			  $Date::                                                                        $:
 #	@author			$Author::                                                                        $:
@@ -1040,9 +1040,8 @@ def FC3DM_CreateIcBody(App, Gui,
     # For SOIC packages, chamfer the upper long edge along pin 1        
     if (footprintType == "SOIC"):
 
-        # Retrieve chamfer size
-        # FIXME:  Retrieve from ini file, rather than hardcoding here!
-        P1chamferOffset = 0.25
+        # Retrieve chamfer offset
+        P1chamferOffset = parms["P1chamferOffset"]
 
     # Other packages have no chamfer of the body upper long edge along pin 1        
     else:
