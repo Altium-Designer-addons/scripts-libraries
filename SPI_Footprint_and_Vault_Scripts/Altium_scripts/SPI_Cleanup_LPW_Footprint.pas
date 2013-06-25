@@ -263,7 +263,7 @@ function CLF_ExtrudeGeometricPolygonInto3d(    boardSide         : Integer;
  ***************************************************************************}
 const
 {* Declare the version and name of this script. *}
-   constScriptVersion          = 'v0.16.12 $Revision$';
+   constScriptVersion          = 'v0.16.13 $Revision$';
    constThisScriptNameNoExt    = 'SPI_Cleanup_LPW_Footprint';
    constThisScriptName         = constThisScriptNameNoExt + '.pas';
 {}
@@ -2411,7 +2411,8 @@ begin
    WriteToDebugFile('csvOrLogFilePath: ' + csvOrLogFilePath);
 
    { Store the  file name in a stringlist, so that we can loop over it.
-    If stepFilePath is null (as in footprint mode) do not include in string list}
+    If stepFilePath is null (as in footprint mode or when old STEP file does not exist)
+    do not include in string list. }
    filePathList := TStringList.Create;
    filePathList.Add(pcbLibOrFcstdFilePath);
    filePathList.Add(reportOrIniFilePath);
@@ -14487,6 +14488,7 @@ var
    P1chamferOffset                : Real;
    stepFileName                   : TString;
    modelDir                       : TString;
+   //pkgDimsPinLand                 : Real;
    
 begin
 
@@ -14520,15 +14522,17 @@ begin
       WriteToDebugFile('CreateFreeCad found the file');
 
       WriteToDebugFile('highestRevMatchingStepFileName: ' + highestRevMatchingStepFileName);
-      nextRevNumber := highestRevNumber + 1;
    end
 
    { Else create a new STEP model. }
    else
    begin
       WriteToDebugFile('CreateFreeCad did not find file');
-      nextRevNumber := 1;
+      highestRevNumber := 0;
    end; 
+
+   nextRevNumber := highestRevNumber + 1;
+   WriteToDebugFile('highestRevNumber: ' + IntToStr(highestRevNumber));
 
    {* Setting up RevertOld...ReadIn() parameters. *}
    { Setup the paths and names of the FreeCAD related files that we are expecting
@@ -14549,17 +14553,22 @@ begin
    logFilePath := projectPath + constSpi3dModelsFcDir + modelDir + libFileName + '.log';
    WriteToDebugFile('logFilePath: ' + logFilePath);
 
-   { STEP File (We will use the highest rev version to pass to CLF_RevertOldCsvFileAndReadIn(). If there is not an existing STEP files, we will pass it the file path with rev version 1. }
+   { STEP File (We will use the highest rev version to pass to CLF_RevertOldCsvFileAndReadIn(). If there is not an existing STEP files, we will pass it a null string. }
    stepExt := '.step';
-   if (highestRevNumber <> 0) then
+   if (highestRevNumber = 0) then
    begin
-   stepFileName := libFileName + companySuffix + IntToStr(highestRevNumber) + stepExt;
+      WriteToDebugFile('highestRevNumber: ' + IntToStr(highestRevNumber));
+      stepFilePath := '';
+      WriteToDebugFile('stepFilePath should be null: ' + stepFilePath + ' end');
    end
+   
    else
    begin
-   stepFileName := libFileName + companySuffix + IntToStr(1) + stepExt;
+      WriteToDebugFile('highestRevNumber: ' + IntToStr(highestRevNumber));
+      stepFileName := libFileName + companySuffix + IntToStr(highestRevNumber) + stepExt;
+      stepFilePath := projectPath + constSpi3dModelsFcDir + modelDir + stepFileName;
+      WriteToDebugFile('stepFilePath: ' + stepFilePath);
    end;
-   stepFilePath := projectPath + constSpi3dModelsFcDir + modelDir + stepFileName;
 
    { Call CLF_RevertOldCsvFileAndReadIn() to revert any modified files and read-in freeCadLogOld. }
    CLF_RevertOldCsvFileAndReadIn(projectPath, 
@@ -14590,7 +14599,7 @@ begin
    pkgDimsHeightMax   := StrToFloat(cnfGalacticInfo.Values(constGilPkgDimsHeightMax));
    libHeightMm   := pkgDimsHeightMax;
    footprintType      := cnfGalacticInfo.Values(constGilFootprintType);
-
+  
    { Compute the type of pad based on our footprint type. }
 
    { Look for packages with gullwing pins. }
@@ -14692,6 +14701,14 @@ begin
    iniFileOut.add('pin1MarkName = "Pin1Mark"');
    iniFileOut.add('');
 
+   { If the length of the two pins plus the body are longer than the total width,
+    set the the length of the pins to be half of the pin width minus the body width plus 0.05.
+    Otherwise, keep the pin length as the maximum pin length. }
+   if ( ( (2*pkgDimsPinLandMax) + pkgDimsBodyWidthMax) > pkgDimsTotalWidthMax ) then
+   begin
+      pkgDimsPinLandMax := ( (pkgDimsTotalWidthMax - pkgDimsBodyWidthMax) / 2.0 ) - 0.05;
+   end;
+   
    iniFileOut.add('## Parameters off datasheet');
    iniFileOut.add('L=' + FloatToStr(pkgDimsTotalWidthMax) + ' #pkgDimsTotalWidthMax');
    iniFileOut.add('T=' + FloatToStr(pkgDimsPinLandMax) + ' #pkgDimsPinLandMax');
