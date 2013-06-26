@@ -263,7 +263,7 @@ function CLF_ExtrudeGeometricPolygonInto3d(    boardSide         : Integer;
  ***************************************************************************}
 const
 {* Declare the version and name of this script. *}
-   constScriptVersion          = 'v0.16.14 $Revision$';
+   constScriptVersion          = 'v0.16.13 $Revision$';
    constThisScriptNameNoExt    = 'SPI_Cleanup_LPW_Footprint';
    constThisScriptName         = constThisScriptNameNoExt + '.pas';
 {}
@@ -2375,6 +2375,7 @@ function CLF_RevertOldCsvFileAndReadIn(    projectPath           : TDynamicStrin
                                            stepFilePath          : TString;
                                            csvOrLogFilePath      : TString;
                                        var csvOrLogFileOld       : TStringList;
+                                       var deletedStepFile       : Boolean;
                                            )                     : Integer;
 
 var
@@ -2399,6 +2400,9 @@ begin
    { For now, assume/hope/pray that we will succeed. }
    result := 0;
 
+   { Assume that we will not find an un-added STEP file and delete it. }
+   deletedStepFile := False;
+   
    { Assign safe values for these variables. }
    svnRepoRevCsv         := '-1';
    svnRepoRevPcbLib      := '-1';
@@ -2454,7 +2458,7 @@ begin
     parms.Add(filePath);
           
     end; { end loop }
-   
+
    { Call IssueSvnCommandGetOutput() to do all the real work. }
    IssueSvnCommandGetOutput(scriptsPath,
                             projectPath,
@@ -2522,16 +2526,30 @@ begin
       if ( ninthCharStatus = '*' ) then
          CLF_Abort('Svn working copy is out of date with respect to server!  You need to do an svn update of the project directory!');
       
-      { Look for an 'A' char (file has been added but not ever checked into svn) or for
-       a '?' char (meaning that it's not yet in subversion).  In either of these cases,
-       there's no reason for us to revert this file. }
-      if ( (firstCharStatus = constSvnRepStatusAdded) or
-          (firstCharStatus = constSvnRepStatusNotInSvn)  ) then
+      { Look for an 'A' char (file has been added but not ever checked into svn). There's no reason for us to revert this file. }
+      if ( firstCharStatus = constSvnRepStatusAdded ) then
       begin
          
-         WriteToDebugFile(' File not yet in svn: ' + filePath);
+         WriteToDebugFile(' File was previously added to check-in queue: ' + filePath);
          
       end { end if }
+
+      { Else look for a '?' char (file is not in svn). If file is a step file, this may have been caused by a previous run that crashed.
+        Inform user that file will be deleted. }
+      else if ( firstCharStatus = constSvnRepStatusNotInSvn ) then
+      begin
+
+         WriteToDebugFile(' File not in svn: ' + filePath);
+
+         if ( CLF_DoesStringEndWith(filePath, '.step') ) then 
+         begin
+            ShowMessage('This STEP file is not in subversion and is probably a product of a failed script run. Will proceed to delete ' + filePath);
+            WriteToDebugFile('STEP file not in svn. Will delete ' + filePath);
+            DeleteFileWithVerify(filePath);
+            deletedStepFile := True;
+         end;
+         
+      end { end else if }
 
       { Else look for a ' ' char (file is up-to-date with respect to server.  In this case,
        we don't need to revert. }
@@ -14509,7 +14527,8 @@ var
    P1chamferOffset                : Real;
    stepFileName                   : TString;
    modelDir                       : TString;
-   //pkgDimsPinLand                 : Real;
+   //pkgDimsPinLand               : Real;
+   deletedStepFile                : Boolean;
    
 begin
 
@@ -14527,33 +14546,6 @@ begin
    { Compose name of STEP model. }
    expectedStepFileName := AnsiUpperCase(libFileName + companySuffix);
    modelPath := constSpi3dModelsFcDir + modelDir;
-   
-   { Call find function to check if there is an existing STEP model. }
-   fcFound := CLF_FindStepModel(scriptsPath,
-                                projectPath,
-                                cnfGalacticInfo,
-                                {ModelsDir} modelPath,
-                                expectedStepFileName,
-                                {var} highestRevMatchingStepFileName,
-                                {var} highestRevNumber);
-
-   { If there is an existing STEP file, check the most recent csv file against the new one. }
-   if ( fcFound = 0 ) then
-   begin
-      WriteToDebugFile('CreateFreeCad found the file');
-
-      WriteToDebugFile('highestRevMatchingStepFileName: ' + highestRevMatchingStepFileName);
-   end
-
-   { Else create a new STEP model. }
-   else
-   begin
-      WriteToDebugFile('CreateFreeCad did not find file');
-      highestRevNumber := 0;
-   end; 
-
-   nextRevNumber := highestRevNumber + 1;
-   WriteToDebugFile('highestRevNumber: ' + IntToStr(highestRevNumber));
 
    {* Setting up RevertOld...ReadIn() parameters. *}
    { Setup the paths and names of the FreeCAD related files that we are expecting
@@ -14574,32 +14566,67 @@ begin
    logFilePath := projectPath + constSpi3dModelsFcDir + modelDir + libFileName + '.log';
    WriteToDebugFile('logFilePath: ' + logFilePath);
 
-   { STEP File (We will use the highest rev version to pass to CLF_RevertOldCsvFileAndReadIn(). If there is not an existing STEP files, we will pass it a null string. }
-   stepExt := '.step';
-   if (highestRevNumber = 0) then
-   begin
-      WriteToDebugFile('highestRevNumber: ' + IntToStr(highestRevNumber));
-      stepFilePath := '';
-      WriteToDebugFile('stepFilePath should be null: ' + stepFilePath + ' end');
-   end
-   
-   else
-   begin
-      WriteToDebugFile('highestRevNumber: ' + IntToStr(highestRevNumber));
-      stepFileName := libFileName + companySuffix + IntToStr(highestRevNumber) + stepExt;
-      stepFilePath := projectPath + constSpi3dModelsFcDir + modelDir + stepFileName;
-      WriteToDebugFile('stepFilePath: ' + stepFilePath);
-   end;
+   WriteToDebugFile('About to loop over CLF_FindStepModel() and CLF_RevertOldCsvFileAndReadIn()');
+   { Check to see if the highest rev STEP file is added to check-in queue.
+    Delete it if it is not and repeat this process until the highest rev
+    STEP file is not deleted. }
+   repeat
+      
+      { Call find function to check if there is an existing STEP model. }
+      fcFound := CLF_FindStepModel(scriptsPath,
+                                   projectPath,
+                                   cnfGalacticInfo,
+                                   {ModelsDir} modelPath,
+                                   expectedStepFileName,
+                                   {var} highestRevMatchingStepFileName,
+                                   {var} highestRevNumber);
 
-   { Call CLF_RevertOldCsvFileAndReadIn() to revert any modified files and read-in freeCadLogOld. }
-   CLF_RevertOldCsvFileAndReadIn(projectPath, 
-                                 scriptsPath,
-                                 {pcbLibOrFcstdFilePath} fcstdFilePath,
-                                 {reportOrIniFilePath} iniPath,
-                                 {pcbDocOrStepFilePath} stepFilePath,
-                                 {csvOrLogFilePath} logFilePath,
-                                 {var csvOrLogFileOld} freeCadLogOld
-                                 );
+      { If there is an existing STEP file, check the most recent csv file against the new one. }
+      if ( fcFound = 0 ) then
+      begin
+         WriteToDebugFile('CreateFreeCad found the file');
+
+         WriteToDebugFile('highestRevMatchingStepFileName: ' + highestRevMatchingStepFileName);
+      end
+
+      { Else create a new STEP model. }
+      else
+      begin
+         WriteToDebugFile('CreateFreeCad did not find file');
+         highestRevNumber := 0;
+      end; 
+
+      { STEP File (We will use the highest rev version to pass to CLF_RevertOldCsvFileAndReadIn(). If there is not an existing STEP files, we will pass it a null string. }
+      stepExt := '.step';
+      if (highestRevNumber = 0) then
+      begin
+         WriteToDebugFile('highestRevNumber: ' + IntToStr(highestRevNumber));
+         stepFilePath := '';
+         WriteToDebugFile('stepFilePath should be null: ' + stepFilePath + ' end');
+      end
+      
+      else
+      begin
+         WriteToDebugFile('highestRevNumber: ' + IntToStr(highestRevNumber));
+         stepFileName := libFileName + companySuffix + IntToStr(highestRevNumber) + stepExt;
+         stepFilePath := projectPath + constSpi3dModelsFcDir + modelDir + stepFileName;
+         WriteToDebugFile('stepFilePath: ' + stepFilePath);
+      end;
+
+      { Call CLF_RevertOldCsvFileAndReadIn() to revert any modified files and read-in freeCadLogOld. }
+      CLF_RevertOldCsvFileAndReadIn(projectPath, 
+                                    scriptsPath,
+                                    {pcbLibOrFcstdFilePath} fcstdFilePath,
+                                    {reportOrIniFilePath} iniPath,
+                                    {pcbDocOrStepFilePath} stepFilePath,
+                                    {csvOrLogFilePath} logFilePath,
+                                    {var csvOrLogFileOld} freeCadLogOld,
+                                    {var} deletedStepFile
+                                    );
+
+   until ( (not deletedStepFile) or highestRevNumber = 0 ); { end loop }
+      
+   nextRevNumber := highestRevNumber + 1;
 
    { Retrieve package dimension fields from galactic string list. }
    pkgDimsBallDiamNom   := StrToFloat(cnfGalacticInfo.Values(constGilPkgDimsBallDiamNom));
@@ -18032,6 +18059,7 @@ var
    highestRevMatchingStepFileNameTrueCase : TString;
    modelFolder                            : TString;
    expectedStepFileName                   : TString;
+   deletedStepFile                        : Boolean;
                             
 begin
 
@@ -18175,7 +18203,8 @@ begin
                                     {reportOrIniFilePath} reportFilePath,
                                     {stepFilePath} '',
                                     {csvOrLogFilePath} csvReportFilePath,
-                                    {var} csvReportOld);
+                                    {var} csvReportOld,
+                                    {var} deletedStepFile);
       
       { Write name of upcoming footprint to summary file. }
       CLF_WriteToSummaryAndDebugFilesWithStepNum('About to start work on footprint "' + libFileName + '".');
