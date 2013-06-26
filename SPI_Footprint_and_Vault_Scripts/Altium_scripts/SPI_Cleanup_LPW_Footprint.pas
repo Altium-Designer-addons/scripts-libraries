@@ -263,7 +263,7 @@ function CLF_ExtrudeGeometricPolygonInto3d(    boardSide         : Integer;
  ***************************************************************************}
 const
 {* Declare the version and name of this script. *}
-   constScriptVersion          = 'v0.16.13 $Revision$';
+   constScriptVersion          = 'v0.16.14 $Revision$';
    constThisScriptNameNoExt    = 'SPI_Cleanup_LPW_Footprint';
    constThisScriptName         = constThisScriptNameNoExt + '.pas';
 {}
@@ -5996,6 +5996,10 @@ function CLF_AddGeneratedDocumentsToProjectAndSvn(    project           : IProje
                                                       libFileName       : TString;
                                                       pcbLibFileName    : TString;
                                                       csvReportFilePath : TString;
+                                                      fcstdFilePath     : TString;
+                                                      iniFilePath       : TString;
+                                                      stepFilePath      : TString;
+                                                      logFilePath       : TString;
                                                   var reportFilePath    : TString;
                                                       cnfGalacticInfo   : TStringList;
                                                       )                 : Integer;
@@ -6075,6 +6079,10 @@ begin
    filesToAdd.Add(pcbLibFileName);
    filesToAdd.Add(reportFilePath);
    filesToAdd.Add(csvReportFilePath);
+   filesToAdd.Add(fcstdFilePath);
+   filesToAdd.Add(iniFilePath);
+   filesToAdd.Add(stepFilePath);
+   filesToAdd.Add(logFilePath);
    
    { If any of these files need to be added to svn, then do so. }
    CLF_SvnAddFiles(scriptsPath,
@@ -6228,16 +6236,26 @@ begin
    else
    begin
       WriteToDebugFile( csv + ' files appear to be different.');
-      WriteToDebugFile( csv + ' report ' + csvOrLogFileOldStr + ' follows:');
+      //WriteToDebugFile( csv + ' report ' + csvOrLogFileOldStr + ' follows:');
 
-      for i := 0 to (csvOrLogFileOld.Count - 1) do
-         WriteToDebugFile(csvOrLogFileOld.Strings[i]);
+      //for i := 0 to (csvOrLogFileOld.Count - 1) do
+      //   WriteToDebugFile(csvOrLogFileOld.Strings[i]);
 
-      WriteToDebugFile( csv + ' report ' + csvOrLogFileOutStr + ' follows:');
+      //WriteToDebugFile( csv + ' report ' + csvOrLogFileOutStr + ' follows:');
+
+      //for i := 0 to (csvOrLogFileOut.Count - 1) do
+      //   WriteToDebugFile(csvOrLogFileOut.Strings[i]);
 
       for i := 0 to (csvOrLogFileOut.Count - 1) do
-         WriteToDebugFile(csvOrLogFileOut.Strings[i]);
-
+      begin
+         if ( csvOrLogFileOld.Strings[i] <> csvOrLogFileOut.Strings[i] ) then
+         begin
+            WriteToDebugFile(csvOrLogFileOld.Strings[i]);
+            WriteToDebugFile(csvOrLogFileOut.Strings[i]);
+            WriteToDebugFile('');
+         end; { end if }
+      end; { end loop }
+      
    end; { endelse }
       
    { Free both csv report stringlists. }
@@ -14194,6 +14212,9 @@ begin
 
    WriteToDebugFile('Hello from CLF_FindStepModel().');
 
+   WriteToDebugFile('expectedStepFileName is: ' + expectedStepFileName);
+   WriteToDebugFile('ModelsDir is: ' + ModelsDir);
+
    {** Perform svn update of the directory structure where we will look for STEP models. **}
    { Create string list to hold svn parameters. }
    parms := TStringList.Create();
@@ -17962,46 +17983,55 @@ function CLF_CreateAllNewFootprints(    scriptsPath     : TDynamicString;
                                         )               : Integer;
 
 var
-   i                     : Integer;
-   k                     : Integer;
-   rc                    : Integer;
-   trackQueue            : TInterfaceList;
-   arcQueue              : TInterfaceList;
-   textQueue             : TInterfaceList;
-   padQueue              : TInterfaceList;
-   regionQueue           : TInterfaceList;
-   fillQueue             : TInterfaceList;
-   bodyQueue             : TInterfaceList;
-   primNames             : TStringList;
-   libSubDir             : TString;
-   libFileName           : TString;
-   libFileNameSuffix     : TString;
-   libFileNameSuffixOld  : TString;
-   libDescription        : TString;
-   libHeightMm           : Real;
-   pcbLibFileName        : TString;
-   csvReportStrs         : TStringList;
-   csvReportOld          : TStringList;
-   csvReportOut          : TStringList;
-   reportFilePath        : TString;
-   csvReportFilePath     : TString;
-   derivedFpNum          : Integer;
-   currDerivedFpNum      : Integer;
-   doBaseFp              : Boolean;
-   haveDerivedFp         : Boolean;
-   hasThVias             : Boolean;
-   packageColorCode      : TString;
-   packageMarkingMfgName : TString;
-   packageMarkingMfgPn   : TString;
-   packageMarkingText    : TString;
-   trackQueue2dCount     : Integer;
-   textQueue2dCount      : Integer;
-   pkgDimsHeightMax      : Real;
-   stepFilePath          : TString;
-   derivedByMethod       : TString;
-   mode                  : Boolean;
-   pcbDocFileName        : TString;
-   filesAreReverted      : Boolean;
+   i                                      : Integer;
+   k                                      : Integer;
+   rc                                     : Integer;
+   trackQueue                             : TInterfaceList;
+   arcQueue                               : TInterfaceList;
+   textQueue                              : TInterfaceList;
+   padQueue                               : TInterfaceList;
+   regionQueue                            : TInterfaceList;
+   fillQueue                              : TInterfaceList;
+   bodyQueue                              : TInterfaceList;
+   primNames                              : TStringList;
+   libSubDir                              : TString;
+   libFileName                            : TString;
+   libFileNameSuffix                      : TString;
+   libFileNameSuffixOld                   : TString;
+   libDescription                         : TString;
+   libHeightMm                            : Real;
+   pcbLibFileName                         : TString;
+   csvReportStrs                          : TStringList;
+   csvReportOld                           : TStringList;
+   csvReportOut                           : TStringList;
+   reportFilePath                         : TString;
+   csvReportFilePath                      : TString;
+   derivedFpNum                           : Integer;
+   currDerivedFpNum                       : Integer;
+   doBaseFp                               : Boolean;
+   haveDerivedFp                          : Boolean;
+   hasThVias                              : Boolean;
+   packageColorCode                       : TString;
+   packageMarkingMfgName                  : TString;
+   packageMarkingMfgPn                    : TString;
+   packageMarkingText                     : TString;
+   trackQueue2dCount                      : Integer;
+   textQueue2dCount                       : Integer;
+   pkgDimsHeightMax                       : Real;
+   stepFilePath                           : TString;
+   derivedByMethod                        : TString;
+   mode                                   : Boolean;
+   pcbDocFileName                         : TString;
+   filesAreReverted                       : Boolean;
+   fcstdFilePath                          : TString;
+   iniFilePath                            : TString;
+   logFilePath                            : TString;
+   modelDir                               : TString;
+   modelPath                              : TString;
+   highestRevNumber                       : Integer;
+   highestRevMatchingStepFileNameTrueCase : TString;
+   modelFolder                            : TString;
+   expectedStepFileName                   : TString;
                             
 begin
 
@@ -18199,7 +18229,29 @@ begin
                                                {var} csvReportStrs,
                                                {var} cnfGalacticInfo);
 
-
+      { CallCLF_FindStepModel() to extract highest rev number so we can build the step file path. }
+      modelFolder := 'ICs_gullwing\';
+      modelDir := constSpi3dModelsFcDir + modelFolder;
+      expectedStepFileName := AnsiUpperCase(libFileName + '_' + const3dModelCompanySuffix);
+      CLF_FindStepModel(scriptsPath,
+                        projectPath,
+                        cnfGalacticInfo,
+                        modelDir,
+                        expectedStepFileName,
+                        {var} highestRevMatchingStepFileNameTrueCase,
+                        {var} highestRevNumber);
+      
+      modelPath := projectPath + constSpi3dModelsFcDir + modelFolder + libFileName;
+      WriteToDebugFile('modelPath: ' + modelPath);
+      fcstdFilePath := modelPath + '.FCStd';
+      WriteToDebugFile('fcstdFilePath: ' + fcstdFilePath);
+      iniFilePath := modelPath + '.ini';
+      WriteToDebugFile('iniFilePath: ' + iniFilePath);
+      stepFilePath := modelPath + '_' + const3dModelCompanySuffix + IntToStr(highestRevNumber) + '.step';
+      WriteToDebugFile('stepFilePath: ' + stepFilePath);
+      logFilePath := modelPath + '.log';
+      WriteToDebugFile('logFilePath: ' + logFilePath);
+ 
       { Add all generated files (PcbLib + report file + csv file) to project and to svn. }
       CLF_AddGeneratedDocumentsToProjectAndSvn(project,
                                                projectPath,
@@ -18208,6 +18260,10 @@ begin
                                                libFileName,
                                                pcbLibFileName,
                                                csvReportFilePath,
+                                               fcstdFilePath,
+                                               iniFilePath,
+                                               stepFilePath,
+                                               logFilePath,
                                                {var} reportFilePath,
                                                cnfGalacticInfo);
       
