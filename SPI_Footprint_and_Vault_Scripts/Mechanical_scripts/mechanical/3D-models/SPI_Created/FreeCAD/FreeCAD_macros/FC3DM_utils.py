@@ -6,7 +6,7 @@
 #
 #	@details		
 #
-#    @version		0.3.10
+#    @version		0.3.11
 #					   $Rev::                                                                        $:
 #	@date			  $Date::                                                                        $:
 #	@author			$Author::                                                                        $:
@@ -1226,8 +1226,10 @@ def FC3DM_CreateIcBody(App, Gui,
     # the top face after filleting the bottom face, and vice versa.
     # TODO:  This is currently hardcoded!
     # TODO:  This must be revisited for QFN, BGA, etc.!
-    FC3DM_FilletObjectEdges(App, Gui,
-                            docName, bodyName, edges, Frbody)
+    if ( footprintType <> "SOIC" ):
+
+        FC3DM_FilletObjectEdges(App, Gui,
+                                docName, bodyName, edges, Frbody)
 
 
     ## Prepare to make pin 1 marker
