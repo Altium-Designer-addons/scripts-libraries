@@ -263,7 +263,7 @@ function CLF_ExtrudeGeometricPolygonInto3d(    boardSide         : Integer;
  ***************************************************************************}
 const
 {* Declare the version and name of this script. *}
-   constScriptVersion          = 'v0.16.18 $Revision$';
+   constScriptVersion          = 'v0.16.19 $Revision$';
    constThisScriptNameNoExt    = 'SPI_Cleanup_LPW_Footprint';
    constThisScriptName         = constThisScriptNameNoExt + '.pas';
 {}
@@ -592,6 +592,7 @@ const
    constLpWizardBuildInfoAssyLineWidthField  = constGilPrefixLpWizardBuildInfo + constLpWizardBuildInfoSectionDraftPrefs + '_' + 'asy_ln_w';    { Assembly line width. }
    constLpWizardBuildInfoSilkLineWidthField  = constGilPrefixLpWizardBuildInfo + constLpWizardBuildInfoSectionDraftPrefs + '_' + 'silk_ln_w';   { Silkscreen line width. }
    constLpWizardBuildInfoEpSolderpastePct    = constGilPrefixLpWizardBuildInfo + constLpWizardBuildInfoSectionDraftPrefs + '_' + 'pm_tab_os_pct';{ EP solderpaste percentage. }
+   constLpWizardBuildInfoXYRounding          = constGilPrefixLpWizardBuildInfo + constLpWizardBuildInfoSectionStdPrefs + '_' + 'xy_rnd';    { EP rounding factor. }
 {}
    { Requirements for various LP Wizard library file, Build Info values. }
    constLpWizardBuildInfoSilkToPadValue    = '0.1';     { Required silkscreen-to-pad parameter, in mm, expressed as a unitless string. }
@@ -4906,6 +4907,9 @@ begin
       if (pkgDimsBodyLengthMax = 0.0) then
          pkgDimsBodyLengthMax := pkgDimsTotalLengthMax;
 
+      if ( pkgDimsEpChamfer <> 0.0 ) then
+         WriteToDebugFile('EP chamfer parameter for QFN/DFN is not zero.');
+
    end { end elsif }
 
    { Extract package dimensions for BGA type packages. }
@@ -5424,13 +5428,6 @@ begin
    CLF_ExtractLpWizardPackageDimensions({var} cnfGalacticInfo,
                                         {var} hasEp);
 
-   {** Perform various checks on the package dimensions. **}
-   { Check EP beveling x,y.  Must be 0.  Altium does not handle non-rectangular pads well, so we force it to be rectangular. }
-   //CLF_CheckLpWizardParameter({fieldName}     constGilPkgDimsEpChamfer,
-   //                           {requiredValue} FloatToStr(0.0),
-   //                           {fieldDesc}     'exposed pad chamfer x,y',
-   //                           cnfGalacticInfo);
-   
    { Check EP corner radius.  Must be 0 for now. }
    { TODO:  Support this feature.  Part will come through into Altium as a small round
     EP pad and a large keepout region around it.
@@ -9499,17 +9496,26 @@ function CLF_ModifyAndSuppressRegions(    boardXorigin    : TCoord;
                                       var cnfGalacticInfo : TStringList;
                                           )               : Integer;
 var                                                       
-   i             : Integer;
-   hasEp         : Boolean;
-   nameValuePair : TString;
-   namePrefix    : TString;
-   rectDst       : TCoordRect;
-   isInside      : Boolean;
-   padDst        : IPCB_Pad;
-   fillDst       : IPCB_Fill;
-   regionX       : TCoord;
-   regionY       : TCoord;
-   regionKnown   : Boolean;
+   i                  : Integer;
+   hasEp              : Boolean;
+   nameValuePair      : TString;
+   namePrefix         : TString;
+   rectDst            : TCoordRect;
+   isInside           : Boolean;
+   padDst             : IPCB_Pad;
+   fillDst            : IPCB_Fill;
+   regionX            : TCoord;
+   regionY            : TCoord;
+   regionKnown        : Boolean;
+   epLeftBoundary     : Real;
+   epRightBoundary    : Real;
+   epBottomBoundary   : Real;
+   epTopBoundary      : Real;
+   pkgDimsEpWidthMax  : Real;
+   pkgDimsEpLengthMax : Real;
+   xyRoundingFactor   : Real;
+   epWidthRound       : Real;
+   epLengthRound      : Real;
    
 begin
 
@@ -9528,6 +9534,23 @@ begin
    { Retrieve whether this package is known to have an exposed pad (EP). }
    hasEp            := StrToBool(cnfGalacticInfo.Values(constGilHasEp));
 
+   { Retrieve EP length and width from cnfGalacticInfo to determine which regions we will not copy. }
+   pkgDimsEpWidthMax :=  cnfGalacticInfo.Values(constGilPkgDimsEpWidthMax);
+   pkgDimsEpLengthMax :=  cnfGalacticInfo.Values(constGilPkgDimsEpLengthMax);
+
+   { Round the EP length and width as specified by the settings extracted from the .plb09 file. }
+   { TODO:  We are currently assuming that we want to do a floor() function.  We need to investigate this further
+   with additional footprints to make sure that this is really true. }
+   xyRoundingFactor :=  StrToFloat(cnfGalacticInfo.Values(constLpWizardBuildInfoXYRounding));
+   epWidthRound := ( floor(pkgDimsEpWidthMax / xyRoundingFactor) ) * xyRoundingFactor;
+   epLengthRound := ( floor(pkgDimsEpLengthMax / xyRoundingFactor) ) * xyRoundingFactor;
+
+   { Compute the boundaries of EP so that it can be compared to the boundaries of the current region. }
+   epLeftBoundary := (-1) * (epWidthRound / 2.0);
+   epRightBoundary := (epWidthRound / 2.0);
+   epBottomBoundary := (-1) * (epLengthRound / 2.0);
+   epTopBoundary := (epLengthRound / 2.0);
+
    { We only want to do these next operations for footprints that have an EP pad. }
    if (hasEp) then
    begin
@@ -9544,7 +9567,8 @@ begin
                                     {var} cnfGalacticInfo,
                                     {var} isInside);
 
-      WriteToDebugFile('In CLF_ModifyAndSuppressRegions(), isInside is ' + BoolToStr(isInside) + '.');
+      //WriteToDebugFile('In CLF_ModifyAndSuppressRegions(), isInside is ' + BoolToStr(isInside) + '.');
+      //WriteToDebugFile('In CLF_ModifyAndSuppressRegions(), regionSrc.Layer is ' + BoolToStr(regionSrc.Layer = eKeepOutLayer) + '.');
       
       
       {* Perform any changes we want to make to regions before we do the copy to destination library. *}
@@ -9552,35 +9576,52 @@ begin
       if ( (regionSrc.Layer = eKeepOutLayer) and (isInside) ) then
       begin
 
-         { Suppress this region as such, since we're going to turn it into a fill. }
+         { Suppress this region as such, since we're either going to suppress it or turn it into a fill. }
          doCopy := False;
 
-
-         { Determine if this is an EP region or a solderpaste region. }
+         //WriteToDebugFile(FloatToStr(epLeftBoundary) + ' and ' + FloatToStr(epTopBoundary) + ' and ' + FloatToStr(epRightBoundary) + ' and ' + FloatToStr(epBottomBoundary));
+         //WriteToDebugFile(FloatToStr(CoordToMMs(rectDst.left)) + ' and ' + FloatToStr(CoordToMMs(rectDst.top)) + ' and ' + FloatToStr(CoordToMMs(rectDst.right)) + ' and ' + FloatToStr(CoordToMMs(rectDst.bottom)));         
          
-         { We would rather copy this region as a fill, since a fill is by definition a simple rectangular object. }
-         CLF_CopyRegionAsFill(boardXorigin,
-                              boardYorigin,
-                              regionSrc,
-                              {var} fillDst,
-                              {name} ('Top_solderpaste_fill_' + IntToStr(numEpRegions)),
-                              {var} primNames);
+         { If the boundaries of the current region are the same as the boundaries of the EP, then the current region is the EP region }
+         if ( (epLeftBoundary = CoordToMMs(rectDst.left))
+             and (epTopBoundary = CoordToMMs(rectDst.top))
+             and (epRightBoundary = CoordToMMs(rectDst.right))
+             and (epBottomBoundary = CoordToMMs(rectDst.bottom)) ) then
+         begin
+            WriteToDebugFile('In CLF_ModifyAndSuppressRegions(), found EP region!');
+         end
 
-         { Move this to the proper layer. }
-         fillDst.Layer               := constNewLayerSolderPasteRegion;
+         { Else, the current region is a solderpaste region. }
+         else
+         begin
 
-         { Queue copied fill for new library component. }
-         fillQueue.Add(fillDst);
+            WriteToDebugFile('In CLF_ModifyAndSuppressRegions(), found solderpaste region!');
             
-         { Flag that we have found solderpaste tiled regions. }
-         nameValuePair    := constParmHaveSolderPasteTiles + constStringEquals + BoolToStr(True);
+            { We would rather copy this region as a fill, since a fill is by definition a simple rectangular object. }
+            CLF_CopyRegionAsFill(boardXorigin,
+                                 boardYorigin,
+                                 regionSrc,
+                                 {var} fillDst,
+                                 {name} ('Top_solderpaste_fill_' + IntToStr(numEpRegions)),
+                                 {var} primNames);
 
-         { If this flag does not yet exist, then add it. }
-         if (cnfGalacticInfo.IndexOfName(constParmHaveSolderPasteTiles) < 0) then
-            cnfGalacticInfo.add(nameValuePair);
+            { Move this to the proper layer. }
+            fillDst.Layer               := constNewLayerSolderPasteRegion;
 
-         { Increment the number of known EP solderpaste regions. }
-         numEpRegions    := numEpRegions + 1;
+            { Queue copied fill for new library component. }
+            fillQueue.Add(fillDst);
+            
+            { Flag that we have found solderpaste tiled regions. }
+            nameValuePair    := constParmHaveSolderPasteTiles + constStringEquals + BoolToStr(True);
+
+            { If this flag does not yet exist, then add it. }
+            if (cnfGalacticInfo.IndexOfName(constParmHaveSolderPasteTiles) < 0) then
+               cnfGalacticInfo.add(nameValuePair);
+
+            { Increment the number of known EP solderpaste regions. }
+            numEpRegions    := numEpRegions + 1;
+         end;
+
 
          { Flag that we know what this region is. }
          regionKnown     := True;         
@@ -9626,9 +9667,8 @@ begin
    
    { Sanity check.  The only regions we expect to see are solderpaste tiles on EP pad and keepout regions on fiducial pads.
     If we find anything else, we don't know what it is or how to handle it! }
-   { FIXME: need to re enable this check. }
-   //if (not regionKnown) then
-   //   CLF_Abort('Found unknown and unhandled region!  Figure out what this is and fix/improve script!');
+   if (not regionKnown) then
+      CLF_Abort('Found unknown and unhandled region!  Figure out what this is and fix/improve script!');
 
 end; { end CLF_ModifyAndSuppressRegions() }
 
