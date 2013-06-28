@@ -263,7 +263,7 @@ function CLF_ExtrudeGeometricPolygonInto3d(    boardSide         : Integer;
  ***************************************************************************}
 const
 {* Declare the version and name of this script. *}
-   constScriptVersion          = 'v0.16.17 $Revision$';
+   constScriptVersion          = 'v0.16.18 $Revision$';
    constThisScriptNameNoExt    = 'SPI_Cleanup_LPW_Footprint';
    constThisScriptName         = constThisScriptNameNoExt + '.pas';
 {}
@@ -424,6 +424,7 @@ const
    constGilLibraryFileNameSuffix   = 'LibFileNameSuffix';
    constGilLibraryFileDescription  = 'LibFileDescription';
    constGilHasEp                   = 'HasEp';
+   constGilFixExposedPad           = 'fixExposedPad';
 {}
    { Keys related to modifying tracks. }
    constGilModTracksOldLayer1      = 'ModTracksOldLayer1';
@@ -5425,10 +5426,10 @@ begin
 
    {** Perform various checks on the package dimensions. **}
    { Check EP beveling x,y.  Must be 0.  Altium does not handle non-rectangular pads well, so we force it to be rectangular. }
-   CLF_CheckLpWizardParameter({fieldName}     constGilPkgDimsEpChamfer,
-                              {requiredValue} FloatToStr(0.0),
-                              {fieldDesc}     'exposed pad chamfer x,y',
-                              cnfGalacticInfo);
+   //CLF_CheckLpWizardParameter({fieldName}     constGilPkgDimsEpChamfer,
+   //                           {requiredValue} FloatToStr(0.0),
+   //                           {fieldDesc}     'exposed pad chamfer x,y',
+   //                           cnfGalacticInfo);
    
    { Check EP corner radius.  Must be 0 for now. }
    { TODO:  Support this feature.  Part will come through into Altium as a small round
@@ -6179,6 +6180,7 @@ var
    csvOrLogFileOldStr : TString;
    csvOrLogFileOutStr : TString;
    footprint          : TString;
+   shorterList        : Integer;
 
 begin
 
@@ -6280,7 +6282,18 @@ begin
       //for i := 0 to (csvOrLogFileOut.Count - 1) do
       //   WriteToDebugFile(csvOrLogFileOut.Strings[i]);
 
-      for i := 0 to (csvOrLogFileOut.Count - 1) do
+      { Determine which string list is shorter to avoid any array index out of bounds errors. }
+      if (csvOrLogFileOld.Count < csvOrLogFileOut.Count) then
+      begin
+         shorterList := csvOrLogFileOld.Count;
+      end
+      else
+      begin
+         shorterList := csvOrLogFileOut.Count;
+      end;
+
+      { Dump the files that are different to the debug file. }
+      for i := 0 to (shorterList - 1) do
       begin
          if ( csvOrLogFileOld.Strings[i] <> csvOrLogFileOut.Strings[i] ) then
          begin
@@ -9541,7 +9554,10 @@ begin
 
          { Suppress this region as such, since we're going to turn it into a fill. }
          doCopy := False;
-            
+
+
+         { Determine if this is an EP region or a solderpaste region. }
+         
          { We would rather copy this region as a fill, since a fill is by definition a simple rectangular object. }
          CLF_CopyRegionAsFill(boardXorigin,
                               boardYorigin,
@@ -9610,8 +9626,9 @@ begin
    
    { Sanity check.  The only regions we expect to see are solderpaste tiles on EP pad and keepout regions on fiducial pads.
     If we find anything else, we don't know what it is or how to handle it! }
-   if (not regionKnown) then
-      CLF_Abort('Found unknown and unhandled region!  Figure out what this is and fix/improve script!');
+   { FIXME: need to re enable this check. }
+   //if (not regionKnown) then
+   //   CLF_Abort('Found unknown and unhandled region!  Figure out what this is and fix/improve script!');
 
 end; { end CLF_ModifyAndSuppressRegions() }
 
@@ -9648,6 +9665,11 @@ var
    X2size                 : Real;
    Y2size                 : Real;
    solderpasteExpansionMm : Real;
+   pkgDimsEpChamfer       : Real;
+   pkgDimsEpCornerRadius  : Real;
+   pkgDimsEpWidthMax      : Real;
+   pkgDimsEpLengthMax     : Real;
+   fixExposedPad          : Boolean;
    
 begin
 
@@ -9659,6 +9681,9 @@ begin
 
    { Assume that we will not be creating a new pad. }
    padNew           := Nil;
+
+   { Assume that the exposed pad will not need to be fixed. }
+   fixExposedPad := False;
 
    { Retrieve whether this package is known to have an exposed pad (EP). }
    hasEp            := StrToBool(cnfGalacticInfo.Values(constGilHasEp));
@@ -9691,6 +9716,30 @@ begin
       { Change name of this pad to 'EP'. }
       padDst.Name               := constNewNameOfEp;
 
+      { Retrieve exposed pad chamfer and fillet radius parameters from cnfGalacticInfo to
+       determine if the exposed pad will need to be fixed when creating the 3D model. }
+      pkgDimsEpChamfer :=  cnfGalacticInfo.Values(constGilPkgDimsEpChamfer);
+      pkgDimsEpCornerRadius :=  cnfGalacticInfo.Values(constGilPkgDimsEpCornerRad);
+
+      { If either the chamfer or corner radius parameters are non-zero, set the exposed
+       pad length and width to the values stored in cnfGalacticInfo. }
+      { FIXME: code needed to support cases when chamfer and fillet radius are non-zero. }
+      if ( (pkgDimsEpChamfer <> 0) or ( pkgDimsEpCornerRadius <> 0 ) ) then
+      begin
+
+         WriteToDebugFile('EP chamfer or corner radius was found to be non-zero! Proceeding to resize exposed pad and flag to fix later.');
+         
+         pkgDimsEpWidthMax :=  cnfGalacticInfo.Values(constGilPkgDimsEpWidthMax);
+         pkgDimsEpLengthMax :=  cnfGalacticInfo.Values(constGilPkgDimsEpLengthMax);
+         padDst.TopXSize := MMsToCoord(pkgDimsEpWidthMax);
+         padDst.TopYSize := MMsToCoord(pkgDimsEpLengthMax);
+
+         { Flag that the exposed pad needs to be fixed when creating the 3D model and
+          store this in cnfGalacticInfo. }
+         fixExposedPad := True;
+         cnfGalacticInfo.add(constGilFixExposedPad + constStringEquals + BoolToStr(fixExposedPad));
+      end;
+      
    end {nosemi}
 
    { Else see if we need to perform special handling for fiducial pads. }
@@ -9703,7 +9752,7 @@ begin
 
    end; { end elsif }
 
-   { Ssee if we have been ordered to split this particular pin. }
+   { See if we have been ordered to split this particular pin. }
    { Note:  This MUST be independent of the above if-elsif construct! }
    if (padDst.Name = splitPin) then
    begin
