@@ -263,7 +263,7 @@ function CLF_ExtrudeGeometricPolygonInto3d(    boardSide         : Integer;
  ***************************************************************************}
 const
 {* Declare the version and name of this script. *}
-   constScriptVersion          = 'v0.16.19 $Revision$';
+   constScriptVersion          = 'v0.16.20 $Revision$';
    constThisScriptNameNoExt    = 'SPI_Cleanup_LPW_Footprint';
    constThisScriptName         = constThisScriptNameNoExt + '.pas';
 {}
@@ -425,6 +425,8 @@ const
    constGilLibraryFileDescription  = 'LibFileDescription';
    constGilHasEp                   = 'HasEp';
    constGilFixExposedPad           = 'fixExposedPad';
+   constGilEpWidthRound            = 'epWidthRound';
+   constGilEpLengthRound           = 'epLengthRound';
 {}
    { Keys related to modifying tracks. }
    constGilModTracksOldLayer1      = 'ModTracksOldLayer1';
@@ -9511,9 +9513,6 @@ var
    epRightBoundary    : Real;
    epBottomBoundary   : Real;
    epTopBoundary      : Real;
-   pkgDimsEpWidthMax  : Real;
-   pkgDimsEpLengthMax : Real;
-   xyRoundingFactor   : Real;
    epWidthRound       : Real;
    epLengthRound      : Real;
    
@@ -9534,16 +9533,9 @@ begin
    { Retrieve whether this package is known to have an exposed pad (EP). }
    hasEp            := StrToBool(cnfGalacticInfo.Values(constGilHasEp));
 
-   { Retrieve EP length and width from cnfGalacticInfo to determine which regions we will not copy. }
-   pkgDimsEpWidthMax :=  cnfGalacticInfo.Values(constGilPkgDimsEpWidthMax);
-   pkgDimsEpLengthMax :=  cnfGalacticInfo.Values(constGilPkgDimsEpLengthMax);
-
-   { Round the EP length and width as specified by the settings extracted from the .plb09 file. }
-   { TODO:  We are currently assuming that we want to do a floor() function.  We need to investigate this further
-   with additional footprints to make sure that this is really true. }
-   xyRoundingFactor :=  StrToFloat(cnfGalacticInfo.Values(constLpWizardBuildInfoXYRounding));
-   epWidthRound := ( floor(pkgDimsEpWidthMax / xyRoundingFactor) ) * xyRoundingFactor;
-   epLengthRound := ( floor(pkgDimsEpLengthMax / xyRoundingFactor) ) * xyRoundingFactor;
+   { Retrieve rounded EP length and width from cnfGalacticInfo to determine which regions we will not copy. }
+   epWidthRound :=  cnfGalacticInfo.Values(constGilEpWidthRound);
+   epLengthRound :=  cnfGalacticInfo.Values(constGilEpLengthRound);
 
    { Compute the boundaries of EP so that it can be compared to the boundaries of the current region. }
    epLeftBoundary := (-1) * (epWidthRound / 2.0);
@@ -9710,6 +9702,9 @@ var
    pkgDimsEpWidthMax      : Real;
    pkgDimsEpLengthMax     : Real;
    fixExposedPad          : Boolean;
+   xyRoundingFactor       : Real;
+   epWidthRound           : Real;
+   epLengthRound          : Real;
    
 begin
 
@@ -9761,18 +9756,32 @@ begin
       pkgDimsEpChamfer :=  cnfGalacticInfo.Values(constGilPkgDimsEpChamfer);
       pkgDimsEpCornerRadius :=  cnfGalacticInfo.Values(constGilPkgDimsEpCornerRad);
 
-      { If either the chamfer or corner radius parameters are non-zero, set the exposed
-       pad length and width to the values stored in cnfGalacticInfo. }
+      { If either the chamfer or corner radius parameters are non-zero, round the values stored in
+       cnfGalacticInfo and use the rounded values as the exposed pad length and width. }
       { FIXME: code needed to support cases when chamfer and fillet radius are non-zero. }
       if ( (pkgDimsEpChamfer <> 0) or ( pkgDimsEpCornerRadius <> 0 ) ) then
       begin
 
          WriteToDebugFile('EP chamfer or corner radius was found to be non-zero! Proceeding to resize exposed pad and flag to fix later.');
-         
+
+         { Retrieve the exposed pad dimensions as they were in the plb09 file. }
          pkgDimsEpWidthMax :=  cnfGalacticInfo.Values(constGilPkgDimsEpWidthMax);
          pkgDimsEpLengthMax :=  cnfGalacticInfo.Values(constGilPkgDimsEpLengthMax);
-         padDst.TopXSize := MMsToCoord(pkgDimsEpWidthMax);
-         padDst.TopYSize := MMsToCoord(pkgDimsEpLengthMax);
+
+         { Round the EP length and width as specified by the settings extracted from the .plb09 file. }
+         { TODO:  We are currently assuming that we want to do a floor() function.  We need to investigate this further
+          with additional footprints to make sure that this is really true. }
+         xyRoundingFactor :=  StrToFloat(cnfGalacticInfo.Values(constLpWizardBuildInfoXYRounding));
+         epWidthRound := ( floor(pkgDimsEpWidthMax / xyRoundingFactor) ) * xyRoundingFactor;
+         epLengthRound := ( floor(pkgDimsEpLengthMax / xyRoundingFactor) ) * xyRoundingFactor;
+
+         { Store the rounded values in cnfGalacticInfo. }
+         cnfGalacticInfo.add(constGilEpWidthRound + constStringEquals + BoolToStr(epWidthRound));
+         cnfGalacticInfo.add(constGilEpLengthRound + constStringEquals + BoolToStr(epLengthRound));
+
+         { Set the exposed pad length and width to the rounded version of the original dimensions. }
+         padDst.TopXSize := MMsToCoord(epWidthRound);
+         padDst.TopYSize := MMsToCoord(epLengthRound);
 
          { Flag that the exposed pad needs to be fixed when creating the 3D model and
           store this in cnfGalacticInfo. }
