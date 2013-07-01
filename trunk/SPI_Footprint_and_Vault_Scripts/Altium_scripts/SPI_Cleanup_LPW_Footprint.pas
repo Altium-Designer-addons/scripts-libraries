@@ -263,7 +263,7 @@ function CLF_ExtrudeGeometricPolygonInto3d(    boardSide         : Integer;
  ***************************************************************************}
 const
 {* Declare the version and name of this script. *}
-   constScriptVersion          = 'v0.16.20 $Revision$';
+   constScriptVersion          = 'v0.16.21 $Revision$';
    constThisScriptNameNoExt    = 'SPI_Cleanup_LPW_Footprint';
    constThisScriptName         = constThisScriptNameNoExt + '.pas';
 {}
@@ -9534,8 +9534,8 @@ begin
    hasEp            := StrToBool(cnfGalacticInfo.Values(constGilHasEp));
 
    { Retrieve rounded EP length and width from cnfGalacticInfo to determine which regions we will not copy. }
-   epWidthRound :=  cnfGalacticInfo.Values(constGilEpWidthRound);
-   epLengthRound :=  cnfGalacticInfo.Values(constGilEpLengthRound);
+   epWidthRound :=  StrToFloat(cnfGalacticInfo.Values(constGilEpWidthRound));
+   epLengthRound :=  StrToFloat(cnfGalacticInfo.Values(constGilEpLengthRound));
 
    { Compute the boundaries of EP so that it can be compared to the boundaries of the current region. }
    epLeftBoundary := (-1) * (epWidthRound / 2.0);
@@ -9776,8 +9776,8 @@ begin
          epLengthRound := ( floor(pkgDimsEpLengthMax / xyRoundingFactor) ) * xyRoundingFactor;
 
          { Store the rounded values in cnfGalacticInfo. }
-         cnfGalacticInfo.add(constGilEpWidthRound + constStringEquals + BoolToStr(epWidthRound));
-         cnfGalacticInfo.add(constGilEpLengthRound + constStringEquals + BoolToStr(epLengthRound));
+         cnfGalacticInfo.add(constGilEpWidthRound + constStringEquals + FloatToStr(epWidthRound));
+         cnfGalacticInfo.add(constGilEpLengthRound + constStringEquals + FloatToStr(epLengthRound));
 
          { Set the exposed pad length and width to the rounded version of the original dimensions. }
          padDst.TopXSize := MMsToCoord(epWidthRound);
