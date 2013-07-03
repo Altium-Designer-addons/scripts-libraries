@@ -263,7 +263,7 @@ function CLF_ExtrudeGeometricPolygonInto3d(    boardSide         : Integer;
  ***************************************************************************}
 const
 {* Declare the version and name of this script. *}
-   constScriptVersion          = 'v0.16.21 $Revision$';
+   constScriptVersion          = 'v0.16.22 $Revision$';
    constThisScriptNameNoExt    = 'SPI_Cleanup_LPW_Footprint';
    constThisScriptName         = constThisScriptNameNoExt + '.pas';
 {}
@@ -425,8 +425,8 @@ const
    constGilLibraryFileDescription  = 'LibFileDescription';
    constGilHasEp                   = 'HasEp';
    constGilFixExposedPad           = 'fixExposedPad';
-   constGilEpWidthRound            = 'epWidthRound';
-   constGilEpLengthRound           = 'epLengthRound';
+   constGilEpWidthRounded            = 'epWidthRounded';
+   constGilEpLengthRounded           = 'epLengthRounded';
 {}
    { Keys related to modifying tracks. }
    constGilModTracksOldLayer1      = 'ModTracksOldLayer1';
@@ -9498,23 +9498,39 @@ function CLF_ModifyAndSuppressRegions(    boardXorigin    : TCoord;
                                       var cnfGalacticInfo : TStringList;
                                           )               : Integer;
 var                                                       
-   i                  : Integer;
-   hasEp              : Boolean;
-   nameValuePair      : TString;
-   namePrefix         : TString;
-   rectDst            : TCoordRect;
-   isInside           : Boolean;
-   padDst             : IPCB_Pad;
-   fillDst            : IPCB_Fill;
-   regionX            : TCoord;
-   regionY            : TCoord;
-   regionKnown        : Boolean;
-   epLeftBoundary     : Real;
-   epRightBoundary    : Real;
-   epBottomBoundary   : Real;
-   epTopBoundary      : Real;
-   epWidthRound       : Real;
-   epLengthRound      : Real;
+   i                            : Integer;
+   hasEp                        : Boolean;
+   nameValuePair                : TString;
+   namePrefix                   : TString;
+   rectDst                      : TCoordRect;
+   isInside                     : Boolean;
+   padDst                       : IPCB_Pad;
+   fillDst                      : IPCB_Fill;
+   regionX                      : TCoord;
+   regionY                      : TCoord;
+   regionKnown                  : Boolean;
+   epLeftBoundary               : Real;
+   epRightBoundary              : Real;
+   epBottomBoundary             : Real;
+   epTopBoundary                : Real;
+   epWidthRounded               : Real;
+   epLengthRounded              : Real;
+   regionWidth                  : Real;
+   regionLength                 : Real;
+   xCenter                      : Real;
+   yCenter                      : Real;
+   solderpastePct               : Real;
+   epArea                       : Real;
+   expectedSolderpasteArea      : Real;
+   regionArea                   : Real;
+   epChamfer                    : Real;
+   chamferArea                  : Real;
+   pasteExpansion               : Real;
+   foundSingleSolderPasteRegion : Boolean;
+   newSolderPasteBoundaryLeft   : Real;
+   newSolderPasteBoundaryRight  : Real;
+   newSolderPasteBoundaryTop    : Real;
+   newSolderPasteBoundaryBottom : Real;
    
 begin
 
@@ -9523,6 +9539,9 @@ begin
    
    { Assume that we want to copy this object to destination library. }
    doCopy := True;
+
+   { Assume that we will not find a single solderpaste region. }
+   foundSingleSolderPasteRegion := False;
 
    { Flag that until we determine otherwise, we don't know what this region is. }
    regionKnown       := False;
@@ -9534,14 +9553,14 @@ begin
    hasEp            := StrToBool(cnfGalacticInfo.Values(constGilHasEp));
 
    { Retrieve rounded EP length and width from cnfGalacticInfo to determine which regions we will not copy. }
-   epWidthRound :=  StrToFloat(cnfGalacticInfo.Values(constGilEpWidthRound));
-   epLengthRound :=  StrToFloat(cnfGalacticInfo.Values(constGilEpLengthRound));
+   epWidthRounded :=  StrToFloat(cnfGalacticInfo.Values(constGilEpWidthRounded));
+   epLengthRounded :=  StrToFloat(cnfGalacticInfo.Values(constGilEpLengthRounded));
 
    { Compute the boundaries of EP so that it can be compared to the boundaries of the current region. }
-   epLeftBoundary := (-1) * (epWidthRound / 2.0);
-   epRightBoundary := (epWidthRound / 2.0);
-   epBottomBoundary := (-1) * (epLengthRound / 2.0);
-   epTopBoundary := (epLengthRound / 2.0);
+   epLeftBoundary := (-1) * (epWidthRounded / 2.0);
+   epRightBoundary := (epWidthRounded / 2.0);
+   epBottomBoundary := (-1) * (epLengthRounded / 2.0);
+   epTopBoundary := (epLengthRounded / 2.0);
 
    { We only want to do these next operations for footprints that have an EP pad. }
    if (hasEp) then
@@ -9588,31 +9607,73 @@ begin
          begin
 
             WriteToDebugFile('In CLF_ModifyAndSuppressRegions(), found solderpaste region!');
+
+            {* Perform necessary calculations to determine if this is a single solderpaste region. *}
+            { Determine if the region is centered at the origin. }
+            xCenter :=  (CoordToMMs(rectDst.right + rectDst.left)) / 2.0;
+            yCenter :=  (CoordToMMs(rectDst.top + rectDst.bottom)) / 2.0;
+
+            { Determine if the area of the region is the percentage of area as determined by LP Wizard. }
+            regionWidth := CoordToMMs(rectDst.right - rectDst.left);
+            regionLength := CoordToMMs(rectDst.top - rectDst.bottom);
+            WriteToDebugFile('regionWidth is: ' + FloatToStr(regionWidth));
+            WriteToDebugFile('regionLength is: ' + FloatToStr(regionLength));
             
-            { We would rather copy this region as a fill, since a fill is by definition a simple rectangular object. }
-            CLF_CopyRegionAsFill(boardXorigin,
-                                 boardYorigin,
-                                 regionSrc,
-                                 {var} fillDst,
-                                 {name} ('Top_solderpaste_fill_' + IntToStr(numEpRegions)),
-                                 {var} primNames);
-
-            { Move this to the proper layer. }
-            fillDst.Layer               := constNewLayerSolderPasteRegion;
-
-            { Queue copied fill for new library component. }
-            fillQueue.Add(fillDst);
+            epChamfer := StrToFloat(cnfGalacticInfo.Values(constGilPkgDimsEpChamfer));            
+            chamferArea := (epChamfer * epChamfer) / 2.0;         
+            epArea := (epWidthRounded * epLengthRounded) - chamferArea;
+            WriteToDebugFile('epArea is: ' + FloatToStr(epArea));
             
-            { Flag that we have found solderpaste tiled regions. }
-            nameValuePair    := constParmHaveSolderPasteTiles + constStringEquals + BoolToStr(True);
+            solderpastePct := StrToFloat(cnfGalacticInfo.Values(constLpWizardBuildInfoEpSolderpastePct)) / 100.0;
+            WriteToDebugFile('solderpastePct is: ' + FloatToStr(solderpastePct));
+            
+            { We are subtracting 1% from solderpastePct to allow for rounding errors created by LP Wizard. }
+            expectedSolderpasteArea := (solderpastePct - 0.01) * epArea;
+            regionArea := regionWidth * regionLength;
 
-            { If this flag does not yet exist, then add it. }
-            if (cnfGalacticInfo.IndexOfName(constParmHaveSolderPasteTiles) < 0) then
-               cnfGalacticInfo.add(nameValuePair);
+            WriteToDebugFile('expectedSolderpasteArea is: ' + FloatToStr(expectedSolderpasteArea));
+            WriteToDebugFile('regionArea is: ' + FloatToStr(regionArea));
+            WriteToDebugFile('xCenter is: ' + FloatToStr(xCenter) + ' and yCenter is: ' + FloatToStr(yCenter));
+            
+            { Is this the single solderpaste region that resulted from having a chamfered EP pad
+             back in Mentor LPW? }
+            if ( (xCenter = 0) and (yCenter = 0) and (regionArea >= expectedSolderpasteArea) ) then
+            begin
+               WriteToDebugFile('This solderpaste region is the only EP solderpaste region. Flagging to modify pad.');
+               foundSingleSolderPasteRegion := True;
+            end
 
-            { Increment the number of known EP solderpaste regions. }
-            numEpRegions    := numEpRegions + 1;
-         end;
+            { Else this is a tiled solderpaste region.  Handle as before. }
+            else
+            begin
+               
+               { We would rather copy this region as a fill, since a fill is by definition a simple rectangular object. }
+               CLF_CopyRegionAsFill(boardXorigin,
+                                    boardYorigin,
+                                    regionSrc,
+                                    {var} fillDst,
+                                    {name} ('Top_solderpaste_fill_' + IntToStr(numEpRegions)),
+                                    {var} primNames);
+
+               { Move this to the proper layer. }
+               fillDst.Layer               := constNewLayerSolderPasteRegion;
+
+               { Queue copied fill for new library component. }
+               fillQueue.Add(fillDst);
+            
+               { Flag that we have found solderpaste tiled regions. }
+               nameValuePair    := constParmHaveSolderPasteTiles + constStringEquals + BoolToStr(True);
+
+               { If this flag does not yet exist, then add it. }
+               if (cnfGalacticInfo.IndexOfName(constParmHaveSolderPasteTiles) < 0) then
+                  cnfGalacticInfo.add(nameValuePair);
+
+               { Increment the number of known EP solderpaste regions. }
+               numEpRegions    := numEpRegions + 1;
+
+            end; { endelse }
+
+         end; { endelse was solderpaste region }
 
 
          { Flag that we know what this region is. }
@@ -9654,9 +9715,46 @@ begin
 
       end; { endif is fiducial }
 
-   end; { endfor i }
+      { If  we found a single solderpaste region earlier, then we will remove the single solderpaste region and replace it with a solderpaste expansion in the the EP. }
+      if ( (CLF_GetPadGroupNum(padDst) = constPadGroupEp) and (foundSingleSolderPasteRegion)) then
+      begin
+         pasteExpansion := epLeftBoundary - CoordToMMs(rectDst.left);
+         
+         WriteToDebugFile('In CLF_ModifyAndSuppressRegions(), found the EP! Setting solderpaste expansion to: ' + FloatToStr(pasteExpansion));
+         CLF_SetSolderPasteExpansion({var pad} padDst,
+                                     pasteExpansion);
+         
+         pasteExpansion := CoordToMMs(padDst.PasteMaskExpansion);
+         WriteToDebugFile('EP pasteExpansion is now: ' + FloatToStr(pasteExpansion));
 
-   
+         newSolderPasteBoundaryLeft := epLeftBoundary - pasteExpansion;
+         newSolderPasteBoundaryRight := epRightBoundary + pasteExpansion;
+         newSolderPasteBoundaryTop := epTopBoundary + pasteExpansion;
+         newSolderPasteBoundaryBottom := epBottomBoundary - pasteExpansion;       
+
+         //WriteToDebugFile('newSolderPasteBoundaryLeft is: ' + FloatToStr(newSolderPasteBoundaryLeft) + ' and rectDst.left is: ' + FloatToStr(CoordToMMs(rectDst.left)));
+         //WriteToDebugFile('newSolderPasteBoundaryRight is: ' + FloatToStr(newSolderPasteBoundaryRight) + ' and rectDst.right is: ' + FloatToStr(CoordToMMs(rectDst.right)));
+         //WriteToDebugFile('newSolderPasteBoundaryTop is: ' + FloatToStr(newSolderPasteBoundaryTop) + ' and rectDst.top is: ' + FloatToStr(CoordToMMs(rectDst.top)));
+         //WriteToDebugFile('newSolderPasteBoundaryBottom is: ' + FloatToStr(newSolderPasteBoundaryBottom) + ' and rectDst.bottom is: ' + FloatToStr(CoordToMMs(rectDst.bottom)));
+         
+         { Sanity Check. Abort if the new solderpaste boundaries do not match the boundaries of the original solderpaste region. }
+         if ((Abs(newSolderPasteBoundaryLeft - CoordToMMs(rectDst.left)) < 0.0000001)
+             and(Abs(newSolderPasteBoundaryTop - CoordToMMs(rectDst.top)) < 0.0000001)
+             and(Abs(newSolderPasteBoundaryRight - CoordToMMs(rectDst.right)) < 0.0000001)
+             and(Abs(newSolderPasteBoundaryBottom - CoordToMMs(rectDst.bottom)) < 0.0000001)) then
+         begin
+            WriteToDebugFile('New solderpaste boundaries match original solderpaste region');
+         end { end if }
+         else
+         begin
+            //WriteToDebugFile(BoolToStr(newSolderPasteBoundaryLeft = CoordToMMs(rectDst.left)) + ' and ' + BoolToStr(newSolderPasteBoundaryTop = CoordToMMs(rectDst.top)) + ' and ' + BoolToStr(newSolderPasteBoundaryRight = CoordToMMs(rectDst.right)) + ' and ' + BoolToStr(newSolderPasteBoundaryBottom = CoordToMMs(rectDst.bottom)));
+            
+            CLF_Abort('New solderpaste boundaries do not match original solderpaste region!');
+         end; { end else }
+
+      end; { end if }
+
+   end; { end loop }
    { Sanity check.  The only regions we expect to see are solderpaste tiles on EP pad and keepout regions on fiducial pads.
     If we find anything else, we don't know what it is or how to handle it! }
    if (not regionKnown) then
@@ -9703,8 +9801,8 @@ var
    pkgDimsEpLengthMax     : Real;
    fixExposedPad          : Boolean;
    xyRoundingFactor       : Real;
-   epWidthRound           : Real;
-   epLengthRound          : Real;
+   epWidthRounded           : Real;
+   epLengthRounded          : Real;
    
 begin
 
@@ -9772,16 +9870,16 @@ begin
          { TODO:  We are currently assuming that we want to do a floor() function.  We need to investigate this further
           with additional footprints to make sure that this is really true. }
          xyRoundingFactor :=  StrToFloat(cnfGalacticInfo.Values(constLpWizardBuildInfoXYRounding));
-         epWidthRound := ( floor(pkgDimsEpWidthMax / xyRoundingFactor) ) * xyRoundingFactor;
-         epLengthRound := ( floor(pkgDimsEpLengthMax / xyRoundingFactor) ) * xyRoundingFactor;
+         epWidthRounded := ( floor(pkgDimsEpWidthMax / xyRoundingFactor) ) * xyRoundingFactor;
+         epLengthRounded := ( floor(pkgDimsEpLengthMax / xyRoundingFactor) ) * xyRoundingFactor;
 
          { Store the rounded values in cnfGalacticInfo. }
-         cnfGalacticInfo.add(constGilEpWidthRound + constStringEquals + FloatToStr(epWidthRound));
-         cnfGalacticInfo.add(constGilEpLengthRound + constStringEquals + FloatToStr(epLengthRound));
+         cnfGalacticInfo.add(constGilEpWidthRounded + constStringEquals + FloatToStr(epWidthRounded));
+         cnfGalacticInfo.add(constGilEpLengthRounded + constStringEquals + FloatToStr(epLengthRounded));
 
          { Set the exposed pad length and width to the rounded version of the original dimensions. }
-         padDst.TopXSize := MMsToCoord(epWidthRound);
-         padDst.TopYSize := MMsToCoord(epLengthRound);
+         padDst.TopXSize := MMsToCoord(epWidthRounded);
+         padDst.TopYSize := MMsToCoord(epLengthRounded);
 
          { Flag that the exposed pad needs to be fixed when creating the 3D model and
           store this in cnfGalacticInfo. }
