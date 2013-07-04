@@ -12,18 +12,17 @@
 { Change log:                                                                  }
 { Ver 1.0 - Initial release                                                    }
 {                                                                              }
-
 {******************************************************************************}
 
 //Enter settings here
 const
      MaximumHeight = 5;   // millimeters
-     DefaultHeight = 1;  // milimeters
+     DefaultHeight = 1;   // milimeters
      UnHideDesignators = True; //Unhides all designators
-     LockStrings = True; // Lock all strings
+     //LockStrings = True;  // Lock all strings
      BoundingLayers = True; // Look for bounding rectangle in selected layers
-     Layer1 = eTopOverlay;                // Change this to the layer/layers that best represent the component
-     Layer2 = eBottomOverlay;             // In many cases eTopOverlay OR eBottomOverLay will be used
+     Layer1 = eTopOverlay;  // Change this to the layer/layers that best represent the component
+     Layer2 = eBottomOverlay; // In many cases eTopOverlay OR eBottomOverLay will be used
      Layer3 = eMechanical13;              // Layers not used must be set to false e.g Layer3=false;
      Layer4 = eMechanical15;
 
@@ -77,7 +76,6 @@ begin
      PCBSystemOptions.DoOnlineDRC := false;
 
      try
-
         // Notify the pcbserver that we will make changes
         PCBServer.PreProcess;
         ComponentIteratorHandle := PCBServer.GetCurrentPCBBoard.BoardIterator_Create;
@@ -198,14 +196,14 @@ begin
             // Rotate the designator to increase the readabillity
             if Y > X then
             begin
-                 if Designator.Layer = eTopOverlay then
-                    Designator.Rotation := 90
-                 else
-                     Designator.Rotation := 270;
+				if Designator.Layer = eTopOverlay then
+				Designator.Rotation := 90
+				else
+				Designator.Rotation := 270;
             end
             else
             begin
-                 Designator.Rotation := 0;
+                Designator.Rotation := 0;
             end;
 
 
