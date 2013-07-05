@@ -6,7 +6,7 @@
 #
 #	@details		
 #
-#    @version		0.4.0
+#    @version		0.4.1
 #					   $Rev::                                                                        $:
 #	@date			  $Date::                                                                        $:
 #	@author			$Author::                                                                        $:
@@ -116,22 +116,27 @@ def FC3DM_SortPinNames(a, b):
         aStr = a.replace("Pin", "");
         bStr = b.replace("Pin", "");
 
-        ## TODO:  Support BGA pin names, as well as "EP"!
+        ## TODO:  Support BGA pin names!
 
-        # Convert remaining name to integer
-        aInt = int(aStr);
-        bInt = int(bStr);
+        # Try to convert remaining names to integer
+        try:
+            aInt = int(aStr);
+            bInt = int(bStr);
 
-        if aInt > bInt:
-            return 1
-        elif aInt == bInt:
-            return 0
-        else:
-            return -1
+            if aInt > bInt:
+                return 1
+            elif aInt == bInt:
+                return 0
+            else:
+                return -1
+            
+        # This failed, so one or both has a BGA or EP style name.  Use cmp() builtin.
+        except ValueError:
+            return cmp(aStr, bStr)
 
     # Else at least one of these is not a valid pin name.  Do simple comparison using builtin.
     else:
-        return cmp(a,b)
+        return cmp(a, b)
     
 
 ###################################################################
@@ -395,6 +400,8 @@ def FC3DM_DescribeObjectsToLogFile(App, Gui,
     ## Log all pin vertices to logfile.
     # Loop over all the pin names.
     for pin in pinNames:
+
+        print("About to describe pin " + pin + " to log file!")
 
         # Declare the name of this object
         fileP.write("\n" + pin + ':\n')
@@ -1042,6 +1049,25 @@ def FC3DM_CreateIcBody(App, Gui,
     print "bodyName is:" + bodyName + ":"
     print "B is       :" + str(B) + ":"
 
+
+    # See if this package has an EP (exposed pad)
+    if ("pkgDimsEpLengthMax" in parms):
+
+        # Flag that this package has an EP
+        hasEp = True
+
+        # Enforce that the body is not allowed to go all the way to the PCB surface.
+        # This is necessary in order to get the coloring right for pins vs. body.
+        K = max(K, 0.0000001)
+        parms["K"] = K        
+
+    else:
+        hasEp = False
+
+    # Store whether or not we have an EP pad.
+    parms["hasEp"] = hasEp
+
+    
     # For SOIC packages, chamfer the upper long edge along pin 1        
     if (footprintType == "SOIC"):
 
@@ -1191,6 +1217,7 @@ def FC3DM_CreateIcBody(App, Gui,
         FC3DM_RotateObjectAboutZ(App, Gui,
                                  docName, bodyName, 90)
 
+    # endif (maDeg > 0)
 
     ## Attempt to analyze the faces in the body, to find which ones to fillet.
     # Loop over all the faces in this pin.
@@ -1222,6 +1249,8 @@ def FC3DM_CreateIcBody(App, Gui,
             
             # Write this vertex
             print(str(vertex.Point))
+
+    # endfor loop over edges            
 
     # If we had a pin 1 chamfer, we only have 7 edges to fillet, not 8.
     if (P1chamferOffset > 0):
@@ -1421,6 +1450,54 @@ def FC3DM_CreateIcPinQfn(App, Gui,
 
 
 ###################################################################
+# FC3DM_CreateIcPinEp()
+#	Function to create an exposed pad (EP) underneath the IC body.
+#
+# Other parameters:
+# Tp == Pin thickness (z dimension)
+###################################################################
+def FC3DM_CreateIcPinEp(App, Gui,
+                        parms,
+                        length, width, x, y,
+                        epName,
+                        docName):
+                
+    # Extract relevant parameter values from parms associative array
+    # TODO:  Currently no error checking!
+    Tp = parms["Tp"]
+    bodyName = parms["bodyName"]
+
+    # Configure active document
+    App.ActiveDocument=None
+    Gui.ActiveDocument=None
+    App.setActiveDocument(docName)
+    App.ActiveDocument=App.getDocument(docName)
+    Gui.ActiveDocument=Gui.getDocument(docName)
+
+    # Create box to model IC pin
+    App.ActiveDocument.addObject("Part::Box",epName)
+    App.ActiveDocument.recompute()
+    Gui.SendMsgToActiveView("ViewFit")
+
+    # Set pin size
+    FreeCAD.getDocument(docName).getObject(epName).Length = length
+    FreeCAD.getDocument(docName).getObject(epName).Width = width
+    FreeCAD.getDocument(docName).getObject(epName).Height = Tp
+
+    # Move pin to appropriate loacation, and set initial rotation of 0 degrees about Z-axis
+    rot = math.radians(0)
+    FreeCAD.getDocument(docName).getObject(epName).Placement = App.Placement(App.Vector((-1*(length/2) + x),(-1*(width/2) + y),0),App.Rotation(0,0,math.sin(rot/2),math.cos(rot/2)))
+
+    # Zoom in on pin model
+    Gui.SendMsgToActiveView("ViewFit")
+
+    # Color pin red.  FIXME--remove this!
+    Gui.getDocument(docName).getObject(epName).ShapeColor = (1.00,0.00,0.00)
+
+    return 0
+
+
+###################################################################
 # FC3DM_CreateIcPins()
 #	Function to create all gullwing IC pins.
 ###################################################################
@@ -1430,10 +1507,17 @@ def FC3DM_CreateIcPins(App, Gui,
                 
     # Extract relevant parameter values from parms associative array
     # TODO:  Currently no error checking!
+    pinName = parms["pinName"]
     bodyName = parms["bodyName"]
-
-    # Retrieve the footprintType
     footprintType = parms["footprintType"]
+    hasEp = parms["hasEp"]
+
+    # Retrieve EP parameters if needed
+    if (hasEp):
+        pkgDimsEpLengthMax = parms["pkgDimsEpLengthMax"]
+        pkgDimsEpWidthMax = parms["pkgDimsEpWidthMax"]
+        pkgDimsEpChamfer = parms["pkgDimsEpChamfer"]
+        pkgDimsEpCornerRad = parms["pkgDimsEpCornerRad"]
 
     print("Hello from FC3DM_CreateIcPins()!")
 
@@ -1461,9 +1545,6 @@ def FC3DM_CreateIcPins(App, Gui,
 
     print("Back from creating template IC pin.")
 
-    # Extract relevant parameter values from parms associative array
-    # TODO:  Currently no error checking!
-    pinName = parms["pinName"]
 
     # Configure active document
     App.ActiveDocument=None
@@ -1509,50 +1590,78 @@ def FC3DM_CreateIcPins(App, Gui,
         print(lis)
 
         ## Examine pin type
-        if ( (lis[0] != "Gullwing") and (lis[0] != "QFN") ):
+        if ( (lis[0] == "Gullwing") or (lis[0] == "QFN") ):
+
+            ## Examine pin side
+            # Look for an east side pin.
+            if (lis[1] == "East"):
+
+                # Our template pin was created on the east side, so no rotation required.
+                rotDeg = 0.0
+
+            # Else see if this is a west side pin.
+            elif (lis[1] == "West"):
+
+                # Our template pin was created on the east side, so rotate 180 degrees
+                rotDeg = 180.0
+
+            # FIXME:  Support north and south side pins for QFN & QFP!                
+
+            # Else unsupported!
+            else:
+                print("Unsupported pin side " + lis[1])
+                FC3DM_MyExit(-1)
+
+            ## Get pin x coordinate
+            # Currently we're ignoring this datum from the ini file.
+            # The way we currently have things arranged, x is either 0.0 because this pin
+            # is on the same (East) side as our template pin.  Or else it's 0.0 because this
+            # pin will get rotated 180deg around to the West side.
+            # TODO:  Revisit this for QFNs, QFPs, BGAs, etc.!
+            x = 0.0
+
+            ## Get pin y coordinate
+            y = float(lis[3])
+
+            ## Copy template pin to the commanded location
+            FC3DM_CopyObject(App, Gui,
+                             x, y, rotDeg,
+                             docName,
+                             pinName,
+                             pin)
+
+            ## For certain package types, we need to cut the pin out of the body
+            if (lis[0] == "QFN"):
+                FC3DM_CutObjectWithToolAndKeepTool(App, Gui,
+                                                   docName, bodyName, pin)
+
+        # endif is gullwing or QFN
+
+        # Handle EP pin type
+        elif (lis[0] == "EP"):
+
+            ## Get pin x & y coordinates
+            x = float(lis[2])
+            y = float(lis[3])
+
+            # Call FC3DM_CreateIcPinEp() to create EP pin from scratch
+            epName = "PinEP"
+            FC3DM_CreateIcPinEp(App, Gui,
+                                parms,
+                                pkgDimsEpLengthMax, pkgDimsEpWidthMax, x, y,
+                                epName,
+                                docName)
+
+            # Cut the body with the EP pin and keep both
+            FC3DM_CutObjectWithToolAndKeepTool(App, Gui,
+                                               docName, bodyName, epName)
+
+
+        # Else unknown pin type.  Abort
+        else:
             print("Unsupported pin type " + lis[0])
             FC3DM_MyExit(-1)
 
-        ## Examine pin side
-        # Look for an east side pin.
-        if (lis[1] == "East"):
-
-            # Our template pin was created on the east side, so no rotation required.
-            rotDeg = 0.0
-
-        # Else see if this is a west side pin.
-        elif (lis[1] == "West"):
-
-            # Our template pin was created on the east side, so rotate 180 degrees
-            rotDeg = 180.0
-
-        # Else unsupported!
-        else:
-            print("Unsupported pin side " + lis[1])
-            FC3DM_MyExit(-1)
-
-        ## Get pin x coordinate
-        # Currently we're ignoring this datum from the ini file.
-        # The way we currently have things arranged, x is either 0.0 because this pin
-        # is on the same (East) side as our template pin.  Or else it's 0.0 because this
-        # pin will get rotated 180deg around to the West side.
-        # TODO:  Revisit this for QFNs, QFPs, BGAs, etc.!
-        x = 0.0
-
-        ## Get pin y coordinate
-        y = float(lis[3])
-
-        ## Copy template pin to the commanded location
-        FC3DM_CopyObject(App, Gui,
-                         x, y, rotDeg,
-                         docName,
-                         pinName,
-                         pin)
-
-        ## For certain package types, we need to cut the pin out of the body
-        if (lis[0] == "QFN"):
-            FC3DM_CutObjectWithToolAndKeepTool(App, Gui,
-                                               docName, bodyName, pin)
 
     # end loop over all the pin names.
 
