@@ -6,7 +6,7 @@
 #
 #	@details		
 #
-#    @version		0.3.11
+#    @version		0.4.0
 #					   $Rev::                                                                        $:
 #	@date			  $Date::                                                                        $:
 #	@author			$Author::                                                                        $:
@@ -1031,11 +1031,16 @@ def FC3DM_CreateIcBody(App, Gui,
     pin1MarkName = parms["pin1MarkName"]
     newModelName = parms["newModelName"]
 
-    # Figure out the footprintType for the current gullwing model.
+    # Figure out the footprintType for the current IC model.
     # Do this by extracting just the leading characters in the newModelName.
     # footprintType = echo $newModelName | sed 's/[0-9]+.*//g'
     footprintType = re.sub('[0-9]+.*', '', newModelName)
+    parms["footprintType"] = footprintType
     print footprintType
+
+    print "docName is :" + docName + ":"
+    print "bodyName is:" + bodyName + ":"
+    print "B is       :" + str(B) + ":"
 
     # For SOIC packages, chamfer the upper long edge along pin 1        
     if (footprintType == "SOIC"):
@@ -1043,14 +1048,20 @@ def FC3DM_CreateIcBody(App, Gui,
         # Retrieve chamfer offset
         P1chamferOffset = parms["P1chamferOffset"]
 
+    # Handle QFN packages.
+    elif (footprintType == "QFN"):
+
+        # Set for no pin 1 chamfer
+        P1chamferOffset = 0
+
+        # Enforce that the body is not allowed to go all the way to the PCB surface.
+        # This is necessary in order to get the coloring right for pins vs. body.
+        K = max(K, 0.0000001)
+        parms["K"] = K        
+
     # Other packages have no chamfer of the body upper long edge along pin 1        
     else:
         P1chamferOffset = 0
-
-
-    print "docName is :" + docName + ":"
-    print "bodyName is:" + bodyName + ":"
-    print "B is       :" + str(B) + ":"
 
     # Constant pi
     pi = 3.141592654
@@ -1094,89 +1105,91 @@ def FC3DM_CreateIcBody(App, Gui,
 
 
     ## Make 2 cuts to each side of body, to model mold angle
+    # Only do the cuts if we have a mold angle
+    if (maDeg > 0):    
 
-    # Perform a cut at the north side of the IC body (pivot point high)
-    FC3DM_CutWithBox(App, Gui,
-                     docName, bodyName,
-                     B, B, B, -1*(A/2), 1*(B/2), Hpph,
-                     math.sin(ma/2),0,0,math.cos(ma/2))
-
-    # Perform a cut at the north side of the IC body (pivot point low)
-    FC3DM_CutWithBox(App, Gui,
-                     docName, bodyName,
-                     B, B, B, -1*(A/2), 1*(B/2), Hppl,
-                     math.sin(((3*pi)/4)-(ma/2)),0,0,math.cos(((3*pi)/4)-(ma/2)))
-
-
-    # Rotate the IC body 180 degrees about the z axis
-    FC3DM_RotateObjectAboutZ(App, Gui,
-                             docName, bodyName, 180)
-
-    # Perform a cut at the north side of the IC body (pivot point high)
-    FC3DM_CutWithBox(App, Gui,
-                     docName, bodyName,
-                     B, B, B, -1*(A/2), 1*(B/2), Hpph,
-                     math.sin(ma/2),0,0,math.cos(ma/2))
-
-    # Perform a cut at the north side of the IC body (pivot point low)
-    FC3DM_CutWithBox(App, Gui,
-                     docName, bodyName,
-                     B, B, B, -1*(A/2), 1*(B/2), Hppl,
-                     math.sin(((3*pi)/4)-(ma/2)),0,0,math.cos(((3*pi)/4)-(ma/2)))
-
-
-    # Rotate the IC body 90 degrees about the z axis
-    FC3DM_RotateObjectAboutZ(App, Gui,
-                             docName, bodyName, 90)
-
-    # Perform a cut at the north side of the IC body (pivot point high)
-    FC3DM_CutWithBox(App, Gui,
-                     docName, bodyName,
-                     B, B, B, -1*(B/2), 1*(A/2), Hpph,
-                     math.sin(ma/2),0,0,math.cos(ma/2))
-
-    # Perform a cut at the north side of the IC body (pivot point low)
-    FC3DM_CutWithBox(App, Gui,
-                     docName, bodyName,
-                     B, B, B, -1*(B/2), 1*(A/2), Hppl,
-                     math.sin(((3*pi)/4)-(ma/2)),0,0,math.cos(((3*pi)/4)-(ma/2)))
-
-    
-    # Rotate the IC body 180 degrees about the z axis
-    FC3DM_RotateObjectAboutZ(App, Gui,
-                             docName, bodyName, 180)
-
-    # Perform a cut at the north side of the IC body (pivot point high)
-    FC3DM_CutWithBox(App, Gui,
-                     docName, bodyName,
-                     B, B, B, -1*(B/2), 1*(A/2), Hpph,
-                     math.sin(ma/2),0,0,math.cos(ma/2))
-
-
-    # See if we need to do the pin 1 chamfer on the body
-    if (P1chamferOffset > 0):
-
-        # TODO:  Add sanity check to ensure that the chamfer doesn't cut into the body below the
-        # level of where the top-most part of the pin enters the body.  If it does, then we
-        # would break our underlying assumption that the pins are symmetric side-to-side.
-        # Detect this and abort on error!
-
-        # Perform a cut at the north side of the IC body (chamfer on pin 1 long side of body)
+        # Perform a cut at the north side of the IC body (pivot point high)
         FC3DM_CutWithBox(App, Gui,
                          docName, bodyName,
-                         B, B, B, -1*(B/2), (1*(A/2) - moldOffset - P1chamferOffset), H,
-                         math.sin(-1*(ca/2)),0,0,math.cos(ca/2))
+                         B, B, B, -1*(A/2), 1*(B/2), Hpph,
+                         math.sin(ma/2),0,0,math.cos(ma/2))
 
-    # Perform a cut at the north side of the IC body (pivot point low)
-    FC3DM_CutWithBox(App, Gui,
-                     docName, bodyName,
-                     B, B, B, -1*(B/2), 1*(A/2), Hppl,
-                     math.sin(((3*pi)/4)-(ma/2)),0,0,math.cos(((3*pi)/4)-(ma/2)))
+        # Perform a cut at the north side of the IC body (pivot point low)
+        FC3DM_CutWithBox(App, Gui,
+                         docName, bodyName,
+                         B, B, B, -1*(A/2), 1*(B/2), Hppl,
+                         math.sin(((3*pi)/4)-(ma/2)),0,0,math.cos(((3*pi)/4)-(ma/2)))
+
+
+        # Rotate the IC body 180 degrees about the z axis
+        FC3DM_RotateObjectAboutZ(App, Gui,
+                                 docName, bodyName, 180)
+
+        # Perform a cut at the north side of the IC body (pivot point high)
+        FC3DM_CutWithBox(App, Gui,
+                         docName, bodyName,
+                         B, B, B, -1*(A/2), 1*(B/2), Hpph,
+                         math.sin(ma/2),0,0,math.cos(ma/2))
+
+        # Perform a cut at the north side of the IC body (pivot point low)
+        FC3DM_CutWithBox(App, Gui,
+                         docName, bodyName,
+                         B, B, B, -1*(A/2), 1*(B/2), Hppl,
+                         math.sin(((3*pi)/4)-(ma/2)),0,0,math.cos(((3*pi)/4)-(ma/2)))
+
+
+        # Rotate the IC body 90 degrees about the z axis
+        FC3DM_RotateObjectAboutZ(App, Gui,
+                                 docName, bodyName, 90)
+
+        # Perform a cut at the north side of the IC body (pivot point high)
+        FC3DM_CutWithBox(App, Gui,
+                         docName, bodyName,
+                         B, B, B, -1*(B/2), 1*(A/2), Hpph,
+                         math.sin(ma/2),0,0,math.cos(ma/2))
+
+        # Perform a cut at the north side of the IC body (pivot point low)
+        FC3DM_CutWithBox(App, Gui,
+                         docName, bodyName,
+                         B, B, B, -1*(B/2), 1*(A/2), Hppl,
+                         math.sin(((3*pi)/4)-(ma/2)),0,0,math.cos(((3*pi)/4)-(ma/2)))
 
     
-    # Do final rotation of the IC body 90 degrees about the z axis
-    FC3DM_RotateObjectAboutZ(App, Gui,
-                             docName, bodyName, 90)
+        # Rotate the IC body 180 degrees about the z axis
+        FC3DM_RotateObjectAboutZ(App, Gui,
+                                 docName, bodyName, 180)
+
+        # Perform a cut at the north side of the IC body (pivot point high)
+        FC3DM_CutWithBox(App, Gui,
+                         docName, bodyName,
+                         B, B, B, -1*(B/2), 1*(A/2), Hpph,
+                         math.sin(ma/2),0,0,math.cos(ma/2))
+
+
+        # See if we need to do the pin 1 chamfer on the body
+        if (P1chamferOffset > 0):
+
+            # TODO:  Add sanity check to ensure that the chamfer doesn't cut into the body below the
+            # level of where the top-most part of the pin enters the body.  If it does, then we
+            # would break our underlying assumption that the pins are symmetric side-to-side.
+            # Detect this and abort on error!
+
+            # Perform a cut at the north side of the IC body (chamfer on pin 1 long side of body)
+            FC3DM_CutWithBox(App, Gui,
+                             docName, bodyName,
+                             B, B, B, -1*(B/2), (1*(A/2) - moldOffset - P1chamferOffset), H,
+                             math.sin(-1*(ca/2)),0,0,math.cos(ca/2))
+
+        # Perform a cut at the north side of the IC body (pivot point low)
+        FC3DM_CutWithBox(App, Gui,
+                         docName, bodyName,
+                         B, B, B, -1*(B/2), 1*(A/2), Hppl,
+                         math.sin(((3*pi)/4)-(ma/2)),0,0,math.cos(((3*pi)/4)-(ma/2)))
+
+    
+        # Do final rotation of the IC body 90 degrees about the z axis
+        FC3DM_RotateObjectAboutZ(App, Gui,
+                                 docName, bodyName, 90)
 
 
     ## Attempt to analyze the faces in the body, to find which ones to fillet.
@@ -1225,8 +1238,9 @@ def FC3DM_CreateIcBody(App, Gui,
     # Note:  Do them all at once, because I've had a hard time with finding edge names on
     # the top face after filleting the bottom face, and vice versa.
     # TODO:  This is currently hardcoded!
-    # TODO:  This must be revisited for QFN, BGA, etc.!
-    if ( footprintType <> "SOIC" ):
+    # TODO:  This must be revisited for BGA, etc.!
+    # Only do the filleting if we have a mold angle
+    if ( (maDeg > 0) and (footprintType <> "SOIC") ):    
 
         FC3DM_FilletObjectEdges(App, Gui,
                                 docName, bodyName, edges, Frbody)
@@ -1344,6 +1358,69 @@ def FC3DM_CreateIcPin(App, Gui,
 
 
 ###################################################################
+# FC3DM_CreateIcPinQfn()
+#	Function to create a QFN IC pin.
+#
+# Parameter names are per Mentor LP Wizard tool:
+# L == Overall component width (pin tip to pin tip)
+# W == Pin width
+# T == Pin landing length
+#
+# Other parameters:
+# Tp == Pin thickness (z dimension)
+###################################################################
+def FC3DM_CreateIcPinQfn(App, Gui,
+                         parms,
+                         docName):
+                
+    # Extract relevant parameter values from parms associative array
+    # TODO:  Currently no error checking!
+    L = parms["L"]
+    W = parms["W"]
+    T = parms["T"]
+    Tp = parms["Tp"]
+    pinName = parms["pinName"]
+    bodyName = parms["bodyName"]
+    
+    # Configure active document
+    App.ActiveDocument=None
+    Gui.ActiveDocument=None
+    App.setActiveDocument(docName)
+    App.ActiveDocument=App.getDocument(docName)
+    Gui.ActiveDocument=Gui.getDocument(docName)
+
+    # Create box to model IC pin
+    App.ActiveDocument.addObject("Part::Box",pinName)
+    App.ActiveDocument.recompute()
+    Gui.SendMsgToActiveView("ViewFit")
+
+    # Set pin size
+    FreeCAD.getDocument(docName).getObject(pinName).Length = L #T
+    FreeCAD.getDocument(docName).getObject(pinName).Width = W
+    FreeCAD.getDocument(docName).getObject(pinName).Height = Tp
+
+    # Move pin to appropriate loacation, and set initial rotation of 0 degrees about Z-axis
+    rot = math.radians(0)
+    FreeCAD.getDocument(docName).getObject(pinName).Placement = App.Placement(App.Vector(((L/2)-T),-1*(W/2),0),App.Rotation(0,0,math.sin(rot/2),math.cos(rot/2)))
+
+    # Perform an unnecessary cut just to reset the baseline location for this pin.
+    # Allow the pins to extend ever so slightly beyond the body in x, so that after all is said
+    # and done, we can distinguish body vs. pin for purposes of coloring the fusion.
+    FC3DM_CutWithBox(App, Gui,
+                     docName, pinName,
+                     L, W, W, (L/2)+0.0000001, -1*(W/2), 0,
+                     0, 0, 0, 0)
+
+    # Zoom in on pin model
+    Gui.SendMsgToActiveView("ViewFit")
+
+    # Color pin red.  FIXME--remove this!
+    Gui.getDocument(docName).getObject(pinName).ShapeColor = (1.00,0.00,0.00)
+
+    return 0
+
+
+###################################################################
 # FC3DM_CreateIcPins()
 #	Function to create all gullwing IC pins.
 ###################################################################
@@ -1351,14 +1428,38 @@ def FC3DM_CreateIcPins(App, Gui,
                        parms, pinNames,
                        docName):
                 
+    # Extract relevant parameter values from parms associative array
+    # TODO:  Currently no error checking!
+    bodyName = parms["bodyName"]
+
+    # Retrieve the footprintType
+    footprintType = parms["footprintType"]
+
     print("Hello from FC3DM_CreateIcPins()!")
 
-    # Call CreateIcPin() to create first (template) IC pin
-    FC3DM_CreateIcPin(App, Gui,
-                      parms,
-                      docName)
+    ## Call the appropriate function to create the prototype IC pin
+    # Handle Gullwing ICs        
+    if (footprintType == "Gullwing"):
 
-    print("Back from FC3DM_CreateIcPin()")
+        # Call CreateIcPin() to create first (template) Gullwing IC pin
+        FC3DM_CreateIcPin(App, Gui,
+                          parms,
+                          docName)
+
+    # Handle QFN ICs        
+    elif (footprintType == "QFN"):
+
+        # Call CreateIcPinQfn() to create first (template) QFN IC pin
+        FC3DM_CreateIcPinQfn(App, Gui,
+                             parms,
+                             docName)
+
+    # Else unsupported!
+    else:
+        print("Unsupported footprintType " + footprintType)
+        FC3DM_MyExit(-1)
+
+    print("Back from creating template IC pin.")
 
     # Extract relevant parameter values from parms associative array
     # TODO:  Currently no error checking!
@@ -1383,6 +1484,8 @@ def FC3DM_CreateIcPins(App, Gui,
             print("Found pin named " + parm + ".")
             pinNames.append(parm)
 
+    # end loop over all the entries in the parms array
+
     # Sort the list of pinNames, using our custom pin name sort function.
     pinNames.sort(FC3DM_SortPinNames)
 
@@ -1406,7 +1509,7 @@ def FC3DM_CreateIcPins(App, Gui,
         print(lis)
 
         ## Examine pin type
-        if (lis[0] != "Gullwing"):
+        if ( (lis[0] != "Gullwing") and (lis[0] != "QFN") ):
             print("Unsupported pin type " + lis[0])
             FC3DM_MyExit(-1)
 
@@ -1445,6 +1548,13 @@ def FC3DM_CreateIcPins(App, Gui,
                          docName,
                          pinName,
                          pin)
+
+        ## For certain package types, we need to cut the pin out of the body
+        if (lis[0] == "QFN"):
+            FC3DM_CutObjectWithToolAndKeepTool(App, Gui,
+                                               docName, bodyName, pin)
+
+    # end loop over all the pin names.
 
     # Remove the pin template object
     App.getDocument(docName).removeObject(pinName)
