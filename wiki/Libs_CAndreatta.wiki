@@ -1,4 +1,4 @@
-#summary General libraries from Ryan Rutledge
+#summary General libraries from Cyril Andreatta
 #labels LIB
 = [http://code.google.com/p/altium-designer-addons/downloads/detail?name=Libs_CAndreatta%202013-02-14.zip Download "Libs_CAndreatta 2013-02-14.zip"] =
 
