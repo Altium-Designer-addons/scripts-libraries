@@ -6,7 +6,7 @@
 #
 #	@details		
 #
-#    @version		0.4.1
+#    @version		0.4.2
 #					   $Rev::                                                                        $:
 #	@date			  $Date::                                                                        $:
 #	@author			$Author::                                                                        $:
@@ -83,6 +83,9 @@ import os
 import re
 
 scriptPathUtils = ""
+
+# Fudge factor used by QFN packages to have pins and body ever so slightly different
+tinyDeltaForQfn = 0.000001
 
 ###################################################################
 # is_number()
@@ -1051,14 +1054,14 @@ def FC3DM_CreateIcBody(App, Gui,
 
 
     # See if this package has an EP (exposed pad)
-    if ("pkgDimsEpLengthMax" in parms):
+    if ("Tt" in parms):
 
         # Flag that this package has an EP
         hasEp = True
 
         # Enforce that the body is not allowed to go all the way to the PCB surface.
         # This is necessary in order to get the coloring right for pins vs. body.
-        K = max(K, 0.0000001)
+        K = max(K, tinyDeltaForQfn)
         parms["K"] = K        
 
     else:
@@ -1082,7 +1085,7 @@ def FC3DM_CreateIcBody(App, Gui,
 
         # Enforce that the body is not allowed to go all the way to the PCB surface.
         # This is necessary in order to get the coloring right for pins vs. body.
-        K = max(K, 0.0000001)
+        K = max(K, tinyDeltaForQfn)
         parms["K"] = K        
 
     # Other packages have no chamfer of the body upper long edge along pin 1        
@@ -1405,11 +1408,16 @@ def FC3DM_CreateIcPinQfn(App, Gui,
     # Extract relevant parameter values from parms associative array
     # TODO:  Currently no error checking!
     L = parms["L"]
+    A = parms["A"]
+    B = parms["B"]
     W = parms["W"]
     T = parms["T"]
     Tp = parms["Tp"]
     pinName = parms["pinName"]
     bodyName = parms["bodyName"]
+
+    pinTemplateEast = pinName
+    pinTemplateNorth = "pinTemplateNorth"
     
     # Configure active document
     App.ActiveDocument=None
@@ -1432,19 +1440,55 @@ def FC3DM_CreateIcPinQfn(App, Gui,
     rot = math.radians(0)
     FreeCAD.getDocument(docName).getObject(pinName).Placement = App.Placement(App.Vector(((L/2)-T),-1*(W/2),0),App.Rotation(0,0,math.sin(rot/2),math.cos(rot/2)))
 
+#    # Create a template north side IC pin
+#    # FIXME:  Must apply offset when QFN/DFN/QFP is not square!!
+#    x = 0.0
+#    y = 0.0
+#    rotDeg = 90.0
+#    FC3DM_CopyObject(App, Gui,
+#                     x, y, rotDeg,
+#                     docName,
+#                     pinTemplateEast,
+#                     pinTemplateNorth)
+
+
     # Perform an unnecessary cut just to reset the baseline location for this pin.
     # Allow the pins to extend ever so slightly beyond the body in x, so that after all is said
     # and done, we can distinguish body vs. pin for purposes of coloring the fusion.
     FC3DM_CutWithBox(App, Gui,
                      docName, pinName,
-                     L, W, W, (L/2)+0.0000001, -1*(W/2), 0,
+                     L, W, W, (L/2)+tinyDeltaForQfn, -1*(W/2), 0,
                      0, 0, 0, 0)
+
+
+    ## Create another template pin for north side.
+    # (Can't get copy to work without it behaving weirdly when copying it again.)
+    # Create box to model IC pin
+    App.ActiveDocument.addObject("Part::Box",pinTemplateNorth)
+    App.ActiveDocument.recompute()
+    Gui.SendMsgToActiveView("ViewFit")
+
+    # Set pin size
+    FreeCAD.getDocument(docName).getObject(pinTemplateNorth).Length = W
+    FreeCAD.getDocument(docName).getObject(pinTemplateNorth).Width = L #T
+    FreeCAD.getDocument(docName).getObject(pinTemplateNorth).Height = Tp
+
+    # Move pin to appropriate loacation, and set initial rotation of 0 degrees about Z-axis
+    rot = math.radians(0)
+    FreeCAD.getDocument(docName).getObject(pinTemplateNorth).Placement = App.Placement(App.Vector(-1*(W/2), ((L/2)-T),0),App.Rotation(0,0,math.sin(rot/2),math.cos(rot/2)))
+
+    # Perform an unnecessary cut just to reset the baseline location for this pin.
+    FC3DM_CutWithBox(App, Gui,
+                    docName, pinTemplateNorth,
+                    W, L, T, -1*(W/2), (B/2)+tinyDeltaForQfn, 0.0, 
+                    0, 0, 0, 0)
 
     # Zoom in on pin model
     Gui.SendMsgToActiveView("ViewFit")
 
     # Color pin red.  FIXME--remove this!
     Gui.getDocument(docName).getObject(pinName).ShapeColor = (1.00,0.00,0.00)
+    Gui.getDocument(docName).getObject(pinTemplateNorth).ShapeColor = (0.00,0.00,1.00)
 
     return 0
 
@@ -1507,17 +1551,18 @@ def FC3DM_CreateIcPins(App, Gui,
                 
     # Extract relevant parameter values from parms associative array
     # TODO:  Currently no error checking!
-    pinName = parms["pinName"]
+    pinTemplateEast = parms["pinName"]
+    pinTemplateNorth = "pinTemplateNorth"
     bodyName = parms["bodyName"]
     footprintType = parms["footprintType"]
     hasEp = parms["hasEp"]
 
     # Retrieve EP parameters if needed
     if (hasEp):
-        pkgDimsEpLengthMax = parms["pkgDimsEpLengthMax"]
-        pkgDimsEpWidthMax = parms["pkgDimsEpWidthMax"]
-        pkgDimsEpChamfer = parms["pkgDimsEpChamfer"]
-        pkgDimsEpCornerRad = parms["pkgDimsEpCornerRad"]
+        Tt = parms["Tt"] # pkgDimsEpLengthMax
+        Wt = parms["Wt"] # pkgDimsEpWidthMax
+        Ft = parms["Ft"] # pkgDimsEpChamfer
+        Rt = parms["Rt"] # pkgDimsEpCornerRad
 
     print("Hello from FC3DM_CreateIcPins()!")
 
@@ -1525,7 +1570,7 @@ def FC3DM_CreateIcPins(App, Gui,
     # Handle Gullwing ICs        
     if (footprintType == "Gullwing"):
 
-        # Call CreateIcPin() to create first (template) Gullwing IC pin
+        # Call CreateIcPin() to create template east side Gullwing IC pin
         FC3DM_CreateIcPin(App, Gui,
                           parms,
                           docName)
@@ -1533,7 +1578,7 @@ def FC3DM_CreateIcPins(App, Gui,
     # Handle QFN ICs        
     elif (footprintType == "QFN"):
 
-        # Call CreateIcPinQfn() to create first (template) QFN IC pin
+        # Call CreateIcPinQfn() to create template east side QFN IC pin
         FC3DM_CreateIcPinQfn(App, Gui,
                              parms,
                              docName)
@@ -1592,6 +1637,12 @@ def FC3DM_CreateIcPins(App, Gui,
         ## Examine pin type
         if ( (lis[0] == "Gullwing") or (lis[0] == "QFN") ):
 
+            ## Get pin x coordinate
+            x = float(lis[2])
+
+            ## Get pin y coordinate
+            y = float(lis[3])
+
             ## Examine pin side
             # Look for an east side pin.
             if (lis[1] == "East"):
@@ -1599,36 +1650,72 @@ def FC3DM_CreateIcPins(App, Gui,
                 # Our template pin was created on the east side, so no rotation required.
                 rotDeg = 0.0
 
+                # Currently we're ignoring this datum from the ini file.
+                # TODO:  Revisit this for QFNs, QFPs, BGAs, etc.!
+                x = 0.0
+
+                ## Copy template pin to the commanded location
+                FC3DM_CopyObject(App, Gui,
+                                 x, y, rotDeg,
+                                 docName,
+                                 pinTemplateEast,
+                                 pin)
+                
             # Else see if this is a west side pin.
             elif (lis[1] == "West"):
 
                 # Our template pin was created on the east side, so rotate 180 degrees
                 rotDeg = 180.0
 
-            # FIXME:  Support north and south side pins for QFN & QFP!                
+                # Currently we're ignoring this datum from the ini file.
+                # TODO:  Revisit this for QFNs, QFPs, BGAs, etc.!
+                x = 0.0
 
+                ## Copy template pin to the commanded location
+                FC3DM_CopyObject(App, Gui,
+                                 x, y, rotDeg,
+                                 docName,
+                                 pinTemplateEast,
+                                 pin)
+                
+            # Else see if this is a north side pin.
+            elif (lis[1] == "North"):
+
+                # Our template pin was created on the north side, so no rotation
+                rotDeg = 0.0
+
+                # Currently we're ignoring this datum from the ini file.
+                # TODO:  Revisit this for QFNs, QFPs, BGAs, etc.!
+                y = 0.0
+
+                ## Copy template pin to the commanded location
+                FC3DM_CopyObject(App, Gui,
+                                 x, y, rotDeg,
+                                 docName,
+                                 pinTemplateNorth,
+                                 pin)
+                
+            # Else see if this is a south side pin.
+            elif (lis[1] == "South"):
+
+                # Our template pin was created on the south side, so rotate 180 degrees!
+                rotDeg = 180.0
+
+                # Currently we're ignoring this datum from the ini file.
+                # TODO:  Revisit this for QFNs, QFPs, BGAs, etc.!
+                y = 0.0
+
+                ## Copy template pin to the commanded location
+                FC3DM_CopyObject(App, Gui,
+                                 x, y, rotDeg,
+                                 docName,
+                                 pinTemplateNorth,
+                                 pin)
+                
             # Else unsupported!
             else:
                 print("Unsupported pin side " + lis[1])
                 FC3DM_MyExit(-1)
-
-            ## Get pin x coordinate
-            # Currently we're ignoring this datum from the ini file.
-            # The way we currently have things arranged, x is either 0.0 because this pin
-            # is on the same (East) side as our template pin.  Or else it's 0.0 because this
-            # pin will get rotated 180deg around to the West side.
-            # TODO:  Revisit this for QFNs, QFPs, BGAs, etc.!
-            x = 0.0
-
-            ## Get pin y coordinate
-            y = float(lis[3])
-
-            ## Copy template pin to the commanded location
-            FC3DM_CopyObject(App, Gui,
-                             x, y, rotDeg,
-                             docName,
-                             pinName,
-                             pin)
 
             ## For certain package types, we need to cut the pin out of the body
             if (lis[0] == "QFN"):
@@ -1648,7 +1735,7 @@ def FC3DM_CreateIcPins(App, Gui,
             epName = "PinEP"
             FC3DM_CreateIcPinEp(App, Gui,
                                 parms,
-                                pkgDimsEpLengthMax, pkgDimsEpWidthMax, x, y,
+                                Tt, Wt, x, y,
                                 epName,
                                 docName)
 
@@ -1665,8 +1752,11 @@ def FC3DM_CreateIcPins(App, Gui,
 
     # end loop over all the pin names.
 
-    # Remove the pin template object
-    App.getDocument(docName).removeObject(pinName)
+    # Remove the pin template object(s)
+    App.getDocument(docName).removeObject(pinTemplateEast)
+
+    if (footprintType == "QFN"):
+        App.getDocument(docName).removeObject(pinTemplateNorth)
 
     return 0
 
