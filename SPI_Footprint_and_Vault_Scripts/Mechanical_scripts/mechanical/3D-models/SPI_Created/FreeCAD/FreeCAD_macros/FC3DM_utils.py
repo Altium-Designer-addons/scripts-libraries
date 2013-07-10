@@ -6,7 +6,7 @@
 #
 #	@details		
 #
-#    @version		0.4.3
+#    @version		0.4.4
 #					   $Rev::                                                                        $:
 #	@date			  $Date::                                                                        $:
 #	@author			$Author::                                                                        $:
@@ -308,6 +308,7 @@ def FC3DM_FilletObjectEdges(App, Gui,
 ###################################################################
 # FC3DM_ChamferObjectEdges()
 # 	Function to chamfer edges of a given object.
+#
 # NOTE:  This function is less useful than you may think.  If you
 #  want a 45 deg chamfer, then the two planes meeting at the edge
 #  that you want to chamfer must be perpendicular!  If, on the
@@ -1492,27 +1493,31 @@ def FC3DM_CreateIcPinEp(App, Gui,
     # TODO:  Currently no error checking!
     Tp = parms["Tp"]
     bodyName = parms["bodyName"]
+    Ft = parms["Ft"] #pkgDimsEpChamfer
 
-    # Configure active document
-    App.ActiveDocument=None
-    Gui.ActiveDocument=None
-    App.setActiveDocument(docName)
-    App.ActiveDocument=App.getDocument(docName)
-    Gui.ActiveDocument=Gui.getDocument(docName)
+    # Prepare parameters for FC3DM_CreateBox()
+    xBox = (-1*(length/2) + x)
+    yBox = (-1*(width/2) + y)
+    L = length
+    W = width
+    H = Tp
+    K = 0.0
+    rotDeg = 0.0
+    FC3DM_CreateBox(App, Gui,
+                    L, W, H, K,
+                    xBox, yBox, rotDeg, 
+                    docName,
+                    epName)
 
-    # Create box to model IC pin
-    App.ActiveDocument.addObject("Part::Box",epName)
-    App.ActiveDocument.recompute()
-    Gui.SendMsgToActiveView("ViewFit")
+    # See if we need to chamfer the pin 1 edge of the EP
+    if (Ft > 0.0) :
 
-    # Set pin size
-    FreeCAD.getDocument(docName).getObject(epName).Length = length
-    FreeCAD.getDocument(docName).getObject(epName).Width = width
-    FreeCAD.getDocument(docName).getObject(epName).Height = Tp
+        # Select a priori the edge that needs to be chamfered (determined experimentally)
+        edges=["Edge3"]
 
-    # Move pin to appropriate loacation, and set initial rotation of 0 degrees about Z-axis
-    rot = math.radians(0)
-    FreeCAD.getDocument(docName).getObject(epName).Placement = App.Placement(App.Vector((-1*(length/2) + x),(-1*(width/2) + y),0),App.Rotation(0,0,math.sin(rot/2),math.cos(rot/2)))
+        FC3DM_ChamferObjectEdges(App, Gui,
+                                 docName, epName, edges, Ft)
+
 
     # Zoom in on pin model
     Gui.SendMsgToActiveView("ViewFit")
