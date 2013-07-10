@@ -6,7 +6,7 @@
 #
 #	@details		
 #
-#    @version		0.4.7
+#    @version		0.4.8
 #					   $Rev::                                                                        $:
 #	@date			  $Date::                                                                        $:
 #	@author			$Author::                                                                        $:
@@ -1295,7 +1295,7 @@ def FC3DM_CreateIcBody(App, Gui,
 
 
 ###################################################################
-# FC3DM_CreateIcPin()
+# FC3DM_CreateIcPinGullwing()
 #	Function to create a gullwing IC pin.
 #
 # Parameter names are per Mentor LP Wizard tool:
@@ -1310,9 +1310,9 @@ def FC3DM_CreateIcBody(App, Gui,
 # Fr == Fillet radius for pin edges
 # Hpe == Height of pin entry to body (center)
 ###################################################################
-def FC3DM_CreateIcPin(App, Gui,
-                      parms,
-                      docName):
+def FC3DM_CreateIcPinGullwing(App, Gui,
+                              parms,
+                              docName):
                 
     # Extract relevant parameter values from parms associative array
     # TODO:  Currently no error checking!
@@ -1565,12 +1565,12 @@ def FC3DM_CreateIcPins(App, Gui,
 
     ## Call the appropriate function to create the prototype IC pin
     # Handle Gullwing ICs        
-    if (footprintType == "Gullwing"):
+    if ( (footprintType == "SOP") or (footprintType == "SOIC") or (footprintType == "SOT") ):
 
         # Call CreateIcPin() to create template east side Gullwing IC pin
-        FC3DM_CreateIcPin(App, Gui,
-                          parms,
-                          docName)
+        FC3DM_CreateIcPinGullwing(App, Gui,
+                                  parms,
+                                  docName)
 
     # Handle QFN ICs        
     elif (footprintType == "QFN"):
