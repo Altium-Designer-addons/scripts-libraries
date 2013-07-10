@@ -6,7 +6,7 @@
 #
 #	@details		
 #
-#    @version		0.4.5
+#    @version		0.4.6
 #					   $Rev::                                                                        $:
 #	@date			  $Date::                                                                        $:
 #	@author			$Author::                                                                        $:
@@ -84,7 +84,7 @@ import re
 
 scriptPathUtils = ""
 
-# Fudge factor used by QFN packages to have pins and body ever so slightly different
+# Fudge factor used by QFN packages to have pins and body be in ever so slightly different planes
 tinyDeltaForQfn = 0.000001
 
 ###################################################################
@@ -1410,6 +1410,7 @@ def FC3DM_CreateIcPinQfn(App, Gui,
     W = parms["W"]
     T = parms["T"]
     Tp = parms["Tp"]
+    hasDshapePads = parms["hasDshapePads"]
     pinName = parms["pinName"]
     bodyName = parms["bodyName"]
 
@@ -1434,6 +1435,20 @@ def FC3DM_CreateIcPinQfn(App, Gui,
                     xBox, yBox, rotDeg, 
                     docName,
                     pinName)
+
+    # See if we need to fillet to create D-shaped pins
+    if (hasDshapePads <> 0):
+        
+        # Set the faces that need to be filleted
+        edges=["Edge1", "Edge3"]
+
+        # Compute fillet radius.
+        # We must subtract a small amount or else the filleting operation fails.
+        Fr = (W/2) - 0.00001
+
+        # Do the filleting
+        FC3DM_FilletObjectEdges(App, Gui,
+                                docName, pinName, edges, Fr)
 
     # Perform an unnecessary cut just to reset the baseline location for this pin.
     # Allow the pins to extend ever so slightly beyond the body in x, so that after all is said
