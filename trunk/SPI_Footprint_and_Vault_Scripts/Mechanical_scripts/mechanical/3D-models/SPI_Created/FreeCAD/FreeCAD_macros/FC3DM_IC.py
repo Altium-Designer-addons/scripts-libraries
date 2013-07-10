@@ -6,7 +6,7 @@
 #
 #	@details		
 #
-#    @version		0.2.4
+#    @version		0.2.5
 #					   $Rev::                                                                        $:
 #	@date			  $Date::                                                                        $:
 #	@author			$Author::                                                                        $:
@@ -98,8 +98,8 @@ sys.path.append(cwd)
 
 ## Get path to this script
 #scriptPath, fr = os.path.split(sys.argv[0]) #__path__)
-scriptPath = os.getcwd()
-#scriptPath = "c:\\projects\\libraries\\Design-Electrical\\trunk\\Mechanical\\3D-models\\TRT_Created\\FreeCAD_macros"
+#scriptPath = os.getcwd()
+scriptPath = "c:\\projects\\libraries\\Design-Electrical\\trunk\\Mechanical\\3D-models\\TRT_Created\\FreeCAD_macros"
 sys.path.append(scriptPath)
 
     
@@ -189,4 +189,4 @@ FC3DM_SaveAndExport(App, Gui,
                     objNameList)
 
 # Exit with success return code.
-#FC3DM_MyExit(0)
+FC3DM_MyExit(0)
