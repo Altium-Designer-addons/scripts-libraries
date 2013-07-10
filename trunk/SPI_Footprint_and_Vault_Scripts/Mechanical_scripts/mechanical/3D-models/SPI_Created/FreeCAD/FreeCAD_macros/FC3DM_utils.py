@@ -6,7 +6,7 @@
 #
 #	@details		
 #
-#    @version		0.4.2
+#    @version		0.4.3
 #					   $Rev::                                                                        $:
 #	@date			  $Date::                                                                        $:
 #	@author			$Author::                                                                        $:
@@ -1440,18 +1440,6 @@ def FC3DM_CreateIcPinQfn(App, Gui,
     rot = math.radians(0)
     FreeCAD.getDocument(docName).getObject(pinName).Placement = App.Placement(App.Vector(((L/2)-T),-1*(W/2),0),App.Rotation(0,0,math.sin(rot/2),math.cos(rot/2)))
 
-#    # Create a template north side IC pin
-#    # FIXME:  Must apply offset when QFN/DFN/QFP is not square!!
-#    x = 0.0
-#    y = 0.0
-#    rotDeg = 90.0
-#    FC3DM_CopyObject(App, Gui,
-#                     x, y, rotDeg,
-#                     docName,
-#                     pinTemplateEast,
-#                     pinTemplateNorth)
-
-
     # Perform an unnecessary cut just to reset the baseline location for this pin.
     # Allow the pins to extend ever so slightly beyond the body in x, so that after all is said
     # and done, we can distinguish body vs. pin for purposes of coloring the fusion.
@@ -1460,22 +1448,16 @@ def FC3DM_CreateIcPinQfn(App, Gui,
                      L, W, W, (L/2)+tinyDeltaForQfn, -1*(W/2), 0,
                      0, 0, 0, 0)
 
-
-    ## Create another template pin for north side.
-    # (Can't get copy to work without it behaving weirdly when copying it again.)
-    # Create box to model IC pin
-    App.ActiveDocument.addObject("Part::Box",pinTemplateNorth)
-    App.ActiveDocument.recompute()
-    Gui.SendMsgToActiveView("ViewFit")
-
-    # Set pin size
-    FreeCAD.getDocument(docName).getObject(pinTemplateNorth).Length = W
-    FreeCAD.getDocument(docName).getObject(pinTemplateNorth).Width = L #T
-    FreeCAD.getDocument(docName).getObject(pinTemplateNorth).Height = Tp
-
-    # Move pin to appropriate loacation, and set initial rotation of 0 degrees about Z-axis
-    rot = math.radians(0)
-    FreeCAD.getDocument(docName).getObject(pinTemplateNorth).Placement = App.Placement(App.Vector(-1*(W/2), ((L/2)-T),0),App.Rotation(0,0,math.sin(rot/2),math.cos(rot/2)))
+    ## Copy this to give us a template north side IC pin
+    # FIXME:  Must apply offset when QFN/DFN/QFP is not square!!
+    x = 0.0
+    y = 0.0
+    rotDeg = 90.0
+    FC3DM_CopyObject(App, Gui,
+                     x, y, rotDeg,
+                     docName,
+                     pinTemplateEast,
+                     pinTemplateNorth)
 
     # Perform an unnecessary cut just to reset the baseline location for this pin.
     FC3DM_CutWithBox(App, Gui,
@@ -1578,7 +1560,7 @@ def FC3DM_CreateIcPins(App, Gui,
     # Handle QFN ICs        
     elif (footprintType == "QFN"):
 
-        # Call CreateIcPinQfn() to create template east side QFN IC pin
+        # Call CreateIcPinQfn() to create template east side and north side QFN IC pins
         FC3DM_CreateIcPinQfn(App, Gui,
                              parms,
                              docName)
