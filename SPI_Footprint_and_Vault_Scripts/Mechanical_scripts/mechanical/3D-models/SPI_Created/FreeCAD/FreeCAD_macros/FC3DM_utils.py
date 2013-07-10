@@ -6,7 +6,7 @@
 #
 #	@details		
 #
-#    @version		0.4.6
+#    @version		0.4.7
 #					   $Rev::                                                                        $:
 #	@date			  $Date::                                                                        $:
 #	@author			$Author::                                                                        $:
@@ -325,7 +325,7 @@ def FC3DM_ChamferObjectEdges(App, Gui,
     App.ActiveDocument=App.getDocument(docName)
     Gui.ActiveDocument=Gui.getDocument(docName)
 
-    # Chamfer the sharp edges of the termination sheet metal
+    # Chamfer the specified edge(s)
     Gui.activateWorkbench("PartDesignWorkbench")
     App.activeDocument().addObject("PartDesign::Chamfer","Chamfer")
     App.activeDocument().Chamfer.Base = (App.ActiveDocument.getObject(chamferMe),edges)
@@ -1524,6 +1524,7 @@ def FC3DM_CreateIcPinEp(App, Gui,
         # Select a priori the edge that needs to be chamfered (determined experimentally)
         edges=["Edge3"]
 
+        # Call FC3DM_ChamferObjectEdges() to actually do the chamfering
         FC3DM_ChamferObjectEdges(App, Gui,
                                  docName, epName, edges, Ft)
 
