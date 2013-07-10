@@ -6,7 +6,7 @@
 #
 #	@details		
 #
-#    @version		0.4.4
+#    @version		0.4.5
 #					   $Rev::                                                                        $:
 #	@date			  $Date::                                                                        $:
 #	@author			$Author::                                                                        $:
@@ -1116,23 +1116,19 @@ def FC3DM_CreateIcBody(App, Gui,
     App.ActiveDocument=App.getDocument(docName)
     Gui.ActiveDocument=Gui.getDocument(docName)
 
-    # Create box to model IC body
-    App.ActiveDocument.addObject("Part::Box",bodyName)
-    App.ActiveDocument.recompute()
-    Gui.SendMsgToActiveView("ViewFit")
-
-    # Set body size
-    App.ActiveDocument.getObject(bodyName).Length = B
-    App.ActiveDocument.getObject(bodyName).Width = A
-    App.ActiveDocument.getObject(bodyName).Height = (H-K)
-
+    # Prepare to call FC3DM_CreateBox() to create a box to for the IC body
     # Choose initial rotation of 90 degrees about z axis
     # We want pin 1 to be in the upper left corner to match the assumptions in Mentor LP Wizard
-    rot = math.radians(90)
-
-    # Center the body at (0,0), set standoff height, and set initial rotation of 90 degrees about Z-axis
-    FreeCAD.getDocument(docName).getObject(bodyName).Placement = App.Placement(App.Vector(1*(A/2),-1*(B/2),K),App.Rotation(0,0,math.sin(rot/2),math.cos(rot/2)))
-
+    lBox = B
+    wBox = A
+    xBox = 1*(A/2)
+    yBox = -1*(B/2)
+    rotDeg = 90.0
+    FC3DM_CreateBox(App, Gui,
+                    lBox, wBox, H, K,
+                    xBox, yBox, rotDeg, 
+                    docName,
+                    bodyName)
 
     ## Make 2 cuts to each side of body, to model mold angle
     # Only do the cuts if we have a mold angle
@@ -1427,19 +1423,17 @@ def FC3DM_CreateIcPinQfn(App, Gui,
     App.ActiveDocument=App.getDocument(docName)
     Gui.ActiveDocument=Gui.getDocument(docName)
 
-    # Create box to model IC pin
-    App.ActiveDocument.addObject("Part::Box",pinName)
-    App.ActiveDocument.recompute()
-    Gui.SendMsgToActiveView("ViewFit")
-
-    # Set pin size
-    FreeCAD.getDocument(docName).getObject(pinName).Length = L #T
-    FreeCAD.getDocument(docName).getObject(pinName).Width = W
-    FreeCAD.getDocument(docName).getObject(pinName).Height = Tp
-
-    # Move pin to appropriate loacation, and set initial rotation of 0 degrees about Z-axis
-    rot = math.radians(0)
-    FreeCAD.getDocument(docName).getObject(pinName).Placement = App.Placement(App.Vector(((L/2)-T),-1*(W/2),0),App.Rotation(0,0,math.sin(rot/2),math.cos(rot/2)))
+    # Prepare to call FC3DM_CreateBox() to create a box for the template pin
+    xBox = ((L/2)-T)
+    yBox = -1*(W/2)
+    H = Tp
+    K = 0.0
+    rotDeg = 0.0
+    FC3DM_CreateBox(App, Gui,
+                    L, W, H, K,
+                    xBox, yBox, rotDeg, 
+                    docName,
+                    pinName)
 
     # Perform an unnecessary cut just to reset the baseline location for this pin.
     # Allow the pins to extend ever so slightly beyond the body in x, so that after all is said
