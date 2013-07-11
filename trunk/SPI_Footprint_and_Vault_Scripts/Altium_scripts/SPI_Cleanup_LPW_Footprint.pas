@@ -263,7 +263,7 @@ function CLF_ExtrudeGeometricPolygonInto3d(    boardSide         : Integer;
  ***************************************************************************}
 const
 {* Declare the version and name of this script. *}
-   constScriptVersion          = 'v0.16.22 $Revision$';
+   constScriptVersion          = 'v0.16.23 $Revision$';
    constThisScriptNameNoExt    = 'SPI_Cleanup_LPW_Footprint';
    constThisScriptName         = constThisScriptNameNoExt + '.pas';
 {}
@@ -586,6 +586,7 @@ const
    constLpWizardBuildInfoSectionGlobPrefs  = 'Glbl_Pf'; { Section name for global preferences. }
    constLpWizardBuildInfoSectionRulePrefs  = 'Rl_Pf';   { Section name for rule preferences. }
    constLpWizardBuildInfoSectionDraftPrefs = 'Drft_Pf'; { Section name for drafting preferences. }
+   constLpWizardBuildInfoSectionPadShape   = 'dflt';    { Section name for determining pad shape (rectangular or D-shaped). }
    constLpWizardBuildInfoSectionGenInfo    = 'Land';    { Section name for general info. }
    constLpWizardBuildInfoSilkToPadField    = constGilPrefixLpWizardBuildInfo + constLpWizardBuildInfoSectionRulePrefs  + '_' + 'silk_mn';   { Silkscreen to pad parameter. }
    constLpWizardBuildInfoSilkOutlineField  = constGilPrefixLpWizardBuildInfo + constLpWizardBuildInfoSectionDraftPrefs + '_' + 'silk_map';  { Silkscreen outline parameter. }
@@ -595,6 +596,8 @@ const
    constLpWizardBuildInfoSilkLineWidthField  = constGilPrefixLpWizardBuildInfo + constLpWizardBuildInfoSectionDraftPrefs + '_' + 'silk_ln_w';   { Silkscreen line width. }
    constLpWizardBuildInfoEpSolderpastePct    = constGilPrefixLpWizardBuildInfo + constLpWizardBuildInfoSectionDraftPrefs + '_' + 'pm_tab_os_pct';{ EP solderpaste percentage. }
    constLpWizardBuildInfoXYRounding          = constGilPrefixLpWizardBuildInfo + constLpWizardBuildInfoSectionStdPrefs + '_' + 'xy_rnd';    { EP rounding factor. }
+   constLpWizardBuildInfoPadShape          = constGilPrefixLpWizardBuildInfo + constLpWizardBuildInfoSectionPadShape + '_' + 'shp'; { Pad Shape. 1 = rectangular, 2 = D-shaped }
+   constLpWizardBuildInfoHasDshapePads = 'HasDshapedPads';
 {}
    { Requirements for various LP Wizard library file, Build Info values. }
    constLpWizardBuildInfoSilkToPadValue    = '0.1';     { Required silkscreen-to-pad parameter, in mm, expressed as a unitless string. }
@@ -5178,6 +5181,7 @@ var
    lpwBuildInfoSectionInfo : TStringList;
    leftStr                 : TString;
    rightStr                : TString;
+   hasDshapePads           : Boolean;
                            
 begin
 
@@ -5227,7 +5231,8 @@ begin
           (lpwBuildInfoSectionName = constLpWizardBuildInfoSectionGlobPrefs) or
           (lpwBuildInfoSectionName = constLpWizardBuildInfoSectionRulePrefs) or
           (lpwBuildInfoSectionName = constLpWizardBuildInfoSectionDraftPrefs) or
-          (lpwBuildInfoSectionName = constLpWizardBuildInfoSectionGenInfo) ) then
+          (lpwBuildInfoSectionName = constLpWizardBuildInfoSectionGenInfo) or
+          (lpwBuildInfoSectionName = constLpWizardBuildInfoSectionPadShape)) then
       begin
 
          { Create section info string list. }
@@ -5258,6 +5263,10 @@ begin
       end; { endif }
 
    end; { endfor i }
+   
+   { If constLpWizardBuildInfoPadShape has a value of 'd', then the footprint has D-shaped pads. Add to cnfGalacticInfo. }
+   hasDshapePads :=  (cnfGalacticInfo.Values(constLpWizardBuildInfoPadShape) = 'd');
+   cnfGalacticInfo.add(constLpWizardBuildInfoHasDshapePads + constStringEquals + BoolToStr(hasDshapePads));
 
    { Free string lists. }
    lpwBuildInfoSections.Free;
@@ -9531,9 +9540,20 @@ var
    newSolderPasteBoundaryRight  : Real;
    newSolderPasteBoundaryTop    : Real;
    newSolderPasteBoundaryBottom : Real;
+   hasDshapePads                : Boolean;
+   betweenX                     : Boolean;
+   betweenY                     : Boolean;
+   padRight                     : Real;
+   padLeft                      : Real;
+   padTop                       : Real;
+   padBottom                    : Real;
+   regionTotalHeight            : Real;
+   regionTotalWidth             : Real;
    
 begin
 
+   WriteToDebugFile('Hello from CLF_ModifyAndSuppressRegions()!');
+   
    { Assume success. }
    result := 0;
    
@@ -9683,6 +9703,8 @@ begin
 
    end; { endif hasEp }
 
+   WriteToDebugFile('Current Region Boundaries (right, left, top, bottom): ' + FloatToStr(CoordToMMs(rectDst.right)) + ' ' +  + FloatToStr(CoordToMMs(rectDst.left)) + ' ' +  + FloatToStr(CoordToMMs(rectDst.top)) + ' ' +  + FloatToStr(CoordToMMs(rectDst.bottom)));
+   
    {* Suppress keepout regions around fiducial pads.  We will handle the keepout function later on. *}
    { Loop over all pads and look for "unknown" pads with fiducial names among them. }
    for i := 0 to (padQueue.Count - 1) do
@@ -9690,30 +9712,68 @@ begin
 
       { Retrieve reference to queued pad. }
       padDst := padQueue.items[i];
+         
+      { Compute center of region. }
+      regionX        := ((rectDst.right + rectDst.left) / 2);
+      regionY        := ((rectDst.top + rectDst.bottom) / 2);
 
-      { See if this is a member of the unknown group and specifically a fiducial pad. }
-      if ( (CLF_GetPadGroupNum(padDst) = constPadGroupUnknown) and (CLF_IsPadFiducial(padDst)) ) then
+      { Determine whether or not the center of the pad is located within the current region. }
+      betweenX := ( (padDst.X < rectDst.right) and (padDst.X > rectDst.left) ) or ( (padDst.X > rectDst.right) and (padDst.X < rectDst.left) );
+      betweenY := ( (padDst.Y < rectDst.top) and (padDst.Y > rectDst.bottom) ) or ( (padDst.X > rectDst.top) and (padDst.X < rectDst.bottom) );
+      
+      { See if center of this pad is inside the region. }
+      if ( betweenX and betweenY ) then
       begin
 
-         { Compute center of region. }
-         regionX        := ((rectDst.right + rectDst.left) / 2);
-         regionY        := ((rectDst.top + rectDst.bottom) / 2);
-
-         { See if center of region is on top of this pad. }
-         if ( (padDst.X = regionX) and (padDst.Y = regionY) ) then
-         begin
-
-            { Suppress this region. }
-            doCopy := False;
+         { Suppress this region. }
+         doCopy := False;
             
-            { Flag that we know what this region is. }
-            regionKnown     := True;         
+         { Flag that we know what this region is. }
+         regionKnown     := True;
+
+         { Check to see if this footprint has D-shape pads. }
+         hasDshapePads := StrToBool(cnfGalacticInfo.Values(constLpWizardBuildInfoHasDshapePads));
          
+         { See if this is a member of the unknown group and specifically a fiducial pad. }
+         if ( (CLF_GetPadGroupNum(padDst) = constPadGroupUnknown) and (CLF_IsPadFiducial(padDst)) ) then
+         begin
             CLF_WriteToSummaryAndDebugFilesWithStepNum('Suppressing keepout region around fidicial pad ' + padDst.Name + '.');
-            
-         end; { endif need to suppress }
+         end
 
-      end; { endif is fiducial }
+         { Else if the footprint has D-shaped pads and the current pad is a member of the west, east, north or south groups, modify the pad shape, location and size. }
+         else if ( (hasDshapePads) and ( (CLF_GetPadGroupNum(padDst) = constPadGroupWest) or (CLF_GetPadGroupNum(padDst) = constPadGroupEast) or (CLF_GetPadGroupNum(padDst) = constPadGroupNorth) or (CLF_GetPadGroupNum(padDst) = constPadGroupSouth) ) ) then 
+         begin
+            WriteToDebugFile('Found D-shaped pad!');          
+
+            { Set the pad to rectangular. }
+            WriteToDebugFile('padDst.ShapeOnLayer [' + IntToStr(eTopLayer) + ']: ' + IntToStr(padDst.ShapeOnLayer[eTopLayer]));
+            WriteToDebugFile('Changing pads to rectangular');
+            padDst.SetState_StackShapeOnLayer(eTopLayer, eRectangular);
+            WriteToDebugFile('padDst.ShapeOnLayer [' + IntToStr(eTopLayer) + ']: ' + IntToStr(padDst.ShapeOnLayer[eTopLayer]));
+
+            { Set the center of the pad to the center of the region. }
+            WriteToDebugFile('old padDst.X: ' + FloatToStr(CoordToMMs(padDst.X)) + ' and old padDst.Y: ' + FloatToStr(CoordToMMs(padDst.Y)));
+            padDst.X := regionX;
+            padDst.Y := regionY;            
+            WriteToDebugFile('new padDst.X: ' + FloatToStr(CoordToMMs(padDst.X)) + ' and new padDst.Y: ' + FloatToStr(CoordToMMs(padDst.Y)));
+            
+            { Set the dimensions of the pad to that of the region. }
+            WriteToDebugFile('This D-shaped pad was resized.');
+            padDst.TopXSize := Abs(rectDst.top - rectDst.bottom);
+            padDst.TopYSize := Abs(rectDst.right - rectDst.left);
+            WriteToDebugFile('New padDst.TopXSize is: ' + FloatToStr(CoordToMMs(padDst.TopXSize)) + ' and new padDst.TopYSize is: ' + FloatToStr(CoordToMMs(padDst.TopYSize)));
+
+            { New pad boundaries (MMs). }
+            padRight := CoordToMMs(padDst.X + (padDst.TopXSize/2.0));
+            padLeft := CoordToMMs(padDst.X - (padDst.TopXSize/2.0));
+            padTop := CoordToMMs(padDst.Y + (padDst.TopYSize/2.0));
+            padBottom := CoordToMMs(padDst.Y - (padDst.TopYSize/2.0));
+
+            WritetoDebugFile('New Pad Boundaries (right, left, top, bottom): ' + FloatToStr(padRight) + ' and ' + FloatToStr(padLeft) + ' and ' + FloatToStr(padTop) + ' and ' + FloatToStr(padBottom));
+
+         end; { end elsif }
+  
+      end; { endif }
 
       { If  we found a single solderpaste region earlier, then we will remove the single solderpaste region and replace it with a solderpaste expansion in the the EP. }
       if ( (CLF_GetPadGroupNum(padDst) = constPadGroupEp) and (foundSingleSolderPasteRegion)) then
@@ -9801,8 +9861,8 @@ var
    pkgDimsEpLengthMax     : Real;
    fixExposedPad          : Boolean;
    xyRoundingFactor       : Real;
-   epWidthRounded           : Real;
-   epLengthRounded          : Real;
+   epWidthRounded         : Real;
+   epLengthRounded        : Real;
    
 begin
 
@@ -14677,6 +14737,10 @@ var
    pkgDimsTotalWidthMax           : Real;
    pkgDimsTotalLengthMax          : Real;
    pkgDimsStandoffMin             : Real;
+   pkgDimsEpWidthMax              : Real;
+   pkgDimsEpLengthMax             : Real;
+   pkgDimsEpChamfer               : Real;
+   pkgDimsEpCornerRad             : Real;
    pkgDimsPivotPointRatio         : Real;
    libHeightMm                    : Real;
    pkgDimsHeightMax               : Real;
@@ -14740,6 +14804,8 @@ var
    stepFileName                   : TString;
    modelDir                       : TString;
    deletedStepFile                : Boolean;
+   hasDshapePads                  : Boolean;
+   hasEp                          : Boolean;
    
 begin
 
@@ -14751,7 +14817,7 @@ begin
    { Build expected file name for existing STEP model. }
    libFileName := cnfGalacticInfo.Values(constGilLibraryFileName);
    companySuffix := '_' + const3dModelCompanySuffix;
-   modelDir := 'ICs_gullwing\';
+   modelDir := ExtractFileName(StripTrailingBackslash(projectPath)) + '\';
 
    {* Check if there is an existing STEP model for the footprint. *}
    { Compose name of STEP model. }
@@ -14867,20 +14933,33 @@ begin
        (footprintType = 'SOP') or (footprintType = 'QFP') ) then
    begin
       padType                  := 'Gullwing';
+
+      { If the length of the two pins plus the body are longer than the total width,
+       set the the length of the pins to be half of the pin width minus the body width plus 0.05.
+       Otherwise, keep the pin length as the maximum pin length. }
+      if ( ( (2*pkgDimsPinLandMax) + pkgDimsBodyWidthMax) > pkgDimsTotalWidthMax ) then
+      begin
+         pkgDimsPinLandMax := ( (pkgDimsTotalWidthMax - pkgDimsBodyWidthMax) / 2.0 ) - 0.05;
+      end;
+   end
+   
+   else if( (footprintType = 'QFN') ) then
+   begin
+      padType := 'QFN';
    end
 
    { Else unsupported. }
    else
    begin
-	  { CLF_Create3dFreeCadCompBody() has failed. } 
-      result := 1;
-      
       { If we don't know how to create a STEP model, we will delete the 3d files we just created. }
       DeleteFileWithVerify(fcstdFilePath);
       DeleteFileWithVerify(iniPath);
       DeleteFileWithVerify(logFilePath);
       
-      Exit;
+      { CLF_Create3dFreeCadCompBody() has failed so we will return and create an extruded model. } 
+      result := 1;
+      
+      Exit; { Exit this function }
    end;
 
    { Store FreeCAD file paths in cnfGalacticInfo. They are added here (as opposed to after they were constructed
@@ -14934,7 +15013,7 @@ begin
    iniFileOut.add('# So we use this ini file to point to another ini file.');
    iniFileOut.add('');
    iniFileOut.add('# Ini file that describes the component that we actually want to build now.');
-   iniFileOut.add('iniFileName = "' + '..\' + 'ICs_gullwing' + '\' + libFileName + '.ini"');
+   iniFileOut.add('iniFileName = "' + '..\' + ExtractFileName(StripTrailingBackslash(projectPath)) + '\' + libFileName + '.ini"');
 
    { Actually write string list to iniFile. }
    iniFileOut.SaveToFile(iniFilePath);
@@ -14956,7 +15035,7 @@ begin
    iniFileOut.add('###################################');
    iniFileOut.add('');
    iniFileOut.add('# Directory to which to write our finished native and STEP models');
-   iniFileOut.add('newModelPath = "' + projectPath + constSpi3dModelsFcDir + 'ICs_gullwing' + '\');
+   iniFileOut.add('newModelPath = "' + projectPath + constSpi3dModelsFcDir + ExtractFileName(StripTrailingBackslash(projectPath)) + '\');
    iniFileOut.add('');
    iniFileOut.add('# Suffix to add to STEP models');
    iniFileOut.add('stepSuffix = "' + companySuffix + '"');
@@ -14975,14 +15054,6 @@ begin
    iniFileOut.add('pin1MarkName = "Pin1Mark"');
    iniFileOut.add('');
 
-   { If the length of the two pins plus the body are longer than the total width,
-    set the the length of the pins to be half of the pin width minus the body width plus 0.05.
-    Otherwise, keep the pin length as the maximum pin length. }
-   if ( ( (2*pkgDimsPinLandMax) + pkgDimsBodyWidthMax) > pkgDimsTotalWidthMax ) then
-   begin
-      pkgDimsPinLandMax := ( (pkgDimsTotalWidthMax - pkgDimsBodyWidthMax) / 2.0 ) - 0.05;
-   end;
-   
    iniFileOut.add('## Parameters off datasheet');
    iniFileOut.add('L=' + FloatToStr(pkgDimsTotalWidthMax) + ' #pkgDimsTotalWidthMax');
    iniFileOut.add('T=' + FloatToStr(pkgDimsPinLandMax) + ' #pkgDimsPinLandMax');
@@ -14992,7 +15063,38 @@ begin
    iniFileOut.add('H=' + FloatToStr(pkgDimsHeightMax) + ' #pkgDimsHeightMax');
    iniFileOut.add('K=' + FloatToStr(pkgDimsStandoffMin) + ' #pkgDimsStandoffMin');
    iniFileOut.add('');
+   
+   { Retrieve whether this package is known to have an exposed pad (EP). }
+   hasEp := StrToBool(cnfGalacticInfo.Values(constGilHasEp));
 
+   { If the footprint has an exposed pad, we will include the appropriate dimensions in the ini file. }
+   if ( hasEp ) then
+   begin
+      { Retrieve the EP dimensions from cnfGalacticInfo. }
+      pkgDimsEpWidthMax  := StrToFloat(cnfGalacticInfo.Values(constGilPkgDimsEpWidthMax));
+      pkgDimsEpLengthMax := StrToFloat(cnfGalacticInfo.Values(constGilPkgDimsEpLengthMax));
+      pkgDimsEpChamfer := StrToFloat(cnfGalacticInfo.Values(constGilPkgDimsEpChamfer));
+      pkgDimsEpCornerRad := StrToFloat(cnfGalacticInfo.Values(constGilPkgDimsEpCornerRad));
+      
+      iniFileOut.add('# Footprint has an EP');
+      iniFileOut.add('Tt=' + FloatToStr(pkgDimsEpLengthMax) + ' #pkgDimsEpLengthMax');
+      iniFileOut.add('Wt=' + FloatToStr(pkgDimsEpWidthMax) + ' #pkgDimsEpWidthMax');
+      iniFileOut.add('Ft=' + FloatToStr(pkgDimsEpChamfer) + ' #pkgDimsEpChamfer');
+      iniFileOut.add('Rt=' + FloatToStr(pkgDimsEpCornerRad) + ' #pkgDimsEpCornerRad');
+      iniFileOut.add('');
+   end;
+
+   { If the footprint is a QFN or DFN, then check if it has D-shape pads and include that in the ini file. }
+   if ( (footprintType = 'QFN') or (footprintType = 'DFN') ) then
+   begin
+      { Retrieve boolean from cnfGalacticInfo. }
+      hasDshapePads := StrToBool(cnfGalacticInfo.Values(constLpWizardBuildInfoHasDshapePads));
+
+      iniFileOut.add('# Does the footprint have D-shape pads (-1 has D-shape, 0 does not have D-shape)');
+      iniFileOut.add('hasDshapePads=' + BoolToStr(hasDshapePads) + ' #hasDshapePads');
+      iniFileOut.add('');
+   end;
+   
    iniFileOut.add('# Thickness of pin (in Z)');
    iniFileOut.add('Tp = ' + FloatToStr(Tp));
    iniFileOut.add('');
@@ -15001,8 +15103,16 @@ begin
    iniFileOut.add('');
    
    iniFileOut.add('# Mold angle (in degrees) (not specified in datasheet--make something up)');
-   iniFileOut.add('maDeg = 12');
-   iniFileOut.add('');
+   if ( (footprintType = 'QFN') or (footprintType = 'DFN') ) then
+   begin
+      iniFileOut.add('maDeg = 0');
+      iniFileOut.add('');
+   end
+   else
+   begin
+      iniFileOut.add('maDeg = 12');
+      iniFileOut.add('');
+   end;
    
    iniFileOut.add('# Pivot points (in Z) for chamfering the IC body');
    iniFileOut.add('Hpph = ' + FloatToStr(Hpph) + ' #0.5*pkgDimsHeightMax');
@@ -15088,6 +15198,10 @@ begin
       { Retrieve pad x,y coordinates. }
       padXmm               := CoordToMMs(padDst.X);
       padYmm               := CoordToMMs(padDst.Y);
+
+      { If the current pad is an EP, set padType to EP. }
+      if ( padGroupNum = constPadGroupEp ) then
+         padType := 'EP';
          
       { Prepare output line. }
       { Format: 'Pin'[pin_name]=[type],[group],[x],[y] }
@@ -15123,7 +15237,7 @@ begin
    WriteToDebugFile('*Path to FreeCAD is "' + freeCadPath + '".');
    
    { Run FreeCAD and tell it to launch our python script. }
-   cmd := '"' + freeCadPath + '"' + ' -l ' + fcMacrosPath + '\FC3DM_IC_Gullwing.py';
+   cmd := '"' + freeCadPath + '"' + ' -l ' + fcMacrosPath + '\FC3DM_IC.py';
    WriteToDebugFile('*About to call command "' + cmd + '".');
    RunSystemCommand(cmd);
 
