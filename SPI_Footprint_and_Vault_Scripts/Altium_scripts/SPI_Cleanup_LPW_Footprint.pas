@@ -263,7 +263,7 @@ function CLF_ExtrudeGeometricPolygonInto3d(    boardSide         : Integer;
  ***************************************************************************}
 const
 {* Declare the version and name of this script. *}
-   constScriptVersion          = 'v0.16.25 $Revision$';
+   constScriptVersion          = 'v0.16.26 $Revision$';
    constThisScriptNameNoExt    = 'SPI_Cleanup_LPW_Footprint';
    constThisScriptName         = constThisScriptNameNoExt + '.pas';
 {}
@@ -3559,7 +3559,8 @@ begin
      eRounded     : shapeStr := 'Rounded';
      eRectangular : shapeStr := 'Rectangular';
      eOctagonal   : shapeStr := 'Octagonal';
-     
+     eRoundedRectangular: shapeStr := 'RoundedRectangular';
+
    else CLF_Abort('Unknown/unsupported TShape value ' + IntToStr(valueEnum));
    end; { endcase }          
    
@@ -5446,21 +5447,6 @@ begin
    CLF_ExtractLpWizardPackageDimensions({var} cnfGalacticInfo,
                                         {var} hasEp);
 
-   { Check EP corner radius.  Must be 0 for now. }
-   { TODO:  Support this feature.  Part will come through into Altium as a small round
-    EP pad and a large keepout region around it.
-    1.  Set EP pad size to width_of_ep from LPW.
-    2.  Change EP pad to rounded rectangle.
-    Altium wants corner radius expressed as a "corner radius percent".
-    This is computed as (2*LPW_corner_radius / width_of_ep), rounded to nearest percent.
-    3.  Check that EP is in fact square.
-    I don't know how to handle this for a rectangular, as opposed to a square, EP.
-    3.  Nuke keepout/solderpaste region.
-    4.  Compute appropriate solderpaste for EP pad. }
-   CLF_CheckLpWizardParameter({fieldName}     constGilPkgDimsEpCornerRad,
-                              {requiredValue} FloatToStr(0.0),
-                              {fieldDesc}     'exposed pad corner radius',
-                              cnfGalacticInfo);
    
    {** Extract build info from fields we already got out of .plb09 file. **}
    CLF_ExtractLpWizardBuildInfo({var} cnfGalacticInfo);
@@ -9579,15 +9565,6 @@ begin
    { Retrieve whether this package is known to have an exposed pad (EP). }
    hasEp            := StrToBool(cnfGalacticInfo.Values(constGilHasEp));
 
-   { Retrieve rounded EP length and width from cnfGalacticInfo to determine which regions we will not copy. }
-   epWidthRounded :=  StrToFloat(cnfGalacticInfo.Values(constGilEpWidthRounded));
-   epLengthRounded :=  StrToFloat(cnfGalacticInfo.Values(constGilEpLengthRounded));
-
-   { Compute the boundaries of EP so that it can be compared to the boundaries of the current region. }
-   epLeftBoundary := (-1) * (epWidthRounded / 2.0);
-   epRightBoundary := (epWidthRounded / 2.0);
-   epBottomBoundary := (-1) * (epLengthRounded / 2.0);
-   epTopBoundary := (epLengthRounded / 2.0);
 
    { We only want to do these next operations for footprints that have an EP pad. }
    if (hasEp) then
@@ -9609,6 +9586,15 @@ begin
       //WriteToDebugFile('In CLF_ModifyAndSuppressRegions(), regionSrc.Layer is ' + BoolToStr(regionSrc.Layer = eKeepOutLayer) + '.');
       
       
+      { Retrieve rounded EP length and width from cnfGalacticInfo to determine which regions we will not copy. }
+      epWidthRounded :=  StrToFloat(cnfGalacticInfo.Values(constGilEpWidthRounded));
+      epLengthRounded :=  StrToFloat(cnfGalacticInfo.Values(constGilEpLengthRounded));
+      
+      { Compute the boundaries of EP so that it can be compared to the boundaries of the current region. }
+      epLeftBoundary := (-1) * (epWidthRounded / 2.0);
+      epRightBoundary := (epWidthRounded / 2.0);
+      epBottomBoundary := (-1) * (epLengthRounded / 2.0);
+      epTopBoundary := (epLengthRounded / 2.0);
       {* Perform any changes we want to make to regions before we do the copy to destination library. *}
       { Look for solderpaste regions that are tiled on EP (exposed pad) pad. }
       if ( (regionSrc.Layer = eKeepOutLayer) and (isInside) ) then
@@ -9855,14 +9841,12 @@ var
    i                     : Integer;
    lastGroupNum          : Integer;
    currentGroupNum       : Integer;
-   cornerPadNums            : array[0..7] of Integer;
+   cornerPadNums         : array[0..7] of Integer;
    nextOpenArrayIndex    : Integer;
    padA                  : IPCB_Pad;
    padB                  : IPCB_Pad;
    tempInt               : Integer;
    tempPad               : IPCB_Pad;
-   xDifference           : Real;
-   yDifference           : Real;
    constPadToPadDistance : Real;
    oldPadToPadDistance   : Real;
    newPadToPadDistance   : Real;
@@ -9870,14 +9854,19 @@ var
    padAcornerY           : Real;
    padBcornerX           : Real;
    padBcornerY           : Real;
-   rightTriangleVertexX  : Real;
-   rightTriangleVertexY  : Real;
    newPadAcornerX        : Real;
    newPadBcornerY        : Real;
    padACornerDifference  : Real;
    padBCornerDifference  : Real;
    newXYdifference       : Real;
    hasEp                 : Boolean;
+   xDiffMMs              : Real;
+   yDiffMMs              : Real;
+   deltaWithPlus         : Real;
+   deltaWithMinus        : Real;
+   a                     : Real;
+   b                     : Real;
+   c                     : Real;
    
 begin
    WriteToDebugFile('Hello from CLF_CleanupCornerDshapePads()!');
@@ -9925,7 +9914,10 @@ begin
 
    { If the footprint does not have EP, then the last pad in the queue should also be added to cornerPadNums[]. }
    if (not hasEp) then
-      cornerPadNums[nextOpenArrayIndex] := i+1;
+   begin
+      cornerPadNums[nextOpenArrayIndex] := i;
+      WriteToDebugFile('last pad is a corner pad. Pad Number: ' + IntToStr(i));
+   end;
    
    { Reorder array so the last pad is adjacent to the first pad in the array. }
    tempInt := cornerPadNums[7];
@@ -9965,55 +9957,37 @@ begin
       { If padA is west, find the coordinates of the corner nearest its paired pad. }
       if (CLF_GetPadGroupNum(padA) = constPadGroupWest) then
       begin
-         padAcornerX := padA.X + (padA.TopXSize / 2.0); 
-         if (padA.Y > 0) then
-         begin
-            padAcornerY := padA.Y + (padA.TopYSize / 2.0);
-         end
-         else
-            padAcornerY := padA.Y - (padA.TopYSize / 2.0);      
+         padAcornerX := padA.X + (padA.TopXSize / 2.0);
+         padBcornerX := padB.X -(padB.TopXSize / 2.0);
       end
 
       { Else padA is east, find the coordinates of the corner nearest its paired pad. }
       else
       begin
-         padAcornerX := padA.X - (padA.TopXSize / 2.0);         
-         if (padA.Y > 0) then
-         begin
-            padAcornerY := padA.Y + (padA.TopYSize / 2.0);
-         end
-         else
-            padAcornerY := padA.Y - (padA.TopYSize / 2.0);          
+         padAcornerX := padA.X - (padA.TopXSize / 2.0);
+         padBcornerX := padB.X + (padB.TopXSize / 2.0);
       end;
       
       { If padB is south, find the coordinates of the corner nearest its paired pad. }
       if (CLF_GetPadGroupNum(padB) = constPadGroupSouth) then
       begin
          padBcornerY := padB.Y + (padB.TopYSize / 2.0);                   
-         if (padB.X > 0) then
-         begin
-            padBcornerX := padB.X + (padB.TopXSize / 2.0);
-         end
-         else
-            padBcornerX := padB.X - (padB.TopXSize / 2.0);         
+         padAcornerY := padA.Y - (padA.TopYSize / 2.0);
       end
 
       { Else padB is North, find the coordinates of the corner nearest its paired pad. }
       else
       begin
-         padBcornerY := padB.Y - (padB.TopYSize / 2.0);            
-         if (padB.X > 0) then
-         begin
-            padBcornerX := padB.X + (padB.TopXSize / 2.0);
-         end
-         else
-            padBcornerX := padB.X - (padB.TopXSize / 2.0);        
+         padBcornerY := padB.Y - (padB.TopYSize / 2.0);
+         padAcornerY := padA.Y + (padA.TopYSize / 2.0);
       end;
       WriteToDebugFile('Old padA.X: ' + FloatToStr(CoordToMMs(padA.X)));
       //WriteToDebugFile('Old padA.Y: ' + FloatToStr(CoordToMMs(padA.Y)));
       //WriteToDebugFile('Old padB.X: ' + FloatToStr(CoordToMMs(padB.X)));
       WriteToDebugFile('Old padB.Y: ' + FloatToStr(CoordToMMs(padB.Y)));
       WriteToDebugFile('Old padA.TopXSize: ' + FloatToStr(CoordToMMs(padA.TopXSize)));
+      //WriteToDebugFile('Old padA.TopYSize: ' + FloatToStr(CoordToMMs(padA.TopYSize)));      
+      //WriteToDebugFile('Old padB.TopXSize: ' + FloatToStr(CoordToMMs(padB.TopXSize)));      
       WriteToDebugFile('Old padB.TopYSize: ' + FloatToStr(CoordToMMs(padB.TopYSize)));      
       //WriteToDebugFile('Old padAcornerX: ' + FloatToStr(CoordToMMs(padAcornerX)));      
       //WriteToDebugFile('Old padAcornerY: ' + FloatToStr(CoordToMMs(padAcornerY)));
@@ -10021,17 +9995,13 @@ begin
       //WriteToDebugFile('Old padBcornerY: ' + FloatToStr(CoordToMMs(padBcornerY)));
 
       { Calculate the current distance between the two closest corners. }
-      xDifference := padBcornerX - padAcornerX;
-      yDifference := padBcornerY - padAcornerY;
-      rightTriangleVertexX := padBcornerX;
-      rightTriangleVertexY := padAcornerY;
-      //WriteToDebugFile('rightTriangleVertexX: ' + FloatToStr(CoordToMMs(rightTriangleVertexX)));
-      //WriteToDebugFile('rightTriangleVertexY: ' + FloatToStr(CoordToMMs(rightTriangleVertexY)));
+      xDiffMMs := CoordToMMs(Abs(padBcornerX) - Abs(padAcornerX));
+      yDiffMMs := CoordToMMs(Abs(padBcornerY) - Abs(padAcornerY));
       //WriteToDebugFile('xDifference: ' + FloatToStr(CoordToMMs(xDifference)));
       //WriteToDebugFile('yDifference: ' + FloatToStr(CoordToMMs(yDifference)));
       constPadToPadDistance := StrToFloat(cnfGalacticInfo.Values(constLpWizardBuildInfoPadToPadField));
       //WriteToDebugFile('constPadToPadDistance is: ' + FloatToStr(constPadToPadDistance));
-      oldPadToPadDistance := (CoordToMMs(Sqrt(Sqr(xDifference) + Sqr(yDifference))));
+      oldPadToPadDistance := Sqrt(Sqr(xDiffMMs) + Sqr(yDiffMMs));
       //WriteToDebugFile('oldPadToPadDistance: ' + FloatToStr(oldPadToPadDistance));
 
       { If the pair of pads are closer than LPW allows (given by the constPadToPadDistance extracted from the plb09 file), modify the pads. }
@@ -10039,32 +10009,46 @@ begin
       begin
 
          WriteToDebugFile('Pad to pad clearance is not satisfied. About to correct pads...');
-         
+
+         { Use quadratic formula to solve (constPadToPadDistance)^2 = (xDiffMMs + newXYdifference)^2 + (yDiffMMs + newXYdifference)^2 for newXYdifference. 
+          In standard form, this equation simplifies to 2*newXYdifference^2 + 2*(xDiffMMs + yDiffMMs)*newXYdifference + (oldPadToPadDistance^2 - constPadToPadDistance^2) = 0. }
+         a := 2.0;
+         b := 2*(xDiffMMs + yDiffMMs);
+         c := Sqr(oldPadToPadDistance) - Sqr(constPadToPadDistance);
+         deltaWithPlus := (-b + Sqrt(Sqr(b) - 4*a*c)) / (2*a);
+         deltaWithMinus := (-b - Sqrt(Sqr(b) - 4*a*c)) / (2*a);
+
+         WriteToDebugFile('deltaWithPlus: ' + FloatToStr(deltaWithPlus));
+         WriteToDebugFile('deltaWithMinus: ' + FloatToStr(deltaWithMinus));
+         if ( deltaWithPlus > 0 ) then
+         begin
+            newXYdifference := MMsToCoord(deltaWithPlus);
+         end
+         else
+            newXYdifference := MMsToCoord(deltaWithMinus);
+
          { Calculate how far in the x and y directions the pads should be to maintain constPadToPadDistance. }
          { FIXME: Currently only works if xDifference = yDifference. Modifications needed to handle "non-isosceles" right triangles. }
-         newXYdifference := MMsToCoord(Sqrt((constPadToPadDistance * constPadToPadDistance)/2.0));
          //WriteToDebugFile('newXYdifference: ' + FloatToStr(CoordToMMs(newXYdifference)));
 
          { If padA is west, find the coordinates of where the new closest corner should be. }
          if (CLF_GetPadGroupNum(padA) = constPadGroupWest) then
          begin
-            newPadAcornerX := rightTriangleVertexX - newXYdifference;
+            newPadAcornerX := padAcornerX - newXYdifference;
          end         
          { Else padA is east, find the coordinates of where the new closest corner should be. }
          else
          begin
-            newPadAcornerX := rightTriangleVertexX + newXYdifference;
+            newPadAcornerX := padAcornerX + newXYdifference;
          end;
          { If padB is south, find the coordinates of where the new closest corner should be. }
          if (CLF_GetPadGroupNum(padB) = constPadGroupSouth) then
          begin
-            newPadBcornerY := rightTriangleVertexY - newXYdifference;
+			newPadBcornerY := padBcornerY - newXYdifference;
          end
          { Else padB is north, find the coordinates of where the new closest corner should be. }
          else
-         begin
-            newPadBcornerY := rightTriangleVertexY + newXYdifference;
-         end;
+			newPadBcornerY := padBcornerY + newXYdifference;
 
          { Calculate the distance the closest corner needs to move. }
          padACornerDifference := Abs(padAcornerX - newPadAcornerX);
@@ -10072,8 +10056,6 @@ begin
          //WriteToDebugFile('newPadAcornerX: ' + FloatToStr(CoordToMMs(newPadAcornerX)));
          //WriteToDebugFile('newPadBcornerY: ' + FloatToStr(CoordToMMs(newPadBcornerY)));
 
-         WriteToDebugFile('padACornerDifference (x direction away from origin): ' + FloatToStr(CoordToMMs(padACornerDifference)));
-         WriteToDebugFile('padBCornerDifference (y direction away from origin): ' + FloatToStr(CoordToMMs(padBCornerDifference)));
 
          { Decrease the width of padA and height of padB by half the difference calculated previously. }
          padA.TopXSize := padA.TopXSize - (padACornerDifference / 2.0);
@@ -10117,12 +10099,12 @@ begin
          //WriteToDebugFile('New padA right boundary: ' + FloatToStr(CoordToMMs(padA.X + (padA.TopXSize/2.0))));
          //WriteToDebugFile('New padB top boundary: ' + FloatToStr(CoordToMMs(padB.Y + (padB.TopYSize/2.0))));
          //WriteToDebugFile('New padB bottom boundary: ' + FloatToStr(CoordToMMs(padB.Y - (padB.TopYSize/2.0))));
-         newPadToPadDistance := CoordToMMs(Sqrt(Sqr(Abs(xDifference) + padACornerDifference) + Sqr(Abs(yDifference) + padBCornerDifference)));
+         newPadToPadDistance := CoordToMMs(Sqrt(Sqr(MMsToCoord(xDiffMMs) + newXYdifference) + Sqr(MMsToCoord(yDiffMMs) + newXYdifference)));
          WriteToDebugFile('Double check that we correctly moved the pads (This should be ' + FloatToStr(constPadToPadDistance) + '): ' + FloatToStr(newPadtoPadDistance));
 
          { Sanity Check. }
          if (newPadToPadDistance <> constPadToPadDistance) then
-            CLF_Abort('Something has gone horribly wrong in CLF_CleanupCornerDshapePads()! Please review the code.');
+            CLF_Abort('CLF_CleanupCornerDshapePads() has failed to set the pad to pad distance to ' + FloatToStr(constPadToPadDistance) + '! Please review the code!');
 
       end
 
