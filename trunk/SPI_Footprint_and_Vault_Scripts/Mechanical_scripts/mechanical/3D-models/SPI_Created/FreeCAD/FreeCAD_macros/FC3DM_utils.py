@@ -315,8 +315,10 @@ def FC3DM_ReadIniFiles(scriptPath, parms):
     parms["newModelPathNameExt"] = newModelPathNameExt
     parms["newStepPathNameExt"] = newStepPathNameExt
     parms["logFilePathNameExt"] = logFilePathNameExt
-    parms["debugFilePath"] = debugFilePath
     parms["docName"] = docName
+
+    # This is a derived parm. All derived parms should be excluded when writing to the log file in FC3DM_DescribeObjectsToLogFile()
+    parms["debugFilePath"] = debugFilePath
 
     ## Remove bogus parms
     del parms["foo"]
@@ -464,12 +466,19 @@ def FC3DM_DescribeObjectsToLogFile(App, Gui,
     # Log all the parms to logfile
     fileP.write("Parms:\n")
     for i in strList:
-        fileP.write(i + '\n')
+        #FC3DM_WriteToDebugFile(i)
+        # We will exclude some of the derived parms when writing to the log file.
+        if ( (not i.startswith("debugFilePath")) and (not i.startswith("footprintType")) and (not i.startswith("hasEp")) ):
+            fileP.write(i + '\n')
 
     ## Log all pin vertices to logfile.
     # Loop over all the pin names.
     for pin in pinNames:
 
+        # Initialize an array that is more than big enough to hold all pin vertices
+        pinVertexArray = [""]*100
+        i = 0
+        
         FC3DM_WriteToDebugFile("About to describe pin " + pin + " to log file")
         print("About to describe pin " + pin + " to log file!")
 
@@ -484,25 +493,47 @@ def FC3DM_DescribeObjectsToLogFile(App, Gui,
 
             # Loop over all the vertexes in this pin
             for vertex in face.Vertexes:
-
-                # Write this vertex to file
-                fileP.write(str(vertex.Point) + '\n')
+                # Add this pin vertex to an array that will be sorted and printed to the log file
+                pinVertexArray[i] = str(vertex.Point)
+                i += 1
+                
+        # FC3DM_WriteToDebugFile(pin + " vertices: ")
+        # Write the sorted array to the log file if the line is not null
+        for line in sorted(pinVertexArray):
+            if (line != ""):
+                # FC3DM_WriteToDebugFile(line)
+                fileP.write(line + "\n")
+        fileP.write("")
+                
 
     ## Log all body vertices to logfile.
     # Declare the name of this object
     fileP.write("\n" + bodyName + ':\n')
+    FC3DM_WriteToDebugFile("About to describe " + bodyName + " to log file")
 
     # Declare the soon-to-be color of this object
     fileP.write("Color " + str(parms["colorBody"]) + "\n")
 
+    # Initialize an array that is more than big enough to hold all body vertices 
+    bodyVertexArray = [""]*100
+    i = 0
+    
     # Loop over all the faces in this body.
     for face in App.ActiveDocument.getObject(bodyName).Shape.Faces:
 
         # Loop over all the vertexes in this body
         for vertex in face.Vertexes:
+            # Add this vertex to an array that will be sorted and written to the log file.              
+            bodyVertexArray[i] = str(vertex.Point)
+            i += 1
 
-            # Write this vertex to file
-            fileP.write(str(vertex.Point) + '\n')
+    # FC3DM_WriteToDebugFile("Body vertices: ")
+    # Write the sorted array to the log file if the line is not null
+    for line in sorted(bodyVertexArray):
+        if (line != ""):
+            # FC3DM_WriteToDebugFile(bodyVertexArray[i])
+            fileP.write(line + "\n")
+    fileP.write("")
 
     ## Log all pin1Mark vertices to logfile.
     # Declare the name of this object
@@ -1128,6 +1159,7 @@ def FC3DM_CreateIcBody(App, Gui,
     # Do this by extracting just the leading characters in the newModelName.
     # footprintType = echo $newModelName | sed 's/[0-9]+.*//g'
     footprintType = re.sub('[0-9]+.*', '', newModelName)
+    # This is a derived parm. All derived parms should be excluded when writing the log file in FC3DM_DescribeObjectsToLogFile()
     parms["footprintType"] = footprintType
     print footprintType
 
@@ -1151,6 +1183,7 @@ def FC3DM_CreateIcBody(App, Gui,
         hasEp = False
 
     # Store whether or not we have an EP pad.
+    # This is a derived parm. All derived parms should be excluded when writing the log file in FC3DM_DescribeObjectsToLogFile()
     parms["hasEp"] = hasEp
 
     
