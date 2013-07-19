@@ -6,7 +6,7 @@
 #
 #	@details		
 #
-#    @version		0.4.9
+#    @version		0.4.10
 #					   $Rev::                                                                        $:
 #	@date			  $Date::                                                                        $:
 #	@author			$Author::                                                                        $:
@@ -90,10 +90,10 @@ tinyDeltaForQfn = 0.000001
 debugFilePath = "null"
  
 ###################################################################
-# OpenDebugFile()
+# FC3DM_OpenDebugFile()
 #	Open a debug file to which we will write debug messages
 ###################################################################
-def OpenDebugFile(parms):
+def FC3DM_OpenDebugFile(parms):
 
     # Retrieve the debug file path from parms
     global debugFilePath
@@ -110,10 +110,10 @@ def OpenDebugFile(parms):
     debugFile.close()
 
 ###################################################################
-# WriteToDebugFile()
+# FC3DM_WriteToDebugFile()
 # 	Write necessary debug messages to "FC3DM_Debug.txt" in the working directory
 ###################################################################
-def WriteToDebugFile(msg):
+def FC3DM_WriteToDebugFile(msg):
 
     # Open the debug file in append mode to add the message to the existing debug file
     global debugFilePath
@@ -126,6 +126,23 @@ def WriteToDebugFile(msg):
     debugFile.close()
     
     
+###################################################################
+# FC3DM_CloseDebugFile()
+#	Function to save and close debug file
+###################################################################
+def FC3DM_CloseDebugFile():
+
+    
+    # Open the debug file in append mode so that we may close it
+    global debugFilePath
+    debugFile = open(debugFilePath, "a")
+
+    # Close the file to save the changes
+    debugFile.close()
+
+    return 0
+
+
 ###################################################################
 # is_number()
 # 	Function below was stolen from Daniel Goldberg's post at:
@@ -318,8 +335,8 @@ def FC3DM_ReadIniFiles(scriptPath, parms):
 def FC3DM_FilletObjectEdges(App, Gui,
                             docName, filletMe, edges, radius):
 
-    WriteToDebugFile("Hello from FC3DM_FilletObjectEdges()")
-    WriteToDebugFile("About to fillet " + filletMe)
+    FC3DM_WriteToDebugFile("Hello from FC3DM_FilletObjectEdges()")
+    FC3DM_WriteToDebugFile("About to fillet " + filletMe)
 
     # Init
     App.ActiveDocument=None
@@ -453,7 +470,7 @@ def FC3DM_DescribeObjectsToLogFile(App, Gui,
     # Loop over all the pin names.
     for pin in pinNames:
 
-        WriteToDebugFile("About to describe pin " + pin + " to log file")
+        FC3DM_WriteToDebugFile("About to describe pin " + pin + " to log file")
         print("About to describe pin " + pin + " to log file!")
 
         # Declare the name of this object
@@ -556,7 +573,7 @@ def FC3DM_FuseSetOfObjects(App, Gui,
     # TODO:  Currently no error checking!
     bodyName = parms["bodyName"]
     pin1MarkName = parms["pin1MarkName"]
-    WriteToDebugFile("pin1MarkName is: " + pin1MarkName + ":")
+    FC3DM_WriteToDebugFile("pin1MarkName is: " + pin1MarkName + ":")
     print "pin1MarkName is :" + pin1MarkName + ":"
 
 
@@ -1087,7 +1104,7 @@ def FC3DM_CreateIcBody(App, Gui,
                        parms,
                        docName):
 
-    WriteToDebugFile("Hello from FC3DM_CreateIcBody()")
+    FC3DM_WriteToDebugFile("Hello from FC3DM_CreateIcBody()")
 
     # Extract relevant parameter values from parms associative array
     # TODO:  Currently no error checking!
@@ -1334,10 +1351,10 @@ def FC3DM_CreateIcBody(App, Gui,
     # TODO:  This is currently hardcoded!
     # TODO:  This must be revisited for BGA, etc.!
     # Only do the filleting if we have a mold angle
-    #if ( (maDeg > 0) and (footprintType <> "SOIC") ):    
+    if ( (maDeg > 0) and (footprintType <> "SOIC") ):    
 
-     #   FC3DM_FilletObjectEdges(App, Gui,
-      #                          docName, bodyName, edges, Frbody)
+        FC3DM_FilletObjectEdges(App, Gui,
+                                docName, bodyName, edges, Frbody)
 
 
     ## Prepare to make pin 1 marker
@@ -1378,7 +1395,7 @@ def FC3DM_CreateIcPinGullwing(App, Gui,
                               parms,
                               docName):
                 
-    WriteToDebugFile("Hello from FC3DM_CreateIcPinGullwing()")
+    FC3DM_WriteToDebugFile("Hello from FC3DM_CreateIcPinGullwing()")
 
     # Extract relevant parameter values from parms associative array
     # TODO:  Currently no error checking!
@@ -1405,7 +1422,7 @@ def FC3DM_CreateIcPinGullwing(App, Gui,
     Gui.ActiveDocument=Gui.getDocument(docName)
 
     # Prepare to call FC3DM_CreateBox() to create a box for the template pin
-    WriteToDebugFile("About to create box for template pin")
+    FC3DM_WriteToDebugFile("About to create box for template pin")
     maRad = math.radians(maDeg)
     x = A/2.0 -  (Tp*math.tan(maRad))
     y = -1*(W/2)
@@ -1413,7 +1430,7 @@ def FC3DM_CreateIcPinGullwing(App, Gui,
     K = 0.0
     rotDeg = 0.0
     boxLength = (L/2.0) - (A/2.0) + (Tp*math.tan(maRad))
-    WriteToDebugFile("boxLength: " + str(boxLength))
+    FC3DM_WriteToDebugFile("boxLength: " + str(boxLength))
     FC3DM_CreateBox(App, Gui,
                     boxLength, W, H, K,
                     x, y, rotDeg, 
@@ -1430,7 +1447,7 @@ def FC3DM_CreateIcPinGullwing(App, Gui,
                              edges, radius)
     
     # Cut away lower-left part of the IC pin solid
-    WriteToDebugFile("About to cut lower-left part of the IC pin solid")
+    FC3DM_WriteToDebugFile("About to cut lower-left part of the IC pin solid")
     edges=["Edge6"]
     FC3DM_CutWithFilletedBox(App, Gui,
                              docName, pinName,
@@ -1439,16 +1456,24 @@ def FC3DM_CreateIcPinGullwing(App, Gui,
                              edges, radius)
 
     # Fillet (round) some of the gullwing pin edges
-    WriteToDebugFile("About to fillet gullwing pin edges")
+    FC3DM_WriteToDebugFile("About to fillet gullwing pin edges")
     edges=["Edge4","Edge30"]
     FC3DM_FilletObjectEdges(App, Gui,
                             docName, pinName, edges, Fr)
 
-    WriteToDebugFile("About to cut gullwing pin that exists within IC body") 
+    FC3DM_WriteToDebugFile("About to cut gullwing pin that exists within IC body")
 
-    #WriteToDebugFile("A/2.0 is " + str(A/2.0) + "-(W/2.0) is " + str(-(W/2.0)) + " Hpe - Tp/2.0 is " + str( Hpe - Tp/2.0))
-    #WriteToDebugFile("A is " + str(A) + " W is " + str(W) + " Hpe is " + str(Hpe) + " Tp is " + str(Tp))
-    #WriteToDebugFile("maRad " + str(maRad) + "math.pi/4.0" + str(math.pi/4.0))
+    ## Before we were using FC3DM_CutWithToolAndKeepTool() to perform this cut but we were experiencing unknown problems with a handful of packages
+    ## The following process makes the assumption that the pin starts and ends within the upper mold angle cut in the z direction. If this condition is not met, the script will abort.
+
+    # Sanity check to validate our assumption
+    if ((Hpe - (Tp/2.0)) < Hpph ):
+        FC3DM_WriteToDebugFile("Abort message: In FC3DM_CreateIcPinGullwing(), lower entry point of pin is below mold angle cut. This violates the assumption that the pin will enter the body above the mold angle cut.")
+        FC3DM_MyExit(-1)
+
+    FC3DM_WriteToDebugFile("A is: " + str(A) + " W is: " + str(W) + " Hpe is: " + str(Hpe) + " Tp is: " + str(Tp))
+    FC3DM_WriteToDebugFile("A/2.0 is: " + str(A/2.0) + "-(W/2.0) is: " + str(-(W/2.0)) + " Hpe - Tp/2.0 is: " + str( Hpe - Tp/2.0))
+    FC3DM_WriteToDebugFile("maRad: " + str(maRad))
 
     # Create a box that will be used to cut the pin so that the pin does not over lap with the body
     FC3DM_CreateBox(App, Gui,
@@ -1467,7 +1492,7 @@ def FC3DM_CreateIcPinGullwing(App, Gui,
     Gui.SendMsgToActiveView("ViewFit")
 
     # Color pin red.  FIXME--remove this!
-    WriteToDebugFile("Changing the template gullwing pin red...")
+    FC3DM_WriteToDebugFile("Changing the template gullwing pin red...")
     Gui.getDocument(docName).getObject(pinName).ShapeColor = (1.00,0.00,0.00)
 
     return 0
@@ -1489,7 +1514,7 @@ def FC3DM_CreateIcPinQfn(App, Gui,
                          parms,
                          docName):
                 
-    WriteToDebugFile("Hello from FC3DM_CreateIcPinQfn()")
+    FC3DM_WriteToDebugFile("Hello from FC3DM_CreateIcPinQfn()")
 
     # Extract relevant parameter values from parms associative array
     # TODO:  Currently no error checking!
@@ -1514,7 +1539,7 @@ def FC3DM_CreateIcPinQfn(App, Gui,
     Gui.ActiveDocument=Gui.getDocument(docName)
 
     # Prepare to call FC3DM_CreateBox() to create a box for the template pin
-    WriteToDebugFile("About to create box for template pin")
+    FC3DM_WriteToDebugFile("About to create box for template pin")
     xBox = ((L/2)-T)
     yBox = -1*(W/2)
     H = Tp
@@ -1529,7 +1554,7 @@ def FC3DM_CreateIcPinQfn(App, Gui,
     # See if we need to fillet to create D-shaped pins
     if (hasDshapePads <> 0):
 
-        WriteToDebugFile("QFN has D-shape pads")
+        FC3DM_WriteToDebugFile("QFN has D-shape pads")
         
         # Set the faces that need to be filleted
         edges=["Edge1", "Edge3"]
@@ -1552,7 +1577,7 @@ def FC3DM_CreateIcPinQfn(App, Gui,
 
     ## Copy this to give us a template north side IC pin
     # FIXME:  Must apply offset when QFN/DFN/QFP is not square!!
-    WriteToDebugFile("Copying the east side template pin to create a north side template pin")
+    FC3DM_WriteToDebugFile("Copying the east side template pin to create a north side template pin")
     x = 0.0
     y = 0.0
     rotDeg = 90.0
@@ -1591,7 +1616,7 @@ def FC3DM_CreateIcPinEp(App, Gui,
                         epName,
                         docName):
                 
-    WriteToDebugFile("Hello from FC3DM_CreateIcPinEp()")
+    FC3DM_WriteToDebugFile("Hello from FC3DM_CreateIcPinEp()")
 
     # Extract relevant parameter values from parms associative array
     # TODO:  Currently no error checking!
@@ -1600,7 +1625,7 @@ def FC3DM_CreateIcPinEp(App, Gui,
     Ft = parms["Ft"] #pkgDimsEpChamfer
 
     # Prepare parameters for FC3DM_CreateBox()
-    WriteToDebugFile("Creating box for EP...")
+    FC3DM_WriteToDebugFile("Creating box for EP...")
     xBox = (-1*(length/2) + x)
     yBox = (-1*(width/2) + y)
     L = length
@@ -1617,8 +1642,8 @@ def FC3DM_CreateIcPinEp(App, Gui,
     # See if we need to chamfer the pin 1 edge of the EP
     if (Ft > 0.0) :
 
-        WriteToDebugFile("About to chamfer EP")
-        WriteToDebugFile("Chamfer dimension is: " + Ft)
+        FC3DM_WriteToDebugFile("About to chamfer EP")
+        FC3DM_WriteToDebugFile("Chamfer dimension is: " + Ft)
         # Select a priori the edge that needs to be chamfered (determined experimentally)
         edges=["Edge3"]
 
@@ -1631,7 +1656,7 @@ def FC3DM_CreateIcPinEp(App, Gui,
     Gui.SendMsgToActiveView("ViewFit")
 
     # Color pin red.  FIXME--remove this!
-    WriteToDebugFile("Coloring the EP red")
+    FC3DM_WriteToDebugFile("Coloring the EP red")
     Gui.getDocument(docName).getObject(epName).ShapeColor = (1.00,0.00,0.00)
 
     return 0
@@ -1645,7 +1670,7 @@ def FC3DM_CreateIcPins(App, Gui,
                        parms, pinNames,
                        docName):
                 
-    WriteToDebugFile("Hello from FC3DM_CreateIcPins()")
+    FC3DM_WriteToDebugFile("Hello from FC3DM_CreateIcPins()")
 
     # Extract relevant parameter values from parms associative array
     # TODO:  Currently no error checking!
@@ -1657,7 +1682,7 @@ def FC3DM_CreateIcPins(App, Gui,
 
     # Retrieve EP parameters if needed
     if (hasEp):
-        WriteToDebugFile("Footprint has an EP")
+        FC3DM_WriteToDebugFile("Footprint has an EP")
         Tt = parms["Tt"] # pkgDimsEpLengthMax
         Wt = parms["Wt"] # pkgDimsEpWidthMax
         Ft = parms["Ft"] # pkgDimsEpChamfer
@@ -1685,6 +1710,7 @@ def FC3DM_CreateIcPins(App, Gui,
     # Else unsupported!
     else:
         print("Unsupported footprintType " + footprintType)
+        FC3DM_WriteToDebugFile("Abort message: Footprint type is unsupported!")
         FC3DM_MyExit(-1)
 
     print("Back from creating template IC pin.")
@@ -1728,6 +1754,7 @@ def FC3DM_CreateIcPins(App, Gui,
         # Sanity check that we have exactly 4 fields in the list
         if (len(lis) != 4):
             print("Expected to find 4 fields in pin description.  Actually saw " + str(len(lis)) + "!")
+            FC3DM_WriteToDebugFile("Abort message: Expected to find 4 fields in pin description.  Actually saw " + str(len(lis)) + "!")
             FC3DM_MyExit(-1)
 
         print("Found pin named " + pin + ", lis is:")
@@ -1814,6 +1841,7 @@ def FC3DM_CreateIcPins(App, Gui,
             # Else unsupported!
             else:
                 print("Unsupported pin side " + lis[1])
+                FC3DM_WriteToDebugFile("Abort message: Pin side was not north, south, east or west. Current pin side is unsupported")
                 FC3DM_MyExit(-1)
 
             ## For certain package types, we need to cut the pin out of the body
@@ -1846,6 +1874,7 @@ def FC3DM_CreateIcPins(App, Gui,
         # Else unknown pin type.  Abort
         else:
             print("Unsupported pin type " + lis[0])
+            FC3DM_WriteToDebugFile("Abort message: Pin type is unsupported")
             FC3DM_MyExit(-1)
 
 
@@ -1904,7 +1933,7 @@ def FC3DM_SaveAndExport(App, Gui,
                         parms,
                         objNameList):
 
-    WriteToDebugFile("Hello from FC3DM_SaveAndExport()")
+    FC3DM_WriteToDebugFile("Hello from FC3DM_SaveAndExport()")
 
     # Extract relevant parameter values from parms associative array
     # TODO:  Currently no error checking!

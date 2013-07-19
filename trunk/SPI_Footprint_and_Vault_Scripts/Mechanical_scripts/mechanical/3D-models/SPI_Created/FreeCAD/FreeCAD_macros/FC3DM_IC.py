@@ -6,7 +6,7 @@
 #
 #	@details		
 #
-#    @version		0.2.6
+#    @version		0.2.7
 #					   $Rev::                                                                        $:
 #	@date			  $Date::                                                                        $:
 #	@author			$Author::                                                                        $:
@@ -137,7 +137,7 @@ print parms
 ###################################
 
 # Open the debug file
-OpenDebugFile(parms)
+FC3DM_OpenDebugFile(parms)
 
 # Extract relevant parameter values from parms associative array
 # TODO:  Currently no error checking!
@@ -190,6 +190,9 @@ FC3DM_SaveAndExport(App, Gui,
                     docName,
                     parms,
                     objNameList)
+
+# Save and close debug file.
+FC3DM_CloseDebugFile()
 
 # Exit with success return code.
 FC3DM_MyExit(0)
