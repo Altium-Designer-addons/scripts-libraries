@@ -6,7 +6,7 @@
 #
 #	@details		
 #
-#    @version		0.4.12
+#    @version		0.4.13
 #					   $Rev::                                                                        $:
 #	@date			  $Date::                                                                        $:
 #	@author			$Author::                                                                        $:
@@ -477,8 +477,7 @@ def FC3DM_DescribeObjectsToLogFile(App, Gui,
     for pin in pinNames:
 
         # Initialize an array that is more than big enough to hold all pin vertices
-        pinVertexArray = [""]*100
-        i = 0
+        pinVertexArray = []
         
         FC3DM_WriteToDebugFile("About to describe pin " + pin + " to log file")
         print("About to describe pin " + pin + " to log file!")
@@ -496,8 +495,7 @@ def FC3DM_DescribeObjectsToLogFile(App, Gui,
             for vertex in face.Vertexes:
             
                 # Add this pin vertex to an array that will be sorted and printed to the log file
-                pinVertexArray[i] = str(vertex.Point)
-                i += 1
+                pinVertexArray.append(str(vertex.Point))
                 
         # FC3DM_WriteToDebugFile(pin + " vertices: ")
         # Write the sorted array to the log file if the line is not null
@@ -517,17 +515,15 @@ def FC3DM_DescribeObjectsToLogFile(App, Gui,
     fileP.write("Color " + str(parms["colorBody"]) + "\n")
 
     # Initialize an array that is more than big enough to hold all body vertices 
-    bodyVertexArray = [""]*100
-    i = 0
+    bodyVertexArray = []
     
     # Loop over all the faces in this body.
     for face in App.ActiveDocument.getObject(bodyName).Shape.Faces:
 
         # Loop over all the vertexes in this body
         for vertex in face.Vertexes:
-            # Add this vertex to an array that will be sorted and written to the log file.              
-            bodyVertexArray[i] = str(vertex.Point)
-            i += 1
+            # Add this vertex to an array that will be sorted and written to the log file.
+            bodyVertexArray.append(str(vertex.Point))
 
     # FC3DM_WriteToDebugFile("Body vertices: ")
     # Write the sorted array to the log file if the line is not null
@@ -1694,7 +1690,6 @@ def FC3DM_CreateIcPinEp(App, Gui,
 
         FC3DM_WriteToDebugFile("About to chamfer EP")
         FC3DM_WriteToDebugFile("Chamfer dimension is: " + str(Ft))
-        
         # Select a priori the edge that needs to be chamfered (determined experimentally)
         edges=["Edge3"]
 
