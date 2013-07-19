@@ -6,7 +6,7 @@
 #
 #	@details		
 #
-#    @version		0.4.11
+#    @version		0.4.12
 #					   $Rev::                                                                        $:
 #	@date			  $Date::                                                                        $:
 #	@author			$Author::                                                                        $:
@@ -1653,11 +1653,15 @@ def FC3DM_CreateIcPinEp(App, Gui,
                 
     FC3DM_WriteToDebugFile("Hello from FC3DM_CreateIcPinEp()")
 
+    # Assume that the EP does not have rounded corners
+    roundedCorners = False
+
     # Extract relevant parameter values from parms associative array
     # TODO:  Currently no error checking!
     Tp = parms["Tp"]
     bodyName = parms["bodyName"]
     Ft = parms["Ft"] #pkgDimsEpChamfer
+    Rt = parms["Rt"] #pkgDimsEpCornerRadius
 
     # Prepare parameters for FC3DM_CreateBox()
     FC3DM_WriteToDebugFile("Creating box for EP...")
@@ -1674,11 +1678,23 @@ def FC3DM_CreateIcPinEp(App, Gui,
                     docName,
                     epName)
 
+    if (Rt > 0.0):
+        FC3DM_WriteToDebugFile("About to fillet EP corners")
+        FC3DM_WriteToDebugFile("EP corner radius is: " + str(Rt))
+
+        # Select all four corners of the EP to be filleted
+        edges = ["Edge1", "Edge3", "Edge5", "Edge7"]
+        FC3DM_FilletObjectEdges(App, Gui,
+                                docName, epName, edges, Rt)
+
+        roundedCorners = True
+
     # See if we need to chamfer the pin 1 edge of the EP
     if (Ft > 0.0) :
 
         FC3DM_WriteToDebugFile("About to chamfer EP")
-        FC3DM_WriteToDebugFile("Chamfer dimension is: " + Ft)
+        FC3DM_WriteToDebugFile("Chamfer dimension is: " + str(Ft))
+        
         # Select a priori the edge that needs to be chamfered (determined experimentally)
         edges=["Edge3"]
 
