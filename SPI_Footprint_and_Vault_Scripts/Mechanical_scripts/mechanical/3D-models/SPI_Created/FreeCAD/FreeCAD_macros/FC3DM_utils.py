@@ -6,7 +6,7 @@
 #
 #	@details		
 #
-#    @version		0.4.10
+#    @version		0.4.11
 #					   $Rev::                                                                        $:
 #	@date			  $Date::                                                                        $:
 #	@author			$Author::                                                                        $:
@@ -466,6 +466,7 @@ def FC3DM_DescribeObjectsToLogFile(App, Gui,
     # Log all the parms to logfile
     fileP.write("Parms:\n")
     for i in strList:
+    
         #FC3DM_WriteToDebugFile(i)
         # We will exclude some of the derived parms when writing to the log file.
         if ( (not i.startswith("debugFilePath")) and (not i.startswith("footprintType")) and (not i.startswith("hasEp")) ):
@@ -493,6 +494,7 @@ def FC3DM_DescribeObjectsToLogFile(App, Gui,
 
             # Loop over all the vertexes in this pin
             for vertex in face.Vertexes:
+            
                 # Add this pin vertex to an array that will be sorted and printed to the log file
                 pinVertexArray[i] = str(vertex.Point)
                 i += 1
