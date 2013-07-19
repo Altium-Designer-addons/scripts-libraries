@@ -6,7 +6,7 @@
 #
 #	@details		
 #
-#    @version		0.2.5
+#    @version		0.2.6
 #					   $Rev::                                                                        $:
 #	@date			  $Date::                                                                        $:
 #	@author			$Author::                                                                        $:
@@ -135,6 +135,9 @@ print parms
 ###################################
 #### Main function
 ###################################
+
+# Open the debug file
+OpenDebugFile(parms)
 
 # Extract relevant parameter values from parms associative array
 # TODO:  Currently no error checking!
