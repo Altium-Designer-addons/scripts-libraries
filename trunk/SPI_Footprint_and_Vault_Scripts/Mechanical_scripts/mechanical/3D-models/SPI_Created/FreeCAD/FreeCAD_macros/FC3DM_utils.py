@@ -6,7 +6,7 @@
 #
 #	@details		
 #
-#    @version		0.4.8
+#    @version		0.4.9
 #					   $Rev::                                                                        $:
 #	@date			  $Date::                                                                        $:
 #	@author			$Author::                                                                        $:
@@ -73,7 +73,7 @@
 # ***************************************************************************
 
 
-import FreeCAD
+import FreeCAD, Draft
 import Part
 import math
 import string
@@ -81,12 +81,51 @@ import cStringIO
 import sys
 import os
 import re
+from FreeCAD import Base
 
 scriptPathUtils = ""
 
 # Fudge factor used by QFN packages to have pins and body be in ever so slightly different planes
 tinyDeltaForQfn = 0.000001
+debugFilePath = "null"
+ 
+###################################################################
+# OpenDebugFile()
+#	Open a debug file to which we will write debug messages
+###################################################################
+def OpenDebugFile(parms):
 
+    # Retrieve the debug file path from parms
+    global debugFilePath
+    debugFilePath = parms["debugFilePath"]
+
+    # Open the debug file in "write" mode to overwrite any existing "FC3DM_Debug.txt"
+    debugFile = open(debugFilePath, "w")
+    
+    debugFile.write("We finally have a debug file!\n")
+
+    debugFile.write("Debug File Path is " + debugFilePath + "\n\n")
+
+    # Close the file to save the changes
+    debugFile.close()
+
+###################################################################
+# WriteToDebugFile()
+# 	Write necessary debug messages to "FC3DM_Debug.txt" in the working directory
+###################################################################
+def WriteToDebugFile(msg):
+
+    # Open the debug file in append mode to add the message to the existing debug file
+    global debugFilePath
+    debugFile = open(debugFilePath, "a")
+    
+    # Write message to the debug file  
+    debugFile.write(msg + "\n")
+
+    # Close the file to save the changes
+    debugFile.close()
+    
+    
 ###################################################################
 # is_number()
 # 	Function below was stolen from Daniel Goldberg's post at:
@@ -145,6 +184,8 @@ def FC3DM_SortPinNames(a, b):
 ###################################################################
 # FC3DM_ReadIniFile()
 #	Function to read an ini file.  File format is "key=value".
+# 	Debug messages should not be written in this function because
+#	debug file has not yet been created.
 ###################################################################
 def FC3DM_ReadIniFile(iniFileName,
                       parms):
@@ -198,6 +239,8 @@ def FC3DM_ReadIniFile(iniFileName,
 ###################################################################
 # FC3DM_ReadIniFiles()
 #	Function to read both global and component-specific ini files.
+# 	Debug messages should not be written in this function because
+#	debug file has not yet been created.
 ###################################################################
 def FC3DM_ReadIniFiles(scriptPath, parms):
 
@@ -246,6 +289,7 @@ def FC3DM_ReadIniFiles(scriptPath, parms):
     newModelPathNameExt = newModelPath + newModelName + ".FCStd"
     newStepPathNameExt = newModelPath + newModelName + stepSuffix + stepExt
     logFilePathNameExt = newModelPath + newModelName + ".log"
+    debugFilePath = newModelPath + "FC3DM_Debug.txt"
 
     # Strip out all "-" characters for use as the FreeCAD document name
     docName = string.replace(newModelName + stepSuffix, "-", "_")
@@ -254,6 +298,7 @@ def FC3DM_ReadIniFiles(scriptPath, parms):
     parms["newModelPathNameExt"] = newModelPathNameExt
     parms["newStepPathNameExt"] = newStepPathNameExt
     parms["logFilePathNameExt"] = logFilePathNameExt
+    parms["debugFilePath"] = debugFilePath
     parms["docName"] = docName
 
     ## Remove bogus parms
@@ -272,6 +317,9 @@ def FC3DM_ReadIniFiles(scriptPath, parms):
 ###################################################################
 def FC3DM_FilletObjectEdges(App, Gui,
                             docName, filletMe, edges, radius):
+
+    WriteToDebugFile("Hello from FC3DM_FilletObjectEdges()")
+    WriteToDebugFile("About to fillet " + filletMe)
 
     # Init
     App.ActiveDocument=None
@@ -405,6 +453,7 @@ def FC3DM_DescribeObjectsToLogFile(App, Gui,
     # Loop over all the pin names.
     for pin in pinNames:
 
+        WriteToDebugFile("About to describe pin " + pin + " to log file")
         print("About to describe pin " + pin + " to log file!")
 
         # Declare the name of this object
@@ -507,6 +556,7 @@ def FC3DM_FuseSetOfObjects(App, Gui,
     # TODO:  Currently no error checking!
     bodyName = parms["bodyName"]
     pin1MarkName = parms["pin1MarkName"]
+    WriteToDebugFile("pin1MarkName is: " + pin1MarkName + ":")
     print "pin1MarkName is :" + pin1MarkName + ":"
 
 
@@ -733,6 +783,40 @@ def FC3DM_FuseSetOfObjects(App, Gui,
 
 
 ###################################################################
+# FC3DM_CutWithSpecified Object()
+#	Function to cut an object with an object that was created earlier.
+###################################################################
+def FC3DM_CutWithSpecifiedObject(App, Gui,
+                                 docName, cutMe, cutter):
+
+    # Perform cut
+    App.ActiveDocument=None
+    Gui.ActiveDocument=None
+    App.setActiveDocument(docName)
+    App.ActiveDocument=App.getDocument(docName)
+    Gui.ActiveDocument=Gui.getDocument(docName)
+    App.activeDocument().addObject("Part::Cut","Cut000")
+    App.activeDocument().Cut000.Base = FreeCAD.getDocument(docName).getObject(cutMe)
+    App.activeDocument().Cut000.Tool = App.activeDocument().Cutter
+    Gui.activeDocument().hide(cutMe)
+    Gui.activeDocument().hide(cutter)
+    App.ActiveDocument.recompute()
+    
+    # Remove the objects that made up the cut
+    App.getDocument(docName).removeObject(cutMe)
+    App.getDocument(docName).removeObject(cutter)
+
+    # Copy the cut object and call it the original cutMe name
+    newTermShape = FreeCAD.getDocument(docName).getObject("Cut000").Shape.copy()
+    newTermObj = App.activeDocument().addObject("Part::Feature",cutMe)
+    newTermObj.Shape = newTermShape
+
+    # Remove the cut itself
+    App.getDocument(docName).removeObject("Cut000")
+                             
+    return 0
+
+###################################################################
 # FC3DM_CutWithFilletedBox()
 #	Function to cut an object with a filleted box that we create for this purpose.
 ###################################################################
@@ -760,30 +844,9 @@ def FC3DM_CutWithFilletedBox(App, Gui,
         FC3DM_FilletObjectEdges(App, Gui,
                                 docName, "Cutter", edges, radius)
 
-    # Perform cut
-    App.ActiveDocument=None
-    Gui.ActiveDocument=None
-    App.setActiveDocument(docName)
-    App.ActiveDocument=App.getDocument(docName)
-    Gui.ActiveDocument=Gui.getDocument(docName)
-    App.activeDocument().addObject("Part::Cut","Cut000")
-    App.activeDocument().Cut000.Base = FreeCAD.getDocument(docName).getObject(cutMe)
-    App.activeDocument().Cut000.Tool = App.activeDocument().Cutter
-    Gui.activeDocument().hide(cutMe)
-    Gui.activeDocument().hide("Cutter")
-    App.ActiveDocument.recompute()
-
-    # Remove the objects that made up the cut
-    App.getDocument(docName).removeObject(cutMe)
-    App.getDocument(docName).removeObject("Cutter")
-
-    # Copy the cut object and call it the original cutMe name
-    newTermShape = FreeCAD.getDocument(docName).getObject("Cut000").Shape.copy()
-    newTermObj = App.activeDocument().addObject("Part::Feature",cutMe)
-    newTermObj.Shape = newTermShape
-
-    # Remove the cut itself
-    App.getDocument(docName).removeObject("Cut000")
+    # Pass cutMe and the "Cutter" to FC3DM_CutWithSpecifiedObject() to do all the cutting
+    FC3DM_CutWithSpecifiedObject(App, Gui,
+                                 docName, cutMe, "Cutter" )
 
     return 0
 
@@ -1023,6 +1086,8 @@ def FC3DM_CreateCylinderVert(App, Gui,
 def FC3DM_CreateIcBody(App, Gui,
                        parms,
                        docName):
+
+    WriteToDebugFile("Hello from FC3DM_CreateIcBody()")
 
     # Extract relevant parameter values from parms associative array
     # TODO:  Currently no error checking!
@@ -1269,10 +1334,10 @@ def FC3DM_CreateIcBody(App, Gui,
     # TODO:  This is currently hardcoded!
     # TODO:  This must be revisited for BGA, etc.!
     # Only do the filleting if we have a mold angle
-    if ( (maDeg > 0) and (footprintType <> "SOIC") ):    
+    #if ( (maDeg > 0) and (footprintType <> "SOIC") ):    
 
-        FC3DM_FilletObjectEdges(App, Gui,
-                                docName, bodyName, edges, Frbody)
+     #   FC3DM_FilletObjectEdges(App, Gui,
+      #                          docName, bodyName, edges, Frbody)
 
 
     ## Prepare to make pin 1 marker
@@ -1289,7 +1354,6 @@ def FC3DM_CreateIcBody(App, Gui,
     # Apply pin 1 marker ink inside cut
     FC3DM_CreateCylinderVert(App, Gui,
                              docName, pin1MarkName, (-1*(A/2))+moldOffset+P1chamferOffset+Frbody+P1markOffset+P1markRadius, (B/2)-moldOffset-Frbody-P1markOffset-P1markRadius, (H-P1markIndent), P1markRadius, markHeight)
-
 
     return 0
 
@@ -1314,6 +1378,8 @@ def FC3DM_CreateIcPinGullwing(App, Gui,
                               parms,
                               docName):
                 
+    WriteToDebugFile("Hello from FC3DM_CreateIcPinGullwing()")
+
     # Extract relevant parameter values from parms associative array
     # TODO:  Currently no error checking!
     L = parms["L"]
@@ -1321,6 +1387,7 @@ def FC3DM_CreateIcPinGullwing(App, Gui,
     B = parms["B"]
     W = parms["W"]
     T = parms["T"]
+    K = parms["K"]
     Tp = parms["Tp"]
     Fr = parms["Fr"]
     Hpe = parms["Hpe"]
@@ -1337,20 +1404,22 @@ def FC3DM_CreateIcPinGullwing(App, Gui,
     App.ActiveDocument=App.getDocument(docName)
     Gui.ActiveDocument=Gui.getDocument(docName)
 
-    # Create box to model IC pin
-    App.ActiveDocument.addObject("Part::Box",pinName)
-    App.ActiveDocument.recompute()
-    Gui.SendMsgToActiveView("ViewFit")
-
-    # Set pin size
-    FreeCAD.getDocument(docName).getObject(pinName).Length = (L/2.0)
-    FreeCAD.getDocument(docName).getObject(pinName).Width = W
-    FreeCAD.getDocument(docName).getObject(pinName).Height = (Hpe + (Tp/2.0))
-
-    # Center the pin at (0,0), set standoff height, and set initial rotation of 0 degrees about Z-axis
-    rot = math.radians(0)
-    FreeCAD.getDocument(docName).getObject(pinName).Placement = App.Placement(App.Vector(0,-1*(W/2),0),App.Rotation(0,0,math.sin(rot/2),math.cos(rot/2)))
-
+    # Prepare to call FC3DM_CreateBox() to create a box for the template pin
+    WriteToDebugFile("About to create box for template pin")
+    maRad = math.radians(maDeg)
+    x = A/2.0 -  (Tp*math.tan(maRad))
+    y = -1*(W/2)
+    H = (Hpe + (Tp/2.0))
+    K = 0.0
+    rotDeg = 0.0
+    boxLength = (L/2.0) - (A/2.0) + (Tp*math.tan(maRad))
+    WriteToDebugFile("boxLength: " + str(boxLength))
+    FC3DM_CreateBox(App, Gui,
+                    boxLength, W, H, K,
+                    x, y, rotDeg, 
+                    docName,
+                    pinName)
+    
     # Cut away top-right part of the IC pin solid
     edges=["Edge4"]
     radius=0.3*Fr	# FIXME:  How to compute the inner radius (here) as a function of outer radius (Fr)???
@@ -1361,6 +1430,7 @@ def FC3DM_CreateIcPinGullwing(App, Gui,
                              edges, radius)
     
     # Cut away lower-left part of the IC pin solid
+    WriteToDebugFile("About to cut lower-left part of the IC pin solid")
     edges=["Edge6"]
     FC3DM_CutWithFilletedBox(App, Gui,
                              docName, pinName,
@@ -1369,18 +1439,35 @@ def FC3DM_CreateIcPinGullwing(App, Gui,
                              edges, radius)
 
     # Fillet (round) some of the gullwing pin edges
+    WriteToDebugFile("About to fillet gullwing pin edges")
     edges=["Edge4","Edge30"]
     FC3DM_FilletObjectEdges(App, Gui,
                             docName, pinName, edges, Fr)
 
-    # Cut away the part of the pin that disappears inside IC body
-    FC3DM_CutObjectWithToolAndKeepTool(App, Gui,
-                                       docName, pinName, bodyName)    
+    WriteToDebugFile("About to cut gullwing pin that exists within IC body") 
+
+    #WriteToDebugFile("A/2.0 is " + str(A/2.0) + "-(W/2.0) is " + str(-(W/2.0)) + " Hpe - Tp/2.0 is " + str( Hpe - Tp/2.0))
+    #WriteToDebugFile("A is " + str(A) + " W is " + str(W) + " Hpe is " + str(Hpe) + " Tp is " + str(Tp))
+    #WriteToDebugFile("maRad " + str(maRad) + "math.pi/4.0" + str(math.pi/4.0))
+
+    # Create a box that will be used to cut the pin so that the pin does not over lap with the body
+    FC3DM_CreateBox(App, Gui,
+                    A, A, A, Hpe - (Tp/2.0),
+                    A/2.0, -(W/2.0), 0, 
+                    docName, "Cutter")
+
+    # Rotate the box just created
+    Draft.rotate(FreeCAD.getDocument(docName).getObject("Cutter"), -90 - maDeg, Base.Vector(A/2.0, -(W/2.0), Hpe - (Tp/2.0)), Base.Vector(0,1,0))
+
+    # Cutting the pin with the box just created so that the pin can fuse with the body later
+    FC3DM_CutWithSpecifiedObject(App, Gui,
+                                 docName, pinName, "Cutter")
 
     # Zoom in on pin model
     Gui.SendMsgToActiveView("ViewFit")
 
     # Color pin red.  FIXME--remove this!
+    WriteToDebugFile("Changing the template gullwing pin red...")
     Gui.getDocument(docName).getObject(pinName).ShapeColor = (1.00,0.00,0.00)
 
     return 0
@@ -1402,6 +1489,8 @@ def FC3DM_CreateIcPinQfn(App, Gui,
                          parms,
                          docName):
                 
+    WriteToDebugFile("Hello from FC3DM_CreateIcPinQfn()")
+
     # Extract relevant parameter values from parms associative array
     # TODO:  Currently no error checking!
     L = parms["L"]
@@ -1425,6 +1514,7 @@ def FC3DM_CreateIcPinQfn(App, Gui,
     Gui.ActiveDocument=Gui.getDocument(docName)
 
     # Prepare to call FC3DM_CreateBox() to create a box for the template pin
+    WriteToDebugFile("About to create box for template pin")
     xBox = ((L/2)-T)
     yBox = -1*(W/2)
     H = Tp
@@ -1438,6 +1528,8 @@ def FC3DM_CreateIcPinQfn(App, Gui,
 
     # See if we need to fillet to create D-shaped pins
     if (hasDshapePads <> 0):
+
+        WriteToDebugFile("QFN has D-shape pads")
         
         # Set the faces that need to be filleted
         edges=["Edge1", "Edge3"]
@@ -1460,6 +1552,7 @@ def FC3DM_CreateIcPinQfn(App, Gui,
 
     ## Copy this to give us a template north side IC pin
     # FIXME:  Must apply offset when QFN/DFN/QFP is not square!!
+    WriteToDebugFile("Copying the east side template pin to create a north side template pin")
     x = 0.0
     y = 0.0
     rotDeg = 90.0
@@ -1498,6 +1591,8 @@ def FC3DM_CreateIcPinEp(App, Gui,
                         epName,
                         docName):
                 
+    WriteToDebugFile("Hello from FC3DM_CreateIcPinEp()")
+
     # Extract relevant parameter values from parms associative array
     # TODO:  Currently no error checking!
     Tp = parms["Tp"]
@@ -1505,6 +1600,7 @@ def FC3DM_CreateIcPinEp(App, Gui,
     Ft = parms["Ft"] #pkgDimsEpChamfer
 
     # Prepare parameters for FC3DM_CreateBox()
+    WriteToDebugFile("Creating box for EP...")
     xBox = (-1*(length/2) + x)
     yBox = (-1*(width/2) + y)
     L = length
@@ -1521,6 +1617,8 @@ def FC3DM_CreateIcPinEp(App, Gui,
     # See if we need to chamfer the pin 1 edge of the EP
     if (Ft > 0.0) :
 
+        WriteToDebugFile("About to chamfer EP")
+        WriteToDebugFile("Chamfer dimension is: " + Ft)
         # Select a priori the edge that needs to be chamfered (determined experimentally)
         edges=["Edge3"]
 
@@ -1533,6 +1631,7 @@ def FC3DM_CreateIcPinEp(App, Gui,
     Gui.SendMsgToActiveView("ViewFit")
 
     # Color pin red.  FIXME--remove this!
+    WriteToDebugFile("Coloring the EP red")
     Gui.getDocument(docName).getObject(epName).ShapeColor = (1.00,0.00,0.00)
 
     return 0
@@ -1546,6 +1645,8 @@ def FC3DM_CreateIcPins(App, Gui,
                        parms, pinNames,
                        docName):
                 
+    WriteToDebugFile("Hello from FC3DM_CreateIcPins()")
+
     # Extract relevant parameter values from parms associative array
     # TODO:  Currently no error checking!
     pinTemplateEast = parms["pinName"]
@@ -1556,6 +1657,7 @@ def FC3DM_CreateIcPins(App, Gui,
 
     # Retrieve EP parameters if needed
     if (hasEp):
+        WriteToDebugFile("Footprint has an EP")
         Tt = parms["Tt"] # pkgDimsEpLengthMax
         Wt = parms["Wt"] # pkgDimsEpWidthMax
         Ft = parms["Ft"] # pkgDimsEpChamfer
@@ -1801,7 +1903,9 @@ def FC3DM_SaveAndExport(App, Gui,
                         docName,
                         parms,
                         objNameList):
-    
+
+    WriteToDebugFile("Hello from FC3DM_SaveAndExport()")
+
     # Extract relevant parameter values from parms associative array
     # TODO:  Currently no error checking!
     newModelPathNameExt = parms["newModelPathNameExt"]
