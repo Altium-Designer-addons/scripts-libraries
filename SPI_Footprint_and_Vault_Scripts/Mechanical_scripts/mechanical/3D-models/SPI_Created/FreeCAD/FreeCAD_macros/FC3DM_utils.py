@@ -6,7 +6,7 @@
 #
 #	@details		
 #
-#    @version		0.4.13
+#    @version		0.4.14
 #					   $Rev::                                                                        $:
 #	@date			  $Date::                                                                        $:
 #	@author			$Author::                                                                        $:
@@ -476,7 +476,7 @@ def FC3DM_DescribeObjectsToLogFile(App, Gui,
     # Loop over all the pin names.
     for pin in pinNames:
 
-        # Initialize an array that is more than big enough to hold all pin vertices
+        # Initialize an array that will store the vertices and be sorted
         pinVertexArray = []
         
         FC3DM_WriteToDebugFile("About to describe pin " + pin + " to log file")
@@ -514,7 +514,7 @@ def FC3DM_DescribeObjectsToLogFile(App, Gui,
     # Declare the soon-to-be color of this object
     fileP.write("Color " + str(parms["colorBody"]) + "\n")
 
-    # Initialize an array that is more than big enough to hold all body vertices 
+    # Initialize an array that will store the vertices and be sorted
     bodyVertexArray = []
     
     # Loop over all the faces in this body.
@@ -540,14 +540,26 @@ def FC3DM_DescribeObjectsToLogFile(App, Gui,
     # Declare the soon-to-be color of this object
     fileP.write("Color " + str(parms["colorPin1Mark"]) + "\n")
 
+    # Initialize an array that will store the vertices and be sorted
+    pin1MarkerVertexArray = []
+
     # Loop over all the faces in this pin1Mark.
     for face in App.ActiveDocument.getObject(pin1MarkName).Shape.Faces:
 
         # Loop over all the vertexes in this pin1Mark
         for vertex in face.Vertexes:
 
-            # Write this vertex to file
-            fileP.write(str(vertex.Point) + '\n')
+                        
+            # Add this pin vertex to an array that will be sorted and printed to the log file
+            pin1MarkerVertexArray.append(str(vertex.Point))
+                
+    # FC3DM_WriteToDebugFile("Pin1 Mark vertices: ")
+    # Write the sorted array to the log file if the line is not null
+    for line in sorted(pin1MarkerVertexArray):
+        if (line != ""):
+            # FC3DM_WriteToDebugFile(line)
+            fileP.write(line + "\n")
+    fileP.write("")
 
 
     # Close the logfile
@@ -1677,13 +1689,15 @@ def FC3DM_CreateIcPinEp(App, Gui,
     if (Rt > 0.0):
         FC3DM_WriteToDebugFile("About to fillet EP corners")
         FC3DM_WriteToDebugFile("EP corner radius is: " + str(Rt))
-
         # Select all four corners of the EP to be filleted
-        edges = ["Edge1", "Edge3", "Edge5", "Edge7"]
+        if (Ft > 0.0):
+            edges = ["Edge1", "Edge5", "Edge7"]
+        else:
+            edges = ["Edge1", "Edge3", "Edge5", "Edge7"]
         FC3DM_FilletObjectEdges(App, Gui,
                                 docName, epName, edges, Rt)
 
-        roundedCorners = True
+        #roundedCorners = True
 
     # See if we need to chamfer the pin 1 edge of the EP
     if (Ft > 0.0) :
@@ -1691,12 +1705,19 @@ def FC3DM_CreateIcPinEp(App, Gui,
         FC3DM_WriteToDebugFile("About to chamfer EP")
         FC3DM_WriteToDebugFile("Chamfer dimension is: " + str(Ft))
         # Select a priori the edge that needs to be chamfered (determined experimentally)
+        #if (roundedCorners):
+        #    edges = ["Edge6", "Edge14"]
+        #else:
         edges=["Edge3"]
-
+        FC3DM_WriteToDebugFile("docName: " + docName + " epName: " + epName + " Ft: " + str(Ft))
+        for edge in edges:
+            FC3DM_WriteToDebugFile(edge)
+        #asdfsadfasdf
         # Call FC3DM_ChamferObjectEdges() to actually do the chamfering
         FC3DM_ChamferObjectEdges(App, Gui,
                                  docName, epName, edges, Ft)
-
+        FC3DM_WriteToDebugFile("Back from FC3DM_ChamferObjectEdges")
+        #asdfasdfsdasdfasdf
 
     # Zoom in on pin model
     Gui.SendMsgToActiveView("ViewFit")
