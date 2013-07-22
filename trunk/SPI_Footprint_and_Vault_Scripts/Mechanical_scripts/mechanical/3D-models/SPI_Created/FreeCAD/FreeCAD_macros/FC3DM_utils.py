@@ -6,7 +6,7 @@
 #
 #	@details		
 #
-#    @version		0.4.14
+#    @version		0.4.15
 #					   $Rev::                                                                        $:
 #	@date			  $Date::                                                                        $:
 #	@author			$Author::                                                                        $:
@@ -885,7 +885,7 @@ def FC3DM_CutWithFilletedBox(App, Gui,
                              edges, radius):
     
     # Create box to use to cut away at body
-    App.ActiveDocument.addObject("Part::Box","Cutter")
+    App.ActiveDocument.addObject("Part::Box", "Cutter")
     App.ActiveDocument.recompute()
     Gui.SendMsgToActiveView("ViewFit")
     FreeCAD.getDocument(docName).getObject("Cutter").Length = L
@@ -904,7 +904,7 @@ def FC3DM_CutWithFilletedBox(App, Gui,
 
     # Pass cutMe and the "Cutter" to FC3DM_CutWithSpecifiedObject() to do all the cutting
     FC3DM_CutWithSpecifiedObject(App, Gui,
-                                 docName, cutMe, "Cutter" )
+                                 docName, cutMe, "Cutter")
 
     return 0
 
@@ -1670,6 +1670,7 @@ def FC3DM_CreateIcPinEp(App, Gui,
     bodyName = parms["bodyName"]
     Ft = parms["Ft"] #pkgDimsEpChamfer
     Rt = parms["Rt"] #pkgDimsEpCornerRadius
+    epPin1ChamferRadius = parms["epPin1ChamferRadius"]
 
     # Prepare parameters for FC3DM_CreateBox()
     FC3DM_WriteToDebugFile("Creating box for EP...")
@@ -1689,36 +1690,59 @@ def FC3DM_CreateIcPinEp(App, Gui,
     if (Rt > 0.0):
         FC3DM_WriteToDebugFile("About to fillet EP corners")
         FC3DM_WriteToDebugFile("EP corner radius is: " + str(Rt))
-        # Select all four corners of the EP to be filleted
-        if (Ft > 0.0):
+        
+        # Select the edges to be filleted. If there is not a pin 1 chamfer, we will
+        # fillet all the edges. Otherwise, we will fillet all the edges except for
+        # the pin 1 chamfer edge
+        if ((Ft > 0.0) or (epPin1ChamferRadius > 0.0)):
             edges = ["Edge1", "Edge5", "Edge7"]
         else:
             edges = ["Edge1", "Edge3", "Edge5", "Edge7"]
+
+        # Call FC3DM_FilletObjectEdges to actually do the filleting
         FC3DM_FilletObjectEdges(App, Gui,
                                 docName, epName, edges, Rt)
+        
+        FC3DM_WriteToDebugFile("Back from FC3DM_FilletObjectEdges()")
 
-        #roundedCorners = True
+    # Sanity check: Ft and epPin1ChamferRadius cannot both be greater than 0.0
+    if ( (Ft > 0.0) and (epPin1ChamferRadius > 0.0) ):
+        FC3DM_WriteToDebugFile("Both Ft and epPin1ChamferRadius are greater than zero!")
+        FC3DM_MyExit(-1)
 
     # See if we need to chamfer the pin 1 edge of the EP
     if (Ft > 0.0) :
 
         FC3DM_WriteToDebugFile("About to chamfer EP")
         FC3DM_WriteToDebugFile("Chamfer dimension is: " + str(Ft))
-        # Select a priori the edge that needs to be chamfered (determined experimentally)
-        #if (roundedCorners):
-        #    edges = ["Edge6", "Edge14"]
-        #else:
+        
+        # Select a priori the edge that needs to be chamfered (determined experimentally).
+        # The pin 1 chamfer edge is the same regardless of whether or not the EP corners
+        # were filleted. 
         edges=["Edge3"]
-        FC3DM_WriteToDebugFile("docName: " + docName + " epName: " + epName + " Ft: " + str(Ft))
-        for edge in edges:
-            FC3DM_WriteToDebugFile(edge)
-        #asdfsadfasdf
+            
         # Call FC3DM_ChamferObjectEdges() to actually do the chamfering
         FC3DM_ChamferObjectEdges(App, Gui,
                                  docName, epName, edges, Ft)
-        FC3DM_WriteToDebugFile("Back from FC3DM_ChamferObjectEdges")
-        #asdfasdfsdasdfasdf
+        
+        FC3DM_WriteToDebugFile("Back from FC3DM_ChamferObjectEdges()")
 
+    # If the EP has a rounded pin 1 chamfer, cut the EP with a cylinder of the specified radius
+    elif ( epPin1ChamferRadius > 0.0 ) :
+
+        FC3DM_WriteToDebugFile("About the chamfer EP using rounded chamfer")
+        FC3DM_WriteToDebugFile("epPin1ChamferRadius is: " + str(epPin1ChamferRadius))
+        
+        # Create a cylinder to use for cutting out for pin 1 marker
+        cylName = "Cutter"
+        FC3DM_CreateCylinderVert(App, Gui,
+                                 docName, cylName, -(W/2.0), L/2.0, 0, epPin1ChamferRadius, Tp)
+        # FC3DM_WriteToDebugFile("Back from FC3DM_CreateCylinderVert()")
+        
+        FC3DM_CutWithSpecifiedObject(App, Gui,
+                                     docName, epName, cylName)
+        FC3DM_WriteToDebugFile("Back from FC3DM_CutWithSpecifiedObject()")
+    
     # Zoom in on pin model
     Gui.SendMsgToActiveView("ViewFit")
 
