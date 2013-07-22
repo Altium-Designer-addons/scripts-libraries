@@ -263,7 +263,7 @@ function CLF_ExtrudeGeometricPolygonInto3d(    boardSide         : Integer;
  ***************************************************************************}
 const
 {* Declare the version and name of this script. *}
-   constScriptVersion          = 'v0.16.27 $Revision$';
+   constScriptVersion          = 'v0.16.28 $Revision$';
    constThisScriptNameNoExt    = 'SPI_Cleanup_LPW_Footprint';
    constThisScriptName         = constThisScriptNameNoExt + '.pas';
 {}
@@ -10309,9 +10309,6 @@ begin
             padDst.SetState_StackCRPctOnLayer(eTopLayer, cornerRadiusPct);
             WriteToDebugFile('New EP CR Pct: ' + FloatToStr(padDst.GetState_StackCRPctOnLayer(eTopLayer)));
 
-			{ FIXME: When we begin to handle non-square EPs, we will need to remove this check. }
-            if (epWidthRounded <> epLengthRounded) then
-               CLF_Abort('EP is not square. Do not know how to handle non-square EP');
          end;
       end;
       

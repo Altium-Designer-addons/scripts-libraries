@@ -6,7 +6,7 @@
 #
 #	@details		
 #
-#    @version		0.4.15
+#    @version		0.4.16
 #					   $Rev::                                                                        $:
 #	@date			  $Date::                                                                        $:
 #	@author			$Author::                                                                        $:
@@ -1034,8 +1034,8 @@ def FC3DM_RotateObjectAboutZ(App, Gui,
 #	Function to create and place a box.
 #
 # Parameter names are per Mentor LP Wizard tool:
-# L == width of body
-# W == length of body
+# W == width of body
+# L == length of body
 # H == height of body
 # K == standoff height of body
 #
@@ -1045,7 +1045,7 @@ def FC3DM_RotateObjectAboutZ(App, Gui,
 # rotDeg == rotation about Z axis, in degrees
 ###################################################################
 def FC3DM_CreateBox(App, Gui,
-                    L, W, H, K,
+                    W, L, H, K,
                     x, y, rotDeg, 
                     docName,
                     bodyName):
@@ -1059,8 +1059,8 @@ def FC3DM_CreateBox(App, Gui,
     Gui.SendMsgToActiveView("ViewFit")
 
     # Set body size
-    FreeCAD.getDocument(docName).getObject(bodyName).Length = L
-    FreeCAD.getDocument(docName).getObject(bodyName).Width = W
+    FreeCAD.getDocument(docName).getObject(bodyName).Length = W
+    FreeCAD.getDocument(docName).getObject(bodyName).Width = L
     FreeCAD.getDocument(docName).getObject(bodyName).Height = (H-K)
 
     # Compute initial rotation about z axis
@@ -1619,10 +1619,13 @@ def FC3DM_CreateIcPinQfn(App, Gui,
                      0, 0, 0, 0)
 
     ## Copy this to give us a template north side IC pin
-    # FIXME:  Must apply offset when QFN/DFN/QFP is not square!!
     FC3DM_WriteToDebugFile("Copying the east side template pin to create a north side template pin")
-    x = 0.0
-    y = 0.0
+    if (A <> B):
+        y = (B/2.0) - (A/2.0)
+    else:
+        y = 0.0
+        
+    x = 0.0   
     rotDeg = 90.0
     FC3DM_CopyObject(App, Gui,
                      x, y, rotDeg,
@@ -1674,15 +1677,15 @@ def FC3DM_CreateIcPinEp(App, Gui,
 
     # Prepare parameters for FC3DM_CreateBox()
     FC3DM_WriteToDebugFile("Creating box for EP...")
-    xBox = (-1*(length/2) + x)
-    yBox = (-1*(width/2) + y)
     L = length
     W = width
+    xBox = (-1*(W/2) + x)
+    yBox = (-1*(L/2) + y)
     H = Tp
     K = 0.0
     rotDeg = 0.0
     FC3DM_CreateBox(App, Gui,
-                    L, W, H, K,
+                    W, L, H, K,
                     xBox, yBox, rotDeg, 
                     docName,
                     epName)
