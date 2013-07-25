@@ -1,0 +1,82 @@
+#summary Library with Net tie and similar components for Altium Designer.
+#labels Library,NetTie,PCB
+
+[https://code.google.com/p/altium-designer-addons/ Download here]
+
+The library NetTieLib is distributed "as is" with no warranty. The library contains special Net Tie components which are used in Altium Designer to split one signal/net into several signals/nets or join several signals/nets into one signal/net. The Net Tie component is in fact creates short circuit connection of the signals. Altium Designer do not reports those short circuit connections as DRC violation if the connection is done by the cooper parts of the Net tie component.
+You can find detailed description of Net Tie components in Documentation\NetTies-and-How-to-Use-Them.pdf. The document was not written by me.
+The library was created as a template. Please feel free to modify the library components according to your design standards.
+
+The library is distributed free of charge. 
+
+NetTieLib.IntLib 	- integrated library NetTieLib which can be installed and used in Altium Designer
+Documentation\ 		- documentation to NetTieLib and Net Tie components in general
+DRC exceptions\ 	- RUL files with DRC exception rules which suppress violations in PcbDoc when NetTieLib components are used
+NetTieLibSampleBoard\	- sample PCB project with all components from the NetTieLib, DRC exception rules applied
+NetTieLibSource\	- source files used for building NetTieLib.IntLib, you can open NetTieLib.LibPkg file in Altium Designer,  modify the library and compile it back into IntLib file which will be located in NetTieLibSource\Outpupt\
+
+*If you have some other net tie components (or other components) which you want to share on Altium Addons page, please let us know via email retry.var (a) gmail.com.* 
+ 
+= Net Tie component? =
+
+on layer split join.
+net tie via
+[Documentation\NetTies-and-How-to-Use-Them.pdf NetTies-and-How-to-Use-Them.pdf]
+
+
+= Library design parameters =
+The library design parameters were set by need of regular low and medium density boards. Footprints should be modified accordingly to comply wiht design standards used for the rest of the board.   
+Clearance 0.2mm
+*Footprint variants by suffix*
+  * _LP = Low Power - for track width up to 12mil/0.3mm ~ max. 1A@(Cu 18um, temp rise 10°C) 
+  * _MP = Medium Power - for track width up to 40mil/1mm ~ max. 2.5A@(Cu 18um, temp rise 10°C)
+  * _HP = High Power - for track width up to 120mil/3mm ~ max. 5A@(Cu 18um, temp rise 10°C)
+Net tie vias LP, MP, HP are through hole vias with hole 0.3, 0.6 and 0.8mm and outer diameter 0.6, 1.0 and 1.4mm. 
+
+= Design Rule Check Violations =
+Net Tie components produce some of DRC violations. These violation should be addressed by additional rules - exceptions - from the standard technology.
+
+
+
+= List of library components =
+|| Name || Symbol(s) || Footprint sample || Description || Note ||
+|| 2way || [https://altium-designer-addons.googlecode.com/svn/trunk/Lib_NetTieLib/Documentation/wiki/2wayPCB.png] || [https://altium-designer-addons.googlecode.com/svn/trunk/Lib_NetTieLib/Documentation/wiki/2wayPCB.png] || 2 way net tie junction ||  || 
+|| 3wayT || [https://altium-designer-addons.googlecode.com/svn/trunk/Lib_NetTieLib/Documentation/wiki/2wayPCB.png] || [https://altium-designer-addons.googlecode.com/svn/trunk/Lib_NetTieLib/Documentation/wiki/2wayPCB.png] || 3 way net tie junction T shape ||  ||
+|| 3wayY || [https://altium-designer-addons.googlecode.com/svn/trunk/Lib_NetTieLib/Documentation/wiki/2wayPCB.png] || [https://altium-designer-addons.googlecode.com/svn/trunk/Lib_NetTieLib/Documentation/wiki/2wayPCB.png] || 3 way net tie junction Y shape ||  ||
+|| 4way || [https://altium-designer-addons.googlecode.com/svn/trunk/Lib_NetTieLib/Documentation/wiki/2wayPCB.png] || [https://altium-designer-addons.googlecode.com/svn/trunk/Lib_NetTieLib/Documentation/wiki/2wayPCB.png] || 4 way net tie junction ||  ||
+|| NetTieVia || [https://altium-designer-addons.googlecode.com/svn/trunk/Lib_NetTieLib/Documentation/wiki/2wayPCB.png] || [https://altium-designer-addons.googlecode.com/svn/trunk/Lib_NetTieLib/Documentation/wiki/2wayPCB.png] || Net Tie Via ||  ||
+|| StarPoint || [https://altium-designer-addons.googlecode.com/svn/trunk/Lib_NetTieLib/Documentation/wiki/2wayPCB.png] || [https://altium-designer-addons.googlecode.com/svn/trunk/Lib_NetTieLib/Documentation/wiki/2wayPCB.png] || Star point for definition of starburst topology ||  ||
+|| 2waySolderNC || [https://altium-designer-addons.googlecode.com/svn/trunk/Lib_NetTieLib/Documentation/wiki/2wayPCB.png] || [https://altium-designer-addons.googlecode.com/svn/trunk/Lib_NetTieLib/Documentation/wiki/2wayPCB.png] || 2 way net solder junction - Normally Connected ||  ||
+|| 2waySolderNO || [https://altium-designer-addons.googlecode.com/svn/trunk/Lib_NetTieLib/Documentation/wiki/2wayPCB.png] || [https://altium-designer-addons.googlecode.com/svn/trunk/Lib_NetTieLib/Documentation/wiki/2wayPCB.png] || 2 way net solder junction - Normally Open ||  ||
+|| 3waySolder || [https://altium-designer-addons.googlecode.com/svn/trunk/Lib_NetTieLib/Documentation/wiki/2wayPCB.png] || [https://altium-designer-addons.googlecode.com/svn/trunk/Lib_NetTieLib/Documentation/wiki/2wayPCB.png] || 3 way net solder junction ||  ||
+
+
+RULimport.png
+NetTieLibSamplePCB.png
+NetTieLibSampleSchematic2.png
+2waySolder3D.png
+3waySolder3D.png
+NetTieVias2D.png
+NetTieVias3D.png
+2waySch.png
+2waySolderNCPCB.png
+2waySolderNCSch.png
+2waySolderNOPCB.png
+2waySolderNOSch.png
+3waySolderPCB.png
+3waySolderSch.png
+3wayTPCB.png
+3wayTSch.png
+3wayYPCB.png
+3wayYSch.png
+4wayCrossSch.png
+4wayHSch.png
+4wayPCB.png
+NetTieViaPCB.png
+NetTieViaSch.png
+StarPointPCB.png
+StarPointSch.png
+2wayPCB.png
+NetTieViasPadClass.png
+
+= Sample Board = 
