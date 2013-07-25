@@ -6,7 +6,6 @@ You can find detailed description of Net Tie components in Documentation\NetTies
 The library was created as a template. Please feel free to modify the library components according to your design standards.
 
 The library is distributed free of charge. 
-Please send your comments and error reports to PetrTos (a) gmail.com .
 
 NetTieLib.IntLib 		- integrated library NetTieLib which can be installed and used in Altium Designer
 Documentation\ 			- documentation to NetTieLib and Net Tie components in general
@@ -15,6 +14,7 @@ NetTieLibSampleBoard\	- sample PCB project with all components from the NetTieLi
 NetTieLibSource\		- source files used for building NetTieLib.IntLib, you can open NetTieLib.LibPkg file in Altium Designer,
 						  modify the library and compile it back into IntLib file which will be located in NetTieLibSource\Outpupt\
 
+Please send your comments and error reports to PetrTos (a) gmail.com .
 I hope the library will be usefull for you.
 
 Petr Tosovsky
