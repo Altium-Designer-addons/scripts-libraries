@@ -7,7 +7,6 @@
 *If you have some other net tie components or other components which you want to share on Altium Addons page, please let us know via email retry.var (a) gmail.com.* 
 
 The library NetTieLib is distributed "as is" with no warranty. The library contains special Net Tie components which are used in Altium Designer to split one signal/net into several signals/nets or join several signals/nets into one signal/net. The Net Tie component is in fact creates short circuit connection of the signals. Altium Designer do not reports those short circuit connections as DRC violation if the connection is done by the cooper parts of the Net tie component.
-You can find detailed description of Net Tie components in Documentation\NetTies-and-How-to-Use-Them.pdf. The document was not written by me.
 The library was created as a template. Please feel free to modify the library components according to your design standards.
 
 The library is distributed free of charge. 
@@ -28,6 +27,7 @@ Detiled description of Net Tie component type - [https://altium-designer-addons.
 
 = Library design parameters =
 The library design parameters were set by need of regular low and medium density boards. Footprints should be modified accordingly to comply with your design standards or needs - different clearance, smaller/bigger footprints, microvias, burried/blind vias etc.   
+
 Clearance 0.2mm = distance of pads including attached track ends to other pads with their trackends
 == Footprint variants by suffix ==
   * LP = Low Power - for track width up to 12mil/0.3mm ~ max. 1A@(Cu 18um, temp rise 10°C) 
@@ -36,7 +36,7 @@ Clearance 0.2mm = distance of pads including attached track ends to other pads w
 Net tie vias LP, MP, HP are through hole vias with hole 0.3, 0.6 and 0.8mm and outer diameter 0.6, 1.0 and 1.4mm. 
 
 = Design Rule Check exceptions =
-Net Tie components produce some of DRC violations. These violation should be addressed by additional rules - exceptions - from the standard technology. The rule exceptions are prepared in folder _DRC exceptions_ in NetTieLib package. There are 3 files included
+Net Tie components produce some of DRC violations. These violation should be addressed by additional rules - exceptions - from the standard technology. The rule exceptions are prepared in folder _DRC exceptions_ in NetTieLib package. There are 3 files included, please use/modify those rules in context of your design.
   * *NetTieViasHoleToHole.RUL* - rule necessary for suppressing HoleToHole violation when NetTieVia component is used. Routing of these components is usually done in Ignore Obstacles routing mode. All pads of the NetTieVias must be added to Pad Class with name NetTieVias unde Design >> Classes.
 
 [https://altium-designer-addons.googlecode.com/svn/trunk/Lib_NetTieLib/Documentation/wiki/NetTieViasPadClass.png]
@@ -45,9 +45,6 @@ Net Tie components produce some of DRC violations. These violation should be add
   * *NetTieComponentClearance.RUL* - rule which removes 3D component clearance check to NetTieLib components (excluding Solder junctions) what allows to have them under other components
 The rules can be imported in PCB editor by menu Design >> Rules and righ mouse click on Design Rules item in the tree list and selecting Import Rules
 [https://altium-designer-addons.googlecode.com/svn/trunk/Lib_NetTieLib/Documentation/wiki/RULimport.png]
-
-Please check those rules in context of your design.
-
 
 
 = List of library components =
