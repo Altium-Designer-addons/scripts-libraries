@@ -16,7 +16,7 @@ The library is distributed free of charge.
   * *[NetTieLib#List_of_library_components NetTieLib.IntLib]* - integrated library NetTieLib which can be installed and used in Altium Designer
   * *Documentation\* - documentation to NetTieLib and Net Tie components in general
   * *[NetTieLib#Design_Rule_Check_exceptions DRC exceptions\]* - RUL files with DRC exception rules which suppress violations in PcbDoc when NetTieLib components are used
-  * *[NetTieLib#Sample_board NetTieLibSampleBoard\]* - sample PCB project with all components from the NetTieLib, DRC exception rules applied
+  * *[NetTieLib#Sample_Board NetTieLibSampleBoard\]* - sample PCB project with all components from the NetTieLib, DRC exception rules applied
   * *NetTieLibSource\* - source files used for building NetTieLib.IntLib, you can open NetTieLib.LibPkg file in Altium Designer,  modify the library and compile it back into IntLib file which will be located in NetTieLibSource\Outpupt\
 
 
@@ -54,8 +54,8 @@ Please check those rules in context of your design.
 
 = List of library components =
 || Name || Symbol(s) || Footprint (MP version only) || Description || Note ||
-|| 2way || [https://altium-designer-addons.googlecode.com/svn/trunk/Lib_NetTieLib/Documentation/wiki/2waySch.png] || [https://altium-designer-addons.googlecode.com/svn/trunk/Lib_NetTieLib/Documentation/wiki/2wayPCB.png] || 2 way net tie junction ||  || 
-|| 3wayT || [https://altium-designer-addons.googlecode.com/svn/trunk/Lib_NetTieLib/Documentation/wiki/3wayTSch.png] || [https://altium-designer-addons.googlecode.com/svn/trunk/Lib_NetTieLib/Documentation/wiki/3wayTPCB.png] || 3 way net tie junction T shape ||  ||
+|| 2way || [https://altium-designer-addons.googlecode.com/svn/trunk/Lib_NetTieLib/Documentation/wiki/2waySch.png] || [https://altium-designer-addons.googlecode.com/svn/trunk/Lib_NetTieLib/Documentation/wiki/2wayPCB.png] || 2 way net tie junction || Typically used for joining two nets together, e.g. AGND and DGND || 
+|| 3wayT || [https://altium-designer-addons.googlecode.com/svn/trunk/Lib_NetTieLib/Documentation/wiki/3wayTSch.png] || [https://altium-designer-addons.googlecode.com/svn/trunk/Lib_NetTieLib/Documentation/wiki/3wayTPCB.png] || 3 way net tie junction T shape || Typically used for splitting signal to two receivers on board, e.g. clock signal to 2 ICs  ||
 || 3wayY || [https://altium-designer-addons.googlecode.com/svn/trunk/Lib_NetTieLib/Documentation/wiki/3wayYSch.png] || [https://altium-designer-addons.googlecode.com/svn/trunk/Lib_NetTieLib/Documentation/wiki/3wayYPCB.png] || 3 way net tie junction Y shape ||  ||
 || 4way || [https://altium-designer-addons.googlecode.com/svn/trunk/Lib_NetTieLib/Documentation/wiki/4wayCrossSch.png][https://altium-designer-addons.googlecode.com/svn/trunk/Lib_NetTieLib/Documentation/wiki/4wayHSch.png] || [https://altium-designer-addons.googlecode.com/svn/trunk/Lib_NetTieLib/Documentation/wiki/4wayPCB.png] || 4 way net tie junction || Schematic symbol has alternative graphics, see component Properties >> Display mode in schematic editor. ||
 || NetTieVia || [https://altium-designer-addons.googlecode.com/svn/trunk/Lib_NetTieLib/Documentation/wiki/NetTieViaSch.png] || [https://altium-designer-addons.googlecode.com/svn/trunk/Lib_NetTieLib/Documentation/wiki/NetTieViaPCB.png] || Net Tie Via || Connected signals are usually spread on different layers. Ignore Obsatacles routing mode should be used. ||
