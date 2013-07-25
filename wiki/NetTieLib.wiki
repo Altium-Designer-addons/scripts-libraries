@@ -44,6 +44,7 @@ Net Tie components produce some of DRC violations. These violation should be add
   * *GNDtopologyStar.RUL* - rule defines StarPoint component as a center of starburst routing topology in GND net
   * *NetTieComponentClearance.RUL* - rule which removes 3D component clearance check to NetTieLib components (excluding Solder junctions) what allows to have them under other components
 The rules can be imported in PCB editor by menu Design >> Rules and righ mouse click on Design Rules item in the tree list and selecting Import Rules
+
 [https://altium-designer-addons.googlecode.com/svn/trunk/Libs_NetTieLib/Documentation/wiki/RULimport.png]
 
 
