@@ -22,10 +22,8 @@ The library is distributed free of charge.
 
  
 = Net Tie component? =
-
-on layer split join.
-net tie via
-[https://altium-designer-addons.googlecode.com/svn/trunk/Lib_NetTieLib/Documentation/NetTies-and-How-to-Use-Them.pdf NetTies-and-How-to-Use-Them.pdf]
+Special kind of component in Altium Designer which aims to join or split signals in particular point on board. This can be done on a layer (mos of components in NetTieLib) or by via on different layers (NetTieVia component).
+Detiled description of Net Tie component type - [https://altium-designer-addons.googlecode.com/svn/trunk/Lib_NetTieLib/Documentation/NetTies-and-How-to-Use-Them.pdf NetTies-and-How-to-Use-Them.pdf]
 
 
 = Library design parameters =
