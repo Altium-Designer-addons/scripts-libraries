@@ -6,7 +6,7 @@
 #
 #	@details		
 #
-#    @version		0.4.16
+#    @version		0.4.17
 #					   $Rev::                                                                        $:
 #	@date			  $Date::                                                                        $:
 #	@author			$Author::                                                                        $:
@@ -499,7 +499,8 @@ def FC3DM_DescribeObjectsToLogFile(App, Gui,
                 
         # FC3DM_WriteToDebugFile(pin + " vertices: ")
         # Write the sorted array to the log file if the line is not null
-        for line in sorted(pinVertexArray):
+        pinVertexArray.sort(FC3DM_SortPinNames)
+        for line in pinVertexArray:
             if (line != ""):
                 # FC3DM_WriteToDebugFile(line)
                 fileP.write(line + "\n")
@@ -527,7 +528,8 @@ def FC3DM_DescribeObjectsToLogFile(App, Gui,
 
     # FC3DM_WriteToDebugFile("Body vertices: ")
     # Write the sorted array to the log file if the line is not null
-    for line in sorted(bodyVertexArray):
+    bodyVertexArray.sort(FC3DM_SortPinNames)
+    for line in bodyVertexArray:
         if (line != ""):
             # FC3DM_WriteToDebugFile(bodyVertexArray[i])
             fileP.write(line + "\n")
@@ -555,7 +557,8 @@ def FC3DM_DescribeObjectsToLogFile(App, Gui,
                 
     # FC3DM_WriteToDebugFile("Pin1 Mark vertices: ")
     # Write the sorted array to the log file if the line is not null
-    for line in sorted(pin1MarkerVertexArray):
+    pin1MarkerVertexArray.sort(FC3DM_SortPinNames)
+    for line in pin1MarkerVertexArray:
         if (line != ""):
             # FC3DM_WriteToDebugFile(line)
             fileP.write(line + "\n")
@@ -609,6 +612,7 @@ def FC3DM_FuseSetOfObjects(App, Gui,
                            docName, objNameList, fusionName):
 
     print("Hello world from FuseSetOfObjects!")
+    FC3DM_WriteToDebugFile("Hello from FC3DM_FuseSetOfObjects()")
 
     # Extract relevant parameter values from parms associative array
     # TODO:  Currently no error checking!
@@ -1034,8 +1038,8 @@ def FC3DM_RotateObjectAboutZ(App, Gui,
 #	Function to create and place a box.
 #
 # Parameter names are per Mentor LP Wizard tool:
-# W == width of body
-# L == length of body
+# L == width of body
+# W == length of body
 # H == height of body
 # K == standoff height of body
 #
@@ -1045,7 +1049,7 @@ def FC3DM_RotateObjectAboutZ(App, Gui,
 # rotDeg == rotation about Z axis, in degrees
 ###################################################################
 def FC3DM_CreateBox(App, Gui,
-                    W, L, H, K,
+                    L, W, H, K,
                     x, y, rotDeg, 
                     docName,
                     bodyName):
@@ -1059,8 +1063,8 @@ def FC3DM_CreateBox(App, Gui,
     Gui.SendMsgToActiveView("ViewFit")
 
     # Set body size
-    FreeCAD.getDocument(docName).getObject(bodyName).Length = W
-    FreeCAD.getDocument(docName).getObject(bodyName).Width = L
+    FreeCAD.getDocument(docName).getObject(bodyName).Length = L
+    FreeCAD.getDocument(docName).getObject(bodyName).Width = W
     FreeCAD.getDocument(docName).getObject(bodyName).Height = (H-K)
 
     # Compute initial rotation about z axis
@@ -1394,10 +1398,10 @@ def FC3DM_CreateIcBody(App, Gui,
     # TODO:  This is currently hardcoded!
     # TODO:  This must be revisited for BGA, etc.!
     # Only do the filleting if we have a mold angle
-    if ( (maDeg > 0) and (footprintType <> "SOIC") ):    
-
-        FC3DM_FilletObjectEdges(App, Gui,
-                                docName, bodyName, edges, Frbody)
+    #if ( (maDeg > 0) and (footprintType <> "SOIC") ):    
+    #
+    #    FC3DM_FilletObjectEdges(App, Gui,
+    #                            docName, bodyName, edges, Frbody)
 
 
     ## Prepare to make pin 1 marker
@@ -1456,6 +1460,9 @@ def FC3DM_CreateIcPinGullwing(App, Gui,
     Hppl = parms["Hppl"]
     pinName = parms["pinName"]
     bodyName = parms["bodyName"]
+    footprintType = parms["footprintType"]
+    
+    pinTemplateNorth = "pinTemplateNorth"
     
     # Configure active document
     App.ActiveDocument=None
@@ -1538,6 +1545,38 @@ def FC3DM_CreateIcPinGullwing(App, Gui,
     FC3DM_WriteToDebugFile("Changing the template gullwing pin red...")
     Gui.getDocument(docName).getObject(pinName).ShapeColor = (1.00,0.00,0.00)
 
+    ## Copy this to give us a template north side IC pin
+    if ( footprintType == "QFP" ):
+        FC3DM_WriteToDebugFile("Copying the east side template pin to create a north side template pin")
+        if (A <> B):
+            FC3DM_WriteToDebugFile("Package is rectangular")
+            y = (B/2.0) - (A/2.0)
+        else:
+            FC3DM_WriteToDebugFile("Package is square")
+            y = 0.0
+            
+        x = 0.0   
+        rotDeg = 90.0
+        FC3DM_WriteToDebugFile("Dumping params to debug file: " + str(x) + " "  + str(y) + " " + str(rotDeg) + " " + docName + " " + pinName + " " + pinTemplateNorth)
+        FC3DM_CopyObject(App, Gui,
+                         x, y, rotDeg,
+                         docName,
+                         pinName,
+                         pinTemplateNorth)
+        FC3DM_WriteToDebugFile("Back from copying template pin to north side")
+        
+
+        
+        # Perform a useless cut on the north side pin so that the coordinates are reset
+        FC3DM_CreateBox(App, Gui,
+                        A, A, A, 0,
+                        W/2.0, B/2.0 -( Tp*(math.tan(maRad))), 0, 
+                        docName, "Cutter")
+        
+        FC3DM_CutWithSpecifiedObject(App, Gui,
+                                     docName, pinTemplateNorth, "Cutter")
+        
+        
     return 0
 
 
@@ -1673,7 +1712,11 @@ def FC3DM_CreateIcPinEp(App, Gui,
     bodyName = parms["bodyName"]
     Ft = parms["Ft"] #pkgDimsEpChamfer
     Rt = parms["Rt"] #pkgDimsEpCornerRadius
-    epPin1ChamferRadius = parms["epPin1ChamferRadius"]
+    
+    if ("epPin1ChamferRadius" in parms):
+        epPin1ChamferRadius = parms["epPin1ChamferRadius"]
+    else:
+        epPin1ChamferRadius = 0.0
 
     # Prepare parameters for FC3DM_CreateBox()
     FC3DM_WriteToDebugFile("Creating box for EP...")
@@ -1786,7 +1829,7 @@ def FC3DM_CreateIcPins(App, Gui,
 
     ## Call the appropriate function to create the prototype IC pin
     # Handle Gullwing ICs        
-    if ( (footprintType == "SOP") or (footprintType == "SOIC") or (footprintType == "SOT") ):
+    if ( (footprintType == "SOP") or (footprintType == "SOIC") or (footprintType == "SOT") or (footprintType == "QFP") ):
 
         # Call CreateIcPin() to create template east side Gullwing IC pin
         FC3DM_CreateIcPinGullwing(App, Gui,
@@ -1807,6 +1850,7 @@ def FC3DM_CreateIcPins(App, Gui,
         FC3DM_WriteToDebugFile("Abort message: Footprint type is unsupported!")
         FC3DM_MyExit(-1)
 
+    FC3DM_WriteToDebugFile("Back from creating template IC pin")
     print("Back from creating template IC pin.")
 
 
@@ -1977,7 +2021,7 @@ def FC3DM_CreateIcPins(App, Gui,
     # Remove the pin template object(s)
     App.getDocument(docName).removeObject(pinTemplateEast)
 
-    if (footprintType == "QFN"):
+    if ( (footprintType == "QFN") or (footprintType == "QFP") ):
         App.getDocument(docName).removeObject(pinTemplateNorth)
 
     return 0
