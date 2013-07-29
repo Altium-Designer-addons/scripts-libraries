@@ -5,7 +5,8 @@ Download [addons Download Altium PCB Project Template]
 
 = Altium PCB Project Template =
 PCB Project Template is sample project template for Altium Designer with all necessary settings of source documents and settings of output generation process. It should make starting of a new project easier. Please read [#Terms_of_use Terms of use] at the end of this page.
-Difference of 2 layer and 4 layer board is in the PcbDoc file (number of layers, documentation details) and in setup fog generation output files.
+
+The difference of 2 layer and 4 layer board template is in the PcbDoc file (number of layers, documentation details) and in the setup for generation output files.
 
 = How to start my project using this template =
 
