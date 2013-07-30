@@ -114,8 +114,8 @@ PCB file contains settings of layer stackup, naming of mechanical layers, layer 
     * *Assembly Bot* (Mech 9) - as above for the bottom side of the board
     * *3D Top* (Mech 13) - 3D models for top side components
     * *3D Bot* (Mech 14) - as above for the bottom side components
-    * *Courtyard Top* (Mech 15) - 
-    * *Courtyard Bot* (Mech 16) - as above for the bottom side of the board
+    * *Courtyard Top* (Mech 15) - outline of the component including space needed for assembly purposes where no other components should be placed
+    * *Courtyard Bot* (Mech 16) - as above for the bottom side components on the board
 Note: Top and Bot layers are linked by layer pairs settings in the PCB file, the data will be distributed into the layers automatically when the component is flipped to other board side. 
 
 Hint: settings of mechanical layers can be imported/exported by [https://code.google.com/p/altium-designer-addons/downloads/detail?name=MechLayerNames_v2.0.zip&can=2&q= MechLayerNames] script. Settings from the template are stored in PCB\additional\ folder.
