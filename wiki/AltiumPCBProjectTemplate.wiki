@@ -65,7 +65,7 @@ This template is using fixed folder structure. The folders contain following fil
     * *DiffReport\* - results of consistency check between schematics and PCB (HTML)
     * *DRC\* - results of Design Rule Check of PCB (HTML)
     * *ERC\* - results of Electrical Rule Check of schematics (HTML)
-  * *Libraries\* - project related libraries, usually not necessary, DXP » Preferences » Data Management » Installed Libraries used instead (SchLib, PcbLib, IntLib), template contains Stamp.SchLib (schematic library with tile block for schematic files) and Fiducial.PcbLib (footprint/package library with fiducial marker)
+  * *Libraries\* - project related libraries, usually not necessary, DXP » Preferences » Data Management » Installed Libraries used instead (SchLib, PcbLib, IntLib), template contains Stamp.SchLib (schematic library with title block for schematic files) and Fiducial.PcbLib (footprint/package library with fiducial marker)
   * *PCB\* - PCB file (PcbDoc)
     * *additional* - script and configuration files for mechanical layers naming, exported DRC settings, screenshots of some settings in the PCB (INI, RUL. PNG)
   * *Settings\* - settings of batch output generation (OutJob)
@@ -93,49 +93,49 @@ This template is using fixed folder structure. The folders contain following fil
 Hint: Document Parameters of all schematic documents can be modified together through Tools » Parameter Manager set to Documents options only. Keep option Exclude System Parameters unchecked.
 
 == PCB ==
-PCB file contains settings of layer stackup, naming of mechanical layers, layer pairs, layer sets (predefined sets of displayed layers) and basic set of rules usually given by PCB manufacturing technology. PCB used in this template is using clearance 0.2mm, minimum track width 0.16mm, via diameter 0.3mm and via annular ring 0.2mm what comply (wit some margin) with Fusion service by Seeed Studio and other manufacturing services. 
-  * *Default Grid* - 0.1mm, it will not produce any big issue when you change grid or even units used in the PCB during drawing
-  * *Technology Design Rules* - defines technology limits mentioned above
+PCB file contains settings of layer stackup, naming of mechanical layers, layer pairs, layer sets (predefined sets of displayed layers) and basic set of rules usually given by PCB manufacturing technology. PCB used in this template is using clearance 0.2mm, minimum track width 0.16mm, via diameter 0.3mm and via annular ring 0.2mm what comply (including some margin) with Fusion service by Seeed Studio and other manufacturing services. 
+  * *Default Grid* - 0.1mm, it will not produce any big issue when you change grid or even units used in the PCB during layout
+  * *Technology Design Rules* - basic rules with highest priority number defines technology limits mentioned above, other rules (exceptions) has to have lower number of priority and can't break the values given by technology limits to keep board manufacturability 
   * *Additional Design rules*
     * *ClearanceGNDpolygons* - exception of general clearance rule for polygons which are members of GNDpolygons class in Design » Classes » Polygon Classes to be able define setback for polygons independently.
-    * *ClearancePadVia* - additional clearance in between component pads and vias in general to keep vias in distance from pads
+    * *ClearancePadVia* - additional clearance between component pads and vias to keep vias in distance from pads (because of assembly issues)
     * Note: All design rules are exported to RUL files in PCB\ folder. You can import the rules by Design » Rules dialog to another PCB files.
-  * PCB file contains simple tile block/stamp drawn directly in the PCB file. Values are loaded from Global/Project parameters and system parameters. Primitives of the stamp are locked to prevent unwanted moving.
+  * PCB file contains simple *title block*/stamp drawn directly in the PCB file. Values are loaded from Global/Project parameters and system parameters. Primitives of the stamp are locked to prevent unwanted moving.
   * *Copper Layers*
     * 2 layer PCB [https://altium-designer-addons.googlecode.com/svn/trunk/AltiumPCBProjectTemplate/2%20Layer%20PCB%20template/PCB/info/2%20Layer%20PCB%20template.png]
-    * 4 layer PCB [https://altium-designer-addons.googlecode.com/svn/trunk/AltiumPCBProjectTemplate/4%20Layer%20PCB%20template/PCB/info/4%20Layer%20PCB%20template.png]
+    * 4 layer PCB - planes are inverse layers (line drawn in this layer mean there will be a gap in copper) used for power supply distribution, they can be split into smaller regions with different net attached by closed shapes drawn by lines, see Altium wiki page [http://wiki.altium.com/display/ADOH/Internal+Power+and+Split+Planes Split Planes] [https://altium-designer-addons.googlecode.com/svn/trunk/AltiumPCBProjectTemplate/4%20Layer%20PCB%20template/PCB/info/4%20Layer%20PCB%20template.png]
   * *Mechanical layers* usage
     * *Outlines* (Mech 1) - board outline, use Design » Board Shape » Define from selected primitives to update actual Board Shape from this layer
-    * *Dimensions* (Mech 2) - dimensions of board shape and important objects (holes)
-    * *Ref* (Mech 5) - auxiliary reference data in components (e.g. important coordinates in connectors) 
+    * *Dimensions* (Mech 2) - dimensions of board shape and important objects (mounting holes)
+    * *Ref* (Mech 5) - auxiliary reference data in components (e.g. important spots in connectors) 
     * *Assembly Text Top* (Mech 6) - text reference for assembly of components on top side (typically ".designator" strings)
     * *Assembly Text Bot* (Mech 7) - as above for the bottom side of the board
     * *Assembly Top* (Mech 8) - outline and pin 1 marking for components on top side (similar to component silkscreen but without clipping by exposed copper)
     * *Assembly Bot* (Mech 9) - as above for the bottom side of the board
-    * *3D Top* (Mech 13) - 3D models for components
-    * *3D Bot* (Mech 14) - as above for the bottom side of the board
+    * *3D Top* (Mech 13) - 3D models for top side components
+    * *3D Bot* (Mech 14) - as above for the bottom side components
     * *Courtyard Top* (Mech 15) - 
     * *Courtyard Bot* (Mech 16) - as above for the bottom side of the board
-Note: Top and Bot layers are linked by layer pairs settings in the PCB file, the data will be distributed into the layers automatically
+Note: Top and Bot layers are linked by layer pairs settings in the PCB file, the data will be distributed into the layers automatically when the component is flipped to other board side. 
 
-Hint: settings of mechanical layers can be imported/exported by [https://code.google.com/p/altium-designer-addons/downloads/detail?name=MechLayerNames_v2.0.zip&can=2&q= MechLayerNames script]
+Hint: settings of mechanical layers can be imported/exported by [https://code.google.com/p/altium-designer-addons/downloads/detail?name=MechLayerNames_v2.0.zip&can=2&q= MechLayerNames] script. Settings from the template are stored in PCB\additional\ folder.
   
 == Outputs ==
-Outputs from the PCB projects has many options so the setup is fixed in OutputJob file which is able to run batch generation of outputs. The Outputs.OutJob is split into several containers (output folders according to the output type). You should click on Generate content in all containers separately to get complete set of updated output date. Predefined containers:
-  * *Checks* - validation process, you should check all outputs in Checks folder befor you create final data
-  * *Documentation* - PDF file container with schematic and PCB printouts
+Outputs from the PCB projects has many options so the setup is fixed in OutputJob file which is able to run batch generation of outputs. The Outputs.OutJob is split into several containers (output folders according to the output type). You should click on Generate content in all containers separately to get complete set of updated output data. Predefined containers:
+  * *Checks* - validation process, you should check all outputs in Checks folder before you create final data
+  * *Documentation* - PDF file container with schematic and PCB printouts including 3D board views
     * *Schematic Prints* - schematic sheets printout
     * *PCB View* - one page PCB composite view
-    * *Dimensions* - board dimensions
-    * *Layout* - routing of each copper layer seprately (visual routing check)
-    * *Layout test* footprints - top and bottom copper layers with only pads displayed for testing printouts on paper printout before boar manufacturing
+    * *Dimensions* - board dimensions drawing
+    * *Layout* - routing of each copper layer separately (visual routing check)
+    * *Layout test footprints* - top and bottom copper layers with only pads displayed for testing footprints/packages on paper printout before board manufacturing
     * *Assembly* - assembly drawing from top and bottom side
     * *PCB 3D Print Top* - PCB 3D view from top
     * *PCB 3D Print Bottom* - PCB 3D view from bottom
-	  * Hint: 3D views can be set by positioning the 3D view directly in PcbDoc an using "Take current camera position" button in the output properties
-  * *Fabrication* - Gerber files, drill files for CNC drill machine and assembly bill of material and pick and place data for assembly machine
-  * *BOM* - purchase bill of material
-  * *Export 3D* - export od PCB 3D model into 3D STEP file
+	  * Hint: 3D views can be set by positioning the 3D view directly in PCB file and using "Take current camera position" button in the output properties in Output.OutJob file
+  * *Fabrication* - Gerber files (RS-274X, 2:5, imperial), drill files for CNC drill machine (2:5, imperial), assembly bill of material and pick and place data for assembly machine
+  * *BOM* - bill of material for component purchasing purposes
+  * *Export 3D* - export of PCB 3D model into 3D STEP file
 
 = What's next =
 Please check all settings and in case of doubt discuss the settings with your manufacturer specifically. 
