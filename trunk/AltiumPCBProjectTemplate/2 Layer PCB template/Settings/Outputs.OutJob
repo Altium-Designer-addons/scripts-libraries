@@ -21,7 +21,7 @@ TargetOutputMedium=Documentation
 VariantName=[No Variations]
 VariantScope=1
 CurrentConfigurationName=
-TargetPrinter=PDFill PDF&Image Writer
+TargetPrinter=Microsoft XPS Document Writer
 PrinterOptions=Record=PrinterOptions|Copies=1|Duplex=1|TrueTypeOptions=3|Collate=1|PrintWhat=1
 OutputMedium1=Print Job
 OutputMedium1_Type=Printer
@@ -208,7 +208,7 @@ OutputEnabled8_OutputMedium4=0
 OutputEnabled8_OutputMedium5=0
 OutputEnabled8_OutputMedium6=0
 OutputDefault8=0
-PageOptions8=Record=PageOptions|CenterHorizontal=True|CenterVertical=True|PrintScale=0.99|XCorrection=1.00|YCorrection=1.00|PrintKind=0|BorderSize=5000000|LeftOffset=0|BottomOffset=0|Orientation=2|PaperLength=1000|PaperWidth=1000|Scale=100|PaperSource=7|PrintQuality=-4|MediaType=1|DitherType=10|PaperKind=A4|PrintScaleMode=1
+PageOptions8=Record=PageOptions|CenterHorizontal=True|CenterVertical=True|PrintScale=1.00|XCorrection=1.00|YCorrection=1.00|PrintKind=0|BorderSize=5000000|LeftOffset=0|BottomOffset=0|Orientation=2|PaperLength=1000|PaperWidth=1000|Scale=100|PaperSource=7|PrintQuality=-4|MediaType=1|DitherType=10|PaperKind=A4|PrintScaleMode=0
 Configuration8_Name1=OutputConfigurationParameter1
 Configuration8_Item1=DesignatorDisplayMode=Physical|PrintArea=DesignExtent|PrintAreaLowerLeftCornerX=0|PrintAreaLowerLeftCornerY=0|PrintAreaUpperRightCornerX=0|PrintAreaUpperRightCornerY=0|Record=PcbPrintView
 Configuration8_Name2=OutputConfigurationParameter2
@@ -298,7 +298,7 @@ OutputEnabled11_OutputMedium4=0
 OutputEnabled11_OutputMedium5=0
 OutputEnabled11_OutputMedium6=0
 OutputDefault11=0
-PageOptions11=Record=PageOptions|CenterHorizontal=True|CenterVertical=True|PrintScale=0.99|XCorrection=1.00|YCorrection=1.00|PrintKind=0|BorderSize=5000000|LeftOffset=0|BottomOffset=0|Orientation=2|PaperLength=1000|PaperWidth=1000|Scale=100|PaperSource=7|PrintQuality=-4|MediaType=1|DitherType=10|PaperKind=A4|PrintScaleMode=1
+PageOptions11=Record=PageOptions|CenterHorizontal=True|CenterVertical=True|PrintScale=1.00|XCorrection=1.00|YCorrection=1.00|PrintKind=0|BorderSize=5000000|LeftOffset=0|BottomOffset=0|Orientation=2|PaperLength=1000|PaperWidth=1000|Scale=100|PaperSource=7|PrintQuality=-4|MediaType=1|DitherType=10|PaperKind=A4|PrintScaleMode=0
 Configuration11_Name1=OutputConfigurationParameter1
 Configuration11_Item1=DesignatorDisplayMode=Physical|PrintArea=DesignExtent|PrintAreaLowerLeftCornerX=0|PrintAreaLowerLeftCornerY=0|PrintAreaUpperRightCornerX=0|PrintAreaUpperRightCornerY=0|Record=PcbPrintView
 Configuration11_Name2=OutputConfigurationParameter2
