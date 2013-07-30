@@ -52,45 +52,49 @@ Note: All file extensions must remain untouched during renaming operations.
 = Content of the template =
 == Template Folder Structure ==
 This template is using fixed folder structure. The folders contain following files (typical file extension):
-  * *BOM\* - bill of material for purchasing purposes (XLS,XLSX)
+  * *BOM\* - bill of material for component purchasing purposes (XLS, XLSX)
   * *Documentation\* - documentation for printing (PDF)
   * *Export 3D\* - model of PCB in 3D STEP format (STEP)
   * *Fabrication\* - all data for board manufacturing and assembling
-    * *BOM\* - assembly bill of material for manual assembling (XLS,XLSX)
+    * *BOM\* - assembly bill of material as additional document to the assembly view in printed documentation from Documentation\ folder for manual assembling (XLS,XLSX)
     * *Gerber\* - PCB export in gerber format for PCB manufacturing (G??)
     * *NC Drill\* - program for CNC drill machine (TXT)
     * *Pick Place\* - assembly data for machine assembly (TXT)
-  * *History\* - automatically managed history of project available in Storage Manager panel
+  * *History\* - automatically managed history of project available in Storage Manager panel, versions are created when a document is saved, the folder can be deleted when project history is not needed
   * *Checks\* - results of validation outputs
     * *DiffReport\* - results of consistency check between schematics and PCB (HTML)
-    * *DRC\* - results of Design Rule Check of PCB(HTML)
-    * *ERC\* - results of Electrical Rule Check od schematics (HTML)
-  * *Libraries\* - project related libraries, usually not necessary, DXP » Preferences » Data Management » Installed Libraries used instead (SchLib, PcbLib, IntLib), template contains Stamp.SchLib (schematic library with tile block for schematic files) and Fiducial.PcbLib (footprint/package library with fiducial markers)
+    * *DRC\* - results of Design Rule Check of PCB (HTML)
+    * *ERC\* - results of Electrical Rule Check of schematics (HTML)
+  * *Libraries\* - project related libraries, usually not necessary, DXP » Preferences » Data Management » Installed Libraries used instead (SchLib, PcbLib, IntLib), template contains Stamp.SchLib (schematic library with tile block for schematic files) and Fiducial.PcbLib (footprint/package library with fiducial marker)
   * *PCB\* - PCB file (PcbDoc)
+    * *additional* - script and configuration files for mechanical layers naming, exported DRC settings, screenshots of some settings in the PCB (INI, RUL. PNG)
   * *Settings\* - settings of batch output generation (OutJob)
   * *Source\* - schematic files/sheets (SchDoc)
 
 == Project ==
   * PCB project in this template is set in default settings what is usually ok. 
-  * *Global Parameters* - parameters which has the same value for all project documents. These parameters can be set on Project » Project Options » Parameters tab. The parameter values can be displayed anywhere in the project by =parameter_name in schematic documents or .parameter_name in PCB document (don't use spaces or special characters in parameter name). Predefined parameters are:
-    * GlobalProjectLink - short web link to the project or company web page for future updates
-    * GlobalProjectName - project name withou revision number
-    * GlobalProjectRevision - revision number, e.g. v1.3
-    * GlobalProjectTeam - team, company or department name
-    * GlobalRevisionDate - release date of the revision
+  * *Global Parameters* - parameters which has the same value for all project documents. These parameters can be set on Project » Project Options » Parameters tab. The parameter values can be displayed anywhere in the project by =parameter_name in schematic documents or by .parameter_name in PCB document. Don't use spaces or special characters in parameter name. Template predefined parameters are:
+    * *GlobalProjectLink* - short web link to the project or company web page with project details
+    * *GlobalProjectName* - full project name without revision number
+    * *GlobalProjectRevision* - revision number, e.g. v1.3
+    * *GlobalProjectTeam* - team, company or department name
+    * *GlobalRevisionDate* - release date of the revision
 
 == Schematic ==
-  * *Title block* from library - contains actual date and time which will produce timestamp during document printing. The title block (stamp) in the template comes from Stamp.SchLib from Libraries\ folder. It's included as a component into the schematic file and it's locked to prevent unwanted moving with the stamp. Component type is Graphic so the component won't be synchonized with PCB and won't be in BOM reports. Values are loaded from Global/Project parameters and Local/Document parameters.  
+  * *Title block* from library - The title block (stamp) in the template comes from Stamp.SchLib from Libraries\ folder. It's included as a component into the schematic file and it's locked to prevent unwanted moving of the stamp. Component type is Graphic so the component won't be synchronized with PCB and won't be in BOM reports. Values are loaded from Global/Project parameters and Local/Document parameters. The stamp contains actual date and time from system parameters what will produce timestamp during document printing.  
   * *Size and orientation* can be set by Design » Document Options » Sheet Options tab
-  * *Local parameters* - parameters which has different value for each project document. These parameters can be set on Design » Document Options » Parameters tab. The parameter values can be displayed anywhere in the document by =parameter_name (don't use spaces or special characters in parameter name). Used parameters are predefined by Altium. Template stamp is using parameters:
+  * *Units* - set to DXP units, 1 DXP unit = 10 mils, imperial units are recommended because most of available libraries are using imperial grid
+  * *Grid* - 5 DXP units
+  * *Local parameters* - parameters which has different value for each project document. These parameters can be set on Design » Document Options » Parameters tab. The parameter values can be displayed anywhere in the document by =parameter_name. Don't use spaces or special characters in parameter name. Used parameters are predefined by Altium. Template stamp using these parameters:
     * *Author* - author name and contact info (email)
-    * *Title* - descriptive name of the schematic sheet 
+    * *Title* - descriptive name of the schematic sheet, 1 DXP unit = 10 mils, 
     * There are also *SheetNumber*, *SheetTotal* parameters used in the document parameters. They are filled by annotation process described previously.
 
 Hint: Document Parameters of all schematic documents can be modified together through Tools » Parameter Manager set to Documents options only. Keep option Exclude System Parameters unchecked.
 
 == PCB ==
 PCB file contains settings of layer stackup, naming of mechanical layers, layer pairs, layer sets (predefined sets of displayed layers) and basic set of rules usually given by PCB manufacturing technology. PCB used in this template is using clearance 0.2mm, minimum track width 0.16mm, via diameter 0.3mm and via annular ring 0.2mm what comply (wit some margin) with Fusion service by Seeed Studio and other manufacturing services. 
+  * *Default Grid* - 0.1mm, it will not produce any big issue when you change grid or even units used in the PCB during drawing
   * *Technology Design Rules* - defines technology limits mentioned above
   * *Additional Design rules*
     * *ClearanceGNDpolygons* - exception of general clearance rule for polygons which are members of GNDpolygons class in Design » Classes » Polygon Classes to be able define setback for polygons independently.
@@ -138,13 +142,15 @@ Please check all settings and in case of doubt discuss the settings with your ma
 
 If you find any state of document typical for your future designs you can set the document into DXP » Preferences » System » New Document Defaults (the source document must be stored in location where it stays untouched by any modifications).
  
-Other advanced techniques of setting up Altium Designer according to your needs can be found at [http://wiki.altium.com/display/ADOH/The+Altium+Designer+Environment wiki.altium.com].
+Other advanced techniques of setting up Altium Designer according to your needs can be found at Altium wiki page [http://wiki.altium.com/display/ADOH/The+Altium+Designer+Environment Design Environment].
 
 = Terms of use = 
-The template is provided free of charge with no warranty or liability.
+*The template is provided free of charge with no warranty or liability.*
+
 Feel free to modify the template by your own needs. I would like to encourage you to share your modifications with others.
+
 Please let me know your feedback on this template. Any comments are welcome. You can contact me via email PetrTos (a) gmail.com .
 
-Petr Tosovsky
-
-2013-07-29
+<br>
+Petr Tosovsky<br>
+2013-07-30
