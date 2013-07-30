@@ -1,4 +1,4 @@
-#summary sample project template for Altium Designer
+#summary Sample project template for Altium Designer
 #labels Project,Template
 
 <wiki:toc max_depth="3" />
