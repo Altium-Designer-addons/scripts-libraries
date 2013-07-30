@@ -7,7 +7,7 @@
 <br><br>
 
 = Altium PCB Project Template =
-PCB Project Template is sample project template for Altium Designer with all necessary settings of source documents and settings of output generation process. It should make starting of a new project easier. Please read [AltiumPCBProjectTemplate#Terms_of_use Terms of use] at the end of this page.
+PCB Project Template is sample project template for Altium Designer with all necessary settings of source documents and settings of output generation process for 2 layer and 4 layer boards. It should make starting of a new project easier. Please read [AltiumPCBProjectTemplate#Terms_of_use Terms of use] at the end of this page.
 
 The template was created and is using features of Altium Designer 13.3.
 
@@ -102,8 +102,8 @@ PCB file contains settings of layer stackup, naming of mechanical layers, layer 
     * Note: All design rules are exported to RUL files in PCB\ folder. You can import the rules by Design » Rules dialog to another PCB files.
   * PCB file contains simple *title block*/stamp drawn directly in the PCB file. Values are loaded from Global/Project parameters and system parameters. Primitives of the stamp are locked to prevent unwanted moving.
   * *Copper Layers*
-    * 2 layer PCB [https://altium-designer-addons.googlecode.com/svn/trunk/AltiumPCBProjectTemplate/2%20Layer%20PCB%20template/PCB/info/2%20Layer%20PCB%20template.png]
-    * 4 layer PCB - planes are inverse layers (line drawn in this layer mean there will be a gap in copper) used for power supply distribution, they can be split into smaller regions with different net attached by closed shapes drawn by lines, see Altium wiki page [http://wiki.altium.com/display/ADOH/Internal+Power+and+Split+Planes Split Planes] [https://altium-designer-addons.googlecode.com/svn/trunk/AltiumPCBProjectTemplate/4%20Layer%20PCB%20template/PCB/info/4%20Layer%20PCB%20template.png]
+    * 2 layer PCB [https://altium-designer-addons.googlecode.com/svn/trunk/AltiumPCBProjectTemplate/2%20Layer%20PCB%20template/PCB/additional/2%20Layer%20PCB%20template.png]
+    * 4 layer PCB - planes are inverse layers (line drawn in this layer mean there will be a gap in copper) used for power supply distribution, they can be split into smaller regions with different net attached by closed shapes drawn by lines, see Altium wiki page [http://wiki.altium.com/display/ADOH/Internal+Power+and+Split+Planes Split Planes] [https://altium-designer-addons.googlecode.com/svn/trunk/AltiumPCBProjectTemplate/4%20Layer%20PCB%20template/PCB/additional/4%20Layer%20PCB%20template.png]
   * *Mechanical layers* usage
     * *Outlines* (Mech 1) - board outline, use Design » Board Shape » Define from selected primitives to update actual Board Shape from this layer
     * *Dimensions* (Mech 2) - dimensions of board shape and important objects (mounting holes)
