@@ -1,50 +1,53 @@
 #summary sample project template for Altium Designer
 #labels Project,Template
-[https://code.google.com/p/altium-designer-addons/downloads/detail?name=AltiumPCBProjectTemplate%202013-07-30.zip Download Altium PCB Project Template]
 
 <wiki:toc max_depth="3" />
+<br><br>
+== Download [https://code.google.com/p/altium-designer-addons/downloads/detail?name=AltiumPCBProjectTemplate%202013-07-30.zip Altium PCB Project Template] ==
+<br><br>
 
 = Altium PCB Project Template =
 PCB Project Template is sample project template for Altium Designer with all necessary settings of source documents and settings of output generation process. It should make starting of a new project easier. Please read [AltiumPCBProjectTemplate#Terms_of_use Terms of use] at the end of this page.
 
 The template was created and is using features of Altium Designer 13.3.
 
-The difference of 2 layer and 4 layer board template is in the PcbDoc file (number of layers, documentation details) and in the setup for generation output files.
+Design rules in this template are set according to Seeed Studio Fusion service, what is international and I think affordable service which I successfully used for my hobby projects. The difference of 2 layer and 4 layer board template is in the PCB file (number of layers, documentation details) and in the setup for generation output files.
 
-= How to start my project using this template =
+= How use this template for your project =
 
-Detailed description of template files can be found in section [AltiumPCBProjectTemplate#Conten_of_the_template].
+Detailed description of template files can be found in section [AltiumPCBProjectTemplate#Content_of_the_template Content of the template].
+
+Note: All file extensions must remain untouched during renaming operations.
 
   * *Project*
-    # Unzip the package folder with desired numbers of layers
+    # Unzip the package folder with desired number of layers
     # Rename main folder to your project name
     # Rename file "Project Name.PrjPcb" to your project name
     # Rename PCB file (PcbDoc) in folder PCB\ to your project name
     # Rename schematic file (SchDoc) in Source\ folder to the name of your schematic sheet number 1
-    # Copy SchDoc file as many time as you need to reach final number of schematic sheets in your ptoject
-    # Load project file (PrjPcb) into Altium Designer
-    # Use menu Project » Add Existing to Project and add all files from PCB and Source folder (you would need to call the command twice to add twoo folders)
-    # Go into Project » Project Options » Parameters tab and change values of user parameters 
+    # Copy SchDoc file as many time as you need to reach final number of schematic sheets in your project
+    # Load project file (PrjPcb) into Altium Designer, error message about missing file can be ignored
+    # Use menu Project » Add Existing to Project and add all PcbDoc and SchDoc files from PCB and Source folder (you would need to call the command twice to add two folders)
+    # Go into Project » Project Options » Parameters tab and set the values of user global/project parameters according to your project
   * *Schematics*
-    # Go into each schematic sheet and set required parameters in Design » Document Options » Parameters tab
+    # Go into each schematic sheet and set required local/document parameters in Design » Document Options » Parameters tab
     # Draw your schematics, components can be included from Libraries panel
     # Run logical annotation (component numbering and document numbering in source documents) by Tools » Annotate Schematics and Tools » Number Schematic Sheets 
-    # Run physical annotation (component numbering and document numbering as it will be displayed on PCB) by Tools » Board Level Annotations and Tools » Annotate Compiled Sheets
+    # Run physical annotation (component numbering and document numbering as it will be displayed on PCB and in all outputs) by Tools » Board Level Annotations and Tools » Annotate Compiled Sheets
+      * see [http://wiki.altium.com/display/ADOH/Understanding+Design+Annotation Design Annotation] for details
     # Use Project » Compile PCB Project to run Electrical Rule Check (ERC) and solve the reported issues - some of them by NoERC directive probably
   * *PCB*
     # Import information from your schematic sheet into PCB document by Design » Update PCB document in schematic editor or Design » Import Changes from Project in PCB editor
-    # Check settings in Design » Layer Stack Manager according to your board stackup. Defauls stack is set for 2 or 4 layers as it is defined by Seeed Studio Fusion service
-    # Check settings in Design » Rules to comply with parameters of your board manufacturer. Design rules in this template are set according to Seeed Studio Fusion service
+    # Check settings in Design » Layer Stack Manager according to your board stackup. Defauls stack is set for 2 or 4 layers
+    # Check settings in Design » Rules to comply with parameters of your board manufacturer.
     # Place your components and route the board
     # If polygon pours are used for GND signal you can add them into GNDpolygons class in Design » Classes » Polygon Classes what causes they will be handled with differen clearance by ClearanceGNDpolygons rule
     # Run Tools » Design Rule Check » Run Design Rule Check and solve all violations through PCB Rules and Violations panel by PCB modifications and DRC exceptions
   * *Outputs*
     # Open Outputs.OutJob file and click on Generate content in each Output container what will produce all data outputs into the separate folders described in [#Template_Folder_Structure Template Folder Structure] section
-    # Check all generated files, Gerber files will be automatically open in CAMtastic
+    # Check all generated files, Gerber files will be automatically open in CAMtastic (build-in gerber editor)
     # Backup all project data prior sending to a manufacturer by Project » Project Packager (turn on timestamp option)
-    # Send data to the boar manufacturer, do the assembly, testing ...
-  
-Note: All file extensions must remain untouched during renaming operations.
+    # Send data - Gerber and NC drill folder - to the board manufacturer, do the assembly, testing ...
 
 = Content of the template =
 == Template Folder Structure ==
