@@ -6,7 +6,7 @@
 #
 #	@details		
 #
-#    @version		0.4.18
+#    @version		0.4.19
 #					   $Rev::                                                                        $:
 #	@date			  $Date::                                                                        $:
 #	@author			$Author::                                                                        $:
@@ -70,6 +70,28 @@
 # * individuals on behalf of the Altium Community Software.
 # *
 # * See also included file SPI_License.txt.
+# * 
+# * THEORY OF OPERATIONS
+# * This script is part of a multiscript process that will create a footprint and 3D
+# * model and attach them all together in an Altium component library file (PcbLib).
+# * This script is called by FC3DM_IC.py when it is run SPI_Cleanup_LPW_Footprint.pas
+# * writes an ini file describing the dimensions of the IC package that FC3DM_IC.py
+# * should create. 
+# * 
+# * WHAT THIS SCRIPT DOES
+# * This script provides the functions for which FC3DM_IC.py calls in order to create
+# * the 3D model as defined by the ini file created by SPI_Cleanup_LPW_Footprint.pas. 
+# * It also contains functions that help the functions called by FC3DM_IC.py. 
+# * These helper functions include:
+# *     A function to create a box
+# *     A function to cut an object with a box
+# *     A function to cut an object with a filleted box
+# *     A function to cut an object with a pre-defined object
+# *     A function to rotate an object about the Z axis
+# *     A function to fillet the edges of an object
+# *     A function to create a cylinder
+# * 
+# * 
 # ***************************************************************************
 
 

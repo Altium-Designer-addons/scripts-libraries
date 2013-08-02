@@ -6,7 +6,7 @@
 #
 #	@details		
 #
-#    @version		0.2.7
+#    @version		0.2.8
 #					   $Rev::                                                                        $:
 #	@date			  $Date::                                                                        $:
 #	@author			$Author::                                                                        $:
@@ -70,6 +70,28 @@
 # * individuals on behalf of the Altium Community Software.
 # *
 # * See also included file SPI_License.txt.
+# *
+# * THEORY OF OPERATIONS
+# * This script is part of a multiscript process that will create a footprint and 3D
+# * model and attach them all together in an Altium component library file (PcbLib).
+# * This script is initiated when SPI_Cleanup_LPW_Footprint.pas generates an ini file
+# * defining the dimensions of an IC package that this script uses to generate a 3D model
+# * This script calls FC3DM_utils.py to do all the real work for creating the 3D model.
+# *
+# * WHAT THIS SCRIPT WILL DO
+# * This script serves as the "main" function for FC3DM_utils.py, which contains several
+# * functions to create 3D models for IC packages in FreeCAD. It provides infrastructure
+# * for creating a 3D model as defined by an ini file (that was created by
+# * SPI_Cleanup_LPW_Footprint.pas). It will call functions that will read ini files, and
+# * create the IC body and pins. It will then call a functions to describe them to a log
+# * file and then the body and pins will be fused together into a single component. Then,
+# * it will save and export this component as a STEP file and will close FreeCAD. 
+# *
+# * WHAT THIS SCRIPT WILL *NOT* DO
+# * This script will not make 3D models without an ini file created by
+# * SPI_Cleanup_LPW_Footprint.pas (or one of the same format). Nor will it write an ini
+# * file for which to use to create a 3D model. 
+# * 
 # ***************************************************************************
 
 ###################################
