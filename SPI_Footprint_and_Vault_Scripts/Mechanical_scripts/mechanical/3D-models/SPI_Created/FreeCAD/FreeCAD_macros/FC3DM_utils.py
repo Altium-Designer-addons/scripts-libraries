@@ -6,7 +6,7 @@
 #
 #	@details		
 #
-#    @version		0.4.17
+#    @version		0.4.18
 #					   $Rev::                                                                        $:
 #	@date			  $Date::                                                                        $:
 #	@author			$Author::                                                                        $:
@@ -87,6 +87,8 @@ scriptPathUtils = ""
 
 # Fudge factor used by QFN packages to have pins and body be in ever so slightly different planes
 tinyDeltaForQfn = 0.000001
+deltaForBodyCutsLength = 0.2
+deltaForBodyCutsPosition = 0.1
 debugFilePath = "null"
  
 ###################################################################
@@ -628,19 +630,27 @@ def FC3DM_FuseSetOfObjects(App, Gui,
     App.setActiveDocument(docName)
     App.ActiveDocument=App.getDocument(docName)
     Gui.ActiveDocument=Gui.getDocument(docName)
-
+    
+    FC3DM_WriteToDebugFile("Creating an object list")
     # Create list of objects, starting with object names
     objs=[]
     for i in objNameList:
         
         objs.append(App.activeDocument().getObject(i))
 
+    
+    FC3DM_WriteToDebugFile("Writing multi-fusion to \"Temp\"")
     # Do the multi-fusion.  Write to "Temp".
     Gui.activateWorkbench("PartWorkbench")
+    FC3DM_WriteToDebugFile("Activated workbench")
     App.activeDocument().addObject("Part::MultiFuse","Temp")
+    FC3DM_WriteToDebugFile("Added object")
     App.activeDocument().getObject("Temp").Shapes = objs
+    FC3DM_WriteToDebugFile("Got object")
+    FC3DM_WriteToDebugFile("The following step may take as long as 5 minutes. Be patient for complicated components")
     App.ActiveDocument.recompute()
 
+    FC3DM_WriteToDebugFile("Copying \"Temp\" to " + fusionName)
     # Copy the temp fusion object and call it the desired fusion name
     newTermShape = FreeCAD.getDocument(docName).getObject("Temp").Shape.copy()
     newTermObj = App.activeDocument().addObject("Part::Feature", fusionName)
@@ -651,7 +661,7 @@ def FC3DM_FuseSetOfObjects(App, Gui,
     ### Preserve face colors for the body and pin1Mark!
     # Cache vertex lists for the body and pin1Mark, so that we may find them later
     # in the fused object.
-
+    FC3DM_WriteToDebugFile("About to loop over pin1Mark faces")
     ## Loop over all faces in the pin1Mark object
     pin1MarkVerts=[]
     for i in App.ActiveDocument.getObject(pin1MarkName).Shape.Faces:
@@ -669,6 +679,7 @@ def FC3DM_FuseSetOfObjects(App, Gui,
         print "Vertexes for this face are:"
         print buf.getvalue()
 
+    FC3DM_WriteToDebugFile("About to loop over body faces")
     ## Loop over all faces in the body object
     bodyVerts=[]
     for i in App.ActiveDocument.getObject(bodyName).Shape.Faces:
@@ -687,6 +698,7 @@ def FC3DM_FuseSetOfObjects(App, Gui,
         print buf.getvalue()
 
 
+    FC3DM_WriteToDebugFile("About to loop over pin faces")
     ## Loop over all faces in the pin objects
     pinVerts=[]
     for k in objNameList:
@@ -824,11 +836,13 @@ def FC3DM_FuseSetOfObjects(App, Gui,
     # A special thanks here to FC guru/author WMayer for his forum post at
     # https://sourceforge.net/apps/phpbb/free-cad/viewtopic.php?f=19&t=4117
     # which pointed me in the right direction to make this actually work.                
+    FC3DM_WriteToDebugFile("Attempting to set fusion face colors")
     print("Attempting to set fusion face colors")
     Gui.ActiveDocument.getObject(fusionName).DiffuseColor=faceColors
     App.ActiveDocument.recompute()
     print("Attempted to set fusion face colors")
 
+    FC3DM_WriteToDebugFile("Deleting the original objects that made up the fusion")
     # Delete the original objects that comprised the fusion
     for i in objNameList:
 
@@ -1258,6 +1272,12 @@ def FC3DM_CreateIcBody(App, Gui,
                     xBox, yBox, rotDeg, 
                     docName,
                     bodyName)
+    
+    # Useless cut to reset the coordinates of the body
+    FC3DM_CutWithBox(App, Gui,
+                     docName, bodyName,
+                     A, H-K, H-K, -1*(A/2), B/2, K,
+                     0, 0, 0, 0)
 
     ## Make 2 cuts to each side of body, to model mold angle
     # Only do the cuts if we have a mold angle
@@ -1266,13 +1286,13 @@ def FC3DM_CreateIcBody(App, Gui,
         # Perform a cut at the north side of the IC body (pivot point high)
         FC3DM_CutWithBox(App, Gui,
                          docName, bodyName,
-                         B, B, B, -1*(A/2), 1*(B/2), Hpph,
+                         A + deltaForBodyCutsLength, A, A, -1*(A/2) - deltaForBodyCutsPosition, 1*(B/2), Hpph,
                          math.sin(ma/2),0,0,math.cos(ma/2))
 
         # Perform a cut at the north side of the IC body (pivot point low)
         FC3DM_CutWithBox(App, Gui,
                          docName, bodyName,
-                         B, B, B, -1*(A/2), 1*(B/2), Hppl,
+                         A + deltaForBodyCutsLength, A, A, -1*(A/2) - deltaForBodyCutsPosition, 1*(B/2), Hppl,
                          math.sin(((3*pi)/4)-(ma/2)),0,0,math.cos(((3*pi)/4)-(ma/2)))
 
 
@@ -1283,13 +1303,13 @@ def FC3DM_CreateIcBody(App, Gui,
         # Perform a cut at the north side of the IC body (pivot point high)
         FC3DM_CutWithBox(App, Gui,
                          docName, bodyName,
-                         B, B, B, -1*(A/2), 1*(B/2), Hpph,
+                         A + deltaForBodyCutsLength, A, A, -1*(A/2) - deltaForBodyCutsPosition, 1*(B/2), Hpph,
                          math.sin(ma/2),0,0,math.cos(ma/2))
 
         # Perform a cut at the north side of the IC body (pivot point low)
         FC3DM_CutWithBox(App, Gui,
                          docName, bodyName,
-                         B, B, B, -1*(A/2), 1*(B/2), Hppl,
+                         A + deltaForBodyCutsLength, A, A, -1*(A/2) - deltaForBodyCutsPosition, 1*(B/2), Hppl,
                          math.sin(((3*pi)/4)-(ma/2)),0,0,math.cos(((3*pi)/4)-(ma/2)))
 
 
@@ -1300,13 +1320,13 @@ def FC3DM_CreateIcBody(App, Gui,
         # Perform a cut at the north side of the IC body (pivot point high)
         FC3DM_CutWithBox(App, Gui,
                          docName, bodyName,
-                         B, B, B, -1*(B/2), 1*(A/2), Hpph,
+                         B + deltaForBodyCutsLength, B, B, -1*(B/2) - deltaForBodyCutsPosition, 1*(A/2), Hpph,
                          math.sin(ma/2),0,0,math.cos(ma/2))
 
         # Perform a cut at the north side of the IC body (pivot point low)
         FC3DM_CutWithBox(App, Gui,
                          docName, bodyName,
-                         B, B, B, -1*(B/2), 1*(A/2), Hppl,
+                         B + deltaForBodyCutsLength, B, B, -1*(B/2) - deltaForBodyCutsPosition, 1*(A/2), Hppl,
                          math.sin(((3*pi)/4)-(ma/2)),0,0,math.cos(((3*pi)/4)-(ma/2)))
 
     
@@ -1317,7 +1337,7 @@ def FC3DM_CreateIcBody(App, Gui,
         # Perform a cut at the north side of the IC body (pivot point high)
         FC3DM_CutWithBox(App, Gui,
                          docName, bodyName,
-                         B, B, B, -1*(B/2), 1*(A/2), Hpph,
+                         B + deltaForBodyCutsLength, B, B, -1*(B/2) - deltaForBodyCutsPosition, 1*(A/2), Hpph,
                          math.sin(ma/2),0,0,math.cos(ma/2))
 
 
@@ -1338,7 +1358,7 @@ def FC3DM_CreateIcBody(App, Gui,
         # Perform a cut at the north side of the IC body (pivot point low)
         FC3DM_CutWithBox(App, Gui,
                          docName, bodyName,
-                         B, B, B, -1*(B/2), 1*(A/2), Hppl,
+                         B + deltaForBodyCutsLength, B, B, -1*(B/2) - 2*deltaForBodyCutsPosition, 1*(A/2), Hppl,
                          math.sin(((3*pi)/4)-(ma/2)),0,0,math.cos(((3*pi)/4)-(ma/2)))
 
     
@@ -1541,9 +1561,6 @@ def FC3DM_CreateIcPinGullwing(App, Gui,
     # Zoom in on pin model
     Gui.SendMsgToActiveView("ViewFit")
 
-    # Color pin red.  FIXME--remove this!
-    FC3DM_WriteToDebugFile("Changing the template gullwing pin red...")
-    Gui.getDocument(docName).getObject(pinName).ShapeColor = (1.00,0.00,0.00)
 
     ## Copy this to give us a template north side IC pin
     if ( footprintType == "QFP" ):
@@ -1576,7 +1593,16 @@ def FC3DM_CreateIcPinGullwing(App, Gui,
         FC3DM_CutWithSpecifiedObject(App, Gui,
                                      docName, pinTemplateNorth, "Cutter")
         
+        # Color north pin red.  FIXME--remove this!
+        FC3DM_WriteToDebugFile("Changing the north template gullwing pin red...")
+        Gui.getDocument(docName).getObject(pinTemplateNorth).ShapeColor = (1.00,0.00,0.00)
         
+        
+    
+    # Color east pin red.  FIXME--remove this!
+    FC3DM_WriteToDebugFile("Changing the east template gullwing pin red...")
+    Gui.getDocument(docName).getObject(pinName).ShapeColor = (1.00,0.00,0.00)
+    
     return 0
 
 
@@ -1699,6 +1725,7 @@ def FC3DM_CreateIcPinEp(App, Gui,
                         parms,
                         length, width, x, y,
                         epName,
+                        pinType,
                         docName):
                 
     FC3DM_WriteToDebugFile("Hello from FC3DM_CreateIcPinEp()")
@@ -1718,6 +1745,18 @@ def FC3DM_CreateIcPinEp(App, Gui,
     else:
         epPin1ChamferRadius = 0.0
 
+	# If there are different types of EPs in this component, extract the parameters from parms
+    if (pinType.startswith("Type")):
+        Ft = parms[pinType + "_Ft"]
+        Rt = parms[pinType + "_Rt"]
+        epPin1ChamferRadius = parms[pinType + "_epPin1ChamferRadius"]
+
+    FC3DM_WriteToDebugFile("Ep length: " + str(length))
+    FC3DM_WriteToDebugFile("Ep width: " + str(width))
+    FC3DM_WriteToDebugFile("Ep chamfer: " + str(Ft))
+    FC3DM_WriteToDebugFile("Ep corner radius: " + str(Rt))
+    FC3DM_WriteToDebugFile("Ep chamfer radius: " + str(epPin1ChamferRadius))
+    
     # Prepare parameters for FC3DM_CreateBox()
     FC3DM_WriteToDebugFile("Creating box for EP...")
     L = length
@@ -1782,7 +1821,7 @@ def FC3DM_CreateIcPinEp(App, Gui,
         # Create a cylinder to use for cutting out for pin 1 marker
         cylName = "Cutter"
         FC3DM_CreateCylinderVert(App, Gui,
-                                 docName, cylName, -(W/2.0), L/2.0, 0, epPin1ChamferRadius, Tp)
+                                 docName, cylName, x - (W/2.0), y + L/2.0, 0, epPin1ChamferRadius, Tp)
         # FC3DM_WriteToDebugFile("Back from FC3DM_CreateCylinderVert()")
         
         FC3DM_CutWithSpecifiedObject(App, Gui,
@@ -1881,6 +1920,7 @@ def FC3DM_CreateIcPins(App, Gui,
     print("pinNames is:")
     print(pinNames)
 
+    FC3DM_WriteToDebugFile("Examining pin types")
     # Loop over all the pin names.
     for pin in pinNames:
 
@@ -1910,7 +1950,7 @@ def FC3DM_CreateIcPins(App, Gui,
             ## Examine pin side
             # Look for an east side pin.
             if (lis[1] == "East"):
-
+                FC3DM_WriteToDebugFile("Found east pin")
                 # Our template pin was created on the east side, so no rotation required.
                 rotDeg = 0.0
 
@@ -1928,6 +1968,7 @@ def FC3DM_CreateIcPins(App, Gui,
             # Else see if this is a west side pin.
             elif (lis[1] == "West"):
 
+                FC3DM_WriteToDebugFile("Found west pin")
                 # Our template pin was created on the east side, so rotate 180 degrees
                 rotDeg = 180.0
 
@@ -1945,6 +1986,7 @@ def FC3DM_CreateIcPins(App, Gui,
             # Else see if this is a north side pin.
             elif (lis[1] == "North"):
 
+                FC3DM_WriteToDebugFile("Found north pin")
                 # Our template pin was created on the north side, so no rotation
                 rotDeg = 0.0
 
@@ -1962,6 +2004,7 @@ def FC3DM_CreateIcPins(App, Gui,
             # Else see if this is a south side pin.
             elif (lis[1] == "South"):
 
+                FC3DM_WriteToDebugFile("Found south pin")
                 # Our template pin was created on the south side, so rotate 180 degrees!
                 rotDeg = 180.0
 
@@ -1990,18 +2033,37 @@ def FC3DM_CreateIcPins(App, Gui,
         # endif is gullwing or QFN
 
         # Handle EP pin type
-        elif (lis[0] == "EP"):
+        elif (lis[1] == "Ep"):
 
             ## Get pin x & y coordinates
             x = float(lis[2])
             y = float(lis[3])
 
+            # Set the name of the EP to whatever was used in the ini file
+            epName = pin
+			# If there are different types of EPs, handle them as defined in the ini file
+            if (lis[0].startswith("Type")):
+
+                # Pull the length and width of the split EP from parms
+                # Note: There should never be situations where parms["Tt"] and parms["TypeEP?_Tt"] are used. Currently no check for this. 
+                Tt = parms[lis[0] + "_Tt"]
+                Wt = parms[lis[0] + "_Wt"]
+
+                # Set the pin type to whatever was used in the ini file
+                pinType = lis[0]
+			
+			# Otherwise, proceed as usual (using Tt, Wt, Ft, and Rt) as defined in the ini file
+            else:
+
+                # Set the pin type to whatever was used in the ini file
+                pinType = lis[0]
+                
             # Call FC3DM_CreateIcPinEp() to create EP pin from scratch
-            epName = "PinEP"
-            FC3DM_CreateIcPinEp(App, Gui,
-                                parms,
+            FC3DM_CreateIcPinEp(App, Gui, 
+								parms,
                                 Tt, Wt, x, y,
                                 epName,
+                                pinType,
                                 docName)
 
             # Cut the body with the EP pin and keep both
