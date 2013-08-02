@@ -263,7 +263,7 @@ function CLF_ExtrudeGeometricPolygonInto3d(    boardSide         : Integer;
  ***************************************************************************}
 const
 {* Declare the version and name of this script. *}
-   constScriptVersion          = 'v0.16.28 $Revision$';
+   constScriptVersion          = 'v0.16.29 $Revision$';
    constThisScriptNameNoExt    = 'SPI_Cleanup_LPW_Footprint';
    constThisScriptName         = constThisScriptNameNoExt + '.pas';
 {}
@@ -5879,7 +5879,7 @@ function CLF_AddSourceDocumentsToProjectAndSvn(    project           : IProject;
 var                                                              
    i                   : Integer;
    rc                  : Integer;
-   filesToAdd               : TStringList;
+   filesToAdd          : TStringList;
    padsFilePath        : TString;
    lpwPlb09FilePath    : TString;
    padsOldFilePath     : TString;
@@ -5888,6 +5888,7 @@ var
    projectDoc          : IServerDocument;
    libFileName         : TString;
    dummy               : TStringList;
+   pdfFilePath         : TString;
 
 begin
 
@@ -5909,13 +5910,15 @@ begin
    padsFilePath          := cnfGalacticInfo.Values(constGilPadsFileName);
    lpwPlb09FilePath      := cnfGalacticInfo.Values(constGilPlb09FileName);
    logFilePath           := cnfGalacticInfo.Values(constGilLogFileName);
+   pdfFilePath           := lpWizardFilesPath + + '\' + libFileName + '.pdf';
    
    WriteToDebugFile(' padsFilePath is "' + padsFilePath + '".');
    WriteToDebugFile(' lpwPlb09FilePath is "' + lpwPlb09FilePath + '".');
    WriteToDebugFile(' padsOldFilePath is "' + padsOldFilePath + '".');
    WriteToDebugFile(' lpwPlb09OldFilePath is "' + lpwPlb09OldFilePath + '".');
    WriteToDebugFile(' logFilePath is "' + logFilePath + '".');
-
+   WriteToDebugFile(' pdfFilePath is "' + pdfFilePath + '".');
+   
    { See if there are differences between the old and new filenames. }
    if ( (padsFilePath <> padsOldFilePath) or (lpwPlb09FilePath <> lpwPlb09OldFilePath) ) then
    begin
@@ -5987,6 +5990,8 @@ begin
    { TODO:  If these files are now part of our project, can we use the builtin version control to do the svn add?? }
    filesToAdd.Add(ExtractFileName(padsFilePath)); 
    filesToAdd.Add(ExtractFileName(lpwPlb09FilePath));
+   if ( FileExists(pdfFilePath) ) then
+      filesToAdd.Add(libFileName + '.pdf');
    filesToAdd.Add(importedPcbDoc.DM_FullPath);
    filesToAdd.Add(logFilePath);
 
@@ -9610,10 +9615,14 @@ begin
       epLengthRounded :=  StrToFloat(cnfGalacticInfo.Values(constGilEpLengthRounded));
       
       { Compute the boundaries of EP so that it can be compared to the boundaries of the current region. }
+      { FIXME: THIS IS CURRENTLY ASSUMING THE EP IS CENTERED AT (0,0) }
       epLeftBoundary := (-1) * (epWidthRounded / 2.0);
       epRightBoundary := (epWidthRounded / 2.0);
       epBottomBoundary := (-1) * (epLengthRounded / 2.0);
       epTopBoundary := (epLengthRounded / 2.0);
+      
+      WriteToDebugFile('EP boundaries: ' + FloatToStr(epLeftBoundary) + ' and ' + FloatToStr(epTopBoundary) + ' and ' + FloatToStr(epRightBoundary) + ' and ' + FloatToStr(epBottomBoundary));
+      
       {* Perform any changes we want to make to regions before we do the copy to destination library. *}
       { Look for solderpaste regions that are tiled on EP (exposed pad) pad. }
       if ( (regionSrc.Layer = eKeepOutLayer) and (isInside) ) then
@@ -9626,10 +9635,10 @@ begin
          //WriteToDebugFile(FloatToStr(CoordToMMs(rectDst.left)) + ' and ' + FloatToStr(CoordToMMs(rectDst.top)) + ' and ' + FloatToStr(CoordToMMs(rectDst.right)) + ' and ' + FloatToStr(CoordToMMs(rectDst.bottom)));         
          
          { If the boundaries of the current region are the same as the boundaries of the EP, then the current region is the EP region }
-         if ( (epLeftBoundary = CoordToMMs(rectDst.left))
-             and (epTopBoundary = CoordToMMs(rectDst.top))
-             and (epRightBoundary = CoordToMMs(rectDst.right))
-             and (epBottomBoundary = CoordToMMs(rectDst.bottom)) ) then
+         if ( (Abs(epLeftBoundary - CoordToMMs(rectDst.left)) < 0.001)
+             and (Abs(epTopBoundary - CoordToMMs(rectDst.top)) < 0.001)
+             and (Abs(epRightBoundary - CoordToMMs(rectDst.right)) < 0.001)
+             and (Abs(epBottomBoundary - CoordToMMs(rectDst.bottom)) < 0.001)) then
          begin
             WriteToDebugFile('In CLF_ModifyAndSuppressRegions(), found EP region!');
             
@@ -10231,6 +10240,7 @@ begin
    { If we have been ordered to split a pin, then retrieve other necessary info. }
    if (splitPin <> '') then
    begin
+      WriteToDebugFile('Found a split pin');
       newPinName1   := (cnfGalacticInfo.Values(constGilSplitPinPinName1));
       X1center      := StrToFloat(cnfGalacticInfo.Values(constGilSplitPinX1center));
       Y1center      := StrToFloat(cnfGalacticInfo.Values(constGilSplitPinY1center));
@@ -10245,6 +10255,8 @@ begin
 
    {* Perform any changes we want to make to pads before we do the copy to destination library. *}
    { Find our EP (exposed pad) pad, if one exists. }
+   { In cases with split pins, neither of the halves will be centered at (0,0). At this point,
+    split EP will not have been split yet so it is valid to use this check to identify EP. }
    if ( (padDst.X = 0) and (padDst.Y = 0) and (hasEp) ) then
    begin
       
@@ -15173,6 +15185,19 @@ var
    hasEp                          : Boolean;
    maDeg                          : Real;
    epPin1ChamferRadius            : Real;
+   X1size                         : Real;
+   Y1size                         : Real;
+   X2size                         : Real;
+   Y2size                         : Real;
+   X1center                       : Real;
+   Y1center                       : Real;
+   X2center                       : Real;
+   Y2center                       : Real;
+   typeEp1_Ft                     : Real;
+   typeEp2_Ft                     : Real;
+   typeEp1_epPin1ChamferRadius    : Real;
+   typeEp2_epPin1ChamferRadius    : Real;
+   splitPin                       : TString;
    
 begin
 
@@ -15470,6 +15495,56 @@ begin
       iniFileOut.add('Rt=' + FloatToStr(pkgDimsEpCornerRad) + ' #pkgDimsEpCornerRad');
       iniFileOut.add('epPin1ChamferRadius=' + FloatToStr(epPin1ChamferRadius) + ' # Defined in xml file');
       iniFileOut.add('');
+
+      splitPin := cnfGalacticInfo.Values(constGilSplitPinPinName);
+   
+      { See if xml command file specified a split pin.
+      	Extract the parameters and write them to the ini fil. }
+      if ( splitPin <> '' ) then
+      begin
+         
+         X1center      := StrToFloat(cnfGalacticInfo.Values(constGilSplitPinX1center));
+         Y1center      := StrToFloat(cnfGalacticInfo.Values(constGilSplitPinY1center));
+         X1size        := StrToFloat(cnfGalacticInfo.Values(constGilSplitPinX1size));
+         Y1size        := StrToFloat(cnfGalacticInfo.Values(constGilSplitPinY1size));
+         X2center      := StrToFloat(cnfGalacticInfo.Values(constGilSplitPinX2center));
+         Y2center      := StrToFloat(cnfGalacticInfo.Values(constGilSplitPinY2center));
+         X2size        := StrToFloat(cnfGalacticInfo.Values(constGilSplitPinX2size));
+         Y2size        := StrToFloat(cnfGalacticInfo.Values(constGilSplitPinY2size));
+         
+         if ( Y1center > Y2center ) then
+         begin
+            typeEp1_Ft := pkgDimsEpChamfer;
+            typeEp2_Ft := 0.0;
+            typeEp1_epPin1ChamferRadius := epPin1ChamferRadius;
+            typeEp2_epPin1ChamferRadius := 0.0;
+         end
+         else
+         begin
+            typeEp1_Ft := 0.0;
+            typeEp2_Ft := pkgDimsEpChamfer;
+            typeEp1_epPin1ChamferRadius := 0.0;
+            typeEp2_epPin1ChamferRadius := epPin1ChamferRadius;
+         end;
+         
+         iniFileOut.add('# Split Pin 1 dimensions as defined by xml file');
+         iniFileOut.add('TypeEp1_Tt=' + FloatToStr(Y1size) + ' #Y1size');
+         iniFileOut.add('TypeEp1_Wt=' + FloatToStr(X1size) + ' #X1size');
+         iniFileOut.add('TypeEp1_Ft=' + FloatToStr(typeEp1_Ft) + ' #typeEp1_Ft');
+         iniFileOut.add('TypeEp1_Rt=' + FloatToStr(pkgDimsEpCornerRad) + ' #pkgDimsEpCornerRad');
+         iniFileOut.add('TypeEp1_epPin1ChamferRadius=' + FloatToStr(typeEp1_epPin1ChamferRadius));
+         iniFileOut.add('');
+         
+         iniFileOut.add('# Split Pin 2 dimensions as defined by xml file');
+         iniFileOut.add('TypeEp2_Tt=' + FloatToStr(Y2size) + ' #Y2size');
+         iniFileOut.add('TypeEp2_Wt=' + FloatToStr(X2size) + ' #X2size');
+         iniFileOut.add('TypeEp2_Ft=' + FloatToStr(typeEp2_Ft) + ' #typeEp2_Ft');
+         iniFileOut.add('TypeEp2_Rt=' + FloatToStr(pkgDimsEpCornerRad) + ' #pkgDimsEpCornerRad');
+         iniFileOut.add('TypeEp2_epPin1ChamferRadius=' + FloatToStr(typeEp2_epPin1ChamferRadius));
+         iniFileOut.add('');
+    
+      end;
+      
    end;
 
    { If the footprint is a QFN or DFN, then check if it has D-shape pads and include that in the ini file. }
@@ -15585,9 +15660,27 @@ begin
       padXmm               := CoordToMMs(padDst.X);
       padYmm               := CoordToMMs(padDst.Y);
 
-      { If the current pad is an EP, set padType to EP. }
+      { If the current pad is an EP, set padType to EP.
+      	If there is a split pin, name the two accordingly. }
       if ( padGroupNum = constPadGroupEp ) then
-         padType := 'EP';
+      begin
+
+         if ( splitPin <> '' ) then
+         begin
+
+            WriteToDebugFile('padXmm: ' + FloatToStr(padXmm) + ' padYmm: ' + FloatToStr(padYmm));
+            WriteToDebugFile('X1center: ' + FloatToStr(X1center) + ' Y1center: ' + FloatToStr(Y1center));
+            if ( (Abs(padXmm - X1center) < 0.000001) and (Abs(padYmm - Y1center) < 0.000001) ) then
+            begin
+               padType := 'TypeEp1';
+            end
+            else
+               padType := 'TypeEp2';
+         end
+         else
+            padType := 'EP';
+         
+      end;
          
       { Prepare output line. }
       { Format: 'Pin'[pin_name]=[type],[group],[x],[y] }
