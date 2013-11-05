@@ -100,7 +100,7 @@ begin
       RadioButtonLayerPair.Enabled := False;
 
       for i := 1 to 32 do
-         if Board.LayerStack.LayerObject_V7[ILayer.MechanicalLayer(i)].MechanicalLayerEnabled then
+         if Board.LayerStack_V7.LayerObject_V7[ILayer.MechanicalLayer(i)].MechanicalLayerEnabled then
          begin
             ComboBoxLayers.Items.Add(Board.LayerName(ILayer.MechanicalLayer(i)));
             if comboBoxLayers.Items.Count = 1 then
