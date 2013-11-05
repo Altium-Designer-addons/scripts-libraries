@@ -13,6 +13,26 @@ var
    MechPairs   : TStringList;
    MechSingles : TStringList;
 
+{procedure ReadStringFromIniFile read settings from the ini-file.....................}
+function ReadStringFromIniFile(Section,Name:String,FilePath:String,IfEmpty:String):String;
+var
+  IniFile     : TIniFile;
+begin
+     result := IfEmpty;
+     if FileExists(FilePath) then
+     begin
+          try
+             IniFile := TIniFile.Create(FilePath);
+
+             Result := IniFile.ReadString(Section,Name,IfEmpty);
+
+          finally
+                 Inifile.Free;
+          end;
+     end;
+
+ end;  {ReadFromIniFile end....................................................}
+
 
 function GetFirstLayerName(Pair : String) : String;
 var
@@ -88,6 +108,9 @@ procedure TFormAdjustDesignators.FormAdjustDesignatorsShow(Sender: TObject);
 var
    LayerPair : TMechanicalLayerPair;
    i, j      : Integer;
+   S, VersionStr        : String;
+   MajorADVersion : Integer;
+   MechEnabled : Boolean;
 begin
    ComboBoxLayers.Clear;
    ComboBoxDesignators.Clear;
@@ -99,9 +122,21 @@ begin
       RadioButtonLayerSingle.Checked := True;
       RadioButtonLayerPair.Enabled := False;
 
+      //Check AD version for layer stack version
+      VersionStr:= ReadStringFromIniFile('Preference Location','Build',SpecialFolder_AltiumSystem+'\PrefFolder.ini','14');
+      S := Copy(VersionStr,0,2);
+      ShowMessage(S);
+      MajorADVersion := StrToInt(S);
+
       for i := 1 to 32 do
-         if Board.LayerStack_V7.LayerObject_V7[ILayer.MechanicalLayer(i)].MechanicalLayerEnabled then
-         begin
+      begin
+          if MajorADVersion >= 14 then
+             MechEnabled := Board.LayerStack_V7.LayerObject_V7[ILayer.MechanicalLayer(i)].MechanicalLayerEnabled
+          else
+             MechEnabled := Board.LayerStack.LayerObject_V7[ILayer.MechanicalLayer(i)].MechanicalLayerEnabled;
+
+          if MechEnabled = True then
+          begin
             ComboBoxLayers.Items.Add(Board.LayerName(ILayer.MechanicalLayer(i)));
             if comboBoxLayers.Items.Count = 1 then
                ComboBoxLayers.Text := ComboBoxLayers.Items[0];
@@ -110,6 +145,7 @@ begin
             if ComboBoxDesignators.Items.Count = 1 then
                ComboBoxDesignators.Text := ComboBoxDesignators.Items[0];
          end;
+      end;
    end
    else
    begin
