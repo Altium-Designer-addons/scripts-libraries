@@ -6,7 +6,7 @@
 #
 #	@details		
 #
-#    @version		0.4.20
+#    @version		0.4.21
 #					   $Rev::                                                                        $:
 #	@date			  $Date::                                                                        $:
 #	@author			$Author::                                                                        $:
@@ -103,6 +103,7 @@ import cStringIO
 import sys
 import os
 import re
+import ast
 from FreeCAD import Base
 
 scriptPathUtils = ""
@@ -260,19 +261,8 @@ def FC3DM_ReadIniFile(iniFileName,
 #                print("name=:" + name + ":")
 #                print("value=:" + value + ":")
 
-                # Determine if this a numeric or string value
-                if (is_number(value)):
-
-                    print "Found numeric value! " + value
-
-                    # Add name=value pair (numeric value) to our parms associative array 
-                    parms[name] = float(value)
-
-                else:
-
-                    # Add name=value pair (string value) to our parms associative array
-                    # Strip off '"' chars that have somehow propagated to this point
-                    parms[name] = value.replace("\"", "")
+                # Use AST library to safely evaluate type (int, float, string, tuple, etc.) and then add to parms list.
+                parms[name] = ast.literal_eval(value)
 
     return 0
 
@@ -312,11 +302,17 @@ def FC3DM_ReadIniFiles(scriptPath, parms):
     FC3DM_ReadIniFile(iniFileName,
                       parms)
 
-    ## Set standard colors for our component
-    # TODO:  We should be reading these from ini file also!
-    parms["colorPin1Mark"] = ((1.00,1.00,1.00)) # White for pin1Mark
-    parms["colorPins"] = ((0.80,0.80,0.75)) 	# Bright tin for all pins
-    parms["colorBody"] = ((0.10,0.10,0.10))	# Black for body    
+#    FC3DM_WriteToDebugFile("After call to FC3DM_ReadIniFile(), parms is: " + str(parms))    
+
+    ## Set standard colors for our component (if they are not defined in ini file!)
+    if (not "colorPin1Mark" in parms):
+        parms["colorPin1Mark"] = ((1.00,1.00,1.00)) # White for pin1Mark
+
+    if (not "colorPins" in parms):
+        parms["colorPins"] = ((0.80,0.80,0.75)) 	# Bright tin for all pins
+
+    if (not "colorBody" in parms):
+        parms["colorBody"] = ((0.10,0.10,0.10))		# Black for body    
 
 
     ## Extract relevant parameter values from parms associative array
@@ -689,28 +685,19 @@ def FC3DM_FuseSetOfObjects(App, Gui,
         FC3DM_WriteToDebugFile("Found face in pin1Mark object!")
 
         # Loop over all the vertexes in this face
-        buf = cStringIO.StringIO()
         bufList = []
         for j in i.Vertexes:
 
-            print >> buf, j.Point
             bufList.append(str(j.Point))
 
-        # Write bufList to debug file
-#        FC3DM_WriteToDebugFile("bufList is: " + str(bufList))
+        # Sort bufList so that we can reliably pattern match against it later on.
         bufList.sort()
-        FC3DM_WriteToDebugFile("bufList is now: " + str(bufList))
+
+        # Write bufList to debug file
+        FC3DM_WriteToDebugFile("Vertexes for this face are: " + str(bufList))
 
         # Store all the vertexes for this face as a string array
-#        pin1MarkVerts.append(buf.getvalue())
         pin1MarkVerts.append(str(bufList))
-
-        FC3DM_WriteToDebugFile("Vertexes for this face are:")
-        FC3DM_WriteToDebugFile(buf.getvalue())
-
-#        buf.sort()
-#        FC3DM_WriteToDebugFile("Vertexes for this face are now:")
-#        FC3DM_WriteToDebugFile(buf.getvalue())
 
 
     FC3DM_WriteToDebugFile("About to loop over body faces")
@@ -720,28 +707,19 @@ def FC3DM_FuseSetOfObjects(App, Gui,
         FC3DM_WriteToDebugFile("Found face in body object!")
 
         # Loop over all the vertexes in this face
-        buf = cStringIO.StringIO()
         bufList = []
         for j in i.Vertexes:
 
-            print >> buf, j.Point
             bufList.append(str(j.Point))
 
-        # Write bufList to debug file
-#        FC3DM_WriteToDebugFile("bufList is: " + str(bufList))
+        # Sort bufList so that we can reliably pattern match against it later on.
         bufList.sort()
-        FC3DM_WriteToDebugFile("bufList is now: " + str(bufList))
+
+        # Write bufList to debug file
+        FC3DM_WriteToDebugFile("Vertexes for this face are: " + str(bufList))
 
         # Store all the vertexes for this face as a string array
-#       bodyVerts.append(buf.getvalue())
         bodyVerts.append(str(bufList))
-
-        FC3DM_WriteToDebugFile("Vertexes for this face are:")
-        FC3DM_WriteToDebugFile(buf.getvalue())
-
-#        buf.sort()
-#        FC3DM_WriteToDebugFile("Vertexes for this face are now:")
-#        FC3DM_WriteToDebugFile(buf.getvalue())
 
 
     FC3DM_WriteToDebugFile("About to loop over pin faces")
@@ -759,28 +737,19 @@ def FC3DM_FuseSetOfObjects(App, Gui,
                 FC3DM_WriteToDebugFile("Found face in pin object!")
 
                 # Loop over all the vertexes in this face
-                buf = cStringIO.StringIO()
                 bufList = []
                 for j in i.Vertexes:
 
-                    print >> buf, j.Point
                     bufList.append(str(j.Point))
 
-                # Write bufList to debug file
-#                FC3DM_WriteToDebugFile("bufList is: " + str(bufList))
+                # Sort bufList so that we can reliably pattern match against it later on.
                 bufList.sort()
-                FC3DM_WriteToDebugFile("bufList is now: " + str(bufList))
+
+                # Write bufList to debug file
+                FC3DM_WriteToDebugFile("Vertexes for this face are: " + str(bufList))
 
                 # Store all the vertexes for this face as a string array
-#               pinVerts.append(buf.getvalue())
                 pinVerts.append(str(bufList))
-
-                FC3DM_WriteToDebugFile("Vertexes for this face are:")
-                FC3DM_WriteToDebugFile(buf.getvalue())
-
-#                buf.sort()
-#                FC3DM_WriteToDebugFile("Vertexes for this face are now:")
-#                FC3DM_WriteToDebugFile(buf.getvalue())
 
 
     ## Prepare to compare all faces in the fusion with pin1Mark, pin, and body faces
@@ -805,12 +774,11 @@ def FC3DM_FuseSetOfObjects(App, Gui,
             print >> buf, j.Point
             bufList.append(str(j.Point))
 
-        # Write bufList to debug file
-#        FC3DM_WriteToDebugFile("bufList is: " + str(bufList))
+        # Sort bufList so that we can reliably pattern match against it later on.
         bufList.sort()
-        FC3DM_WriteToDebugFile("Vertexes for this face are:")
-        FC3DM_WriteToDebugFile("bufList is now: " + str(bufList))
-#       FC3DM_WriteToDebugFile(buf.getvalue())
+        
+        # Write bufList to debug file
+        FC3DM_WriteToDebugFile("Vertexes for this face are:"  + str(bufList))
 
         # Convert this vertex to a string.
         thisVert = ""
