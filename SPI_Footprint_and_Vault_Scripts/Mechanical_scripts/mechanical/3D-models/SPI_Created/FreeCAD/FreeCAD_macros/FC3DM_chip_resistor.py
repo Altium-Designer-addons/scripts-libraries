@@ -6,7 +6,7 @@
 #
 #	@details		
 #
-#    @version		0.2.1
+#    @version		0.2.2
 #					   $Rev::                                                                        $:
 #	@date			  $Date::                                                                        $:
 #	@author			$Author::                                                                        $:
@@ -135,6 +135,9 @@ print parms
 # Open the debug file
 FC3DM_OpenDebugFile(parms)
 
+# Write parms to debug file
+FC3DM_WriteToDebugFile("After call to FC3DM_ReadIniFiles(), parms is: " + str(parms))    
+
 
 ###################################
 ## Prepare for next model
@@ -142,7 +145,7 @@ FC3DM_OpenDebugFile(parms)
 bodyName = parms["bodyName"]
 moldName = parms["moldName"]
 pinName = parms["pinName"]
-pinsName = parms["pinsName"]
+pin1Name = parms["pin1Name"]
 pin2Name = parms["pin2Name"]
 
 docName = parms["docName"]
@@ -156,11 +159,11 @@ Gui.ActiveDocument=Gui.getDocument(docName)
 
 
 # Setup parameters related to the chip component body
-L = parms["L"] # Length of chip resistor
-W = parms["W"] # Width of chip resistor
-T = parms["T"] # Distance from furthest length to end of termination
-H = parms["H"] # Height of chip resistor
-K = parms["K"] # Should be 0 always
+L = parms["L"] 		# Length of chip resistor
+W = parms["W"] 		# Width of chip resistor
+T = parms["T"] 		# Distance from furthest length to end of termination
+H = parms["H"] 		# Height of chip resistor
+K = parms["K"] 		# Should be 0 always
 termThickness = parms["termThickness"]
 
 # Tweak these to reflect only the white substrate
@@ -185,23 +188,23 @@ FC3DM_CreateBox(App, Gui,
                 termL, W, H, K,
                 termX, termY, rotDeg, 
                 docName,
-                pinsName)
+                pin1Name)
     
 # Cut out the part of the termination that overlaps with the body
 FC3DM_CutObjectWithToolAndKeepTool(App, Gui,
-                                   docName, pinsName, bodyName)
+                                   docName, pin1Name, bodyName)
 
 # Fillet the outside edges of this termination
 edges = ["Edge2","Edge4"]
 radius = (termThickness)
 FC3DM_FilletObjectEdges(App, Gui,
-                        docName, pinsName, edges, radius)
+                        docName, pin1Name, edges, radius)
 
 # Copy pin 1 to pin 2
 FC3DM_CopyObject(App, Gui,
                  0, 0, 180, 
                  docName,
-                 pinsName,
+                 pin1Name,
                  pin2Name)
 
 # Create a box to represent the overmold
@@ -222,28 +225,23 @@ FC3DM_CreateAndCenterBox(App, Gui,
 #FC3DM_FilletObjectEdges(App, Gui,
 #                        docName, moldName, edges, radius)
 
-## Fuse all the pins together
-#FC3DM_FuseObjects(App, Gui,
-#                  docName, pinsName, pin2Name)
 
-
-## Wrap up
-# Color body white
-#FreeCADGui.getDocument(docName).getObject(bodyName).ShapeColor = (1.00,1.00,1.00)
-
-# Color pins bright tin
-#FreeCADGui.getDocument(docName).getObject(pinsName).ShapeColor = (0.80,0.80,0.75)
-
-# Color overmold black
-#FreeCADGui.getDocument(docName).getObject(moldName).ShapeColor = (0.10,0.10,0.10)
-
-# The FC3DM_FuseSetOfObjects() function expects a "pin1MarkName", which we don't have.
-# But we do have a "moldName", so trick it.
+# The FC3DM_FuseSetOfObjects() and FC3DM_DescribeObjectsToLogFile() functions expect a "pin1MarkName",
+# which we don't have.  But we do have a "moldName", so trick it.
 parms["pin1MarkName"] = parms["moldName"]
+
+# Describe all objects in this component to a logfile.
+pinNames = []
+pinNames.append(pin1Name)
+pinNames.append(pin2Name)
+FC3DM_DescribeObjectsToLogFile(App, Gui,
+                               parms, pinNames,
+                               docName)
+
 
 # Fuse all objects together & retain proper coloring
 objNameList = []
-objNameList.append(pinsName)
+objNameList.append(pin1Name)
 objNameList.append(pin2Name)
 objNameList.append(bodyName)
 objNameList.append(moldName)
@@ -257,7 +255,6 @@ App.ActiveDocument.recompute()
 Gui.SendMsgToActiveView("ViewFit")
 
 # Save file to native format and export to STEP
-#objNameList = [bodyName, pinsName, moldName]
 objNameList = [fusionName]
 FC3DM_SaveAndExport(App, Gui,
                     docName,
