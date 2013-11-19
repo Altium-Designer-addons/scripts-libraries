@@ -6,7 +6,7 @@
 #
 #	@details		
 #
-#    @version		0.4.19
+#    @version		0.4.20
 #					   $Rev::                                                                        $:
 #	@date			  $Date::                                                                        $:
 #	@author			$Author::                                                                        $:
@@ -635,7 +635,6 @@ def FC3DM_FuseSetOfObjects(App, Gui,
                            parms,
                            docName, objNameList, fusionName):
 
-    print("Hello world from FuseSetOfObjects!")
     FC3DM_WriteToDebugFile("Hello from FC3DM_FuseSetOfObjects()")
 
     # Extract relevant parameter values from parms associative array
@@ -643,7 +642,6 @@ def FC3DM_FuseSetOfObjects(App, Gui,
     bodyName = parms["bodyName"]
     pin1MarkName = parms["pin1MarkName"]
     FC3DM_WriteToDebugFile("pin1MarkName is: " + pin1MarkName + ":")
-    print "pin1MarkName is :" + pin1MarkName + ":"
 
 
     # Configure active document
@@ -658,11 +656,11 @@ def FC3DM_FuseSetOfObjects(App, Gui,
     objs=[]
     for i in objNameList:
         
+        FC3DM_WriteToDebugFile("Adding new obj from objNameList: " + i + ":.")
         objs.append(App.activeDocument().getObject(i))
 
-    
+    # Do the multi-fusion.  Write to new "Temp" object.
     FC3DM_WriteToDebugFile("Writing multi-fusion to \"Temp\"")
-    # Do the multi-fusion.  Write to "Temp".
     Gui.activateWorkbench("PartWorkbench")
     FC3DM_WriteToDebugFile("Activated workbench")
     App.activeDocument().addObject("Part::MultiFuse","Temp")
@@ -672,12 +670,13 @@ def FC3DM_FuseSetOfObjects(App, Gui,
     FC3DM_WriteToDebugFile("The following step may take as long as 5 minutes. Be patient for complicated components")
     App.ActiveDocument.recompute()
 
-    FC3DM_WriteToDebugFile("Copying \"Temp\" to " + fusionName)
     # Copy the temp fusion object and call it the desired fusion name
+    FC3DM_WriteToDebugFile("Copying \"Temp\" to " + fusionName)
     newTermShape = FreeCAD.getDocument(docName).getObject("Temp").Shape.copy()
     newTermObj = App.activeDocument().addObject("Part::Feature", fusionName)
     newTermObj.Shape = newTermShape
     App.ActiveDocument.recompute()
+    FC3DM_WriteToDebugFile("Done with multi-fusion.")
 
 
     ### Preserve face colors for the body and pin1Mark!
@@ -687,37 +686,62 @@ def FC3DM_FuseSetOfObjects(App, Gui,
     ## Loop over all faces in the pin1Mark object
     pin1MarkVerts=[]
     for i in App.ActiveDocument.getObject(pin1MarkName).Shape.Faces:
-        print("Found face in pin1Mark object!")
+        FC3DM_WriteToDebugFile("Found face in pin1Mark object!")
 
         # Loop over all the vertexes in this face
         buf = cStringIO.StringIO()
+        bufList = []
         for j in i.Vertexes:
 
             print >> buf, j.Point
+            bufList.append(str(j.Point))
+
+        # Write bufList to debug file
+#        FC3DM_WriteToDebugFile("bufList is: " + str(bufList))
+        bufList.sort()
+        FC3DM_WriteToDebugFile("bufList is now: " + str(bufList))
 
         # Store all the vertexes for this face as a string array
-        pin1MarkVerts.append(buf.getvalue())
+#        pin1MarkVerts.append(buf.getvalue())
+        pin1MarkVerts.append(str(bufList))
 
-        print "Vertexes for this face are:"
-        print buf.getvalue()
+        FC3DM_WriteToDebugFile("Vertexes for this face are:")
+        FC3DM_WriteToDebugFile(buf.getvalue())
+
+#        buf.sort()
+#        FC3DM_WriteToDebugFile("Vertexes for this face are now:")
+#        FC3DM_WriteToDebugFile(buf.getvalue())
+
 
     FC3DM_WriteToDebugFile("About to loop over body faces")
     ## Loop over all faces in the body object
     bodyVerts=[]
     for i in App.ActiveDocument.getObject(bodyName).Shape.Faces:
-        print("Found face in body object!")
+        FC3DM_WriteToDebugFile("Found face in body object!")
 
         # Loop over all the vertexes in this face
         buf = cStringIO.StringIO()
+        bufList = []
         for j in i.Vertexes:
 
             print >> buf, j.Point
+            bufList.append(str(j.Point))
+
+        # Write bufList to debug file
+#        FC3DM_WriteToDebugFile("bufList is: " + str(bufList))
+        bufList.sort()
+        FC3DM_WriteToDebugFile("bufList is now: " + str(bufList))
 
         # Store all the vertexes for this face as a string array
-        bodyVerts.append(buf.getvalue())
+#       bodyVerts.append(buf.getvalue())
+        bodyVerts.append(str(bufList))
 
-        print "Vertexes for this face are:"
-        print buf.getvalue()
+        FC3DM_WriteToDebugFile("Vertexes for this face are:")
+        FC3DM_WriteToDebugFile(buf.getvalue())
+
+#        buf.sort()
+#        FC3DM_WriteToDebugFile("Vertexes for this face are now:")
+#        FC3DM_WriteToDebugFile(buf.getvalue())
 
 
     FC3DM_WriteToDebugFile("About to loop over pin faces")
@@ -728,23 +752,35 @@ def FC3DM_FuseSetOfObjects(App, Gui,
         # See if this object name is the body or pin 1 marker.
         if ( (k != bodyName) and (k != pin1MarkName) ):
 
-            print("Found pin object named " + k + ".")
+            FC3DM_WriteToDebugFile("Found pin object named " + k + ".")
 
             # Loop over all the vertexes in this face
             for i in App.ActiveDocument.getObject(k).Shape.Faces:
-                print("Found face in pin object!")
+                FC3DM_WriteToDebugFile("Found face in pin object!")
 
                 # Loop over all the vertexes in this face
                 buf = cStringIO.StringIO()
+                bufList = []
                 for j in i.Vertexes:
 
                     print >> buf, j.Point
+                    bufList.append(str(j.Point))
+
+                # Write bufList to debug file
+#                FC3DM_WriteToDebugFile("bufList is: " + str(bufList))
+                bufList.sort()
+                FC3DM_WriteToDebugFile("bufList is now: " + str(bufList))
 
                 # Store all the vertexes for this face as a string array
-                pinVerts.append(buf.getvalue())
+#               pinVerts.append(buf.getvalue())
+                pinVerts.append(str(bufList))
 
-                print "Vertexes for this face are:"
-                print buf.getvalue()
+                FC3DM_WriteToDebugFile("Vertexes for this face are:")
+                FC3DM_WriteToDebugFile(buf.getvalue())
+
+#                buf.sort()
+#                FC3DM_WriteToDebugFile("Vertexes for this face are now:")
+#                FC3DM_WriteToDebugFile(buf.getvalue())
 
 
     ## Prepare to compare all faces in the fusion with pin1Mark, pin, and body faces
@@ -752,7 +788,8 @@ def FC3DM_FuseSetOfObjects(App, Gui,
 
     # Loop over all the faces in the fusion object
     for xp in App.ActiveDocument.getObject(fusionName).Shape.Faces:
-        print("Found face in fusion object!")
+        FC3DM_WriteToDebugFile("")
+        FC3DM_WriteToDebugFile("Found face in fusion object!")
 
         # Clear found flags for pin1Mark, body, and pin
         isPin1Mark = False;
@@ -761,23 +798,34 @@ def FC3DM_FuseSetOfObjects(App, Gui,
 
         # Loop over all the vertexes in this fusion shape face
         buf = cStringIO.StringIO()
+        bufList = []
         for j in xp.Vertexes:
 
             # Record this vertex in a string buffer
             print >> buf, j.Point
+            bufList.append(str(j.Point))
 
-        print "Vertexes for this face are:"
-        print buf.getvalue()
+        # Write bufList to debug file
+#        FC3DM_WriteToDebugFile("bufList is: " + str(bufList))
+        bufList.sort()
+        FC3DM_WriteToDebugFile("Vertexes for this face are:")
+        FC3DM_WriteToDebugFile("bufList is now: " + str(bufList))
+#       FC3DM_WriteToDebugFile(buf.getvalue())
+
+        # Convert this vertex to a string.
+        thisVert = ""
+        thisVert = str(bufList)
+
 
         # See if this face is the same as a face from the pin1Mark object
         for i in pin1MarkVerts:
 
             # I can't get Faces.isSame() to actually work.  That's why I'm doing this
             # kludge with sprint'ing vertex info to a string.
-#            print xp.isSame(i)
+#            FC3DM_WriteToDebugFile(xp.isSame(i))
         
             # See if the i string (from a pin1Mark vertex string) equals our current vertex string
-            if (buf.getvalue() == i):
+            if (thisVert == i):
                 isPin1Mark = True;
 
         # See if this face is the same as a face from the pin1Mark object
@@ -785,10 +833,10 @@ def FC3DM_FuseSetOfObjects(App, Gui,
 
             # I can't get Faces.isSame() to actually work.  That's why I'm doing this
             # kludge with sprint'ing vertex info to a string.
-#            print xp.isSame(i)
+#            FC3DM_WriteToDebugFile(xp.isSame(i))
         
             # See if the i string (from a pin vertex string) equals our current vertex string
-            if (buf.getvalue() == i):
+            if (thisVert == i):
                 isPin = True;
 
         # See if this face is the same as a face from the body object
@@ -796,17 +844,17 @@ def FC3DM_FuseSetOfObjects(App, Gui,
 
             # I can't get Faces.isSame() to actually work.  That's why I'm doing this
             # kludge with sprint'ing vertex info to a string.
-#            print xp.isSame(i)
+#            FC3DM_WriteToDebugFile(xp.isSame(i))
         
             # See if the i string (from a body vertex string) equals our current vertex string
-            if (buf.getvalue() == i):
+            if (thisVert == i):
                 isBody = True;
 
 
         # See if we found a face that derives from our pin1Mark
         if (isPin1Mark):
 
-            print("Found face in fusion that exactly matched a pin1Mark face.")
+            FC3DM_WriteToDebugFile("This face in fusion exactly matched a pin1Mark face.")
 
             # Color Pin1Mark white
             faceColors.append(parms["colorPin1Mark"])
@@ -814,7 +862,7 @@ def FC3DM_FuseSetOfObjects(App, Gui,
         # See if we found a face that derives from a pin
         elif (isPin):
 
-            print("Found face in fusion that exactly matched a pin face.")
+            FC3DM_WriteToDebugFile("This face in fusion exactly matched a pin face.")
 
             # Color pin bright tin.
             faceColors.append(parms["colorPins"])
@@ -822,7 +870,7 @@ def FC3DM_FuseSetOfObjects(App, Gui,
         # See if we found a face that derives from our body
         elif (isBody):
 
-            print("Found face in fusion that exactly matched a body face.")
+            FC3DM_WriteToDebugFile("This face in fusion exactly matched a body face.")
 
             # Color body black
             faceColors.append(parms["colorBody"])
@@ -831,15 +879,21 @@ def FC3DM_FuseSetOfObjects(App, Gui,
         # that got modified as pins fused to it, and thus wasn't an exact match.
         else:
 
-            print("Found face in fusion that didn't match a known face!")
+            FC3DM_WriteToDebugFile("This face in fusion didn't match a known face!")
 
             # Count the number of vertex lines in this string.
             numLines = len(buf.getvalue().splitlines())
 
             # Empirically I've seen that unmatched pin faces have only 4 vertexes.
             # TODO:  Will this simple distinction be true for non-gullwing ICs???
-            if (numLines <= 4):
-                print(" numLines is " + str(numLines) + ".  Hoping it's part of a pin!")
+            isChipResistor = False
+            if ("compType" in parms):
+                if (parms["compType"] == "chipResistor"):
+                    isChipResistor = True
+            FC3DM_WriteToDebugFile(" isChipResistor = " + str(isChipResistor))
+
+            if ( (numLines <= 4) and (isChipResistor == False) ):
+                FC3DM_WriteToDebugFile(" numLines is " + str(numLines) + ".  Hoping it's part of a pin!")
 
                 # Color pin bright tin.
                 faceColors.append(parms["colorPins"])
@@ -847,7 +901,7 @@ def FC3DM_FuseSetOfObjects(App, Gui,
             # Else we assume that it's part of the body.
             else:
            
-                print(" numLines is " + str(numLines) + ".  Hoping it's part of the body!")
+                FC3DM_WriteToDebugFile(" numLines is " + str(numLines) + ".  Hoping it's part of the body!")
 
                 # Color body black
                 faceColors.append(parms["colorBody"])
@@ -859,10 +913,10 @@ def FC3DM_FuseSetOfObjects(App, Gui,
     # https://sourceforge.net/apps/phpbb/free-cad/viewtopic.php?f=19&t=4117
     # which pointed me in the right direction to make this actually work.                
     FC3DM_WriteToDebugFile("Attempting to set fusion face colors")
-    print("Attempting to set fusion face colors")
+    FC3DM_WriteToDebugFile("Attempting to set fusion face colors")
     Gui.ActiveDocument.getObject(fusionName).DiffuseColor=faceColors
     App.ActiveDocument.recompute()
-    print("Attempted to set fusion face colors")
+    FC3DM_WriteToDebugFile("Attempted to set fusion face colors")
 
     FC3DM_WriteToDebugFile("Deleting the original objects that made up the fusion")
     # Delete the original objects that comprised the fusion

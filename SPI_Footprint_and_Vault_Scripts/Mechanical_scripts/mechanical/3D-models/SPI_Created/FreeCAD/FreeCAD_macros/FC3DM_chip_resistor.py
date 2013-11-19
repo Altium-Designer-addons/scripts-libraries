@@ -6,7 +6,7 @@
 #
 #	@details		
 #
-#    @version		0.2.0
+#    @version		0.2.1
 #					   $Rev::                                                                        $:
 #	@date			  $Date::                                                                        $:
 #	@author			$Author::                                                                        $:
@@ -88,7 +88,14 @@ sys.path.append(scriptPath)
 
 
 # Import our utilities module
+import FC3DM_utils
+
+# Reload utilities module, since this changes often!
+reload(FC3DM_utils)
+
+# Explicitly load all functions within it
 from FC3DM_utils import *
+
 
 
 ###################################
@@ -216,26 +223,42 @@ FC3DM_CreateAndCenterBox(App, Gui,
 #                        docName, moldName, edges, radius)
 
 ## Fuse all the pins together
-FC3DM_FuseObjects(App, Gui,
-                  docName, pinsName, pin2Name)
+#FC3DM_FuseObjects(App, Gui,
+#                  docName, pinsName, pin2Name)
 
 
 ## Wrap up
 # Color body white
-FreeCADGui.getDocument(docName).getObject(bodyName).ShapeColor = (1.00,1.00,1.00)
+#FreeCADGui.getDocument(docName).getObject(bodyName).ShapeColor = (1.00,1.00,1.00)
 
 # Color pins bright tin
-FreeCADGui.getDocument(docName).getObject(pinsName).ShapeColor = (0.80,0.80,0.75)
+#FreeCADGui.getDocument(docName).getObject(pinsName).ShapeColor = (0.80,0.80,0.75)
 
 # Color overmold black
-FreeCADGui.getDocument(docName).getObject(moldName).ShapeColor = (0.10,0.10,0.10)
+#FreeCADGui.getDocument(docName).getObject(moldName).ShapeColor = (0.10,0.10,0.10)
+
+# The FC3DM_FuseSetOfObjects() function expects a "pin1MarkName", which we don't have.
+# But we do have a "moldName", so trick it.
+parms["pin1MarkName"] = parms["moldName"]
+
+# Fuse all objects together & retain proper coloring
+objNameList = []
+objNameList.append(pinsName)
+objNameList.append(pin2Name)
+objNameList.append(bodyName)
+objNameList.append(moldName)
+fusionName = docName
+FC3DM_FuseSetOfObjects(App, Gui,
+                       parms,
+                       docName, objNameList, fusionName)
 
 # Zoom in
 App.ActiveDocument.recompute()
 Gui.SendMsgToActiveView("ViewFit")
 
 # Save file to native format and export to STEP
-objNameList = [bodyName, pinsName, moldName]
+#objNameList = [bodyName, pinsName, moldName]
+objNameList = [fusionName]
 FC3DM_SaveAndExport(App, Gui,
                     docName,
                     parms,
