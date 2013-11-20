@@ -199,7 +199,7 @@ end;
  ***************************************************************************}
 const
 {* Declare the version and name of this script. *}
-   constScriptVersion          = 'v0.10.1 $Revision$';
+   constScriptVersion          = 'v0.10.2 $Revision$';
    constThisScriptNameNoExt    = 'SPI_Cleanup_AltLib_Footprint';
    constThisScriptName         = constThisScriptNameNoExt + '.pas';
 {}
@@ -1759,6 +1759,13 @@ var
    baseColorCode        : TString;
    baseMarkingText      : TString;
    baseStepFilePath     : TString;
+   fcstdFilePath        : TString;
+   iniFilePath          : TString;
+   logFilePath          : TString;
+   pcbDocOrStepFilePath : TString;
+   deletedStepFile      : Boolean;
+   mode                 : Boolean;
+   filesAreReverted     : Boolean;
                                                      
 begin
 
@@ -1981,18 +1988,42 @@ begin
                                                {var} csvReportStrs,
                                                {var} cnfGalacticInfo);
 
+      { Construct the full path and name and extension for new csvReport file that we are about to create. }
+      csvReportFilePath       := (projectPath + libSubDir + libFileName + '_Features_Report.csv');
+     
+      { Construct the full path and name and extension for new script report file that we are about to create. }
+      reportFilePath       := (projectPath + libSubDir + libFileName + '_Script_Report.txt');
+
+      {** Read in old CSV report file for later comparison with new CSV report file. **}
+      stepFilePath := ''; 		{ We don't have this file.  Set to null string. }
+      CLF_RevertOldCsvFileAndReadIn(projectPath,
+                                    scriptsPath,
+                                    {pcbLibOrFcstdFilePath} pcbLibFileName,
+                                    {reportOrIniFilePath} reportFilePath,
+                                    stepFilePath,
+                                    {csvOrLogFilePath} csvReportFilePath,
+                                    {var} csvReportOld,
+                                    {var} deletedStepFile);
+      
 
       { Add all generated files (PcbLib + report file + csv file) to project and to svn. }
+      fcstdFilePath := ''; 		{ We don't have this file.  Set to null string. }
+      iniFilePath := ''; 		{ We don't have this file.  Set to null string. }
+      logFilePath := ''; 		{ We don't have this file.  Set to null string. }
       CLF_AddGeneratedDocumentsToProjectAndSvn(project,
                                                projectPath,
                                                scriptsPath,
                                                libSubDir,
                                                libFileName,
                                                pcbLibFileName,
-                                               {var} reportFilePath,
-                                               {var} csvReportFilePath,
-                                               {var} csvReportOld,
+                                               csvReportFilePath,
+                                               fcstdFilePath,
+                                               iniFilePath,
+                                               stepFilePath,
+                                               logFilePath,
+                                               reportFilePath,
                                                cnfGalacticInfo);
+
       
       { Generate CSV report file to detail all the features (tracks, arcs, texts, etc.) present in this
        footprint, along with all their associated parameters. }
@@ -2012,14 +2043,18 @@ begin
       { See if the CSV report file has changed compared to before this script run.  If it has not,
        then proceed to revert all generated files, so that user is not tempted to checkin effectively
        unchanged binary file .PcbLib. }
-      CLF_RevertGeneratedFilesIfNeeded(project,
-                                       projectPath,
+      mode                 := False; 	{ "Footprint" mode }
+      pcbDocOrStepFilePath := ''; 		{ We don't have this file.  Set to null string. }
+      CLF_RevertGeneratedFilesIfNeeded(projectPath,
                                        scriptsPath,
-                                       pcbLibFileName,
-                                       reportFilePath,
-                                       csvReportFilePath,
-                                       {var} csvReportOld,
-                                       {var} csvReportOut);
+                                       {pcbLibOrFcstdFilePath} pcbLibFileName,
+                                       {reportOrIniFilePath} reportFilePath,
+                                       pcbDocOrStepFilePath,
+                                       {csvOrLogFilePath} csvReportFilePath,
+                                       mode,
+                                       {var} {csvOrLogFileOld} csvReportOld,
+                                       {var} {csvOrLogFileOut} csvReportOut,
+                                       {var} filesAreReverted);
 
       for i := 0 to (cnfGalacticInfo.Count - 1) do
       begin
@@ -2166,7 +2201,6 @@ var
    cnfGalacticInfo   : TStringList;
    i                 : Integer;
    padsFilePath      : TString;
-   reportFilePath    : TString;
    commandFilePath   : TString;
 
 begin

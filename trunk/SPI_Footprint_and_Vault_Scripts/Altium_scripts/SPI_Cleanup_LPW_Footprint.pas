@@ -285,7 +285,7 @@ function CLF_ExtrudeGeometricPolygonInto3d(    boardSide         : Integer;
  ***************************************************************************}
 const
 {* Declare the version and name of this script. *}
-   constScriptVersion          = 'v0.16.30 $Revision$';
+   constScriptVersion          = 'v0.16.31 $Revision$';
    constThisScriptNameNoExt    = 'SPI_Cleanup_LPW_Footprint';
    constThisScriptName         = constThisScriptNameNoExt + '.pas';
 {}
@@ -6047,20 +6047,20 @@ end; { end CLF_AddSourceDocumentsToProjectAndSvn() }
  *  
  *  Returns:  0 on success, 1 if not successful.
  ***************************************************************************}
-function CLF_AddGeneratedDocumentsToProjectAndSvn(    project           : IProject;
-                                                      projectPath       : TDynamicString;
-                                                      scriptsPath       : TDynamicString;
-                                                      libSubDir         : TString;
-                                                      libFileName       : TString;
-                                                      pcbLibFileName    : TString;
-                                                      csvReportFilePath : TString;
-                                                      fcstdFilePath     : TString;
-                                                      iniFilePath       : TString;
-                                                      stepFilePath      : TString;
-                                                      logFilePath       : TString;
-                                                  var reportFilePath    : TString;
-                                                      cnfGalacticInfo   : TStringList;
-                                                      )                 : Integer;
+function CLF_AddGeneratedDocumentsToProjectAndSvn(project           : IProject;
+                                                  projectPath       : TDynamicString;
+                                                  scriptsPath       : TDynamicString;
+                                                  libSubDir         : TString;
+                                                  libFileName       : TString;
+                                                  pcbLibFileName    : TString;
+                                                  csvReportFilePath : TString;
+                                                  fcstdFilePath     : TString;
+                                                  iniFilePath       : TString;
+                                                  stepFilePath      : TString;
+                                                  logFilePath       : TString;
+                                                  reportFilePath    : TString;
+                                                  cnfGalacticInfo   : TStringList;
+                                                  )                 : Integer;
                                                                  
 var                                                              
    i          : Integer;
@@ -6098,7 +6098,7 @@ begin
                       {addMePath} reportFilePath);
    CLF_WriteToSummaryAndDebugFilesWithStepNum('Added script report file "' + reportFilePath + '" to project.');
 
-      {** Save the CSV report file and add that file to project and svn. **}
+   {** Save the CSV report file and add that file to project and svn. **}
    { Write null file to our CSV report file to the csvReportFilePath, which is named similarly to the .PcbLib file. }
    { Note:  We're not done with creating this report.  We're doing the project add and svn add operations
     now so we don't have to worry about that part later.  But we will need to re-write the csvReport file itself
@@ -6277,8 +6277,8 @@ begin
          DeleteFileWithVerify(pcbDocOrStepFilePath);
       end
 
-      { Else we're in footprint mode, so revert the PcbDoc. }
-      else
+      { Else we're in footprint mode.  If we have a PcbDoc, then revert it. }
+      else if (pcbDocOrStepFilePath <> '') then
       begin
          parms.Add(pcbDocOrStepFilePath);
       end;
@@ -19148,7 +19148,7 @@ begin
                                                iniFilePath,
                                                stepFilePath,
                                                logFilePath,
-                                               {var} reportFilePath,
+                                               reportFilePath,
                                                cnfGalacticInfo);
       
       { Generate CSV report file to detail all the features (tracks, arcs, texts, etc.) present in this
