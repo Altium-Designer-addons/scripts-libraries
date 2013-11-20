@@ -6,7 +6,7 @@
 #
 #	@details		
 #
-#    @version		0.4.21
+#    @version		0.4.22
 #					   $Rev::                                                                        $:
 #	@date			  $Date::                                                                        $:
 #	@author			$Author::                                                                        $:
@@ -224,6 +224,42 @@ def FC3DM_SortPinNames(a, b):
     
 
 ###################################################################
+# FC3DM_NormalizeAbsPath()
+#	Function to normalize an absolute path.  Interpret any "../foo/bar" type of
+# things.  Change path separators to unix style.
+###################################################################
+def FC3DM_NormalizeAbsPath(myPath):
+
+    # Interpret any "../foo/bar" structures, remove redundant path separators, etc.
+    myPath = os.path.abspath(myPath)
+#    FC3DM_WriteToDebugFile("myPath is now: " + myPath)
+
+    # Change to unix style path separators
+    myPath = myPath.replace("\\", "/")
+#    FC3DM_WriteToDebugFile("myPath is now: " + myPath)
+
+    return myPath
+
+
+###################################################################
+# FC3DM_NormalizeRelPath()
+#	Function to normalize a relative path.  Interpret any "../foo/bar" type of
+# things.  Change path separators to unix style.
+###################################################################
+def FC3DM_NormalizeRelPath(myPath):
+
+    # Interpret any "../foo/bar" structures, remove redundant path separators, etc.
+    myPath = os.path.relpath(myPath)
+#    FC3DM_WriteToDebugFile("myPath is now: " + myPath)
+
+    # Change to unix style path separators
+    myPath = myPath.replace("\\", "/")
+#    FC3DM_WriteToDebugFile("myPath is now: " + myPath)
+
+    return myPath
+
+
+###################################################################
 # FC3DM_ReadIniFile()
 #	Function to read an ini file.  File format is "key=value".
 # 	Debug messages should not be written in this function because
@@ -296,13 +332,12 @@ def FC3DM_ReadIniFiles(scriptPath, parms):
     # TODO:  Currently no error checking!
     # Note:  Assumes that iniFileName from file is a relative directory!
     #  Thus, we must pre-pend our path to this.
-    iniFileName = scriptPath + "\\" + parms["iniFileName"]
+    iniFileName = FC3DM_NormalizeRelPath(scriptPath + "\\" + parms["iniFileName"])
+    parms["iniFileName"] = iniFileName
 
     # Read component-specific ini file
     FC3DM_ReadIniFile(iniFileName,
                       parms)
-
-#    FC3DM_WriteToDebugFile("After call to FC3DM_ReadIniFile(), parms is: " + str(parms))    
 
     ## Set standard colors for our component (if they are not defined in ini file!)
     if (not "colorPin1Mark" in parms):
@@ -317,7 +352,18 @@ def FC3DM_ReadIniFiles(scriptPath, parms):
 
     ## Extract relevant parameter values from parms associative array
     # TODO:  Currently no error checking!
-    newModelPath = parms["newModelPath"]
+
+    # See if we've been given a relative path for the new model
+    if ("newModelPathRel" in parms):
+        newModelPath = FC3DM_NormalizeAbsPath(scriptPath + "\\" + parms["newModelPathRel"])
+        newModelPath = newModelPath + "/"
+        parms["newModelPath"] = newModelPath
+
+    # Else we expect an absolute path in the ini file.
+    else:
+        newModelPath = parms["newModelPath"]
+        
+    # TODO:  Currently no error checking!
     newModelName = parms["newModelName"]
     stepSuffix = parms["stepSuffix"]
     stepExt = parms["stepExt"]
@@ -489,7 +535,7 @@ def FC3DM_DescribeObjectsToLogFile(App, Gui,
     
         #FC3DM_WriteToDebugFile(i)
         # We will exclude some of the derived parms when writing to the log file.
-        if ( (not i.startswith("debugFilePath")) and (not i.startswith("footprintType")) and (not i.startswith("hasEp")) ):
+        if ( (not i.startswith("debugFilePath")) and (not i.startswith("footprintType")) and (not i.startswith("hasEp")) and (not i.startswith("newModelPathRel")) ):
             fileP.write(i + '\n')
 
     ## Log all pin vertices to logfile.

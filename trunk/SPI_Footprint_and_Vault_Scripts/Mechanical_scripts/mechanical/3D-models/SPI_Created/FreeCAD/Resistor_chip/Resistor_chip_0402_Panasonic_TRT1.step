@@ -5,7 +5,7 @@ FILE_NAME(
 'C:/projects/altium-designer-addons/trunk/SPI_Footprint_and_Vault_
 Scripts/Mechanical_scripts/mechanical/3D-models/SPI_
 Created/FreeCAD/Resistor_chip/Resistor_chip_0402_Panasonic_TRT1.step',
-  '2013-11-18T20:05:22',('FreeCAD'),('FreeCAD'),
+  '2013-11-19T16:11:52',('FreeCAD'),('FreeCAD'),
   'Open CASCADE STEP processor 6.3','FreeCAD','Unknown');
 FILE_SCHEMA(('AUTOMOTIVE_DESIGN_CC2 { 1 2 10303 214 -1 1 5 4 }'));
 ENDSEC;
