@@ -285,7 +285,7 @@ function CLF_ExtrudeGeometricPolygonInto3d(    boardSide         : Integer;
  ***************************************************************************}
 const
 {* Declare the version and name of this script. *}
-   constScriptVersion          = 'v0.16.31 $Revision$';
+   constScriptVersion          = 'v0.16.32 $Revision$';
    constThisScriptNameNoExt    = 'SPI_Cleanup_LPW_Footprint';
    constThisScriptName         = constThisScriptNameNoExt + '.pas';
 {}
@@ -15141,7 +15141,6 @@ var
    pkgDimsEpChamfer               : Real;
    pkgDimsEpCornerRad             : Real;
    pkgDimsPivotPointRatio         : Real;
-   libHeightMm                    : Real;
    pkgDimsHeightMax               : Real;
    iniFileOut                     : TStringList;
    iniFilePath                    : TString;
@@ -15174,15 +15173,6 @@ var
    ZoffsetMm                      : Real;
    freeCadPath                    : TString;
    cmd                            : TString;
-   assemblyWestMm                 : Real;
-   assemblyEastMm                 : Real;
-   assemblyNorthMm                : Real;
-   assemblySouthMm                : Real;
-   borderWestMm                   : Real;
-   borderEastMm                   : Real;
-   borderNorthMm                  : Real;
-   borderSouthMm                  : Real;
-   bodyColor                      : Integer;
    fcFound                        : Integer;
    fcstdFileName                  : TString;
    highestRevMatchingStepFileName : TString;
@@ -15337,7 +15327,6 @@ begin
    { Retrieve package height, as known by LPW tool. }
    { TODO:  Override this with derived footprint height, as needed! }
    pkgDimsHeightMax   := StrToFloat(cnfGalacticInfo.Values(constGilPkgDimsHeightMax));
-   libHeightMm   := pkgDimsHeightMax;
    footprintType      := cnfGalacticInfo.Values(constGilFootprintType);
   
    { Compute the type of pad based on our footprint type. }
@@ -15824,11 +15813,46 @@ begin
                     {var} csvReportStrs);
    CLF_WriteToSummaryAndDebugFilesWithStepNum('Added auto-generated STEP model "' + stepFilePath + '" to new .PcbLib file.');
 
+end; { end CLF_Create3dFreeCadCompBody() }
 
-   {* Add 3D extrusion for body only, set to invisible.  This is used for exporting a simpler STEP version of board for thermal modeling. *}
+
+{***************************************************************************
+ * function CLF_Create3dThermalBody()
+ *  Create a simple rectangular extrusion (set to invisible).  This is used
+ *  for exporting a simpler STEP version of board for thermal modeling.
+ *  
+ *  Returns:  0 on success, 1 if not successful.
+ ***************************************************************************}
+function CLF_Create3dThermalBody(    scriptsPath     : TDynamicString;
+                                     projectPath     : TDynamicString;
+                                 var cnfGalacticInfo : TStringList;
+                                 var bodyQueue       : TInterfaceList;
+                                 var primNames       : TStringList;
+                                 var csvReportStrs   : TStringList;
+                                     )               : Integer;
+
+var
+   assemblyWestMm     : Real;
+   assemblyEastMm     : Real;
+   assemblyNorthMm    : Real;
+   assemblySouthMm    : Real;
+   borderWestMm       : Real;
+   borderEastMm       : Real;
+   borderNorthMm      : Real;
+   borderSouthMm      : Real;
+   pkgDimsStandoffMin : Real;
+   pkgDimsHeightMax   : Real;
+   libHeightMm        : Real;
+
+begin
+   
+   { Assume success. }
+   result := 0;
+
+   WriteToDebugFile('*Hello world from CLF_Create3dThermalBody()');
 
    { Retrieve the bounds for the assembly outline. }
-   CLF_RetrieveBoundingRectangleByNamePrefix({namePrefix} 'Assembly',
+   CLF_RetrieveBoundingRectangleByNamePrefix({namePrefix} 'Assembly', 
                                              {var} cnfGalacticInfo,
                                              {var boundaryWestMm} assemblyWestMm,
                                              {var boundaryEastMm} assemblyEastMm,
@@ -15841,13 +15865,22 @@ begin
    borderNorthMm := assemblyNorthMm;
    borderSouthMm := assemblySouthMm;
    
-   bodyColor     := constCompBodyColor;
+
+   { Retrieve package dimension fields from galactic string list. }
+   pkgDimsStandoffMin := StrToFloat(cnfGalacticInfo.Values(constGilPkgDimsStandoffMin));
+
+   { Retrieve package height, as known by LPW tool. }
+   { TODO:  Override this with derived footprint height, as needed! }
+   pkgDimsHeightMax   := StrToFloat(cnfGalacticInfo.Values(constGilPkgDimsHeightMax));
+   libHeightMm   := pkgDimsHeightMax;
    
+   WriteToDebugFile(' pkgDimsStandoffMin is ' + FloatToStr(pkgDimsStandoffMin) + '.');
+   WriteToDebugFile(' pkgDimsHeightMax is ' + FloatToStr(pkgDimsHeightMax) + '.');
 
    { Extrude 3D body for component body. }
    CLF_Create3dRectangularExtrusion({boardSide} constBoardSideCompBody,
                                     {layer} constLayerCompBody,
-                                    {color} bodyColor,
+                                    {color} constCompBodyColor,
                                     {opacity} constCompBodyOpacityThermal,
                                     borderWestMm,
                                     borderEastMm,
@@ -15861,7 +15894,7 @@ begin
                                     {var} csvReportStrs
                                     );
          
-end; { end CLF_Create3dFreeCadCompBody() }
+end; { end CLF_Create3dThermalBody() }
 
                                   
 {***************************************************************************
@@ -16539,6 +16572,15 @@ begin
                           {var} csvReportStrs);
          CLF_WriteToSummaryAndDebugFilesWithStepNum('Added user-specified STEP model "' + stepFilePath + '" to new .PcbLib file.');
 
+         { Call CLF_Create3dThermalBody() to additionally create a simplified 3D extrusion
+          that can be used for thermal modeling purposes. }
+         CLF_Create3dThermalBody(scriptsPath,
+                                 projectPath,
+                                 {var} cnfGalacticInfo,
+                                 {var} bodyQueue,
+                                 {var} primNames,
+                                 {var} csvReportStrs);
+         
       end { endif }
 
       { Else create a 3D body. }
@@ -16560,8 +16602,24 @@ begin
                                                {var} csvReportStrs
                                                );     
 
-         { If we can't generate a STEP model using FreeCAD, we will create an extruded model. }
-         if ( failed = 1 ) then
+         { See if we succeeded in creating a FreeCAD model. }
+         if ( failed = 0 ) then
+         begin
+
+            { Call CLF_Create3dThermalBody() to additionally create a simplified 3D extrusion
+             that can be used for thermal modeling purposes. }
+            CLF_Create3dThermalBody(scriptsPath,
+                                    projectPath,
+                                    {var} cnfGalacticInfo,
+                                    {var} bodyQueue,
+                                    {var} primNames,
+                                    {var} csvReportStrs);
+                        
+            CLF_WriteToSummaryAndDebugFilesWithStepNum('Created FreeCAD 3D body for new .PcbLib file.');
+         end
+
+         { Else we failed to generate a STEP model using FreeCAD.  Create an extruded model. }
+         else
          begin 
             { If we're not allowed to extrude a simple 3D body (eg. because we don't have code
              to support this type of footprint), then abort now. }
@@ -16592,10 +16650,8 @@ begin
                                          {var} primNames,
                                          {var} csvReportStrs);
             CLF_WriteToSummaryAndDebugFilesWithStepNum('Created simple extruded 3D body for new .PcbLib file.');
-         end
 
-         else
-            CLF_WriteToSummaryAndDebugFilesWithStepNum('Created FreeCAD 3D body for new .PcbLib file.');
+         end; { endelse failed to create FreeCAD model }
 
       end; { endelse create simple 3D body }
 

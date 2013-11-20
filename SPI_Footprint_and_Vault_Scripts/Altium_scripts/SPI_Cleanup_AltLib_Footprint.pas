@@ -199,7 +199,7 @@ end;
  ***************************************************************************}
 const
 {* Declare the version and name of this script. *}
-   constScriptVersion          = 'v0.10.2 $Revision$';
+   constScriptVersion          = 'v0.10.3 $Revision$';
    constThisScriptNameNoExt    = 'SPI_Cleanup_AltLib_Footprint';
    constThisScriptName         = constThisScriptNameNoExt + '.pas';
 {}
@@ -1940,6 +1940,27 @@ begin
       { Write name of upcoming footprint to summary file. }
       CLF_WriteToSummaryAndDebugFilesWithStepNum('About to start work on footprint "' + libFileName + '".');
       
+      { Construct the full path and name and extension for new csvReport file that we are about to create. }
+      csvReportFilePath       := (projectPath + libSubDir + libFileName + '_Features_Report.csv');
+     
+      { Construct the full path and name and extension for new script report file that we are about to create. }
+      reportFilePath       := (projectPath + libSubDir + libFileName + '_Script_Report.txt');
+
+      { Setup some constants that are needed to create thermal body later on. }
+      cnfGalacticInfo.add(constGilPkgDimsStandoffMin + constStringEquals + '0.0');
+      cnfGalacticInfo.add(constGilPkgDimsHeightMax   + constStringEquals + FloatToStr(packageHeightMm));         
+
+      
+      {** Read in old CSV report file for later comparison with new CSV report file. **}
+      CLF_RevertOldCsvFileAndReadIn(projectPath,
+                                    scriptsPath,
+                                    {pcbLibOrFcstdFilePath} pcbLibFileName,
+                                    {reportOrIniFilePath} reportFilePath,
+                                    stepFilePath,
+                                    {csvOrLogFilePath} csvReportFilePath,
+                                    {var} csvReportOld,
+                                    {var} deletedStepFile);
+      
       {** Create all new 3D features that we want in destination library component. **}
       CALF_UpdateGuiStatusMessage('Proceeding to add new 3D SPI-specific features to new footprint.');
       rc := CLF_CreateNewFeatures3d(scriptsPath,
@@ -1987,24 +2008,6 @@ begin
                                                {var} primNames,
                                                {var} csvReportStrs,
                                                {var} cnfGalacticInfo);
-
-      { Construct the full path and name and extension for new csvReport file that we are about to create. }
-      csvReportFilePath       := (projectPath + libSubDir + libFileName + '_Features_Report.csv');
-     
-      { Construct the full path and name and extension for new script report file that we are about to create. }
-      reportFilePath       := (projectPath + libSubDir + libFileName + '_Script_Report.txt');
-
-      {** Read in old CSV report file for later comparison with new CSV report file. **}
-      stepFilePath := ''; 		{ We don't have this file.  Set to null string. }
-      CLF_RevertOldCsvFileAndReadIn(projectPath,
-                                    scriptsPath,
-                                    {pcbLibOrFcstdFilePath} pcbLibFileName,
-                                    {reportOrIniFilePath} reportFilePath,
-                                    stepFilePath,
-                                    {csvOrLogFilePath} csvReportFilePath,
-                                    {var} csvReportOld,
-                                    {var} deletedStepFile);
-      
 
       { Add all generated files (PcbLib + report file + csv file) to project and to svn. }
       fcstdFilePath := ''; 		{ We don't have this file.  Set to null string. }
