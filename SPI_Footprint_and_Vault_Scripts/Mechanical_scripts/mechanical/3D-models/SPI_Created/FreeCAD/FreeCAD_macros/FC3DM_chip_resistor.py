@@ -6,7 +6,7 @@
 #
 #	@details		
 #
-#    @version		0.2.2
+#    @version		0.2.3
 #					   $Rev::                                                                        $:
 #	@date			  $Date::                                                                        $:
 #	@author			$Author::                                                                        $:
@@ -77,13 +77,12 @@ import Part
 import math
 import string
 import sys
+import os
 
 # Add our path to the python system path
 ## Get path to this script
 #scriptPath, fr = os.path.split(sys.argv[0]) #__path__)
-#scriptPath = os.getcwd()
-#scriptPath = "c:\\projects\\libraries\\Design-Electrical\\trunk\\Mechanical\\3D-models\\TRT_Created\\FreeCAD_macros"
-scriptPath = "c:\\projects\\altium-designer-addons\\trunk\\SPI_Footprint_and_Vault_Scripts\\Mechanical_scripts\\mechanical\\3D-models\\SPI_Created\\FreeCAD\\FreeCAD_macros"
+scriptPath = os.getcwd()
 sys.path.append(scriptPath)
 
 
@@ -102,11 +101,6 @@ from FC3DM_utils import *
 #### Main function
 ###################################
 
-# Invariant information
-#newModelPath = "R:/trunk/mechanical/3D-models/SPI_Created/FreeCAD/Fuse_SMT/"
-newModelPath = "c:/projects/libraries/Design-Electrical/trunk/Mechanical/3D-models/TRT_Created/Resistor_chip/"
-stepSuffix = "_TRT1"
-suffix = "_SvnRev_"
 
 
 ###################################
@@ -144,7 +138,6 @@ FC3DM_WriteToDebugFile("After call to FC3DM_ReadIniFiles(), parms is: " + str(pa
 ###################################
 bodyName = parms["bodyName"]
 moldName = parms["moldName"]
-pinName = parms["pinName"]
 pin1Name = parms["pin1Name"]
 pin2Name = parms["pin2Name"]
 
