@@ -69,7 +69,7 @@
  ***************************************************************************}
 const
 {* Declare the version and name of this script. *}
-   constScriptVersion          = 'v0.0.1 $Revision$';
+   constScriptVersion          = 'v0.0.2 $Revision$';
    constThisScriptNameNoExt    = 'SPI_Setup_PCB_Layers';
    constThisScriptName         = constThisScriptNameNoExt + '.pas';
 
@@ -295,14 +295,19 @@ begin
                     {layer} eMechanical12,
                     {layerName} 'EngNotes Bot');
    
-   { Configure fab drawing and global layer names. }
+   { Configure fab drawing. }
    SPL_SetLayerName(layerStack,
                     {layer} eMechanical13,
                     {layerName} 'Fab Drawing');
    
+   { Configure global layer names. }
    SPL_SetLayerName(layerStack,
                     {layer} eMechanical14,
                     {layerName} 'Global');
+
+   SPL_SetLayerName(layerStack,
+                    {layer} eMechanical15,
+                    {layerName} 'Global_Mir');
 
    
    {* Setup all required mechanical layer pairs. *}
