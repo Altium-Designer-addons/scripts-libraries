@@ -61,15 +61,14 @@
 # Remove any existing .csv audit files in the local directory.
 rm -f *csv
 
+# Path to svn executeable
+#set svn = svn
+set svn = "c:/Program Files/SlikSvn/bin/svn.exe"
+
 # Since we're running the php script in update mode, do an svn revert of the CmpLib file first.
 echo "About to revert CmpLib file in case it was corrupted by previous crashed script run."
-svn revert $1
+"$svn" revert $1
 
 # Run php script.
 php -n update_comps_to_cmplib_file.php update $*
 
-# Cleanup useless .csv files
-rm -f *_OBSOLETE.csv
-
-# Add possibly new .csv files to svn.
-svn add *csv |& grep -v W150002 | grep -v E200009
