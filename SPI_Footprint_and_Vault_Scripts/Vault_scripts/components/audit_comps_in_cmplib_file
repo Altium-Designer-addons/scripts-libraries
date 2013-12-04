@@ -61,6 +61,10 @@
 # Remove any existing .csv audit files in the local directory.
 rm -f *csv
 
+# Path to svn executeable
+#set svn = svn
+set svn = "c:/Program Files/SlikSvn/bin/svn.exe"
+
 # Run php script.
 php -n update_comps_to_cmplib_file.php audit $*
 
@@ -68,4 +72,4 @@ php -n update_comps_to_cmplib_file.php audit $*
 rm -f *_OBSOLETE.csv
 
 # Add possibly new .csv files to svn.
-svn add *csv |& grep -v W150002 | grep -v E200009
+"$svn" add *csv |& grep -v W150002 | grep -v E200009

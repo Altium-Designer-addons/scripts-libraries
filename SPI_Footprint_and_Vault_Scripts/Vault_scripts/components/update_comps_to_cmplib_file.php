@@ -7,7 +7,7 @@
 
 	@details		
 
-    @version		0.10.2
+    @version		0.11.0
 					   $Rev::                                                                        $:
 	@date			  $Date::                                                                        $:
 	@author			$Author::                                                                        $:
@@ -79,7 +79,8 @@
   /** Include various CACF_*() functions from create_audit_csv_files.php. **/
   /* Flag that we do not wish the main program in the included script to execute. */
 $suppress_create_audit_csv_files_main_program = 1;
-include_once "../database/audit_database/create_audit_csv_files.php";
+#include_once "../database/audit_database/create_audit_csv_files.php";
+include_once "../Vaults/Altium Satellite Vault Server/audit_database/create_audit_csv_files.php";
 
 /** Include PHPExcel functionality. **/
 require_once '../drivers/php/PHPExcel/Classes/PHPExcel.php';
@@ -116,8 +117,8 @@ require_once '../drivers/php/PHPExcel/Classes/PHPExcel.php';
  *  "Description"		(You MUST define this for each component)
  *  "Value"				(This will be silently created for you, copy of Comment)
  *  "ItemHRID"			(You MUST define this for each component, Vault Item #)
- *  "SPI Part Number"	(This will be silently created for you, copy of ItemHRID, plus revision number)
- *  "SPI Path"			(This will be silently created for you, copy of location in component tree)
+ *  "TRT Part Number"	(This will be silently created for you, copy of ItemHRID)
+ *  "TRT Path"			(This will be silently created for you, copy of location in component tree)
  *  "SCHLIB"			(You MUST define this for each component)
  *  "PCBLIB"			(Optional)
  *  "PCBLIB x"			(Optional, where x ranges 0 to $maxPcbLibModels)
@@ -138,7 +139,6 @@ require_once '../drivers/php/PHPExcel/Classes/PHPExcel.php';
 10.  Emergency changes to CmpLib file should not count as "updates needed" to Vault.  Add code to re-read CmpLib file after
 	making such emergency changes.
 11.  Detect and abort when Excel file is calling out user parameter names that aren't yet defined in this component type!
-12.  Add sanity checks when updating CmpLib file to make sure that "SPI Part Number" is truly "Item # - Revision #".
 */
 
 
@@ -790,8 +790,8 @@ function UCTCF_ExtractModelChoices(&$CACFconstants, &$UCTCFconstants,
         
                   /* Add information about this model to $cmpLibSysParmsByGuid[$ItemRevGUID]. */
                   $sysParms = &$cmpLibTreeSysParmsCurrent;
-                  CACF_AddModelInfoToSysParms(&$CACFconstants, 
-                                              &$sysParms, 
+                  CACF_AddModelInfoToSysParms($CACFconstants, 
+                                              $sysParms, 
                                               $modelTypeWithNum, $modelHRID, $modelPath, $modelLib);
 
                   //                  echo "Found modelTypeWithNum \"$modelTypeWithNum\", modelType \"$modelType\", modelHRID \"$modelHRID\", modelPath \"$modelPath\", modelLib \"$modelLib\".\n";
@@ -885,9 +885,9 @@ function UCTCF_ExtractComponentParmsFromComponentDefinitions(&$CACFconstants, &$
           $VaultItemGUID = $altiumItemsByHrid[$ItemHRID]["GUID"];
 
           /* Lookup latest item revision number of this Item. */
-          UCTCF_GetLatestRevisionNumberOfGivenItem(&$altiumItemsByHrid, &$altiumItemRevsByHrid, 
-                                                   &$ItemHRID,
-                                                   &$VaultRevisionId);
+          UCTCF_GetLatestRevisionNumberOfGivenItem($altiumItemsByHrid, $altiumItemRevsByHrid, 
+                                                   $ItemHRID,
+                                                   $VaultRevisionId);
 
           /* Construct VaultItemRevHrid. */
           $VaultItemRevHRID = $ItemHRID.$revSep.$VaultRevisionId;
@@ -913,7 +913,7 @@ function UCTCF_ExtractComponentParmsFromComponentDefinitions(&$CACFconstants, &$
               
               /* Attempt to add new XML node to hold the ItemGUID number. */
               $newXmlNode = new SimpleXMLElement("<GUID>$ItemGUID</GUID>");
-              $comp->insertNodeAfterSpecifiedNode(&$newXmlNode, $comp->HRID);
+              $comp->insertNodeAfterSpecifiedNode($newXmlNode, $comp->HRID);
               
               /* Attempt to add a new XML node to hold the ItemRevGUID number. */
               $comp->addChild("RevisionGUID", $ItemRevGUID);
@@ -1039,8 +1039,8 @@ function UCTCF_ExtractComponentParmsFromComponentDefinitions(&$CACFconstants, &$
       /* Reserve for all models for which we allocate space in our csv file. */
       /* Those models actually defined in this component will override the placeholders shortly. */
       $sysParms = &$cmpLibSysParmsByGuid[$ItemRevGUID];
-      CACF_ReserveForModelsInSysParms(&$CACFconstants, 
-                                      &$sysParms);
+      CACF_ReserveForModelsInSysParms($CACFconstants, 
+                                      $sysParms);
 
       /* Disable this component by disabling updates to Vault. */
       $comp[$cXmlStateName] = $cXmlStateDisabled;
@@ -1061,11 +1061,11 @@ function UCTCF_ExtractComponentParmsFromComponentDefinitions(&$CACFconstants, &$
               /* Call UCTCF_ExtractParameters() to extract parameter name/value pairs from <Parameters> tag. */
               /* Outputs:  &$cmpLibTreeUserParmsCurrent, &$cmpLibTreeSysParmsCurrent */
               $parametersNode = &$child;
-              UCTCF_ExtractParameters(&$CACFconstants, &$UCTCFconstants, 
-                                      &$cmpLibUserParmNamesById,
-                                      &$cmpLibTreeUserParmsInherited, &$cmpLibTreeSysParmsInherited, 
+              UCTCF_ExtractParameters($CACFconstants, $UCTCFconstants, 
+                                      $cmpLibUserParmNamesById,
+                                      $cmpLibTreeUserParmsInherited, $cmpLibTreeSysParmsInherited, 
                                       $parametersNode, 
-                                      &$cmpLibTreeUserParmsCurrent, &$cmpLibTreeSysParmsCurrent);
+                                      $cmpLibTreeUserParmsCurrent, $cmpLibTreeSysParmsCurrent);
                 
               /** Store all the user parameters for this component. **/
               /* Loop over all the user parameters defined for this component or for this component's groups (eg. paths). */
@@ -1131,11 +1131,11 @@ function UCTCF_ExtractComponentParmsFromComponentDefinitions(&$CACFconstants, &$
                this function call to copy inherited models to current models. */
               $modelChoicesNode = &$child;
               $numModelsCurrent = 0;			/* Initialize this to something. */
-              UCTCF_ExtractModelChoices(&$CACFconstants, &$UCTCFconstants, 
-                                        &$cmpLibModelTypesById, &$cmpLibModelLinksById, 
-                                        &$cmpLibTreeSysParmsInherited, $numModelsInherited,
-                                        &$modelChoicesNode, 
-                                        &$cmpLibTreeSysParmsCurrent, &$numModelsCurrent);
+              UCTCF_ExtractModelChoices($CACFconstants, $UCTCFconstants, 
+                                        $cmpLibModelTypesById, $cmpLibModelLinksById, 
+                                        $cmpLibTreeSysParmsInherited, $numModelsInherited,
+                                        $modelChoicesNode, 
+                                        $cmpLibTreeSysParmsCurrent, $numModelsCurrent);
 
               //              echo "In UCTCF_ExtractComponentParmsFromComponentDefinitions(), numModelsCurrent is $numModelsCurrent, cmpLibTreeSysParmsCurrent is:\n";
               //              print_r($cmpLibTreeSysParmsCurrent);
@@ -1215,7 +1215,7 @@ function UCTCF_ExtractComponentParmsFromTGroup(&$CACFconstants, &$UCTCFconstants
       //      echo "GUID is \"$GUID\".\n";
 
       /* Lookup folder path for this starting point. */
-      $path = CACF_TraceFolderPath(&$CACFconstants, $altiumFoldersByGuid, $GUID);
+      $path = CACF_TraceFolderPath($CACFconstants, $altiumFoldersByGuid, $GUID);
 
       //      echo "In UCTCF_ExtractComponentParmsFromTGroup(), base path is \"".$path."\".\n";
     } /* endif */
@@ -1255,11 +1255,11 @@ function UCTCF_ExtractComponentParmsFromTGroup(&$CACFconstants, &$UCTCFconstants
           
           /* Call UCTCF_ExtractParameters() to extract parameter name/value pairs from <Parameters> tag. */
           $parametersNode = &$child;
-          UCTCF_ExtractParameters(&$CACFconstants, &$UCTCFconstants, 
-                                  &$cmpLibUserParmNamesById,
-                                  &$cmpLibTreeUserParmsInherited, &$cmpLibTreeSysParmsInherited, 
+          UCTCF_ExtractParameters($CACFconstants, $UCTCFconstants, 
+                                  $cmpLibUserParmNamesById,
+                                  $cmpLibTreeUserParmsInherited, $cmpLibTreeSysParmsInherited, 
                                   $parametersNode, 
-                                  &$cmpLibTreeUserParmsCurrent, &$cmpLibTreeSysParmsCurrent);
+                                  $cmpLibTreeUserParmsCurrent, $cmpLibTreeSysParmsCurrent);
 
           /* Use the newly generated "Current" versions of these arrays from now on. */
           $cmpLibTreeUserParmsInherited = &$cmpLibTreeUserParmsCurrent;
@@ -1274,11 +1274,11 @@ function UCTCF_ExtractComponentParmsFromTGroup(&$CACFconstants, &$UCTCFconstants
           /* Call UCTCF_ExtractModelChoices() to extract the model choices from this XML tag. */
           $modelChoicesNode = &$child;
           $numModelsCurrent = 0;			/* Initialize this to something. */
-          UCTCF_ExtractModelChoices(&$CACFconstants, &$UCTCFconstants, 
-                                    &$cmpLibModelTypesById, &$cmpLibModelLinksById, 
-                                    &$cmpLibTreeSysParmsInherited, $numModelsInherited,
-                                    &$modelChoicesNode, 
-                                    &$cmpLibTreeSysParmsCurrent, &$numModelsCurrent);
+          UCTCF_ExtractModelChoices($CACFconstants, $UCTCFconstants, 
+                                    $cmpLibModelTypesById, $cmpLibModelLinksById, 
+                                    $cmpLibTreeSysParmsInherited, $numModelsInherited,
+                                    $modelChoicesNode, 
+                                    $cmpLibTreeSysParmsCurrent, $numModelsCurrent);
           
           //          echo "In UCTCF_ExtractComponentParmsFromTGroup(), back from UCTCF_ExtractModelChoices(), numModelsCurrent is $numModelsCurrent, cmpLibTreeSysParmsCurrent is:\n";
           //          print_r($cmpLibTreeSysParmsCurrent);
@@ -1299,13 +1299,13 @@ function UCTCF_ExtractComponentParmsFromTGroup(&$CACFconstants, &$UCTCFconstants
             {
               /* Call UCTCF_ExtractComponentParmsFromComponentDefinitions() to extract all components and their parameters. */
               $compDefNode = &$child;
-              UCTCF_ExtractComponentParmsFromComponentDefinitions(&$CACFconstants, &$UCTCFconstants, 
-                                                                  &$altiumItemsByHrid, &$altiumItemRevsByHrid,
-                                                                  &$altiumItemSysParmValuesByGuid, 
-                                                                  &$cmpLibUserParmNamesById, &$cmpLibUserParmIdsByName, &$cmpLibModelTypesById, &$cmpLibModelLinksById, 
-                                                                  &$cmpLibTreeUserParmsInherited, &$cmpLibTreeSysParmsInherited, $numModelsInherited, 
+              UCTCF_ExtractComponentParmsFromComponentDefinitions($CACFconstants, $UCTCFconstants, 
+                                                                  $altiumItemsByHrid, $altiumItemRevsByHrid,
+                                                                  $altiumItemSysParmValuesByGuid, 
+                                                                  $cmpLibUserParmNamesById, $cmpLibUserParmIdsByName, $cmpLibModelTypesById, $cmpLibModelLinksById, 
+                                                                  $cmpLibTreeUserParmsInherited, $cmpLibTreeSysParmsInherited, $numModelsInherited, 
                                                                   $path, $compDefNode, 
-                                                                  &$cmpLibUserParmsByGuid, &$cmpLibSysParmsByGuid, &$cmpLibNumNewComps, &$cmpLibDidCorrection);
+                                                                  $cmpLibUserParmsByGuid, $cmpLibSysParmsByGuid, $cmpLibNumNewComps, $cmpLibDidCorrection);
             } /* end elsif */
 
         } /* endif */
@@ -1327,13 +1327,13 @@ function UCTCF_ExtractComponentParmsFromTGroup(&$CACFconstants, &$UCTCFconstants
                   //                  echo "In UCTCF_ExtractComponentParmsFromTGroup(), cmpLibTreeSysParmsInherited is:\n";
 
                   $tGroupNode = &$subTGroup;
-                  UCTCF_ExtractComponentParmsFromTGroup(&$CACFconstants, &$UCTCFconstants, 
-                                                        &$altiumItemsByHrid, &$altiumItemRevsByHrid,
-                                                        &$altiumFoldersByGuid, &$altiumItemSysParmValuesByGuid, 
-                                                        &$cmpLibUserParmNamesById, &$cmpLibUserParmIdsByName, &$cmpLibModelTypesById, &$cmpLibModelLinksById, 
-                                                        &$cmpLibTreeUserParmsInherited, &$cmpLibTreeSysParmsInherited, $numModelsInherited, 
+                  UCTCF_ExtractComponentParmsFromTGroup($CACFconstants, $UCTCFconstants, 
+                                                        $altiumItemsByHrid, $altiumItemRevsByHrid,
+                                                        $altiumFoldersByGuid, $altiumItemSysParmValuesByGuid, 
+                                                        $cmpLibUserParmNamesById, $cmpLibUserParmIdsByName, $cmpLibModelTypesById, $cmpLibModelLinksById, 
+                                                        $cmpLibTreeUserParmsInherited, $cmpLibTreeSysParmsInherited, $numModelsInherited, 
                                                         $path, $tGroupNode, 
-                                                        &$cmpLibUserParmsByGuid, &$cmpLibSysParmsByGuid, &$cmpLibNumNewComps, &$cmpLibDidCorrection);
+                                                        $cmpLibUserParmsByGuid, $cmpLibSysParmsByGuid, $cmpLibNumNewComps, $cmpLibDidCorrection);
 
                 } /* end foreach */
 
@@ -1396,13 +1396,13 @@ function UCTCF_ExtractAllComponentParmsFromCmpLib(&$CACFconstants, &$UCTCFconsta
   //  print_r($altiumItemSysParmValuesByGuid);
 
   /* Call UCTCF_ExtractComponentParmsFromTGroup() to do all the real work. */
-  UCTCF_ExtractComponentParmsFromTGroup(&$CACFconstants, &$UCTCFconstants, 
-                                        &$altiumItemsByHrid, &$altiumItemRevsByHrid,
-                                        &$altiumFoldersByGuid, &$altiumItemSysParmValuesByGuid, 
-                                        &$cmpLibUserParmNamesById, &$cmpLibUserParmIdsByName, &$cmpLibModelTypesById, &$cmpLibModelLinksById, 
-                                        &$cmpLibTreeUserParmsInherited, &$cmpLibTreeSysParmsInherited, $numModelsInherited, 
+  UCTCF_ExtractComponentParmsFromTGroup($CACFconstants, $UCTCFconstants, 
+                                        $altiumItemsByHrid, $altiumItemRevsByHrid,
+                                        $altiumFoldersByGuid, $altiumItemSysParmValuesByGuid, 
+                                        $cmpLibUserParmNamesById, $cmpLibUserParmIdsByName, $cmpLibModelTypesById, $cmpLibModelLinksById, 
+                                        $cmpLibTreeUserParmsInherited, $cmpLibTreeSysParmsInherited, $numModelsInherited, 
                                         $path, $tGroupNode, 
-                                        &$cmpLibUserParmsByGuid, &$cmpLibSysParmsByGuid, &$cmpLibNumNewComps, &$cmpLibDidCorrection);
+                                        $cmpLibUserParmsByGuid, $cmpLibSysParmsByGuid, $cmpLibNumNewComps, $cmpLibDidCorrection);
 
 
   //  echo "Leaving UCTCF_ExtractAllComponentParmsFromCmpLib(), cmpLibSysParmsByGuid is:\n";
@@ -1458,7 +1458,7 @@ function UCTCF_ExtractGroupsAndComponentsByXpathFromCmpLib(&$CACFconstants, &$UC
       //      echo "GUID is \"$GUID\".\n";
 
       /* Lookup folder path for this starting point. */
-      $path = CACF_TraceFolderPath(&$CACFconstants, $altiumFoldersByGuid, $GUID);
+      $path = CACF_TraceFolderPath($CACFconstants, $altiumFoldersByGuid, $GUID);
 
       //      echo "In UCTCF_ExtractGroupsAndComponentsByXpathFromCmpLib(), base path is \"".$path."\".\n";
 
@@ -1532,10 +1532,10 @@ function UCTCF_ExtractGroupsAndComponentsByXpathFromCmpLib(&$CACFconstants, &$UC
 
           /* Recursively call this function. */
           $xmlNode = &$childNode;
-          UCTCF_ExtractGroupsAndComponentsByXpathFromCmpLib(&$CACFconstants, &$UCTCFconstants, 
-                                                            &$altiumFoldersByGuid, 
-                                                            $path, $xpath, &$xmlNode,
-                                                            &$cmpLibGroupXpathByPath, &$cmpLibCompByItemHrid);
+          UCTCF_ExtractGroupsAndComponentsByXpathFromCmpLib($CACFconstants, $UCTCFconstants, 
+                                                            $altiumFoldersByGuid, 
+                                                            $path, $xpath, $xmlNode,
+                                                            $cmpLibGroupXpathByPath, $cmpLibCompByItemHrid);
 
         } /* end foreach */
             
@@ -1572,10 +1572,10 @@ function UCTCF_ExtractAllGroupsAndComponentsByXpathFromCmpLib(&$CACFconstants, &
   $xmlNode = &$CmpLib->TopGroup;
 
   /* Call UCTCF_ExtractGroupsAndComponentsByXpathFromCmpLib() to do all the real work. */
-  UCTCF_ExtractGroupsAndComponentsByXpathFromCmpLib(&$CACFconstants, &$UCTCFconstants, 
-                                                    &$altiumFoldersByGuid, 
-                                                    $path, $xpath, &$xmlNode,
-                                                    &$cmpLibGroupXpathByPath, &$cmpLibCompByItemHrid);
+  UCTCF_ExtractGroupsAndComponentsByXpathFromCmpLib($CACFconstants, $UCTCFconstants, 
+                                                    $altiumFoldersByGuid, 
+                                                    $path, $xpath, $xmlNode,
+                                                    $cmpLibGroupXpathByPath, $cmpLibCompByItemHrid);
 
 
   //  echo "Leaving UCTCF_ExtractAllGroupsAndComponentsByXpathFromCmpLib(), cmpLibGroupXpathByPath is:\n";
@@ -1708,7 +1708,7 @@ function UCTCF_CullCompsThatDontExistInCmpLib(&$CACFconstants,
 
 
   /** Sort the $cmpLibSysParmsByGuid array by ITEMHRID. **/
-  uasort(&$cmpLibSysParmsByGuid, "UCTCF_CompareByItemHRID");
+  uasort($cmpLibSysParmsByGuid, "UCTCF_CompareByItemHRID");
 
   //  echo "Leaving UCTCF_CullCompsThatDontExistInCmpLib(), altiumItemSysParmValuesByGuid is:\n";
   //  print_r($altiumItemSysParmValuesByGuid);
@@ -2077,8 +2077,8 @@ function UCTCF_ExtractComponentsFromExcel(&$CACFconstants,
                           /* Reserve for all models for which we allocate space in our csv file. */
                           /* Those models actually defined in this component will override the placeholders shortly. */
                           $sysParms = &$compProps["sysParms"];
-                          CACF_ReserveForModelsInSysParms(&$CACFconstants, 
-                                                          &$sysParms);
+                          CACF_ReserveForModelsInSysParms($CACFconstants, 
+                                                          $sysParms);
 
                           /* No break!  Handling for Comment and Description must immediately follow this code! */
                         }
@@ -2122,9 +2122,9 @@ function UCTCF_ExtractComponentsFromExcel(&$CACFconstants,
                                     {
 
                                       /* Lookup latest item revision number so that we can eventually get model info. */
-                                      UCTCF_GetLatestRevisionNumberOfGivenItem(&$altiumItemsByHrid, &$altiumItemRevsByHrid, 
-                                                                               &$ModelItemHrid,
-                                                                               &$REVISIONID);
+                                      UCTCF_GetLatestRevisionNumberOfGivenItem($altiumItemsByHrid, $altiumItemRevsByHrid, 
+                                                                               $ModelItemHrid,
+                                                                               $REVISIONID);
                                       
                                       /* Now that we have an ModelItemHrid and a RevisionID, combine them to get an ItemRevHrid. */
                                       $ModelItemRevHrid = $ModelItemHrid.$revSep.$REVISIONID;
@@ -2142,10 +2142,10 @@ function UCTCF_ExtractComponentsFromExcel(&$CACFconstants,
                                       $ModelLib = CACF_RemapReservedChars($value);	/* Remap any ',' chars in cell to '|' chars! */
                                       echo "Model \"$value\" does not exist as an ItemHrid.  Proceeding to try to look it up as a ModelLib.\n";
 
-                                      UCTCF_GetLatestItemRevOfGivenModelLib(&$altiumModelDataByItemRevHrid, &$altiumItemRevsByHrid,
-                                                                            &$ModelKind,
-                                                                            &$ModelLib,
-                                                                            &$ModelItemRevHrid);
+                                      UCTCF_GetLatestItemRevOfGivenModelLib($altiumModelDataByItemRevHrid, $altiumItemRevsByHrid,
+                                                                            $ModelKind,
+                                                                            $ModelLib,
+                                                                            $ModelItemRevHrid);
 
                                       echo "Got Model ModelItemRevHrid \"$ModelItemRevHrid\".\n";
 
@@ -2163,8 +2163,8 @@ function UCTCF_ExtractComponentsFromExcel(&$CACFconstants,
                               $modelHRID = $ModelItemRevHrid;
                               $modelPath = $MODELPATH;
                               $modelLib = $MODELLIB;
-                              CACF_AddModelInfoToSysParms(&$CACFconstants, 
-                                                          &$sysParms, 
+                              CACF_AddModelInfoToSysParms($CACFconstants, 
+                                                          $sysParms, 
                                                           $modelTypeWithNum, $modelHRID, $modelPath, $modelLib);
                           
                             } /* endif */
@@ -2256,9 +2256,9 @@ function UCTCF_ExtractComponentsFromExcel(&$CACFconstants,
                   my_die('Did not find any sysParms defined for this component!');            
             
                 /* Lookup latest item revision number for compatibility with Vault & CmpLib audit files. */
-                UCTCF_GetLatestRevisionNumberOfGivenItem(&$altiumItemsByHrid, &$altiumItemRevsByHrid, 
-                                                         &$ItemHRID,
-                                                         &$REVISIONID);
+                UCTCF_GetLatestRevisionNumberOfGivenItem($altiumItemsByHrid, $altiumItemRevsByHrid, 
+                                                         $ItemHRID,
+                                                         $REVISIONID);
             
                 /* Store revision number. */
                 $compProps["sysParms"][CACF_AlterAltiumSysParmName("REVISIONID")] = $revSep.$REVISIONID;
@@ -2365,32 +2365,31 @@ function UCTCF_ExtractComponentsFromExcel(&$CACFconstants,
                 $excelUserParmsByItemHrid[$itemHRID] = $compProps["userParms"];
                 $excelSysParmsByItemHrid[$itemHRID] = $compProps["sysParms"];
 
-                /** Create "SPI Part Number" user parm. **/
-                /* Add a hidden user parameter called "SPI Part Number" that will essentially
-                 mirror the ItemRevHrid.  SPI Part Number will be what actually appears on
+                /** Create "TRT Part Number" user parm. **/
+                /* Add a hidden user parameter called "TRT Part Number" that will essentially
+                 mirror the ItemHrid.  TRT Part Number will be what actually appears on
                  BOMs, etc.  It must be a user parameter because we cannot override
                  the LibRef (ItemRevHrid) with variant operations. */
-                /* Note that we must anticipate the next ItemRevHrid, so we must actually
-                 add 1 to the current ItemRevHrid. */
-                /* NOTE:  This operation is highly SPI-specific! */
+                /* NOTE:  This operation is highly TRT-specific! */
                 $nextRevId = sprintf($cRevFormatString, ($REVISIONID+1));
-                $excelUserParmsByItemHrid[$itemHRID]["SPI Part Number"] = $ItemHRID.$revSep.$nextRevId;
+                // $excelUserParmsByItemHrid[$itemHRID]["TRT Part Number"] = $ItemHRID.$revSep.$nextRevId;
+                $excelUserParmsByItemHrid[$itemHRID]["TRT Part Number"] = $ItemHRID;
             
 
-                /** Create "SPI Path" user parm. **/
-                /* Add a hidden user parameter called "SPI Path" that will essentially
+                /** Create "TRT Path" user parm. **/
+                /* Add a hidden user parameter called "TRT Path" that will essentially
                  mirror the Vault database path to this component.  The idea is to include the
                  information about where in the component tree this component came from within
                  the component itself. */
-                /* NOTE:  This operation is highly SPI-specific! */
-                $excelUserParmsByItemHrid[$itemHRID]["SPI Path"] = $compProps["sysParms"][CACF_AlterAltiumSysParmName("COMPONENTPATH")];
+                /* NOTE:  This operation is highly TRT-specific! */
+                $excelUserParmsByItemHrid[$itemHRID]["TRT Path"] = $compProps["sysParms"][CACF_AlterAltiumSysParmName("COMPONENTPATH")];
 
 
                 /** Create "Value" user parm. **/
                 /* Add a hidden user parameter called "Value" that will essentially
                  mirror the component Comment.  This may be helpful/necessary down the road
                  in dealing with varied or overridden component values. */
-                /* NOTE:  This operation is highly SPI-specific! */
+                /* NOTE:  This operation is highly TRT-specific! */
                 $excelUserParmsByItemHrid[$itemHRID]["Value"] = $compProps["sysParms"][CACF_AlterAltiumSysParmName("Comment")];
 
 
@@ -2519,8 +2518,8 @@ function UCTCF_FixUpXmlIds(&$CACFconstants, &$UCTCFconstants,
       $xpathQuery = "/TComponentSet/RequiredParameters/TRequiredParameter[HRID=\"$userParmName\"]";
 
       /* Run the xpath query to get the TRequiredParameter node in question. */
-      UCTCF_GetXmlNodeFromXpathQuery(&$CmpLib, &$xpathQuery, 
-                                     &$resultNode);
+      UCTCF_GetXmlNodeFromXpathQuery($CmpLib, $xpathQuery, 
+                                     $resultNode);
 
       /* Sanity check. */
       if (!isset($resultNode['id']))
@@ -2561,8 +2560,8 @@ function UCTCF_FixUpXmlIds(&$CACFconstants, &$UCTCFconstants,
       $xpathQuery = "/TComponentSet/RequiredModels/TRequiredModel[HRID=\"$modelType\"]";
 
       /* Run the xpath query to get the TRequiredParameter node in question. */
-      UCTCF_GetXmlNodeFromXpathQuery(&$CmpLib, &$xpathQuery, 
-                                     &$resultNode);
+      UCTCF_GetXmlNodeFromXpathQuery($CmpLib, $xpathQuery, 
+                                     $resultNode);
 
       /* Sanity check. */
       if (!isset($resultNode['id']))
@@ -2603,8 +2602,8 @@ function UCTCF_FixUpXmlIds(&$CACFconstants, &$UCTCFconstants,
       $xpathQuery = "/TComponentSet/ModelLinks/TModelLink[HRID=\"$modelLinkHrid\"]";
 
       /* Run the xpath query to get the TRequiredParameter node in question. */
-      UCTCF_GetXmlNodeFromXpathQuery(&$CmpLib, &$xpathQuery, 
-                                     &$resultNode);
+      UCTCF_GetXmlNodeFromXpathQuery($CmpLib, $xpathQuery, 
+                                     $resultNode);
 
       /* Sanity check. */
       if (!isset($resultNode['id']))
@@ -2755,11 +2754,11 @@ function UCTCF_FixUpXmlIds(&$CACFconstants, &$UCTCFconstants,
 
           /* Recursively call this function. */
           $xmlNode = &$childNode;
-          UCTCF_FixUpXmlIds(&$CACFconstants, &$UCTCFconstants, 
-                            &$CmpLib,
-                            &$cmpLibUserParmNamesById, &$cmpLibModelTypesById, &$cmpLibModelLinksById,
-                            &$currIdNum, $parentIdNum, 
-                            &$xmlNode);
+          UCTCF_FixUpXmlIds($CACFconstants, $UCTCFconstants, 
+                            $CmpLib,
+                            $cmpLibUserParmNamesById, $cmpLibModelTypesById, $cmpLibModelLinksById,
+                            $currIdNum, $parentIdNum, 
+                            $xmlNode);
 
         } /* end foreach */
             
@@ -2803,11 +2802,11 @@ function UCTCF_FixUpAllXmlIds(&$CACFconstants, &$UCTCFconstants,
   
   /* Call UCTCF_FixUpXmlIds() to do most of the real work. */
   $xmlNode = &$CmpLib;
-  UCTCF_FixUpXmlIds(&$CACFconstants, &$UCTCFconstants, 
-                    &$CmpLib,
-                    &$cmpLibUserParmNamesById, &$cmpLibModelTypesById, &$cmpLibModelLinksById,
-                    &$currIdNum, $parentIdNum, 
-                    &$xmlNode);
+  UCTCF_FixUpXmlIds($CACFconstants, $UCTCFconstants, 
+                    $CmpLib,
+                    $cmpLibUserParmNamesById, $cmpLibModelTypesById, $cmpLibModelLinksById,
+                    $currIdNum, $parentIdNum, 
+                    $xmlNode);
   
 
   /* Now that we have called UCTCF_FixUpXmlIds() and had it re-index all the XML
@@ -2824,14 +2823,14 @@ function UCTCF_FixUpAllXmlIds(&$CACFconstants, &$UCTCFconstants,
 
   /* Extract all model types (aka. declarations of model types) from XML file data structures. */
   UCTCF_ExtractRequiredModels($CmpLib->RequiredModels, 
-                              &$cmpLibModelTypesById, &$cmpLibModelTypesByType);
+                              $cmpLibModelTypesById, $cmpLibModelTypesByType);
 
   /* Extract all model links (aka. pointers to an SCHLIB / PCBLIB object) from XML file data structures. */
   $ModelLinksNode = &$CmpLib->ModelLinks;
-  UCTCF_ExtractModelLinks(&$CACFconstants, 
+  UCTCF_ExtractModelLinks($CACFconstants, 
                           $ModelLinksNode, 
-                          &$altiumModelDataByItemRevHrid, 
-                          &$cmpLibModelLinksById, &$cmpLibModelLinksByItemRevHrid);
+                          $altiumModelDataByItemRevHrid, 
+                          $cmpLibModelLinksById, $cmpLibModelLinksByItemRevHrid);
 
 
   //  echo "In UCTCF_FixUpAllXmlIds(), cmpLibUserParmNamesById is now:\n";
@@ -2880,7 +2879,7 @@ function UCTCF_AddItemDeclarationToCmpLib(&$CACFconstants, &$UCTCFconstants,
 
   /* Sort $itemListById array using non-case-sensitive sort. */
   /* Note:  Here we are using uasort() (with strcasecmp() as comparison func) to try to emulate what Altium does with ordering CmpLib href id references. */
-  $rc = uasort(&$itemListById, $compareFunc);
+  $rc = uasort($itemListById, $compareFunc);
   if ($rc == FALSE) my_die("uasort() failed!");
   
 
@@ -2935,22 +2934,22 @@ function UCTCF_AddItemDeclarationToCmpLib(&$CACFconstants, &$UCTCFconstants,
               //              echo "xpathQuery is \"$xpathQuery\".\n";
 
               /* Run the xpath query to get the TRequiredParameter node in question. */
-              UCTCF_GetXmlNodeFromXpathQuery(&$CmpLib, &$xpathQuery, 
-                                             &$resultNode);
+              UCTCF_GetXmlNodeFromXpathQuery($CmpLib, $xpathQuery, 
+                                             $resultNode);
               $insertAfterNode = &$resultNode;
 
 //              echo "insertAfterNode is:\n";
 //              print_r($insertAfterNode);
 
               echo "Attempting to do simplexml_insert_after() operation!\n";
-              $parentXmlNode->insertNodeAfterSpecifiedNode(&$newXmlNode, &$insertAfterNode);
+              $parentXmlNode->insertNodeAfterSpecifiedNode($newXmlNode, $insertAfterNode);
             } /* endif */
 
           /* Else insert a new first node. */
           else
             {
               //              echo "Attempting to insert new first node!\n";
-              $parentXmlNode->insertNodeFirst(&$newXmlNode);
+              $parentXmlNode->insertNodeFirst($newXmlNode);
 
             } /* endelse */
 
@@ -3032,26 +3031,26 @@ function UCTCF_AddUserParmNameToCmpLib(&$CACFconstants, &$UCTCFconstants,
   $itemListById = &$cmpLibUserParmNamesById;
   $itemListByName = &$cmpLibUserParmIdsByName;
   $parentXmlNode = &$CmpLib->RequiredParameters;
-  UCTCF_AddItemDeclarationToCmpLib(&$CACFconstants, &$UCTCFconstants, 
-                                   &$CmpLib,
-                                   &$itemListById, &$itemListByName, $itemType,
-                                   /*SimpleXMLElement*/ &$newXmlNode, /*SimpleXMLElement*/ &$parentXmlNode, 
+  UCTCF_AddItemDeclarationToCmpLib($CACFconstants, $UCTCFconstants, 
+                                   $CmpLib,
+                                   $itemListById, $itemListByName, $itemType,
+                                   /*SimpleXMLElement*/ $newXmlNode, /*SimpleXMLElement*/ $parentXmlNode, 
                                    $newItemName, $newItemId);
   
   /* Call UCTCF_FixUpAllXmlIds() to walk the entire XML tree and fixup all ID numbers. 
    Then proceed to re-create all data structures describing user parm names, model types, and model links. */
-  UCTCF_FixUpAllXmlIds(&$CACFconstants, &$UCTCFconstants, 
-                       &$altiumModelDataByItemRevHrid, 
-                       &$CmpLib,
-                       &$cmpLibUserParmNamesById, &$cmpLibUserParmIdsByName,
-                       &$cmpLibModelTypesById, &$cmpLibModelTypesByType, 
-                       &$cmpLibModelLinksById, &$cmpLibModelLinksByItemRevHrid);
+  UCTCF_FixUpAllXmlIds($CACFconstants, $UCTCFconstants, 
+                       $altiumModelDataByItemRevHrid, 
+                       $CmpLib,
+                       $cmpLibUserParmNamesById, $cmpLibUserParmIdsByName,
+                       $cmpLibModelTypesById, $cmpLibModelTypesByType, 
+                       $cmpLibModelLinksById, $cmpLibModelLinksByItemRevHrid);
 
   /* Re-extract xpath queries for all groups (database folders) and components so that we may find them later. */
-  UCTCF_ExtractAllGroupsAndComponentsByXpathFromCmpLib(&$CACFconstants, &$UCTCFconstants, 
-                                                       &$altiumFoldersByGuid, 
-                                                       &$CmpLib,
-                                                       &$cmpLibGroupXpathByPath, &$cmpLibCompByItemHrid);
+  UCTCF_ExtractAllGroupsAndComponentsByXpathFromCmpLib($CACFconstants, $UCTCFconstants, 
+                                                       $altiumFoldersByGuid, 
+                                                       $CmpLib,
+                                                       $cmpLibGroupXpathByPath, $cmpLibCompByItemHrid);
 
   //  echo "RequiredParameters are now:\n";
   //  print_r($CmpLib->RequiredParameters);
@@ -3113,26 +3112,26 @@ function UCTCF_AddModelTypeToCmpLib(&$CACFconstants, &$UCTCFconstants,
   $itemListById = &$cmpLibModelTypesById;
   $itemListByName = &$cmpLibModelTypesByType;
   $parentXmlNode = &$CmpLib->RequiredModels;
-  UCTCF_AddItemDeclarationToCmpLib(&$CACFconstants, &$UCTCFconstants, 
-                                   &$CmpLib,
-                                   &$itemListById, &$itemListByName, $itemType,
-                                   /*SimpleXMLElement*/ &$newXmlNode, /*SimpleXMLElement*/ &$parentXmlNode, 
+  UCTCF_AddItemDeclarationToCmpLib($CACFconstants, $UCTCFconstants, 
+                                   $CmpLib,
+                                   $itemListById, $itemListByName, $itemType,
+                                   /*SimpleXMLElement*/ $newXmlNode, /*SimpleXMLElement*/ $parentXmlNode, 
                                    $newItemName, $newItemId);
   
   /* Call UCTCF_FixUpAllXmlIds() to walk the entire XML tree and fixup all ID numbers. 
    Then proceed to re-create all data structures describing user parm names, model types, and model links. */
-  UCTCF_FixUpAllXmlIds(&$CACFconstants, &$UCTCFconstants, 
-                       &$altiumModelDataByItemRevHrid, 
-                       &$CmpLib,
-                       &$cmpLibUserParmNamesById, &$cmpLibUserParmIdsByName,
-                       &$cmpLibModelTypesById, &$cmpLibModelTypesByType, 
-                       &$cmpLibModelLinksById, &$cmpLibModelLinksByItemRevHrid);
+  UCTCF_FixUpAllXmlIds($CACFconstants, $UCTCFconstants, 
+                       $altiumModelDataByItemRevHrid, 
+                       $CmpLib,
+                       $cmpLibUserParmNamesById, $cmpLibUserParmIdsByName,
+                       $cmpLibModelTypesById, $cmpLibModelTypesByType, 
+                       $cmpLibModelLinksById, $cmpLibModelLinksByItemRevHrid);
 
   /* Re-extract xpath queries for all groups (database folders) and components so that we may find them later. */
-  UCTCF_ExtractAllGroupsAndComponentsByXpathFromCmpLib(&$CACFconstants, &$UCTCFconstants, 
-                                                       &$altiumFoldersByGuid, 
-                                                       &$CmpLib,
-                                                       &$cmpLibGroupXpathByPath, &$cmpLibCompByItemHrid);
+  UCTCF_ExtractAllGroupsAndComponentsByXpathFromCmpLib($CACFconstants, $UCTCFconstants, 
+                                                       $altiumFoldersByGuid, 
+                                                       $CmpLib,
+                                                       $cmpLibGroupXpathByPath, $cmpLibCompByItemHrid);
 
 } /* end UCTCF_AddModelTypeToCmpLib() */
 
@@ -3199,26 +3198,26 @@ function UCTCF_AddModelLinkToCmpLib(&$CACFconstants, &$UCTCFconstants,
   $itemListById = &$cmpLibModelLinksById;
   $itemListByName = &$cmpLibModelLinksByItemRevHrid;
   $parentXmlNode = &$CmpLib->ModelLinks;
-  UCTCF_AddItemDeclarationToCmpLib(&$CACFconstants, &$UCTCFconstants, 
-                                   &$CmpLib,
-                                   &$itemListById, &$itemListByName, $itemType,
-                                   /*SimpleXMLElement*/ &$newXmlNode, /*SimpleXMLElement*/ &$parentXmlNode, 
+  UCTCF_AddItemDeclarationToCmpLib($CACFconstants, $UCTCFconstants, 
+                                   $CmpLib,
+                                   $itemListById, $itemListByName, $itemType,
+                                   /*SimpleXMLElement*/ $newXmlNode, /*SimpleXMLElement*/ $parentXmlNode, 
                                    $newItemName, $newItemId);
 
   /* Call UCTCF_FixUpAllXmlIds() to walk the entire XML tree and fixup all ID numbers. 
    Then proceed to re-create all data structures describing user parm names, model types, and model links. */
-  UCTCF_FixUpAllXmlIds(&$CACFconstants, &$UCTCFconstants, 
-                       &$altiumModelDataByItemRevHrid, 
-                       &$CmpLib,
-                       &$cmpLibUserParmNamesById, &$cmpLibUserParmIdsByName,
-                       &$cmpLibModelTypesById, &$cmpLibModelTypesByType, 
-                       &$cmpLibModelLinksById, &$cmpLibModelLinksByItemRevHrid);
+  UCTCF_FixUpAllXmlIds($CACFconstants, $UCTCFconstants, 
+                       $altiumModelDataByItemRevHrid, 
+                       $CmpLib,
+                       $cmpLibUserParmNamesById, $cmpLibUserParmIdsByName,
+                       $cmpLibModelTypesById, $cmpLibModelTypesByType, 
+                       $cmpLibModelLinksById, $cmpLibModelLinksByItemRevHrid);
 
   /* Re-extract xpath queries for all groups (database folders) and components so that we may find them later. */
-  UCTCF_ExtractAllGroupsAndComponentsByXpathFromCmpLib(&$CACFconstants, &$UCTCFconstants, 
-                                                       &$altiumFoldersByGuid, 
-                                                       &$CmpLib,
-                                                       &$cmpLibGroupXpathByPath, &$cmpLibCompByItemHrid);
+  UCTCF_ExtractAllGroupsAndComponentsByXpathFromCmpLib($CACFconstants, $UCTCFconstants, 
+                                                       $altiumFoldersByGuid, 
+                                                       $CmpLib,
+                                                       $cmpLibGroupXpathByPath, $cmpLibCompByItemHrid);
 
 } /* end UCTCF_AddModelLinkToCmpLib() */
 
@@ -3330,8 +3329,8 @@ function UCTCF_UpdateCmpLibFromExcelData(&$CACFconstants, &$UCTCFconstants,
               $xpathQuery = $cmpLibGroupXpathByPath[$pathCurrent];
               
               /* Run xpath query to get XML node for this path. */
-              UCTCF_GetXmlNodeFromXpathQuery(&$CmpLib, &$xpathQuery, 
-                                             &$resultNode);
+              UCTCF_GetXmlNodeFromXpathQuery($CmpLib, $xpathQuery, 
+                                             $resultNode);
 
 
               /** Work our way back up until we've created all the leaf subdirs we need to. **/
@@ -3357,20 +3356,20 @@ function UCTCF_UpdateCmpLibFromExcelData(&$CACFconstants, &$UCTCFconstants,
 
                   $newXmlNode2 = new SimpleXMLElementEx("<ParentGroup/>");
                   $newXmlNode2->addAttribute('href', '#foo');				// This will get fixed up later!
-                  $newXmlNode->appendNode(&$newXmlNode2);
+                  $newXmlNode->appendNode($newXmlNode2);
 
                   $newXmlNode->addChild('Parameters', '');
                   $newXmlNode->addChild('ModelChoices', '');
 
                   $newXmlNode3 = new SimpleXMLElementEx("<ComponentSet/>");
                   $newXmlNode3->addAttribute('href', '#0');					// This will get fixed up later!
-                  $newXmlNode->appendNode(&$newXmlNode3);
+                  $newXmlNode->appendNode($newXmlNode3);
 
                   $newXmlNode->addChild('Groups', '');
                   $newXmlNode->addChild('ComponentDefinitions', '');
 
                   /* Add newXmlNode to exising XML tree. */
-                  $resultNode->Groups->appendNode(&$newXmlNode);
+                  $resultNode->Groups->appendNode($newXmlNode);
 
                   /* Compute the new current path. */
                   $pathCurrent = $pathCurrent . $pathLeaf . '\\';
@@ -3387,24 +3386,24 @@ function UCTCF_UpdateCmpLibFromExcelData(&$CACFconstants, &$UCTCFconstants,
           
                   /* Call UCTCF_FixUpXmlIds() to do most of the real work. */
                   /* FIXME:  Should we use the FixUpAllXmlIds() function instead?? */
-                  UCTCF_FixUpXmlIds(&$CACFconstants, &$UCTCFconstants, 
-                                    &$CmpLib,
-                                    &$cmpLibUserParmNamesById, &$cmpLibModelTypesById, &$cmpLibModelLinksById,
-                                    &$currIdNum, $parentIdNum, 
-                                    &$CmpLib /*$xmlNode*/);
+                  UCTCF_FixUpXmlIds($CACFconstants, $UCTCFconstants, 
+                                    $CmpLib,
+                                    $cmpLibUserParmNamesById, $cmpLibModelTypesById, $cmpLibModelLinksById,
+                                    $currIdNum, $parentIdNum, 
+                                    $CmpLib /*$xmlNode*/);
 
                   /* Re-extract xpath queries for all groups (database folders) and components so that we may find them later. */
-                  UCTCF_ExtractAllGroupsAndComponentsByXpathFromCmpLib(&$CACFconstants, &$UCTCFconstants, 
-                                                                       &$altiumFoldersByGuid, 
-                                                                       &$CmpLib,
-                                                                       &$cmpLibGroupXpathByPath, &$cmpLibCompByItemHrid);
+                  UCTCF_ExtractAllGroupsAndComponentsByXpathFromCmpLib($CACFconstants, $UCTCFconstants, 
+                                                                       $altiumFoldersByGuid, 
+                                                                       $CmpLib,
+                                                                       $cmpLibGroupXpathByPath, $cmpLibCompByItemHrid);
 
                   /* Retrieve the xpath query that will get us to the XML node for this path. */
                   $xpathQuery = $cmpLibGroupXpathByPath[$pathCurrent];
                   
                   /* Run xpath query to get XML node for this path. */
-                  UCTCF_GetXmlNodeFromXpathQuery(&$CmpLib, &$xpathQuery, 
-                                                 &$resultNode);
+                  UCTCF_GetXmlNodeFromXpathQuery($CmpLib, $xpathQuery, 
+                                                 $resultNode);
 
                   /* Evaluate loop termination condition. */
                   if ($pathToCreate == "")
@@ -3421,8 +3420,8 @@ function UCTCF_UpdateCmpLibFromExcelData(&$CACFconstants, &$UCTCFconstants,
           $xpathQuery = $cmpLibGroupXpathByPath[$path];
 
           /* Run xpath query to get XML node for this path. */
-          UCTCF_GetXmlNodeFromXpathQuery(&$CmpLib, &$xpathQuery, 
-                                         &$resultNode);
+          UCTCF_GetXmlNodeFromXpathQuery($CmpLib, $xpathQuery, 
+                                         $resultNode);
 
           //              echo "After xpath query for group node, resultNode is:\n";
           //              print_r($resultNode);
@@ -3439,7 +3438,7 @@ function UCTCF_UpdateCmpLibFromExcelData(&$CACFconstants, &$UCTCFconstants,
 
               $newXmlNode2 = new SimpleXMLElementEx("<ParentGroup/>");
               $newXmlNode2->addAttribute('href', '#foo');				// This will get fixed up later!
-              $newXmlNode->appendNode(&$newXmlNode2);
+              $newXmlNode->appendNode($newXmlNode2);
 
               $newXmlNode->addChild('Parameters', '');					// This will get fixed up later!
               $newXmlNode->addChild('ModelChoices', '');				// This will get fixed up later!
@@ -3451,7 +3450,7 @@ function UCTCF_UpdateCmpLibFromExcelData(&$CACFconstants, &$UCTCFconstants,
               //                  print_r($newXmlNode);
 
               /* Add newXmlNode to exising XML tree. */
-              $resultNode->ComponentDefinitions->appendNode(&$newXmlNode);
+              $resultNode->ComponentDefinitions->appendNode($newXmlNode);
                   
             } /* endif */
 
@@ -3474,8 +3473,8 @@ function UCTCF_UpdateCmpLibFromExcelData(&$CACFconstants, &$UCTCFconstants,
           $xpathQuery = $cmpLibGroupXpathByPath[$path];
           
           /* Run xpath query to get XML node for this path. */
-          UCTCF_GetXmlNodeFromXpathQuery(&$CmpLib, &$xpathQuery, 
-                                         &$resultNode);
+          UCTCF_GetXmlNodeFromXpathQuery($CmpLib, $xpathQuery, 
+                                         $resultNode);
           //          echo "In UCTCF_UpdateCmpLibFromExcelData(), resultNode is:\n";
           //          print_r($resultNode);
 
@@ -3487,8 +3486,8 @@ function UCTCF_UpdateCmpLibFromExcelData(&$CACFconstants, &$UCTCFconstants,
           //          echo "xpathQuery is \"$xpathQuery\"\n";
 
           /* Run xpath query to get XML node for this new component. */
-          UCTCF_GetXmlNodeFromXpathQuery(&$CmpLib, &$xpathQuery, 
-                                         &$resultNode);
+          UCTCF_GetXmlNodeFromXpathQuery($CmpLib, $xpathQuery, 
+                                         $resultNode);
           //          echo "In UCTCF_UpdateCmpLibFromExcelData(), resultNode is:\n";
           //          print_r($resultNode);
 
@@ -3503,11 +3502,11 @@ function UCTCF_UpdateCmpLibFromExcelData(&$CACFconstants, &$UCTCFconstants,
           $parentIdNum = 0;
           
           /* Call UCTCF_FixUpXmlIds() to do most of the real work. */
-          UCTCF_FixUpXmlIds(&$CACFconstants, &$UCTCFconstants, 
-                            &$CmpLib,
-                            &$cmpLibUserParmNamesById, &$cmpLibModelTypesById, &$cmpLibModelLinksById,
-                            &$currIdNum, $parentIdNum, 
-                            &$CmpLib /*$xmlNode*/);
+          UCTCF_FixUpXmlIds($CACFconstants, $UCTCFconstants, 
+                            $CmpLib,
+                            $cmpLibUserParmNamesById, $cmpLibModelTypesById, $cmpLibModelLinksById,
+                            $currIdNum, $parentIdNum, 
+                            $CmpLib /*$xmlNode*/);
 
         } /* endif is this a new component */
 
@@ -3533,8 +3532,8 @@ function UCTCF_UpdateCmpLibFromExcelData(&$CACFconstants, &$UCTCFconstants,
           $xpathQuery = $cmpLibCompByItemHrid[$ItemHrid]["xpath"];
           
           /* Run xpath query to get XML node for this component. */
-          UCTCF_GetXmlNodeFromXpathQuery(&$CmpLib, &$xpathQuery, 
-                                         &$resultNode);
+          UCTCF_GetXmlNodeFromXpathQuery($CmpLib, $xpathQuery, 
+                                         $resultNode);
           $xmlNode = &$resultNode;
           //      echo "xmlNode is:\n";
           //      print_r($xmlNode);
@@ -3564,7 +3563,7 @@ function UCTCF_UpdateCmpLibFromExcelData(&$CACFconstants, &$UCTCFconstants,
 
       /* Sort the list of parms attached to this component. */
       /* Note:  Here we are using uksort() (with strcasecmp() as comparison func) to try to emulate what Altium does with ordering CmpLib href id references. */
-      $rc = uksort(&$parms, "strcasecmp");
+      $rc = uksort($parms, "strcasecmp");
       if ($rc == FALSE) my_die("uksort() failed!");
 
       //      echo "parms is:\n";
@@ -3601,14 +3600,14 @@ function UCTCF_UpdateCmpLibFromExcelData(&$CACFconstants, &$UCTCFconstants,
           
               /* Call UCTCF_AddUserParmNameToCmpLib() to add a new user parameter name to CmpLib file. */
               $newUserParmName = $parmName;
-              UCTCF_AddUserParmNameToCmpLib(&$CACFconstants, &$UCTCFconstants, 
-                                            &$altiumFoldersByGuid, &$altiumModelDataByItemRevHrid, 
-                                            &$CmpLib, 
-                                            &$cmpLibUserParmNamesById, &$cmpLibUserParmIdsByName,
-                                            &$cmpLibModelTypesById, &$cmpLibModelTypesByType, 
-                                            &$cmpLibModelLinksById, &$cmpLibModelLinksByItemRevHrid,
-                                            &$cmpLibGroupXpathByPath, &$cmpLibCompByItemHrid,
-                                            &$newUserParmName);
+              UCTCF_AddUserParmNameToCmpLib($CACFconstants, $UCTCFconstants, 
+                                            $altiumFoldersByGuid, $altiumModelDataByItemRevHrid, 
+                                            $CmpLib, 
+                                            $cmpLibUserParmNamesById, $cmpLibUserParmIdsByName,
+                                            $cmpLibModelTypesById, $cmpLibModelTypesByType, 
+                                            $cmpLibModelLinksById, $cmpLibModelLinksByItemRevHrid,
+                                            $cmpLibGroupXpathByPath, $cmpLibCompByItemHrid,
+                                            $newUserParmName);
             } /* endif */
 
 
@@ -3656,10 +3655,10 @@ function UCTCF_UpdateCmpLibFromExcelData(&$CACFconstants, &$UCTCFconstants,
         {
           /* Attempt to retrieve model information (if any exists). */
           $sysParms = &$excelSysParmsByItemHrid[$ItemHrid];
-          CACF_GetModelInfoFromSysParms(&$CACFconstants, 
-                                        &$sysParms, 
+          CACF_GetModelInfoFromSysParms($CACFconstants, 
+                                        $sysParms, 
                                         $modelNum, 
-                                        &$modelType, &$modelHRID, &$modelPath, &$modelLib);
+                                        $modelType, $modelHRID, $modelPath, $modelLib);
 
           /* See if we got model info. */
           if ($modelType != "") 
@@ -3669,14 +3668,14 @@ function UCTCF_UpdateCmpLibFromExcelData(&$CACFconstants, &$UCTCFconstants,
                 {
                   /* Call UCTCF_AddModelTypeToCmpLib() to add a new model type declaration to CmpLib file. */
                   $newModelType = $modelType;
-                  UCTCF_AddModelTypeToCmpLib(&$CACFconstants, &$UCTCFconstants, 
-                                             &$altiumFoldersByGuid, &$altiumModelDataByItemRevHrid, 
-                                             &$CmpLib, 
-                                             &$cmpLibUserParmNamesById, &$cmpLibUserParmIdsByName,
-                                             &$cmpLibModelTypesById, &$cmpLibModelTypesByType, 
-                                             &$cmpLibModelLinksById, &$cmpLibModelLinksByItemRevHrid,
-                                             &$cmpLibGroupXpathByPath, &$cmpLibCompByItemHrid,
-                                             &$newModelType);
+                  UCTCF_AddModelTypeToCmpLib($CACFconstants, $UCTCFconstants, 
+                                             $altiumFoldersByGuid, $altiumModelDataByItemRevHrid, 
+                                             $CmpLib, 
+                                             $cmpLibUserParmNamesById, $cmpLibUserParmIdsByName,
+                                             $cmpLibModelTypesById, $cmpLibModelTypesByType, 
+                                             $cmpLibModelLinksById, $cmpLibModelLinksByItemRevHrid,
+                                             $cmpLibGroupXpathByPath, $cmpLibCompByItemHrid,
+                                             $newModelType);
                 } /* endif */
 
 
@@ -3687,13 +3686,13 @@ function UCTCF_UpdateCmpLibFromExcelData(&$CACFconstants, &$UCTCFconstants,
           
                   /* Call UCTCF_AddModelLinkToCmpLib() to add a new model link declaration to CmpLib file. */
                   $newModelLinkHrid = $modelHRID;
-                  UCTCF_AddModelLinkToCmpLib(&$CACFconstants, &$UCTCFconstants, 
-                                             &$altiumFoldersByGuid, &$altiumModelDataByItemRevHrid, 
-                                             &$CmpLib, 
-                                             &$cmpLibUserParmNamesById, &$cmpLibUserParmIdsByName,
-                                             &$cmpLibModelTypesById, &$cmpLibModelTypesByType, 
-                                             &$cmpLibModelLinksById, &$cmpLibModelLinksByItemRevHrid,
-                                             &$cmpLibGroupXpathByPath, &$cmpLibCompByItemHrid,
+                  UCTCF_AddModelLinkToCmpLib($CACFconstants, $UCTCFconstants, 
+                                             $altiumFoldersByGuid, $altiumModelDataByItemRevHrid, 
+                                             $CmpLib, 
+                                             $cmpLibUserParmNamesById, $cmpLibUserParmIdsByName,
+                                             $cmpLibModelTypesById, $cmpLibModelTypesByType, 
+                                             $cmpLibModelLinksById, $cmpLibModelLinksByItemRevHrid,
+                                             $cmpLibGroupXpathByPath, $cmpLibCompByItemHrid,
                                              $newModelLinkHrid);
                 } /* endif */
 
@@ -3748,18 +3747,18 @@ function UCTCF_UpdateCmpLibFromExcelData(&$CACFconstants, &$UCTCFconstants,
 
 
   /* Re-extract all components from XML file data structures. */
-  UCTCF_ExtractAllComponentParmsFromCmpLib(&$CACFconstants, &$UCTCFconstants, 
-                                           &$altiumItemsByHrid, &$altiumItemRevsByHrid,
-                                           &$altiumFoldersByGuid, &$altiumItemSysParmValuesByGuid, 
-                                           &$cmpLibUserParmNamesById, &$cmpLibUserParmIdsByName, &$cmpLibModelTypesById, &$cmpLibModelLinksById, 
-                                           &$CmpLib,
-                                           &$cmpLibUserParmsByGuid, &$cmpLibSysParmsByGuid, &$cmpLibNumNewComps, &$cmpLibDidCorrection);
+  UCTCF_ExtractAllComponentParmsFromCmpLib($CACFconstants, $UCTCFconstants, 
+                                           $altiumItemsByHrid, $altiumItemRevsByHrid,
+                                           $altiumFoldersByGuid, $altiumItemSysParmValuesByGuid, 
+                                           $cmpLibUserParmNamesById, $cmpLibUserParmIdsByName, $cmpLibModelTypesById, $cmpLibModelLinksById, 
+                                           $CmpLib,
+                                           $cmpLibUserParmsByGuid, $cmpLibSysParmsByGuid, $cmpLibNumNewComps, $cmpLibDidCorrection);
   
   /* Re-extract xpath queries for all groups (database folders) and components so that we may find them later. */
-  UCTCF_ExtractAllGroupsAndComponentsByXpathFromCmpLib(&$CACFconstants, &$UCTCFconstants, 
-                                                       &$altiumFoldersByGuid, 
-                                                       &$CmpLib,
-                                                       &$cmpLibGroupXpathByPath, &$cmpLibCompByItemHrid);
+  UCTCF_ExtractAllGroupsAndComponentsByXpathFromCmpLib($CACFconstants, $UCTCFconstants, 
+                                                       $altiumFoldersByGuid, 
+                                                       $CmpLib,
+                                                       $cmpLibGroupXpathByPath, $cmpLibCompByItemHrid);
 
 //  echo "In UCTCF_UpdateCmpLibFromExcelData(), cmpLibSysParmsByGuid is now:\n";
 //  print_r($cmpLibSysParmsByGuid);
@@ -3835,7 +3834,8 @@ function UCTCF_CompareCmpLibComponentToVault(&$CACFconstants, &$UCTCFconstants,
                   
               /* See if this is a parameter that is allowed to differ between CmpLib and Vault data. */
               /* NOTE:  This is company specific! */
-              if ($someParmName == "SPI Part Number")
+              /* TODO:  Revisit if we should still have this exception for a company part number that is set to ItemHRID, rather than ItemRevHrid! */
+              if ($someParmName == "TRT Part Number")
                 {
                   echo "Component \"$ItemHrid\" in Vault has outdated $doUserOrSys"."Parm name=value:  \"$someParmName\" = \"$vaultSomeParmValue\".  However, we will ignore this parameter and not update to \"$cmpLibSomeParmValue\".\n";
 
@@ -3935,21 +3935,21 @@ function UCTCF_CompareAllCmpLibComponentsToVault(&$CACFconstants, &$UCTCFconstan
       
           /* Compare all sys parameters for this CmpLib component to those in the Vault. */
           $doUserOrSys = "sys";
-          UCTCF_CompareCmpLibComponentToVault(&$CACFconstants, &$UCTCFconstants, 
-                                              &$altiumItemsByGuid, &$altiumItemRevsByGuid, 
-                                              &$altiumItemUserParmValuesByGuid, &$altiumItemSysParmValuesByGuid,
-                                              &$cmpLibUserParmsByGuid, &$cmpLibSysParmsByGuid,
+          UCTCF_CompareCmpLibComponentToVault($CACFconstants, $UCTCFconstants, 
+                                              $altiumItemsByGuid, $altiumItemRevsByGuid, 
+                                              $altiumItemUserParmValuesByGuid, $altiumItemSysParmValuesByGuid,
+                                              $cmpLibUserParmsByGuid, $cmpLibSysParmsByGuid,
                                               $ItemRevGuid, $doUserOrSys,
-                                              &$compNeedsUpdate);
+                                              $compNeedsUpdate);
 
           /* Compare all user parameters for this CmpLib component to those in the Vault. */
           $doUserOrSys = "user";
-          UCTCF_CompareCmpLibComponentToVault(&$CACFconstants, &$UCTCFconstants, 
-                                              &$altiumItemsByGuid, &$altiumItemRevsByGuid, 
-                                              &$altiumItemUserParmValuesByGuid, &$altiumItemSysParmValuesByGuid,
-                                              &$cmpLibUserParmsByGuid, &$cmpLibSysParmsByGuid,
+          UCTCF_CompareCmpLibComponentToVault($CACFconstants, $UCTCFconstants, 
+                                              $altiumItemsByGuid, $altiumItemRevsByGuid, 
+                                              $altiumItemUserParmValuesByGuid, $altiumItemSysParmValuesByGuid,
+                                              $cmpLibUserParmsByGuid, $cmpLibSysParmsByGuid,
                                               $ItemRevGuid, $doUserOrSys,
-                                              &$compNeedsUpdate);
+                                              $compNeedsUpdate);
 
           /* If needed, add this component to a list of components that need to be updated in Vault. */
           if ($compNeedsUpdate)
@@ -4028,8 +4028,8 @@ function UCTCF_EnableComponentsForUpdateInCmpLib(&$CACFconstants, &$UCTCFconstan
       $xpathQuery = $cmpLibCompByItemHrid[$ItemHrid]["xpath"];
       
       /* Run xpath query to get XML node for this component. */
-      UCTCF_GetXmlNodeFromXpathQuery(&$CmpLib, &$xpathQuery, 
-                                     &$resultNode);
+      UCTCF_GetXmlNodeFromXpathQuery($CmpLib, $xpathQuery, 
+                                     $resultNode);
       //      echo "resultNode is:\n";
       //      print_r($resultNode);
 
@@ -4055,8 +4055,8 @@ function UCTCF_EnableComponentsForUpdateInCmpLib(&$CACFconstants, &$UCTCFconstan
               $xpathQuery = $cmpLibGroupXpathByPath[$path];
 
               /* Run xpath query to get XML node for this path. */
-              UCTCF_GetXmlNodeFromXpathQuery(&$CmpLib, &$xpathQuery, 
-                                             &$resultNode);
+              UCTCF_GetXmlNodeFromXpathQuery($CmpLib, $xpathQuery, 
+                                             $resultNode);
 
               //      echo "resultNode is:\n";
               //      print_r($resultNode);
@@ -4111,13 +4111,16 @@ function UCTCF_InitAndGetVaultData(&$CACFconstants,
   $UCTCFconstants["cNewModelTypeColumnWidth"] = "50";
 
   /* Name of default Altium Vault. */
-  $UCTCFconstants["defaultVaultHrid"] = "SPI Vault";
+  /* Note:  Company-specific info! */
+  $UCTCFconstants["defaultVaultHrid"] = "TRT Satellite Vault";
 
   /* Name of default Altium Revision Naming Scheme. */
-  $UCTCFconstants["defaultRevisionNamingSchemeHrid"] = "SPI Revision Scheme";
+  /* Note:  Company-specific info! */
+  $UCTCFconstants["defaultRevisionNamingSchemeHrid"] = "TRT 1-Level Rev Scheme";
 
   /* Name of default Altium LifeCycle Definition. */
-  $UCTCFconstants["defaultLifeCycleDefinitionHrid"] = "Simple Lifecycle With Approvals";
+  /* Note:  Company-specific info! */
+  $UCTCFconstants["defaultLifeCycleDefinitionHrid"] = "TRT Component Lifecycle";
 
   /* Constants related to the "StateIndex" CmpLib XML attribute. */
   $UCTCFconstants["cXmlStateName"] = "StateIndex";
@@ -4136,8 +4139,8 @@ function UCTCF_InitAndGetVaultData(&$CACFconstants,
   /** Initialize and run various CACF_*() functions to get low level Vault data. **/
   /* Call CACF_Init() to perform all initialization needed for CACF_*() functions. */
   /* Note:  All the parameters are outputs from this function! */
-  CACF_Init(&$db, &$CACFconstants,
-            &$altiumParmsByComponentLines, &$auditComponentsByType, &$auditComponentsByTypeUnmatched, &$altiumUserNamesByGuid, &$altiumAclUserPermissions);
+  CACF_Init($db, $CACFconstants,
+            $altiumParmsByComponentLines, $auditComponentsByType, $auditComponentsByTypeUnmatched, $altiumUserNamesByGuid, $altiumAclUserPermissions);
 
   /** Alter certain constants setup by CACF_Init() **/
 
@@ -4182,8 +4185,8 @@ function UCTCF_InitAndGetVaultData(&$CACFconstants,
 
   /** Get the GUID of our default Vault. **/
   /* Analyze all Vault Vaults. */
-  CACF_AnalyzeVaultVaults(&$db, &$CACFconstants,
-                          &$altiumVaultsByHrid);
+  CACF_AnalyzeVaultVaults($db, $CACFconstants,
+                          $altiumVaultsByHrid);
 
   /* Look up the GUID of our default Vault. */
   $defaultVaultHrid = $UCTCFconstants["defaultVaultHrid"];
@@ -4196,8 +4199,8 @@ function UCTCF_InitAndGetVaultData(&$CACFconstants,
 
   /** Get the GUID of our default Revision Naming Scheme. **/
   /* Analyze all Vault Revision Naming Schemes. */
-  CACF_AnalyzeVaultRevisionNamingSchemes(&$db, &$CACFconstants,
-                                         &$altiumRevisionNamingSchemesByHrid);
+  CACF_AnalyzeVaultRevisionNamingSchemes($db, $CACFconstants,
+                                         $altiumRevisionNamingSchemesByHrid);
 
   /* Look up the GUID of our default Revision Naming Scheme. */
   $defaultRevisionNamingSchemeHrid = $UCTCFconstants["defaultRevisionNamingSchemeHrid"];
@@ -4210,8 +4213,8 @@ function UCTCF_InitAndGetVaultData(&$CACFconstants,
 
   /** Get the GUID of our default LifeCycle Definition. **/
   /* Analyze all Vault LifeCycle Definitions. */
-  CACF_AnalyzeVaultLifeCycleDefinitions(&$db, &$CACFconstants,
-                                         &$altiumLifeCycleDefinitionsByHrid);
+  CACF_AnalyzeVaultLifeCycleDefinitions($db, $CACFconstants,
+                                        $altiumLifeCycleDefinitionsByHrid);
 
   /* Look up the GUID of our default LifeCycle Definition. */
   $defaultLifeCycleDefinitionHrid = $UCTCFconstants["defaultLifeCycleDefinitionHrid"];
@@ -4224,35 +4227,35 @@ function UCTCF_InitAndGetVaultData(&$CACFconstants,
 
   /** Retrieve and cache various other information from the Vault database. **/
   /* Analyze all Vault folders and extract all linkages so that we understand folder trees. */
-  CACF_AnalyzeVaultFolders(&$db, &$CACFconstants,
-                           &$altiumFoldersByGuid);
+  CACF_AnalyzeVaultFolders($db, $CACFconstants,
+                           $altiumFoldersByGuid);
 
   /* Analyze all Vault items and cache certain fields, indexed by GUID. */
-  CACF_AnalyzeVaultItems(&$db, &$CACFconstants,
-                         &$altiumItemsByGuid);
+  CACF_AnalyzeVaultItems($db, $CACFconstants,
+                         $altiumItemsByGuid);
 
   /* Analyze all Vault item revisions and cache certain fields, indexed by GUID. */
-  CACF_AnalyzeVaultItemRevisions(&$db, &$CACFconstants,
-                                 &$altiumItemRevsByGuid);
+  CACF_AnalyzeVaultItemRevisions($db, $CACFconstants,
+                                 $altiumItemRevsByGuid);
 
   /* Analyze all Vault item user parameters and store for later use. */
-  CACF_AnalyzeVaultItemUserParameters(&$db, &$CACFconstants,
-                                      &$altiumUserParmNames, &$altiumItemUserParmValuesByGuid);
+  CACF_AnalyzeVaultItemUserParameters($db, $CACFconstants,
+                                      $altiumUserParmNames, $altiumItemUserParmValuesByGuid);
 
   /* Cache ACL data for later use. */
-  CACF_CreateAclAuditData(&$db, &$CACFconstants,
-                          &$altiumUserNamesByGuid, &$altiumFoldersByGuid, &$altiumItemsByGuid, &$altiumItemRevsByGuid, &$altiumAclUserPermissions, 
-                          &$altiumAclDataByObjectHrid, &$altiumAclDataByObjectGuid);
+  CACF_CreateAclAuditData($db, $CACFconstants,
+                          $altiumUserNamesByGuid, $altiumFoldersByGuid, $altiumItemsByGuid, $altiumItemRevsByGuid, $altiumAclUserPermissions, 
+                          $altiumAclDataByObjectHrid, $altiumAclDataByObjectGuid);
 
   /* Create model audit data. */
-  CACF_CreateModelAuditData(&$db, &$CACFconstants,
-                            &$altiumUserNamesByGuid, &$altiumFoldersByGuid, &$altiumAclDataByObjectGuid, 
-                            &$altiumItemRevsByGuid, &$altiumModelDataByItemRevHrid);
+  CACF_CreateModelAuditData($db, $CACFconstants,
+                            $altiumUserNamesByGuid, $altiumFoldersByGuid, $altiumAclDataByObjectGuid, 
+                            $altiumItemRevsByGuid, $altiumModelDataByItemRevHrid);
 
   /* Create component audit data. */
-  CACF_CreateComponentAuditData(&$db, &$CACFconstants,
-                                &$altiumUserNamesByGuid, &$altiumFoldersByGuid, &$altiumAclDataByObjectGuid, &$altiumItemRevsByGuid, 
-                                &$altiumItemSysParmValuesByGuid, &$altiumObsoleteCompsByGuid);
+  CACF_CreateComponentAuditData($db, $CACFconstants,
+                                $altiumUserNamesByGuid, $altiumFoldersByGuid, $altiumAclDataByObjectGuid, $altiumItemRevsByGuid, 
+                                $altiumItemSysParmValuesByGuid, $altiumObsoleteCompsByGuid);
 
 } /* end UCTCF_InitAndGetVaultData() */
 
@@ -4280,7 +4283,7 @@ function UCTCF_GetCmpLibData(&$CACFconstants,
   /** Read in component information from .CmpLib file. **/
   /* Read existing .CmpLib file. */
   echo date('H:i:s') . " Attempting to open Altium .CmpLib file.\n";
-  UCTCF_ReadCmpLibFile(&$CmpLib, $CmpLibFileName);
+  UCTCF_ReadCmpLibFile($CmpLib, $CmpLibFileName);
 
   /* Extract all required parameters (aka. declarations of user parameters) from XML file data structures. */
   UCTCF_ExtractRequiredParameters($CmpLib->RequiredParameters, 
@@ -4288,30 +4291,30 @@ function UCTCF_GetCmpLibData(&$CACFconstants,
 
   /* Extract all model types (aka. declarations of model types) from XML file data structures. */
   UCTCF_ExtractRequiredModels($CmpLib->RequiredModels, 
-                              &$cmpLibModelTypesById, &$cmpLibModelTypesByType);
+                              $cmpLibModelTypesById, $cmpLibModelTypesByType);
 
   /* Extract all model links (aka. pointers to an SCHLIB / PCBLIB object) from XML file data structures. */
   $ModelLinksNode = &$CmpLib->ModelLinks;
-  UCTCF_ExtractModelLinks(&$CACFconstants, 
+  UCTCF_ExtractModelLinks($CACFconstants, 
                           $ModelLinksNode, 
-                          &$altiumModelDataByItemRevHrid, 
-                          &$cmpLibModelLinksById, &$cmpLibModelLinksByItemRevHrid);
+                          $altiumModelDataByItemRevHrid, 
+                          $cmpLibModelLinksById, $cmpLibModelLinksByItemRevHrid);
 
   /* Extract all components and their parameters from XML file data structures. */
-  UCTCF_ExtractAllComponentParmsFromCmpLib(&$CACFconstants, &$UCTCFconstants, 
-                                           &$altiumItemsByHrid, &$altiumItemRevsByHrid,
-                                           &$altiumFoldersByGuid, &$altiumItemSysParmValuesByGuid, 
-                                           &$cmpLibUserParmNamesById, &$cmpLibUserParmIdsByName, &$cmpLibModelTypesById, &$cmpLibModelLinksById, 
-                                           &$CmpLib,
-                                           &$cmpLibUserParmsByGuid, &$cmpLibSysParmsByGuid, &$cmpLibNumNewComps, &$cmpLibDidCorrection);
+  UCTCF_ExtractAllComponentParmsFromCmpLib($CACFconstants, $UCTCFconstants, 
+                                           $altiumItemsByHrid, $altiumItemRevsByHrid,
+                                           $altiumFoldersByGuid, $altiumItemSysParmValuesByGuid, 
+                                           $cmpLibUserParmNamesById, $cmpLibUserParmIdsByName, $cmpLibModelTypesById, $cmpLibModelLinksById, 
+                                           $CmpLib,
+                                           $cmpLibUserParmsByGuid, $cmpLibSysParmsByGuid, $cmpLibNumNewComps, $cmpLibDidCorrection);
 
   /* Extract xpath queries for all groups (database folders) and components so that we may find them later. */
   /* Note:  I made this a separate operation because will we need to re-do this operation later after
    changing ID numbers, but we don't want to ever call UCTCF_ExtractAllComponentParmsFromCmpLib() again. */
-  UCTCF_ExtractAllGroupsAndComponentsByXpathFromCmpLib(&$CACFconstants, &$UCTCFconstants, 
-                                                       &$altiumFoldersByGuid, 
-                                                       &$CmpLib,
-                                                       &$cmpLibGroupXpathByPath, &$cmpLibCompByItemHrid);
+  UCTCF_ExtractAllGroupsAndComponentsByXpathFromCmpLib($CACFconstants, $UCTCFconstants, 
+                                                       $altiumFoldersByGuid, 
+                                                       $CmpLib,
+                                                       $cmpLibGroupXpathByPath, $cmpLibCompByItemHrid);
 
   //  echo "Leaving UCTCF_GetCmpLibData(), altiumItemSysParmValuesByGuid is:\n";
   //  print_r($altiumItemSysParmValuesByGuid);
@@ -4338,10 +4341,10 @@ function UCTCF_CreateVaultComponentAuditData(&$CACFconstants,
 
   /* Pretend to write Vault component audit data to csv file. */
   /* This first run through will no components culled out is solely to get a valid $altiumUserParmNamesByCompType output. */
-  CACF_WriteComponentAuditDataToCsv(&$CACFconstants,
-                                    &$auditComponentsByType, &$auditComponentsByTypeUnmatched, 
-                                    &$altiumUserParmNames, &$altiumItemUserParmValuesByGuid, &$altiumItemSysParmValuesByGuid, &$altiumObsoleteCompsByGuid,
-                                    &$altiumUserParmNamesByCompType, &$altiumParmsByCompType);
+  CACF_WriteComponentAuditDataToCsv($CACFconstants,
+                                    $auditComponentsByType, $auditComponentsByTypeUnmatched, 
+                                    $altiumUserParmNames, $altiumItemUserParmValuesByGuid, $altiumItemSysParmValuesByGuid, $altiumObsoleteCompsByGuid,
+                                    $altiumUserParmNamesByCompType, $altiumParmsByCompType);
 
 
   //  echo "In UCTCF_CreateVaultComponentAuditData(), altiumParmsByCompType is:\n";
@@ -4349,24 +4352,24 @@ function UCTCF_CreateVaultComponentAuditData(&$CACFconstants,
 
 
   /* Cull out components that exist in the Vault but aren't defined in the CmpLib file that we're working on. */
-  UCTCF_CullCompsThatDontExistInCmpLib(&$CACFconstants, 
-                                       &$altiumItemSysParmValuesByGuid, &$cmpLibSysParmsByGuid);
+  UCTCF_CullCompsThatDontExistInCmpLib($CACFconstants, 
+                                       $altiumItemSysParmValuesByGuid, $cmpLibSysParmsByGuid);
 
   /* Pretend to write Vault component audit data to csv file. */
   /* This second run through after components were culled is to get a valid $altiumParmsByCompType output. */
-  CACF_WriteComponentAuditDataToCsv(&$CACFconstants,
-                                    &$auditComponentsByType, &$auditComponentsByTypeUnmatched, 
-                                    &$altiumUserParmNames, &$altiumItemUserParmValuesByGuid, &$altiumItemSysParmValuesByGuid, &$altiumObsoleteCompsByGuid,
-                                    &$altiumUserParmNamesByCompTypeFOO, &$altiumParmsByCompType);
+  CACF_WriteComponentAuditDataToCsv($CACFconstants,
+                                    $auditComponentsByType, $auditComponentsByTypeUnmatched, 
+                                    $altiumUserParmNames, $altiumItemUserParmValuesByGuid, $altiumItemSysParmValuesByGuid, $altiumObsoleteCompsByGuid,
+                                    $altiumUserParmNamesByCompTypeFOO, $altiumParmsByCompType);
 
   //  echo "In UCTCF_CreateVaultComponentAuditData(), altiumParmsByCompType is now:\n";
   //  print_r($altiumParmsByCompType);
 
 
   /* Create all Vault per-component-type audit data and output to csv files. */
-  CACF_CreateAllComponentTypeAuditDataAndWriteToCsv(&$CACFconstants,
-                                                    &$altiumParmsByComponentLines,
-                                                    &$altiumUserParmNamesByCompType, &$altiumParmsByCompType, &$altiumItemSysParmValuesByGuid, &$altiumItemUserParmValuesByGuid, &$altiumObsoleteCompsByGuid);
+  CACF_CreateAllComponentTypeAuditDataAndWriteToCsv($CACFconstants,
+                                                    $altiumParmsByComponentLines,
+                                                    $altiumUserParmNamesByCompType, $altiumParmsByCompType, $altiumItemSysParmValuesByGuid, $altiumItemUserParmValuesByGuid, $altiumObsoleteCompsByGuid);
 
 } /* end UCTCF_CreateVaultComponentAuditData() */
 
@@ -4391,15 +4394,15 @@ function UCTCF_CreateCmpLibComponentAuditData(&$CACFconstants,
 
   /* Pretend to write CmpLib component audit data to csv file. */
   /* This is the only run using CmpLib derived data.  Output is $altiumParmsByCompType. */
-  CACF_WriteComponentAuditDataToCsv(&$CACFconstants,
-                                    &$auditComponentsByType, &$auditComponentsByTypeUnmatched, 
-                                    &$altiumUserParmNames, &$cmpLibUserParmsByGuid /* CmpLib data! */, &$cmpLibSysParmsByGuid /* CmpLib data! */, &$altiumObsoleteCompsByGuid,
-                                    &$altiumUserParmNamesByCompTypeFOO, &$altiumParmsByCompType);
+  CACF_WriteComponentAuditDataToCsv($CACFconstants,
+                                    $auditComponentsByType, $auditComponentsByTypeUnmatched, 
+                                    $altiumUserParmNames, $cmpLibUserParmsByGuid /* CmpLib data! */, $cmpLibSysParmsByGuid /* CmpLib data! */, $altiumObsoleteCompsByGuid,
+                                    $altiumUserParmNamesByCompTypeFOO, $altiumParmsByCompType);
   
   /* Create all CmpLib per-component-type audit data and output to csv files. */
-  CACF_CreateAllComponentTypeAuditDataAndWriteToCsv(&$CACFconstants,
-                                                    &$altiumParmsByComponentLines,
-                                                    &$altiumUserParmNamesByCompType, &$altiumParmsByCompType, &$cmpLibSysParmsByGuid /* CmpLib data! */, &$cmpLibUserParmsByGuid /* CmpLib data! */, &$altiumObsoleteCompsByGuid);
+  CACF_CreateAllComponentTypeAuditDataAndWriteToCsv($CACFconstants,
+                                                    $altiumParmsByComponentLines,
+                                                    $altiumUserParmNamesByCompType, $altiumParmsByCompType, $cmpLibSysParmsByGuid /* CmpLib data! */, $cmpLibUserParmsByGuid /* CmpLib data! */, $altiumObsoleteCompsByGuid);
   
 } /* end UCTCF_CreateCmpLibComponentAuditData() */
 
@@ -4427,11 +4430,11 @@ function UCTCF_GetExcelData(&$CACFconstants,
 
 
   /* Call UCTCF_ExtractComponentsFromExcel() to extract component information from our Excel spreadsheet. */
-  UCTCF_ExtractComponentsFromExcel(&$CACFconstants, 
-                                   &$altiumItemsByHrid, &$altiumItemRevsByHrid, 
-                                   &$altiumModelDataByItemRevHrid, 
-                                   &$objPHPExcel, 
-                                   &$excelUserParmsByItemHrid, &$excelSysParmsByItemHrid);
+  UCTCF_ExtractComponentsFromExcel($CACFconstants, 
+                                   $altiumItemsByHrid, $altiumItemRevsByHrid, 
+                                   $altiumModelDataByItemRevHrid, 
+                                   $objPHPExcel, 
+                                   $excelUserParmsByItemHrid, $excelSysParmsByItemHrid);
 
   //print_r(PHPExcel_Calculation::getInstance()->debugLog);
 
@@ -4455,15 +4458,15 @@ function UCTCF_CreateExcelComponentAuditData(&$CACFconstants,
 
   /* Pretend to write Excel component audit data to csv file. */
   /* This is the only run using Excel derived data.  Output is $altiumParmsByCompType. */
-  CACF_WriteComponentAuditDataToCsv(&$CACFconstants,
-                                    &$auditComponentsByType, &$auditComponentsByTypeUnmatched, 
-                                    &$altiumUserParmNames, &$excelUserParmsByItemHrid /* Excel data! */, &$excelSysParmsByItemHrid /* Excel data! */, &$altiumObsoleteCompsByGuid,
-                                    &$altiumUserParmNamesByCompTypeFOO, &$altiumParmsByCompType);
+  CACF_WriteComponentAuditDataToCsv($CACFconstants,
+                                    $auditComponentsByType, $auditComponentsByTypeUnmatched, 
+                                    $altiumUserParmNames, $excelUserParmsByItemHrid /* Excel data! */, $excelSysParmsByItemHrid /* Excel data! */, $altiumObsoleteCompsByGuid,
+                                    $altiumUserParmNamesByCompTypeFOO, $altiumParmsByCompType);
 
   /* Create all Excel per-component-type audit data and output to csv files. */
-  CACF_CreateAllComponentTypeAuditDataAndWriteToCsv(&$CACFconstants,
-                                                    &$altiumParmsByComponentLines,
-                                                    &$altiumUserParmNamesByCompType, &$altiumParmsByCompType, &$excelSysParmsByItemHrid /* Excel data! */, &$excelUserParmsByItemHrid /* Excel data! */, &$altiumObsoleteCompsByGuid);
+  CACF_CreateAllComponentTypeAuditDataAndWriteToCsv($CACFconstants,
+                                                    $altiumParmsByComponentLines,
+                                                    $altiumUserParmNamesByCompType, $altiumParmsByCompType, $excelSysParmsByItemHrid /* Excel data! */, $excelUserParmsByItemHrid /* Excel data! */, $altiumObsoleteCompsByGuid);
 
   //print_r(PHPExcel_Calculation::getInstance()->debugLog);
 
@@ -4500,30 +4503,30 @@ $ExcelFileName  = $argv[3]; //"ICs_amplifiers.xlsx";
 
 
 /** Initialize this script and get all Vault data. **/
-UCTCF_InitAndGetVaultData(&$CACFconstants,
-                          &$auditComponentsByType, &$auditComponentsByTypeUnmatched, 
-                          &$UCTCFconstants, $CmpLibFileName, 
-                          &$altiumFoldersByGuid, &$altiumItemsByGuid, &$altiumItemRevsByGuid, 
-                          &$altiumModelDataByItemRevHrid, &$altiumUserParmNames, 
-                          &$altiumItemUserParmValuesByGuid, &$altiumItemSysParmValuesByGuid, &$altiumObsoleteCompsByGuid);
+UCTCF_InitAndGetVaultData($CACFconstants,
+                          $auditComponentsByType, $auditComponentsByTypeUnmatched, 
+                          $UCTCFconstants, $CmpLibFileName, 
+                          $altiumFoldersByGuid, $altiumItemsByGuid, $altiumItemRevsByGuid, 
+                          $altiumModelDataByItemRevHrid, $altiumUserParmNames, 
+                          $altiumItemUserParmValuesByGuid, $altiumItemSysParmValuesByGuid, $altiumObsoleteCompsByGuid);
 
 
 /* Re-index our cached Vault item and itemRev data by HRID, since we'll need this for CmpLib and Excel analysis. */
-UCTCF_ReIndexByHrid(&$altiumItemsByGuid, &$altiumItemRevsByGuid,
-                    &$altiumItemsByHrid, &$altiumItemRevsByHrid);
+UCTCF_ReIndexByHrid($altiumItemsByGuid, $altiumItemRevsByGuid,
+                    $altiumItemsByHrid, $altiumItemRevsByHrid);
 
 
 /** Get all CmpLib file data. **/
 $cmpLibDidCorrection = false;
-UCTCF_GetCmpLibData(&$CACFconstants,
-                    &$UCTCFconstants, $CmpLibFileName, 
-                    &$altiumItemsByHrid, &$altiumItemRevsByHrid,
-                    &$altiumFoldersByGuid, &$altiumItemSysParmValuesByGuid, &$altiumModelDataByItemRevHrid, 
-                    &$CmpLib, 
-                    &$cmpLibUserParmNamesById, &$cmpLibUserParmIdsByName,
-                    &$cmpLibModelTypesById, &$cmpLibModelTypesByType, 
-                    &$cmpLibModelLinksById, &$cmpLibModelLinksByItemRevHrid,
-                    &$cmpLibUserParmsByGuid, &$cmpLibSysParmsByGuid, &$cmpLibGroupXpathByPath, &$cmpLibCompByItemHrid, &$cmpLibDidCorrection);
+UCTCF_GetCmpLibData($CACFconstants,
+                    $UCTCFconstants, $CmpLibFileName, 
+                    $altiumItemsByHrid, $altiumItemRevsByHrid,
+                    $altiumFoldersByGuid, $altiumItemSysParmValuesByGuid, $altiumModelDataByItemRevHrid, 
+                    $CmpLib, 
+                    $cmpLibUserParmNamesById, $cmpLibUserParmIdsByName,
+                    $cmpLibModelTypesById, $cmpLibModelTypesByType, 
+                    $cmpLibModelLinksById, $cmpLibModelLinksByItemRevHrid,
+                    $cmpLibUserParmsByGuid, $cmpLibSysParmsByGuid, $cmpLibGroupXpathByPath, $cmpLibCompByItemHrid, $cmpLibDidCorrection);
   
 
 /* See if we need to re-write CmpLib data so that corrections to ItemGUIDs, ItemRevGUIDs, etc. get written back to disk. */
@@ -4533,42 +4536,42 @@ if ($cmpLibDidCorrection)
     echo "\nAttempting to write corrections to CmpLib file back to disk!\n";
     
     /* Write .CmpLib file back out to .xml file. */
-    UCTCF_WriteCmpLibFile(&$CmpLib, $CmpLibFileName);
+    UCTCF_WriteCmpLibFile($CmpLib, $CmpLibFileName);
 
   } /* endif */
 
 
 /** Get all Excel file data. **/
-UCTCF_GetExcelData(&$CACFconstants,
-                   &$UCTCFconstants, $ExcelFileName, 
-                   &$altiumItemsByHrid, &$altiumItemRevsByHrid,
-                   &$altiumModelDataByItemRevHrid, 
-                   &$excelUserParmsByItemHrid, &$excelSysParmsByItemHrid);
+UCTCF_GetExcelData($CACFconstants,
+                   $UCTCFconstants, $ExcelFileName, 
+                   $altiumItemsByHrid, $altiumItemRevsByHrid,
+                   $altiumModelDataByItemRevHrid, 
+                   $excelUserParmsByItemHrid, $excelSysParmsByItemHrid);
 
 
 /** Output Vault derived audit data. **/
-UCTCF_CreateVaultComponentAuditData(&$CACFconstants,
-                                    &$auditComponentsByType, &$auditComponentsByTypeUnmatched, 
-                                    &$UCTCFconstants, 
-                                    &$altiumUserParmNames, &$altiumUserParmNamesByCompType, 
-                                    &$altiumItemUserParmValuesByGuid, &$altiumItemSysParmValuesByGuid, &$altiumObsoleteCompsByGuid,
-                                    &$cmpLibSysParmsByGuid);
+UCTCF_CreateVaultComponentAuditData($CACFconstants,
+                                    $auditComponentsByType, $auditComponentsByTypeUnmatched, 
+                                    $UCTCFconstants, 
+                                    $altiumUserParmNames, $altiumUserParmNamesByCompType, 
+                                    $altiumItemUserParmValuesByGuid, $altiumItemSysParmValuesByGuid, $altiumObsoleteCompsByGuid,
+                                    $cmpLibSysParmsByGuid);
 
 
 /** Output CmpLib derived audit data. **/
-UCTCF_CreateCmpLibComponentAuditData(&$CACFconstants,
-                                     &$auditComponentsByType, &$auditComponentsByTypeUnmatched, 
-                                     &$UCTCFconstants, 
-                                     &$altiumUserParmNames, &$altiumUserParmNamesByCompType, &$altiumObsoleteCompsByGuid,
-                                     &$cmpLibUserParmsByGuid, &$cmpLibSysParmsByGuid);
+UCTCF_CreateCmpLibComponentAuditData($CACFconstants,
+                                     $auditComponentsByType, $auditComponentsByTypeUnmatched, 
+                                     $UCTCFconstants, 
+                                     $altiumUserParmNames, $altiumUserParmNamesByCompType, $altiumObsoleteCompsByGuid,
+                                     $cmpLibUserParmsByGuid, $cmpLibSysParmsByGuid);
 
 
 /** Output Excel derived audit data. **/
-UCTCF_CreateExcelComponentAuditData(&$CACFconstants,
-                                    &$auditComponentsByType, &$auditComponentsByTypeUnmatched, 
-                                    &$UCTCFconstants, 
-                                    &$altiumUserParmNames, &$altiumUserParmNamesByCompType, &$altiumObsoleteCompsByGuid,
-                                    &$excelUserParmsByItemHrid, &$excelSysParmsByItemHrid);
+UCTCF_CreateExcelComponentAuditData($CACFconstants,
+                                    $auditComponentsByType, $auditComponentsByTypeUnmatched, 
+                                    $UCTCFconstants, 
+                                    $altiumUserParmNames, $altiumUserParmNamesByCompType, $altiumObsoleteCompsByGuid,
+                                    $excelUserParmsByItemHrid, $excelSysParmsByItemHrid);
 
 
 /* We only will update CmpLib file when we're running in "update" mode. */
@@ -4577,35 +4580,35 @@ if ($mode == "update")
     echo date('H:i:s') . " Proceeding to run \"update\" operation....\n";
 
     /** Prepare to update CmpLib file from Excel data. **/
-    UCTCF_UpdateCmpLibFromExcelData(&$CACFconstants, &$UCTCFconstants, 
-                                    &$altiumFoldersByGuid, &$altiumItemSysParmValuesByGuid, &$altiumModelDataByItemRevHrid,
-                                    &$CmpLib, 
-                                    &$cmpLibUserParmNamesById, &$cmpLibUserParmIdsByName,
-                                    &$cmpLibModelTypesById, &$cmpLibModelTypesByType, 
-                                    &$cmpLibModelLinksById, &$cmpLibModelLinksByItemRevHrid,
-                                    &$cmpLibGroupXpathByPath, &$cmpLibCompByItemHrid,
-                                    &$cmpLibUserParmsByGuid, &$cmpLibSysParmsByGuid,
-                                    &$excelUserParmsByItemHrid, &$excelSysParmsByItemHrid);
+    UCTCF_UpdateCmpLibFromExcelData($CACFconstants, $UCTCFconstants, 
+                                    $altiumFoldersByGuid, $altiumItemSysParmValuesByGuid, $altiumModelDataByItemRevHrid,
+                                    $CmpLib, 
+                                    $cmpLibUserParmNamesById, $cmpLibUserParmIdsByName,
+                                    $cmpLibModelTypesById, $cmpLibModelTypesByType, 
+                                    $cmpLibModelLinksById, $cmpLibModelLinksByItemRevHrid,
+                                    $cmpLibGroupXpathByPath, $cmpLibCompByItemHrid,
+                                    $cmpLibUserParmsByGuid, $cmpLibSysParmsByGuid,
+                                    $excelUserParmsByItemHrid, $excelSysParmsByItemHrid);
 
     /** Inform user of all differences between CmpLib components and the associated Vault components. **/
-    UCTCF_CompareAllCmpLibComponentsToVault(&$CACFconstants, &$UCTCFconstants, 
-                                            &$altiumItemsByGuid, &$altiumItemRevsByGuid, 
-                                            &$altiumItemUserParmValuesByGuid, &$altiumItemSysParmValuesByGuid,
-                                            &$cmpLibUserParmsByGuid, &$cmpLibSysParmsByGuid,
-                                            &$changedCompsByItemRevGuid);
+    UCTCF_CompareAllCmpLibComponentsToVault($CACFconstants, $UCTCFconstants, 
+                                            $altiumItemsByGuid, $altiumItemRevsByGuid, 
+                                            $altiumItemUserParmValuesByGuid, $altiumItemSysParmValuesByGuid,
+                                            $cmpLibUserParmsByGuid, $cmpLibSysParmsByGuid,
+                                            $changedCompsByItemRevGuid);
 
     /** Enable all changed CmpLib components for update to Vault. **/
-    UCTCF_EnableComponentsForUpdateInCmpLib(&$CACFconstants, &$UCTCFconstants, 
-                                            &$CmpLib,
-                                            &$altiumItemsByGuid, &$altiumItemRevsByGuid, 
-                                            &$cmpLibUserParmsByGuid, &$cmpLibSysParmsByGuid,
-                                            &$cmpLibGroupXpathByPath, &$cmpLibCompByItemHrid,
-                                            &$changedCompsByItemRevGuid);
+    UCTCF_EnableComponentsForUpdateInCmpLib($CACFconstants, $UCTCFconstants, 
+                                            $CmpLib,
+                                            $altiumItemsByGuid, $altiumItemRevsByGuid, 
+                                            $cmpLibUserParmsByGuid, $cmpLibSysParmsByGuid,
+                                            $cmpLibGroupXpathByPath, $cmpLibCompByItemHrid,
+                                            $changedCompsByItemRevGuid);
   
     /** Sort the components in the CmpLib file by ITEMHRID. **/
     /* Sort $itemListById array using non-case-sensitive sort. */
     /* Note:  Here we are using uasort() (with strcasecmp() as comparison func) to try to emulate what Altium does with ordering CmpLib href id references. */
-    $rc = uasort(&$cmpLibSysParmsByGuid, "UCTCF_CompareByItemHRID");
+    $rc = uasort($cmpLibSysParmsByGuid, "UCTCF_CompareByItemHRID");
     if ($rc == FALSE) my_die("uasort() failed!");
     
     /** Sort the system parameters within each component. **/
@@ -4625,14 +4628,14 @@ if ($mode == "update")
 
 
     /** Re-output CmpLib derived audit data. **/
-    UCTCF_CreateCmpLibComponentAuditData(&$CACFconstants,
-                                         &$auditComponentsByType, &$auditComponentsByTypeUnmatched, 
-                                         &$UCTCFconstants, 
-                                         &$altiumUserParmNames, &$altiumUserParmNamesByCompType, &$altiumObsoleteCompsByGuid,
-                                         &$cmpLibUserParmsByGuid, &$cmpLibSysParmsByGuid);
+    UCTCF_CreateCmpLibComponentAuditData($CACFconstants,
+                                         $auditComponentsByType, $auditComponentsByTypeUnmatched, 
+                                         $UCTCFconstants, 
+                                         $altiumUserParmNames, $altiumUserParmNamesByCompType, $altiumObsoleteCompsByGuid,
+                                         $cmpLibUserParmsByGuid, $cmpLibSysParmsByGuid);
 
     /* Write .CmpLib file back out to .xml file. */
-    UCTCF_WriteCmpLibFile(&$CmpLib, $CmpLibFileName);
+    UCTCF_WriteCmpLibFile($CmpLib, $CmpLibFileName);
 
   } /* endif */
 
