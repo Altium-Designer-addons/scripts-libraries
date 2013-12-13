@@ -4,6 +4,8 @@
 { It does also work on selected vias only.      }
 {                                               }
 { Author: cyril@andreatta.ch                    }
+{ Version 1.1: Improved tenting function for    }
+{ when only some vias are selected.             }
 {-----------------------------------------------}
 
 Var
@@ -35,25 +37,25 @@ Begin
     While (Via <> Nil) Do
     Begin
         If rw = true Then
-            Begin
-
+        Begin
             // make vias tenting or not depending on checkbox states
-            if ((chkSelected.Checked = false) || (chkselected.Checked = true && Via.Selected)) Then
+            If ((chkSelected.Checked = false) or ((chkselected.Checked = true) and (Via.Selected))) Then
+            Begin
                 Via.SetState_IsTenting_Top(chkTop.Checked);
                 Via.SetState_IsTenting_Bottom(chkBottom.Checked);
-            End
-        Else
-            Begin
-                If Via.Selected Then
-                    Inc(ViaSelected);
-
-                If Via.GetState_IsTenting_Top() Then
-                   Inc(TopTenting);
-
-                If Via.GetState_IsTenting_Bottom() Then
-                   Inc(BotTenting);
             End;
+        End
+        Else
+        Begin
+            If Via.Selected Then
+                Inc(ViaSelected);
 
+            If Via.GetState_IsTenting_Top() Then
+               Inc(TopTenting);
+
+            If Via.GetState_IsTenting_Bottom() Then
+               Inc(BotTenting);
+        End;
         Inc(ViaCount);
         Via := Iterator.NextPCBObject;
     End;
