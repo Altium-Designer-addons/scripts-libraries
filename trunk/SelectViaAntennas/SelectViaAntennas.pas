@@ -4,7 +4,8 @@
 {                                                                              }
 { Created by:    Petar Perisin                                                 }
 {..............................................................................}
-
+{ Modified by Randy Clemmons                                                   }
+{ Added code to support for AD14                                               }
 {..............................................................................}
 
 Procedure SelectViaAntennas;
@@ -18,6 +19,31 @@ var
    LayerObj      : IPCB_LayerObject;
    Rectangle     : TCoordRect;
    Connected     : Integer;
+
+   S, VersionStr : String;
+   MajorADVersion : Integer;
+   MechEnabled : Boolean;
+
+// Altium Ver Code - Mattias Ericson
+{procedure ReadStringFromIniFile read settings from the ini-file.....................}
+function ReadStringFromIniFile(Section,Name:String,FilePath:String,IfEmpty:String):String;
+var
+  IniFile     : TIniFile;
+begin
+     result := IfEmpty;
+     if FileExists(FilePath) then
+     begin
+          try
+             IniFile := TIniFile.Create(FilePath);
+
+             Result := IniFile.ReadString(Section,Name,IfEmpty);
+
+          finally
+                 Inifile.Free;
+          end;
+     end;
+
+end;  {ReadFromIniFile end....................................................}
 
 begin
    Board := PCBServer.GetCurrentPCBBoard;
@@ -33,52 +59,66 @@ begin
    Iter.AddFilter_AllLayers;
 
    Via := Iter.FirstPCBObject;
-   TheLayerStack := Board.LayerStack;
 
-   While (Via <> nil) do
-   begin
-      LayerObj := TheLayerStack.FirstLayer;
-      Connected := 0;
-      Rectangle := Via.BoundingRectangle;
+   //Check AD version for layer stack version
+   VersionStr:= ReadStringFromIniFile('Preference Location','Build',SpecialFolder_AltiumSystem+'\PrefFolder.ini','14');
+   S := Copy(VersionStr,0,2);
+   //ShowMessage(S);
+   MajorADVersion := StrToInt(S);
+       
+   if MajorADVersion >= 14 then
+      TheLayerStack := Board.LayerStack_V7;   // v1.8 for AD14
 
-      While LayerObj <> nil do
-      begin
-         if Via.IntersectLayer(LayerObj.V7_LayerID) then
-            if ILayer.IsSignalLayer(LayerObj.V7_LayerID) then
-            begin
+   if MajorADVersion < 14 then
+      TheLayerStack := Board.LayerStack;      // v1.8 for Older Versions of AD
 
-               SpIter := Board.SpatialIterator_Create;
-               SpIter.AddFilter_ObjectSet(MkSet(eTrackObject, eArcObject, ePadObject, eFillObject, eRegionObject));
-               SpIter.AddFilter_Area(Rectangle.Left, Rectangle.Bottom, Rectangle.Right, Rectangle.Top);
-               SpIter.AddFilter_LayerSet(MkSet(LayerObj.LayerID));
+    While (Via <> nil) do
+    begin
+       LayerObj := TheLayerStack.FirstLayer;
+       Connected := 0;
+       Rectangle := Via.BoundingRectangle;
 
-               Prim := SpIter.FirstPCBObject;
+       While LayerObj <> nil do
+       begin
+          if Via.IntersectLayer(LayerObj.LayerID) then  // v1.8
+             if ILayer.IsSignalLayer(LayerObj.LayerID) then   // v1.8
+             begin
 
-               While (Prim <> Nil) Do
-               Begin
-                  if Board.PrimPrimDistance(Prim, Via) = 0 then
-                  begin
-                     Inc(Connected);
-                     break;
-                  end;
+                SpIter := Board.SpatialIterator_Create;
+                SpIter.AddFilter_ObjectSet(MkSet(eTrackObject, eArcObject, ePadObject, eFillObject, eRegionObject));
+                SpIter.AddFilter_Area(Rectangle.Left, Rectangle.Bottom, Rectangle.Right, Rectangle.Top);
+                SpIter.AddFilter_LayerSet(MkSet(LayerObj.LayerID));
 
-                  Prim := SpIter.NextPCBObject;
-               End;
-               Board.SpatialIterator_Destroy(SpIter);
-            end
-            else
-            begin
-               if Via.IsConnectedToPlane[LayerObj.LayerID] then
-                  Inc(Connected);
-            end;
-         LayerObj := TheLayerStack.NextLayer(LayerObj);
-      end;
+                Prim := SpIter.FirstPCBObject;
 
-      if Connected = 1 then Via.Selected := True;
+                While (Prim <> Nil) Do
+                Begin
+                   if Board.PrimPrimDistance(Prim, Via) = 0 then
+                   begin
+                      Inc(Connected);
+                      break;
+                   end;
 
-      Via := Iter.NextPCBObject;
-   end;
+                   Prim := SpIter.NextPCBObject;
+                End;
+                Board.SpatialIterator_Destroy(SpIter);
+             end
+             else
+             begin
+                if Via.IsConnectedToPlane[LayerObj.LayerID] then
+                   Inc(Connected);
+             end;
+          LayerObj := TheLayerStack.NextLayer(LayerObj);
+       end;
+
+       if Connected = 1 then Via.Selected := True;
+
+       Via := Iter.NextPCBObject;
+    end;
+
+
    Board.BoardIterator_Destroy(Iter);
 
    Client.PostMessage('PCB:RunQuery','Apply=True|Expr=IsSelected|Mask=True', Length('Apply=True|Expr=IsSelected|Mask=True'), Client.CurrentView);
+
 end;
