@@ -1,8 +1,8 @@
 #summary General libraries from Ryan Rutledge
 #labels LIB
-= [http://code.google.com/p/altium-designer-addons/downloads/detail?name=Libs_RRutledge%202013-01-30.zip Download "Libs_RRutledge 2013-01-30.zip"] =
+= [http://code.google.com/p/altium-designer-addons/downloads/detail?name=Libs_RRutledge%202013-12-23.zip Download "Libs_RRutledge 2013-12-23.zip"] =
 
-= Summary =
+= Summary (NEEDS UPDATING TO 2013-12-23)=
 
  * Release date 2013-01-30
  * Number of components 459 (list below)
