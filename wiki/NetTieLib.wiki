@@ -2,7 +2,7 @@
 #labels Library,NetTie,PCB
 #sidebar TableOfContents
 
-[https://code.google.com/p/altium-designer-addons/downloads/detail?name=Libs_NetTieLib%202013-07-25.zip Download here]
+[https://drive.google.com/file/d/0B9wYgjewDMDFTko4WTdzaVBGLUE/edit?usp=sharing Download here]
 
 *If you have some other net tie components or other components which you want to share on Altium Addons page, please let us know via email retry.var (a) gmail.com.* 
 
