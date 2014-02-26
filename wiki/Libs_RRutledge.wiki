@@ -1,6 +1,6 @@
 #summary General libraries from Ryan Rutledge
 #labels LIB
-= [http://code.google.com/p/altium-designer-addons/downloads/detail?name=Libs_RRutledge%202013-12-23.zip Download "Libs_RRutledge 2013-12-23.zip"] =
+= [https://drive.google.com/file/d/0B9wYgjewDMDFUDYzVDFGWUs5V28/edit?usp=sharing Download "Libs_RRutledge 2013-12-23.zip"] =
 
 = Summary (NEEDS UPDATING TO 2013-12-23)=
 
