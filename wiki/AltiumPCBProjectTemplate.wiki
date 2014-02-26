@@ -3,7 +3,7 @@
 
 <wiki:toc max_depth="3" />
 <br><br>
-== Download [https://code.google.com/p/altium-designer-addons/downloads/detail?name=AltiumPCBProjectTemplate%202013-11-10.zip Altium PCB Project Template] ==
+== Download [https://drive.google.com/file/d/0B9wYgjewDMDFUEhtdnZJb2h5bEk/edit?usp=sharing Altium PCB Project Template] ==
 <br><br>
 
 = Altium PCB Project Template =
