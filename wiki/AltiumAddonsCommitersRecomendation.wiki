@@ -8,7 +8,7 @@
  * Every script has its own folder in the repository. 
  * Please test your script or other content prior commiting. Please ask someone else to test it separately if it is possible. 
  * Every commit should contain a reasonable description of changes.  
- * Every time you change some file in the script folder please ZIP the entire script folder and place the file into the downloads folder in the repository (some like to leave older files there, some not but doesn't really matter). 
+ * Every time you change some file in repository please ZIP the entire folder of the script, of the library etc. and place the file into the "downloads" folder in the repository (some like to leave older files there, some not but doesn't really matter). 
  * Once the commit is done, please go to the Google Drive folder (link Download on the Addons main page) and place the ZIP file there for the people who are not using SVN. 
  * The front page with list of scripts must be maintained by the administrator. But the page itself let's the administrator know when any commit is done so the main page will be updated asap. It is not necessary to let the administrator know. 
 
