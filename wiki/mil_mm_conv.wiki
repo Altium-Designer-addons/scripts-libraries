@@ -5,7 +5,7 @@ Enter a numeric value including unit... [mm, mil, um] -> e.g. 3.1415 mm  ... the
 Converted values will be shown in all units. Spaces between number and unit are ignored. '.' and ',' are accepted as decimal separator.
 If unit is missing, last unit is used. This makes it easy to calculate multiple values.
 
-[https://code.google.com/p/altium-designer-addons/downloads/detail?name=mil-mm-conv_v1.0.zip Download]
+[https://drive.google.com/file/d/0B9wYgjewDMDFRG9LVmNHTlEwYzg/edit?usp=sharing Download]
 
 <img src="http://altium-designer-addons.googlecode.com/svn/trunk/mil-mm-conv/mil-mm-conv.png" align=middle>
 
