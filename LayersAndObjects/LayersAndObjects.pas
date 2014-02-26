@@ -39,7 +39,8 @@
 { Save position to ini file added by Tony Chilco 2011/12/14                    }
 { Tab object resize with main dialogue added by Tony Chilco 2011/12/14         }
 {..............................................................................}
-
+{ Ver 2.6 Modified to Work with AD14
+{ Randy Clemmons
 {..............................................................................}
 
 
@@ -52,6 +53,32 @@ var
    SwitchGrayAndOff    : Boolean;
    PanelRefreshControl : Boolean;
    CurrentLayerCB      : TCheckBox;
+
+   S, VersionStr : String;
+   MajorADVersion : Integer;
+
+
+// Altium Ver Code - Mattias Ericson
+{procedure ReadStringFromIniFile read settings from the ini-file.....................}
+function ReadStringFromIniFile(Section,Name:String,FilePath:String,IfEmpty:String):String;
+var
+  IniFile     : TIniFile;
+begin
+     result := IfEmpty;
+     if FileExists(FilePath) then
+     begin
+          try
+             IniFile := TIniFile.Create(FilePath);
+
+             Result := IniFile.ReadString(Section,Name,IfEmpty);
+
+          finally
+                 Inifile.Free;
+          end;
+     end;
+
+end;  {ReadFromIniFile end....................................................}
+
 
 function Int2CBCopper(i : Integer) : TCheckBox;
 begin
@@ -317,7 +344,7 @@ begin
    end;
 end;
 
-procedure RefreshPanel(FirstTime : Boolean);
+procedure RefreshPanel(dummy : String);
 var
    LayerObj         : IPCB_LayerObject;
    MechLayer        : IPCB_MechanicalLayer;
@@ -371,6 +398,18 @@ begin
 
       TheLayerStack := Board.LayerStack;
 
+      //Check AD version for layer stack version
+      VersionStr:= ReadStringFromIniFile('Preference Location','Build',SpecialFolder_AltiumSystem+'\PrefFolder.ini','14');
+      S := Copy(VersionStr,0,2);
+      //ShowMessage(S);
+      MajorADVersion := StrToInt(S);
+
+      if MajorADVersion >= 14 then
+      TheLayerStack := Board.LayerStack_V7;   // for AD14
+
+      if MajorADVersion < 14 then
+         TheLayerStack := Board.LayerStack;   // Older Ver of AD
+
       Enabled         := False;
       Disabled        := False;
       SignalsEnabled  := False;
@@ -391,13 +430,6 @@ begin
          CBSignals.Visible := True;
          CBPlanes.Enabled  := True;
          CBPlanes.Visible  := True;
-      end
-      else
-      begin
-         CBSignals.Enabled := False;
-         CBSignals.Visible := False;
-         CBPlanes.Enabled  := False;
-         CBPlanes.Visible  := False;
       end;
 
       FoundCurrentLayer := False;
@@ -410,7 +442,7 @@ begin
          if LayerObj.IsDisplayed[Board] then Enabled := True
          else                                Disabled := True;
 
-         if Signals.Contains(LayerObj.V7_LayerID) then
+         if Signals.Contains(LayerObj.LayerID) then
          begin
             if LayerObj.IsDisplayed[Board] then SignalsEnabled := True
             else                                SignalsDisabled := True;
@@ -425,7 +457,7 @@ begin
          GetCB.Visible := True;
          GetCB.Enabled := True;
          GetCB.Caption := LayerObj.Name;
-         if (Board.CurrentLayer = LayerObj.V7_LayerID) then
+         if (Board.CurrentLayer = LayerObj.LayerID) then
          begin
             if (CurrentLayerCB.Caption <> GetCB.Caption) then
             begin
@@ -448,14 +480,6 @@ begin
          Inc(i);
          LayerObj := TheLayerStack.NextLayer(LayerObj);
       end;
-
-      // Now we need to modify size of copper group,
-
-      GetCB := Int2CBCopper(i);
-      if ImageArrowUpCopper.Enabled then
-         GroupBoxCopper.Height := GetCB.Top + 10
-      else
-         GroupBoxCopper.Height := 48;
 
       while i <= 48 do
       begin
@@ -486,7 +510,15 @@ begin
       else                                 CBPlanes.State   := cbGrayed;
 
 
-      // modify mech groupbox position
+      // Now we need to modify size of copper group,
+      // and mech groupbox position
+
+      GetCB := Int2CBCopper(i);
+      if ImageArrowUpCopper.Enabled then
+         GroupBoxCopper.Height := GetCB.Top + 10
+      else
+         GroupBoxCopper.Height := 48;
+
       GroupBoxMech.Left := GroupBoxCopper.Left;
       GroupBoxMech.Top  := GroupBoxCopper.Top + GroupBoxCopper.Height + 10;
 
@@ -548,7 +580,7 @@ begin
             Shape.Visible := True;
             Shape.Enabled := True;
 
-            Shape.Brush.Color := PCBServer.SystemOptions.LayerColors[MechLayer.V7_LayerID];
+            Shape.Brush.Color := PCBServer.SystemOptions.LayerColors[MechLayer.LayerID];
 
             inc(j);
          end;
@@ -598,15 +630,7 @@ begin
 
             CBUnPaired.Visible := True;
             CBUnPaired.Enabled := True;
-         end
-         else
-         begin
-            CBPaired.Visible := False;
-            CBPaired.Enabled := False;
-
-            CBUnPaired.Visible := False;
-            CBUnPaired.Enabled := False;
-         end
+         end;
       end;
 
       GroupBoxOther.Left  := GroupBoxMech.Left;
@@ -679,11 +703,8 @@ begin
       else
          GroupBoxOther.Height := 48;
 
-      if FirstTime then
-      begin
-         FormLayersPanel.Width := 3 * GroupBoxCopper.Left + GroupBoxCopper.Width + 2;
-         FormLayersPanel.Height:= GroupBoxOther.Top + GroupBoxOther.Height + 50;
-      end;
+      FormLayersPanel.Width := 3 * GroupBoxCopper.Left + GroupBoxCopper.Width + 2;
+      FormLayersPanel.Height:= GroupBoxOther.Top + GroupBoxOther.Height + 50;
 
       // finally read are connection lines shown
       CBConnections.Checked := Board.LayerIsDisplayed[eConnectLayer];
@@ -783,12 +804,12 @@ End;
 
 procedure TFormLayersPanel.FormLayersPanelActivate(Sender: TObject);
 begin
-//   RefreshPanel(False);
+//   RefreshPanel('');
 end;
 
 procedure TFormLayersPanel.FormLayersPanelShow(Sender: TObject);
 begin
-   RefreshPanel(True);
+   RefreshPanel('');
 end;
 
 Procedure Start;
@@ -1033,7 +1054,7 @@ begin
          begin
             Inc(j);
 
-            if Board.CurrentLayer = MechLayer.V7_LayerID then
+            if Board.CurrentLayer = MechLayer.LayerID then
             begin
                CurrentLayerFound := True;
                CB := Int2CBMech(j);
@@ -1163,7 +1184,7 @@ begin
            Refresh := False;
          end;
 
-         if Signals.Contains(LayerObj.V7_LayerID) then
+         if Signals.Contains(LayerObj.LayerID) then
          begin
             if LayerObj.IsDisplayed[Board] then SignalsEnabled := True
             else                                SignalsDisabled := True;
@@ -1273,7 +1294,7 @@ begin
 
                if CB.Checked and Refresh then
                begin
-                  Board.CurrentLayer := MechLayer.V7_LayerID;
+                  Board.CurrentLayer := MechLayer.LayerID;
 
                   SetBoldedCB(CB);
 
@@ -1536,7 +1557,7 @@ begin
 
                if Cb.Checked and Flag then
                begin
-                  Board.CurrentLayer := MechLayer.V7_LayerID;
+                  Board.CurrentLayer := MechLayer.LayerID;
 
                   SetBoldedCB(CB);
                end;
@@ -1647,7 +1668,7 @@ begin
 
       while (LayerObj <> nil) do
       begin
-         if Signals.Contains(LayerObj.V7_LayerID) then
+         if Signals.Contains(LayerObj.LayerID) then
          begin
             LayerObj.IsDisplayed[Board] := CBSignals.Checked;
 
@@ -1712,7 +1733,7 @@ begin
 
       while (LayerObj <> nil) do
       begin
-         if not Signals.Contains(LayerObj.V7_LayerID) then
+         if not Signals.Contains(LayerObj.LayerID) then
          begin
             LayerObj.IsDisplayed[Board] := CBPlanes.Checked;
 
@@ -1791,7 +1812,7 @@ begin
 
                if Refresh and CBPaired.Checked then
                begin
-                  Board.CurrentLayer := MechLayer.V7_LayerID;
+                  Board.CurrentLayer := MechLayer.LayerID;
 
                   SetBoldedCB(CB);
 
@@ -1861,7 +1882,7 @@ begin
 
                if Refresh and CBUnPaired.Checked then
                begin
-                  Board.CurrentLayer := MechLayer.V7_LayerID;
+                  Board.CurrentLayer := MechLayer.LayerID;
 
                   SetBoldedCB(CB);
                end;
@@ -1954,7 +1975,7 @@ begin
          if LayerObj.IsDisplayed[Board] then Enabled := True
          else                                Disabled := True;
 
-         if Signals.Contains(LayerObj.V7_LayerID) then
+         if Signals.Contains(LayerObj.LayerID) then
          begin
             if LayerObj.IsDisplayed[Board] then SignalsEnabled := True
             else                                SignalsDisabled := True;
@@ -2054,7 +2075,7 @@ begin
 
                if CB.Checked then
                begin
-                  Board.CurrentLayer := MechLayer.V7_LayerID;
+                  Board.CurrentLayer := MechLayer.LayerID;
 
                   SetBoldedCB(CB);
                end;
@@ -2126,7 +2147,7 @@ begin
       begin
          if MechLayer.IsDisplayed[Board] then
          begin
-            Board.CurrentLayer := MechLayer.V7_LayerID;
+            Board.CurrentLayer := MechLayer.LayerID;
 
             SetBoldedCB(Int2CBMech(Nr));
 
@@ -3573,7 +3594,7 @@ end;
 procedure TFormLayersPanel.FormLayersPanelMouseEnter(Sender: TObject);
 begin
    if PanelRefreshControl or (Board.FileName <> PCBServer.GetCurrentPCBBoard.FileName) then
-      RefreshPanel(False);
+      RefreshPanel('');
 
    PanelRefreshControl := False;
    FormLayersPanel.Activate;
@@ -3587,7 +3608,7 @@ end;
 procedure TFormLayersPanel.GroupBoxObjectsMouseEnter(Sender: TObject);
 begin
    if PanelRefreshControl or (Board.FileName <> PCBServer.GetCurrentPCBBoard.FileName) then
-      RefreshPanel(False);
+      RefreshPanel('');
 
    PanelRefreshControl := False;
    FormLayersPanel.Activate;
@@ -3603,7 +3624,7 @@ end;
 procedure TFormLayersPanel.GroupBoxCopperMouseEnter(Sender: TObject);
 begin
    if PanelRefreshControl or (Board.FileName <> PCBServer.GetCurrentPCBBoard.FileName) then
-      RefreshPanel(False);
+      RefreshPanel('');
 
    PanelRefreshControl := False;
    FormLayersPanel.Activate;
@@ -3613,7 +3634,7 @@ end;
 procedure TFormLayersPanel.GroupBoxMechMouseEnter(Sender: TObject);
 begin
    if PanelRefreshControl or (Board.FileName <> PCBServer.GetCurrentPCBBoard.FileName) then
-      RefreshPanel(False);
+      RefreshPanel('');
 
    PanelRefreshControl := False;
    FormLayersPanel.Activate;
@@ -3623,7 +3644,7 @@ end;
 procedure TFormLayersPanel.GroupBoxOtherMouseEnter(Sender: TObject);
 begin
    if PanelRefreshControl or (Board.FileName <> PCBServer.GetCurrentPCBBoard.FileName) then
-      RefreshPanel(False);
+      RefreshPanel('');
 
    PanelRefreshControl := False;
    FormLayersPanel.Activate;
