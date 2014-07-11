@@ -32,7 +32,7 @@ ReportSuppressedErrorsInMessages=0
 OutputPath=
 
 [Document1]
-DocumentPath=mil-mm-calc.pas
+DocumentPath=mil-mm-conv.pas
 AnnotationEnabled=1
 AnnotateStartValue=1
 AnnotationIndexControlEnabled=0
@@ -48,7 +48,7 @@ DItemRevisionGUID=
 GenerateClassCluster=0
 
 [Generic_ScriptingSystem]
-StartProcName=D:\develop\altium\scripts\playground\mil-mm-calc\mil-mm-calc.pas>
+StartProcName=mil-mm-conv.pas>ShowCalc
 
 [Generic_ScriptingSystemBreakpoints]
 ModuleName1=D:\develop\altium\scripts\playground\mil-mm-calc\mil-mm-calc.pas
@@ -59,7 +59,7 @@ Enabled1=True
 [OutputGroup1]
 Name=Netlist Outputs
 Description=
-TargetPrinter=OKI MC860(PCL)
+TargetPrinter=\\ipp://iprintmassy.sefi.net\ACCUEILREXNOIRPLC5
 PrinterOptions=Record=PrinterOptions|Copies=1|Duplex=1|TrueTypeOptions=3|Collate=1|PrintWhat=1
 OutputType1=CadnetixNetlist
 OutputName1=Cadnetix Netlist
@@ -190,7 +190,7 @@ OutputDefault25=0
 [OutputGroup2]
 Name=Simulator Outputs
 Description=
-TargetPrinter=OKI MC860(PCL)
+TargetPrinter=\\ipp://iprintmassy.sefi.net\ACCUEILREXNOIRPLC5
 PrinterOptions=Record=PrinterOptions|Copies=1|Duplex=1|TrueTypeOptions=3|Collate=1|PrintWhat=1
 OutputType1=AdvSimNetlist
 OutputName1=Mixed Sim
@@ -211,7 +211,7 @@ OutputDefault3=0
 [OutputGroup3]
 Name=Documentation Outputs
 Description=
-TargetPrinter=OKI MC860(PCL)
+TargetPrinter=\\ipp://iprintmassy.sefi.net\ACCUEILREXNOIRPLC5
 PrinterOptions=Record=PrinterOptions|Copies=1|Duplex=1|TrueTypeOptions=3|Collate=1|PrintWhat=1
 OutputType1=Assembler Source Print
 OutputName1=Assembler Source Prints
@@ -325,7 +325,7 @@ PageOptions18=Record=PageOptions|CenterHorizontal=True|CenterVertical=True|Print
 [OutputGroup4]
 Name=Assembly Outputs
 Description=
-TargetPrinter=OKI MC860(PCL)
+TargetPrinter=\\ipp://iprintmassy.sefi.net\ACCUEILREXNOIRPLC5
 PrinterOptions=Record=PrinterOptions|Copies=1|Duplex=1|TrueTypeOptions=3|Collate=1|PrintWhat=1
 OutputType1=Assembly
 OutputName1=Assembly Drawings
@@ -347,7 +347,7 @@ OutputDefault3=0
 [OutputGroup5]
 Name=Fabrication Outputs
 Description=
-TargetPrinter=OKI MC860(PCL)
+TargetPrinter=\\ipp://iprintmassy.sefi.net\ACCUEILREXNOIRPLC5
 PrinterOptions=Record=PrinterOptions|Copies=1|Duplex=1|TrueTypeOptions=3|Collate=1|PrintWhat=1
 OutputType1=CompositeDrill
 OutputName1=Composite Drill Drawing
@@ -403,7 +403,7 @@ OutputDefault9=0
 [OutputGroup6]
 Name=Report Outputs
 Description=
-TargetPrinter=OKI MC860(PCL)
+TargetPrinter=\\ipp://iprintmassy.sefi.net\ACCUEILREXNOIRPLC5
 PrinterOptions=Record=PrinterOptions|Copies=1|Duplex=1|TrueTypeOptions=3|Collate=1|PrintWhat=1
 OutputType1=BOM_PartType
 OutputName1=Bill of Materials
@@ -440,7 +440,7 @@ OutputDefault6=0
 [OutputGroup7]
 Name=Other Outputs
 Description=
-TargetPrinter=OKI MC860(PCL)
+TargetPrinter=\\ipp://iprintmassy.sefi.net\ACCUEILREXNOIRPLC5
 PrinterOptions=Record=PrinterOptions|Copies=1|Duplex=1|TrueTypeOptions=3|Collate=1|PrintWhat=1
 OutputType1=Text Print
 OutputName1=Text Print
@@ -620,7 +620,7 @@ PageOptions29=Record=PageOptions|CenterHorizontal=True|CenterVertical=True|Print
 [OutputGroup8]
 Name=Validation Outputs
 Description=
-TargetPrinter=OKI MC860(PCL)
+TargetPrinter=\\ipp://iprintmassy.sefi.net\ACCUEILREXNOIRPLC5
 PrinterOptions=Record=PrinterOptions|Copies=1|Duplex=1|TrueTypeOptions=3|Collate=1|PrintWhat=1
 OutputType1=Design Rules Check
 OutputName1=Design Rules Check
@@ -649,7 +649,7 @@ OutputDefault4=0
 [OutputGroup9]
 Name=Export Outputs
 Description=
-TargetPrinter=OKI MC860(PCL)
+TargetPrinter=\\ipp://iprintmassy.sefi.net\ACCUEILREXNOIRPLC5
 PrinterOptions=Record=PrinterOptions|Copies=1|Duplex=1|TrueTypeOptions=3|Collate=1|PrintWhat=1
 OutputType1=AutoCAD dwg/dxf PCB
 OutputName1=AutoCAD dwg/dxf File PCB
