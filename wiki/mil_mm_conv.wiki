@@ -1,8 +1,12 @@
 #summary Easy to use calculator for converting units
 
 Easy to use calculator for converting units from/to the metric/imperial systems.
+
 Originally developped by Cyril Andreattta
+
 Improved by Justin MASSIOT
+
+<br />
 
 =How to use it=
 
@@ -11,6 +15,8 @@ Improved by Justin MASSIOT
  # Press enter or click the small 'Convert' button.
 
 <img src="http://altium-designer-addons.googlecode.com/svn/trunk/mil-mm-conv/mil-mm-conv.png" align=middle>
+
+<br />
 
 =Cool features=
 
@@ -22,11 +28,15 @@ And more with version 2.0:
  * The 'inch' unit is supported.
  * The result can be automatically copied to the Windows clipboard, in order to paste it wherever you want.
  * The input value is shown with a foreground color, and the copied value with a background color.
- * The converter is fully customizable for your own needs, see [mil_mm_conv#Customizing_the_converter].
+ * The converter is fully customizable for your own needs, see [mil_mm_conv#Customizing_the_converter the dedicated section].
+
+<br />
 
 =Download it=
 
 [https://drive.google.com/file/d/0B9wYgjewDMDFRG9LVmNHTlEwYzg/edit?usp=sharing Download]
+
+<br />
 
 =Customizing the converter=
 
@@ -38,7 +48,6 @@ Inside the file mil-mm-conv.pas you will find a series of constants that you can
  * copywithunit: choose to copy the raw value, or the value followed by the unit; default is 'false' = no unit
  * inputcolor: define the font color of the value which is the input
  * copycolor: define the background color of the result which has been copied to the clipboard; default is clSkyBlue, other proposals are clActiveCaption, clHighlight
-
 
 {{{
 const
