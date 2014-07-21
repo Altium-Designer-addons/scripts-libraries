@@ -1,4 +1,5 @@
 #summary Easy to use calculator for converting units
+#labels SCH,PCB
 
 Easy to use calculator for converting units from/to the metric/imperial systems.
 
