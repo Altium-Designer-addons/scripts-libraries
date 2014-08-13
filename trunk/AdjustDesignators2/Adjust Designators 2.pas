@@ -166,11 +166,22 @@ begin
             end;
 
          // Here I need to fill in MechSingles, if user switches:
-         if Board.LayerStack.LayerObject_V7[ILayer.MechanicalLayer(i)].MechanicalLayerEnabled then
-            MechSingles.Add(Board.LayerName(ILayer.MechanicalLayer(i)));
+
+            {Comment this section in earlier versions}
+            //USE THIS IN AD14
+            if Board.LayerStack_V7.LayerObject_V7[ILayer.MechanicalLayer(i)].MechanicalLayerEnabled then
+                 MechSingles.Add(Board.LayerName(ILayer.MechanicalLayer(i)));
+            {End of comment}
+
+            //USE THIS IN VERSIONS BEFORE AD14
+            { if Board.LayerStack.LayerObject_V7[ILayer.MechanicalLayer(i)].MechanicalLayerEnabled  then
+               MechSingles.Add(Board.LayerName(ILayer.MechanicalLayer(i)));}
+
       end;
    end;
 end;
+
+
 
 
 
