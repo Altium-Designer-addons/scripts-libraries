@@ -4,6 +4,8 @@
 {                                                                              }
 {                                                                              }
 { Created by:    Petar Perisin                                                 }
+{ Modified by:   Vincent Himpe - Tesla Motors                                  }
+{                inline comments added marked ***VH10/9/14
 {..............................................................................}
 
 {..............................................................................}
@@ -143,8 +145,10 @@ var
    BoardShapeRect : TCoordRect;
    NewPad         : IPCB_Arc;
    PosX, PosY     : Integer;
-   TheLayerStack  : IPCB_LayerStack;
-   LayerObj       : IPCB_LayerObject;
+   // ***VH10/9/14 the line below was ' TheLayerStack  : IPCB_LayerStack;'
+   TheLayerStack  : IPCB_LayerStack_V7;
+   // ***VH10/9/14 the line below was 'LayerObj       : IPCB_LayerObject;'
+   LayerObj       : IPCB_LayerObject_V7;
    LayerNum       : integer;
    Comp           : IPCB_Component;
    Distance       : Float;
@@ -181,7 +185,7 @@ begin
    EditBetween.Text := TempString;
 
    TempString := EditElectrical.Text;
-   if LastDelimiter(',.', TempString) <> 0 then TempString[LastDelimiter(',.', TempString)] := DecimalSeparator; 
+   if LastDelimiter(',.', TempString) <> 0 then TempString[LastDelimiter(',.', TempString)] := DecimalSeparator;
    EditElectrical.Text := TempString;
 
    TempString := EditOutline.Text;
@@ -197,7 +201,10 @@ begin
 
    // First I neeed to get Board shape bounding rectangel - we start from this
    BoardShapeRect := Board.BoardOutline.BoundingRectangle;
-   TheLayerStack := Board.LayerStack;
+
+   // ***VH10/9/14 orignal code below: 'TheLayerStack := Board.LayerStack;'
+   TheLayerStack := Board.LayerStack_V7;
+
 
    // now we will create new component because we will add all this objects to
    // dummy component
@@ -405,14 +412,22 @@ begin
       if RadioButtonMM.Checked then MaxGap := MMsToCoord(StrToFloat(EditSize.Text)) / 2
       else                          MaxGap := MilsToCoord(StrToFloat(EditSize.Text)) / 2;
 
-      LayerObj := TheLayerStack.FirstLayer;
+       LayerObj := TheLayerStack.FirstLayer;
+
+
+
+     // TlayerStackAdapter
       Repeat
-         // we check if this is a signal layer
-         if ILayer.IsSignalLayer(LayerObj.V7_LayerID) then
+
+     // ***VH10/9/14 original code: 'if ILayer.IsSignalLayer(LayerObj.v7_LayerID)'
+     // any layerid reference from here on down needs to be modded from
+     // 'v7_LayerID' to just 'LayerID'
+
+        if ILayer.IsSignalLayer( LayerObj.LayerID)  then
          begin
-            RuleWidth.MinWidth[LayerObj.V7_LayerID]     := MaxGap;
-            RuleWidth.MaxWidth[LayerObj.V7_LayerID]     := MaxGap;
-            RuleWidth.FavoredWidth[LayerObj.V7_LayerID] := MaxGap;
+            RuleWidth.MinWidth[LayerObj.LayerID]     := MaxGap;
+            RuleWidth.MaxWidth[LayerObj.LayerID]     := MaxGap;
+            RuleWidth.FavoredWidth[LayerObj.LayerID] := MaxGap;
          end;
          LayerObj := TheLayerStack.NextLayer(LayerObj); ;
       Until LayerObj = Nil;
@@ -457,7 +472,7 @@ begin
    LayerObj := TheLayerStack.FirstLayer;
    Repeat
       // we check if this is a signal layer
-      if ILayer.IsSignalLayer(LayerObj.V7_LayerID) then
+      if ILayer.IsSignalLayer(LayerObj.LayerID) then
       begin
          if (((LayerNum = 1) and (CheckBoxTop.Checked)) or ((CheckBoxMid.Checked) and (LayerNum <> 1) and (LayerNum <> TheLayerStack.SignalLayerCount))
          or ((LayerNum = TheLayerStack.SignalLayerCount) and (CheckBoxBottom.Checked))) then
@@ -487,7 +502,7 @@ begin
                         else                          NewPad.LineWidth := MilsToCoord(StrToFloat(EditSize.Text)) / 2;
 
                         NewPad.Radius    := NewPad.LineWidth / 2;
-                        NewPad.Layer     := LayerObj.V7_LayerID;
+                        NewPad.Layer     := LayerObj.LayerID;
 
                      Finally
                         PCBServer.PostProcess;
@@ -503,7 +518,7 @@ begin
                      PadRect := NewPad.BoundingRectangle;
 
                      SetOfLayers := LayerSet.CreateLayerSet;
-                     SetOfLayers.Include(LayerObj.V7_LayerID);
+                     SetOfLayers.Include(LayerObj.LayerID);
                      SetOfLayers.Include(String2Layer('Multi Layer'));
                      SetOfLayers.Include(String2Layer('Keep Out Layer'));
 
