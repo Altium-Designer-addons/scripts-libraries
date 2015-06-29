@@ -40,8 +40,9 @@ begin
    for i := 1 to 32 do
    begin
 
-      MechLayer := Board.LayerStack.LayerObject_V7[ILayer.MechanicalLayer(i)];
+      MechLayer := Board.LayerStack_V7.LayerObject_V7[ILayer.MechanicalLayer(i)];
 
+      // showmessage(inttostr(i));
 
       IniFile.WriteString('MechLayer' + IntToStr(i), 'Name',    MechLayer.Name);
       IniFile.WriteBool  ('MechLayer' + IntToStr(i), 'Enabled', MechLayer.MechanicalLayerEnabled);
@@ -84,7 +85,7 @@ begin
    for i := 1 To 32 do
    begin
 
-      MechLayer := Board.LayerStack.LayerObject_V7[ILayer.MechanicalLayer(i)];
+      MechLayer := Board.LayerStack_V7.LayerObject_V7[ILayer.MechanicalLayer(i)];
 
 
       if not MechLayer.MechanicalLayerEnabled then
