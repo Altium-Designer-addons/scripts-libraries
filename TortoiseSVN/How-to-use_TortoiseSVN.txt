@@ -1,0 +1,61 @@
+
+Copyright (C) 2015 Justin MASSIOT
+Author: Justin MASSIOT ( m [dot] just1 !at! free [dot] fr )
+
+' ============================================================================ '
+'                                                                              '
+'    This program is free software: you can redistribute it and/or modify      '
+'    it under the terms of the GNU General Public License as published by      '
+'    the Free Software Foundation, either version 3 of the License, or         '
+'    (at your option) any later version.                                       '
+'                                                                              '
+'    This program is distributed in the hope that it will be useful,           '
+'    but WITHOUT ANY WARRANTY; without even the implied warranty of            '
+'    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the              '
+'    GNU General Public License for more details.                              '
+'                                                                              '
+'    You should have received a copy of the GNU General Public License         '
+'    along with this program. If not, see <http://www.gnu.org/licenses/>.      '
+'                                                                              '
+' ============================================================================ '
+
+TortoiseSVN is an Open Source and free software licensed under the GNU General Public License (GPL). It is free to download and free to use, either personally or commercially, on any number of PCs. http://tortoisesvn.net/docs/release/TortoiseSVN_en/tsvn-preface-source.html
+Altium®, Altium Designer®, Altium Vault®, Autotrax®, Camtastic®, CircuitMaker®, CircuitStudio®, Codemaker™, DXP™, Easytrax®, LiveDesign®, NanoBoard®, PCBWORKS™, P-CAD®, Protel®, TASKING® and their respective logos are trademarks or registered trademarks of Altium Limited or its subsidiaries. See the full Copyright at http://www.altium.com/copyrights-and-trademarks and the EULA at http://www.altium.com/eula .
+All other registered or unregistered trademarks referenced herein are the property of their respective owners.
+
+------------------------------------------------------------------------------
+Setup requirements
+------------------
+ * TortoiseSVN must be properly installed on your system. In particular,
+   the Windows path must contain the TortoiseSVN binaries directory.
+ * You must create a directory "C:\AltiumDesigner_Config\Scripts" on your
+   system where you would store the "Libraries" folder containing the script
+   dependencies.
+ * It is strongly advised to install TortoiseSVN with its command-line
+   binaries and configure Altium Designer to use them instead of the
+   built-in Subversion client.
+
+------------------------------------------------------------------------------
+Compatibility concerns
+----------------------
+ * The current version of this script is tested and works well with:
+    -> Altium Designer 15.0.15 build 41991
+    -> Altium Designer 14.3.17 build 42447
+ * The current version of this script is tested and works well with: 
+    -> TortoiseSVN 1.8.11 build 26392
+ * The current version of this script is known to work under Windows 7 64-bit.
+
+------------------------------------------------------------------------------
+How to use this script
+----------------------
+ 1) From Altium Designer, open a file or a project that is/are under version
+    control with SVN.
+ 2) If your files contain unsaved modifications, please save them all.
+ 3) Run this script by the "DXP > Run Script" command and select
+    TSVN_CommitFolder or TSVN_UpdateFolder, or use a dedicated menu button.
+    Be sure that the visible document at the time you run the script
+    is a document that you wish to update/commit.
+ Note: In Update mode, all the open documents will be closed and re-opened
+   after the update.
+
+TortoiseSVN command line help: http://tortoisesvn.net/docs/release/TortoiseSVN_en/tsvn-automation.html
