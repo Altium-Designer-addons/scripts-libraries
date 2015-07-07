@@ -12,7 +12,9 @@
 {                                               }
 { Author: cyril@andreatta.ch                    }
 { Version: 2.0                                  }
-{ Improved by: Justin MASSIOT, m.just1@free.fr  }
+{ Improved by:                                  }
+{   Justin MASSIOT,                             }
+{   m [dot] just1 !at! free [dot] fr            }
 {-----------------------------------------------}
 {                                               }
 { Changelog:                                    }
