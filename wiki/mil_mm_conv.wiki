@@ -52,7 +52,7 @@ Inside the file mil-mm-conv.pas you will find a series of constants that you can
 
 {{{
 const
-    floatformat = '0.####'; // configuration: define the format of the decimal results; default is '0.####' (round to the fourth decimal, no trailing zeros but with a leading zero before the separator), leave this empty if you do not ant to round the results
+    floatformat = '0.####'; // configuration: define the format of the decimal results; default is '0.####' (round to the fourth decimal, no trailing zeros but with a leading zero before the separator), leave this empty if you do not want to round the results
     copybydefault = true; // configuration: choose to copy the result to clipboard by default at startup; default is 'true' = copy by default
     copymetric = 'mm'; // configuration: choose the result to copy to clipboard after a conversion from imperial to metric; could be 'mm' or 'um', default is 'mm'
     copyimperial = 'mil'; // configuration: choose the result to copy to clipboard after a conversion from metric to imperial; could be 'mil' or 'in', default is 'mil'
