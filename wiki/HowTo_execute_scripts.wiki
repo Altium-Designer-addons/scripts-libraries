@@ -1,0 +1,49 @@
+#summary Short HowTo to help new comers in using the scripts of this project.
+
+= Introduction =
+
+In this tutorial, we would try to guide you through the process of executing scripts in Altium Designer.
+There are 3 ways of doing this:
+  # The "Run script" command
+  # A custom menu item
+  # A custom toolbar
+
+For advanced information about scripting in Altium Designer, please refer to [http://techdocs.altium.com/display/SCRT/Scripting the official documentation].
+
+
+= Understanding Altium script files =
+
+There are three types of files used by Altium Designer in the scripting system:
+  * The script project file (`*.PrjScr`). It works as any other project files: it "groups" files together. You can define some options for the project.
+  * The script "unit". It contains some programming code in one of the recognized languages (accepted languages are listed on [http://techdocs.altium.com/display/SCRT/Scripting the Altium documentation page]).
+  * The script "form". If your script has graphical capabilities, it probably has a "form" file having the same name as the "unit": this is the definition for a window.
+
+
+= Solution 1: "Run script" =
+
+From the "DXP" menu, click on "Run script" in the right column.
+A new window appears showing a list of available script, that is:
+  * Scripts made globally available in the preferences (DXP > Preferences > Scripting system > Global projects). This requires to have a project script file (`*.PrjScr`).
+  * Scripts available in the Projects panel, either because they are part of a project or because they are open as free documents.
+
+The list is actually a tree of this form:
+  * Script project (`*.PrjScr` or Free documents)
+    * Script file (accepted languages are listed on [http://techdocs.altium.com/display/SCRT/Scripting the Altium documentation page])
+      * Function inside the script (if any)
+
+Choose either a script file or a particular function and click "OK" to run it.
+
+_Note: Some functions of your scripts are missing in the list? Do your functions require some input parameters? Well, the "Run script" dialog is not able to let you start this type of functions because you cannot input anything from there, sorry._
+
+
+= Solution 2: New menu item =
+To be written
+
+
+= Solution 3: New toolbar (item) =
+To be written
+
+
+= In video =
+
+Thanks to Petar PERISIN, you will be able to see most of the points covered in this tutorial in a [https://www.youtube.com/watch?v=w62Hg0EqTVs single and short video].
