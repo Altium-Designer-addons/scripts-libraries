@@ -33,15 +33,31 @@ The list is actually a tree of this form:
 
 Choose either a script file or a particular function and click "OK" to run it.
 
-_Note: Some functions of your scripts are missing in the list? Do your functions require some input parameters? Well, the "Run script" dialog is not able to let you start this type of functions because you cannot input anything from there, sorry._
+_Some functions of your scripts are missing in the list, whereas the script itself is visible? Do your functions require some input parameters? Well, the "Run script" dialog is not able to let you start this type of functions because you cannot input anything from there, sorry._
 
 
 = Solution 2: New menu item =
-To be written
+
+Want to have access to a script by a menu entry?
+
+You have two possible starting points:
+  * DXP > Customize
+  * Right-click on an existing menu > Customize
+
+Then in the section `[Scripts]` you get a list similar to the one from "DXP > Run script". Drag and drop the requested script file or function in the menu bar, then customize the menu entry with a name, description, image, shortcuts, etc.
+When you have closed the "Customize" dialog, your menu entry becomes fully functional and must launch your script properly.
 
 
-= Solution 3: New toolbar (item) =
-To be written
+= Solution 3: New toolbar =
+
+If you prefer to not put your dedicated script launchers inside the main menu, you can create your own toolbar:
+  # DXP > Customize
+  # Switch to the "Toolbars" tab
+  # Click on "New", give your toolbar a name
+
+Now that you can find your new (but empty) toolbar in the Altium Designer interface, you can follow the steps of Solution 2 to add a link to a script.
+
+_Cannot locate your freshly created toolbar? Disable then re-enable it, you would probably see it as a "flash" appearing between existing menus._
 
 
 = In video =
