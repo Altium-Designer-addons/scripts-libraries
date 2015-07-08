@@ -1,4 +1,4 @@
-#summary Short HowTo to help new comers in using the scripts of this project.
+#summary Short tutorial to help newcomers in using the scripts of this project.
 
 = Introduction =
 
