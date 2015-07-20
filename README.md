@@ -115,9 +115,3 @@ You can read more about commiting your content here [AltiumAddonsCommitersRecome
 <li>*CopyAngleToComponent script* - script for copying angle of track to a component
 <li>*SelectConnectedTrack script* - script for selection of connected NoNet track on Mech layers
 <li>*Custom Pick&Place report script* - script for generating user defined P&P for SMD components only 
-
-<br>
-<br>
-[http://altium-designer-addons.googlecode.com/svn/trunk/SelectConnectedTrack/Select%20Connected%20Track.png]
-
-SelectConnectedTrack script result screenshot
