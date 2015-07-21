@@ -1,0 +1,6 @@
+[ProjectGroup]
+Version=1.0
+[Project1]
+ProjectPath=NetTieLib.LibPkg
+[Project2]
+ProjectPath=..\NetTieLibSampleBoard\NetTieLibSampleBoard.PrjPcb
