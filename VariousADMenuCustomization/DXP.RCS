@@ -1,0 +1,70 @@
+Tree PCBCustom Caption='[Custom]' TopLevel='True' 
+    Link _User41 PLID='_User40'      End
+    Link _User37 PLID='_User36'      End
+    Link _User29 PLID='_User28'      End
+    Link _User24 PLID='_User23'      End
+    Link _User16 PLID='_User15'      End
+    Link _User12 PLID='_User11'      End
+    Link _User3 PLID='_User2'      End
+End
+Tree SchCustom Caption='[Custom]' TopLevel='True'  End
+Tree EditScriptDSCustom Caption='[Custom]' TopLevel='True'  End
+Tree SchLibCustom Caption='[Custom]' TopLevel='True'  End
+PL _User2 Command='PCB:Select' Params='Scope = ComponentConnections' Caption='Component Connections' Description='Select Component Connections' DefaultChecked=0  End
+PL _User11 Command='PCB:RunQuery' Params='Select=True|Mask=False|Expr=IsText And (OnTopSilkscreen Or OnBottomSilkscreen)|Apply=True' Caption='All Texts in Silkscreen' Description='Select All Text String in Silkscreen' DefaultChecked=0  End
+PL _User15 Command='PCB:RunQuery' Params='Select=True|Mask=False|Expr=IsComponent And OnTop|Apply=True' Caption='Components on Top side' Description='Select Components on Top Side' DefaultChecked=0  End
+PL _User23 Command='PCB:Select' Params='Scope = RoomConnections' Caption='Room Connections' Description='Select Connections Within Room' DefaultChecked=0  End
+PL _User28 Command='PCB:RunQuery' Params='Select=True|Mask=False|Expr=IsComponent|Apply=True' Caption='All Components' Description='Select All Components' DefaultChecked=0  End
+PL _User36 Command='PCB:RunQuery' Params='Select=True|Mask=False|Expr=IsDesignator|Apply=True' Caption='All Designators' Description='Select All Designators' DefaultChecked=0  End
+PL _User40 Command='PCB:RunQuery' Params='Select=True|Mask=False|Expr=IsComment|Apply=True' Caption='All Comments' Description='Select All Comments' DefaultChecked=0  End
+PL RunScript Command='ScriptingSystem:RunScript' Params='ProjectName=C:\Users\Public\Documents\Altium\AD13\Templates\Scripts\FormatPaintBrush.PrjScr|ProcName=FormatPaintBrush.pas>FormatPaintBrush' Caption='FormatPaintBrush.pas>FormatPaintBrush' DefaultChecked=0  End
+PL RunScript1 Command='ScriptingSystem:RunScript' Params='ProjectName=C:\Users\Public\Documents\Altium\AD13\Templates\Scripts\FormatPaintBrush.PrjScr|ProcName=FormatPaintBrush.pas>FormatPaintBrush' Image='C:\Users\Public\Documents\Altium\AD13\Templates\Scripts\Paint-icon18.bmp' Description='Format Paint Brush' DefaultChecked=0  End
+Insertion _User5 TargetID='MNPCB_Edit10' RefID0='MNPCB_Select90' 
+    Link _User4 PLID='_User2'      End
+End
+Insertion _User7 TargetID='MNPCB_Edit10' RefID0='MNPCB_Select80' 
+    Separator _User6      End
+End
+Insertion _User8 TargetID='MNPCB_Edit10' RefID0='_User4' 
+    Link MNPCB_Select90_User PLID='PLPCB:SelectComponentConnections'      End
+End
+Deletion _User9 TargetID='MNPCB_Edit10' DeleteID='MNPCB_Select90'  End
+Change _User10 TargetID='PLPCB:SelectComponentConnections' Field0='Command' Value0='PCB:RunQuery' Field1='Caption' Value1='All Components' Field2='Params' Value2='Apply=True|Source=Example|Expr=IsComponent|Zoom=False|Select=True|Mask=False|Clear=True' Field3='Description' Value3='Select All Components'  End
+Insertion _User14 TargetID='MNPCB_Edit10' RefID0='MNPCB_Select90_User' 
+    Link _User13 PLID='_User11'      End
+End
+Insertion _User18 TargetID='MNPCB_Edit10' RefID0='MNPCB_Select90_User' 
+    Link _User17 PLID='_User15'      End
+End
+Change _User19 TargetID='PLPCB:SelectComponentConnections' Field0='Caption' Value0='Components on Bottom side' Field1='Description' Value1='Select Components on Bottom Side'  End
+Deletion _User20 TargetID='MNPCB_Edit10' DeleteID='MNPCB_Select120'  End
+Insertion _User22 TargetID='MNPCB_Edit10' RefID0='MNPCB_Select130' 
+    Separator _User21      End
+End
+Insertion _User26 TargetID='MNPCB_Edit10' RefID0='MNPCB_Select110' 
+    Link _User25 PLID='_User23'      End
+End
+Deletion _User27 TargetID='MNPCB_Edit10' DeleteID='MNPCB_Select110'  End
+Insertion _User31 TargetID='MNPCB_Edit10' RefID0='_User13' 
+    Link _User30 PLID='_User28'      End
+End
+Insertion _User32 TargetID='MNPCB_Edit10' RefID0='_User21' 
+    Link _User13_User PLID='_User11'      End
+End
+Deletion _User33 TargetID='MNPCB_Edit10' DeleteID='_User13'  End
+Insertion _User35 TargetID='MNPCB_Edit10' RefID0='_User13_User' 
+    Separator _User34      End
+End
+Insertion _User39 TargetID='MNPCB_Edit10' RefID0='_User13_User' 
+    Link _User38 PLID='_User36'      End
+End
+Insertion _User43 TargetID='MNPCB_Edit10' RefID0='_User13_User' 
+    Link _User42 PLID='_User40'      End
+End
+Insertion _User45 TargetID='TLWiringTools' RefID0='TBSchematic_ToolsWiring010' 
+    Link _User44 PLID='RunScript1'      End
+End
+Insertion _User46 TargetID='TLSchematicTools' RefID0='TBSchematic_ToolsStandard261' 
+    Link _User44_User PLID='RunScript1'      End
+End
+Deletion _User47 TargetID='TLWiringTools' DeleteID='_User44'  End
