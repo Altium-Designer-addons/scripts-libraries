@@ -19,63 +19,58 @@
 '                                                                              '
 ' ============================================================================ '
 
-' Altium®, Altium Designer®, Altium Vault®, Autotrax®, Camtastic®, CircuitMaker®, CircuitStudio®, Codemaker™, DXP™, Easytrax®, LiveDesign®, NanoBoard®, PCBWORKS™, P-CAD®, Protel®, TASKING® and their respective logos are trademarks or registered trademarks of Altium Limited or its subsidiaries. See the full Copyright at http://www.altium.com/copyrights-and-trademarks and the EULA at http://www.altium.com/eula .
+' Altium®, Altium Designer®, DXP™ and their respective logos are trademarks or registered trademarks of Altium Limited or its subsidiaries. See the full Copyright at http://www.altium.com/copyrights-and-trademarks and the EULA at http://www.altium.com/eula .
 ' All other registered or unregistered trademarks referenced herein are the property of their respective owners.
 
 ' ------------------------------------------------------------------------------
-' Setup requirements
-' ------------------
-'  * You must create a directory "C:\AltiumDesigner_Config\Scripts" on your
-'    system where you would store the "Libraries" folder containing the script
-'    dependencies.
-'
-' ------------------------------------------------------------------------------
-' Compatibility concerns
-' ----------------------
-'  * The current version of this script is tested and works well with:
-'     -> Altium Designer 15.0.15 build 41991
-'     -> Altium Designer 14.3.17 build 42447
-'  * The current version of this script is known to work under Windows 7 64-bit.
+' What does this script do
+' -------------------
+'  1) The script will try to VCS Revert the currently focused (visible) file.
+'     (Unfortunately, Altium Designer does not refresh the file content after
+'     a Revert.)
+'  2) (Even if the previous command fails,) the script saves the current
+'     document path, then closes the document.
+'  3) It will then re-open the document without local modifications (reverted).
+'  Of course, this script CANNOT work with a file that does not exist on
+'    your hard drive because we need an existing file path to re-open it.
+'  See the following web page to learn more about VCS in ALtium Designer:
+'    http://techdocs.altium.com/display/ADOH/Version+Control+and+Altium+Designer
 '
 ' ------------------------------------------------------------------------------
 ' How to use this script
 ' ----------------------
 '  1) From Altium Designer, open a file that is under version control.
 '  2) Modify the document, then save it.
-'  3) Run this script by the "DXP > Run Script" command and select
-'     BetterRevert, or use a dedicated menu button.
-'     Be sure that the visible document at the time you run the script
-'     is a document that you wish to revert.
+'  3) With your document currently visible, run this script by one of
+'     this two means:
+'     a) Opening the PrjScr project, then click on "DXP > Run Script" and select
+'        BetterRevert.
+'     b) Creating a custom menu button with Process set to
+'          ScriptingSystem:RunScript
+'        and Parameters set to something like
+'          ProjectName=[*PathToPrjScr*]|ProcName=[*PathToTheCurrentFile*]>[*NameOfTheFunction*]
+'
+' ------------------------------------------------------------------------------
+' Setup requirements
+' ------------------
+'  * The project file (*.PrjScr) associated with your script must include
+'    the following dependencies contained in the "Libraries" folder:
+'    - Lib_FileManagement.vbs
+'    - Lib_AltiumFunctions.vbs
+'
+' ------------------------------------------------------------------------------
+' Compatibility concerns
+' ----------------------
+'  * The current version of this script is tested and works well with:
+'     -> Altium Designer 15.1.14 build 47215
+'     -> Altium Designer 14.3.18 build 45973
+'  * The current version of this script is known to work under Windows 7 64-bit.
 
 
 
 ' ------------------------------------------------------------------------------
 ' ------------------------------------------------------------------------------
 ' ------------------------------------------------------------------------------
-
-
-
-' Function to include an external file
-Sub IncludeAbsolute (FilePathAbsolute)
-  Dim oFSO, File, FileContent
-  Set oFSO = CreateObject("Scripting.FileSystemObject")
-  On Error Resume Next
-  If oFSO.FileExists(FilePathAbsolute) Then
-    Set File = oFSO.OpenTextFile(FilePathAbsolute)
-    FileContent = File.ReadAll
-    File.Close
-    ExecuteGlobal FileContent ' this line executes the VBScript code of the included file
-  End If
-  On Error Goto 0
-  Set File = Nothing
-  Set oFSO = Nothing
-End Sub
-
-IncludeAbsolute "C:\AltiumDesigner_Config\Scripts\Libraries\Lib_AltiumFunctions.vbs"
-
-
-
-' --------------------------------------------------------------------------------
 
 
 
@@ -88,6 +83,14 @@ Sub BetterRevert
   If Client Is Nothing Then Exit Sub
   ' Check if GetWorkspace is available
   If GetWorkspace Is Nothing Then Exit Sub
+  ' Verify that the file path really exists
+  If Not FileExistsOrShowError(GetWorkspace.DM_FocusedDocument.DM_FullPath) Then Exit Sub
+  ' Verify that there are no unsaved modifications
+  If DocObj_IsModified(Client, GetWorkspace.DM_FocusedDocument) Then
+    If Not ConfirmNoYesWithCaption("Modifications found", "Your document contains un-saved modifications." & vbCrLf & "Do you agree to lose them and revert the file anyway?") Then
+      Exit Sub
+    End If
+  End If
 
   ' do the revert on the file (this function unfortunately does not immediately show the reverted modifications)
   Call ServerRunProcessSend("VersionControl:VersionControl", "ObjectKind=FocusedDocument|Action=Revert")
