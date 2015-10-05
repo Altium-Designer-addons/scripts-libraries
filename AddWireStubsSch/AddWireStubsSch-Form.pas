@@ -222,11 +222,10 @@ Begin
       While Obj <> Nil Do
       Begin
          // Do not add a wire if there is already a wire attached or there is
-         // any kind of PowerPort or a NoERC Symbol
+         // a PowerPort or a NoERC Symbol on the pin
          //ShowMessage(Obj.ObjectId);
          if (Obj.ObjectId = eWire) or (Obj.ObjectId = PowerPort) or
-            (Obj.ObjectId = NoErc) or (Obj.ObjectId = ePowerGndPower) or
-            (Obj.ObjectId = ePowerGndSignal) or (Obj.ObjectId = ePowerGndEarth)
+            (Obj.ObjectId = NoErc)
             then Result := True;
 
          Obj := SpatialIterator.NextSchObject;

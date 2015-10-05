@@ -2,7 +2,7 @@ object frmAddWireStubs: TfrmAddWireStubs
   Left = 0
   Top = 0
   Caption = 'Add Wire Stubs'
-  ClientHeight = 353
+  ClientHeight = 426
   ClientWidth = 279
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -51,7 +51,7 @@ object frmAddWireStubs: TfrmAddWireStubs
   end
   object btnAddStubs: TButton
     Left = 8
-    Top = 312
+    Top = 384
     Width = 104
     Height = 32
     Caption = 'Add Stubs'
@@ -60,7 +60,7 @@ object frmAddWireStubs: TfrmAddWireStubs
   end
   object Cancel: TButton
     Left = 168
-    Top = 312
+    Top = 384
     Width = 104
     Height = 32
     Caption = 'Cancel'
@@ -71,8 +71,8 @@ object frmAddWireStubs: TfrmAddWireStubs
     Left = 8
     Top = 144
     Width = 264
-    Height = 152
-    Caption = 'Length (in multiples of grid size)'
+    Height = 224
+    Caption = 'Length'
     TabOrder = 3
     object Label1: TLabel
       Left = 16
@@ -83,31 +83,45 @@ object frmAddWireStubs: TfrmAddWireStubs
     end
     object Label2: TLabel
       Left = 16
-      Top = 48
+      Top = 112
       Width = 52
       Height = 13
       Caption = 'Offset Top'
     end
     object Label3: TLabel
       Left = 16
-      Top = 72
+      Top = 136
       Width = 68
       Height = 13
       Caption = 'Offset Bottom'
     end
     object Label4: TLabel
       Left = 16
-      Top = 96
+      Top = 160
       Width = 59
       Height = 13
       Caption = 'Offset Right'
     end
     object Label5: TLabel
       Left = 16
-      Top = 120
+      Top = 184
       Width = 53
       Height = 13
       Caption = 'Offset Left'
+    end
+    object Label6: TLabel
+      Left = 16
+      Top = 64
+      Width = 232
+      Height = 13
+      Caption = 'All lengths are measured in multiples of grid size.'
+    end
+    object Label7: TLabel
+      Left = 16
+      Top = 80
+      Width = 185
+      Height = 13
+      Caption = 'Offsets are measured from end of pin.'
     end
     object txtStub: TEdit
       Left = 216
@@ -121,7 +135,7 @@ object frmAddWireStubs: TfrmAddWireStubs
     end
     object txtOffsetTop: TEdit
       Left = 216
-      Top = 48
+      Top = 112
       Width = 24
       Height = 21
       Alignment = taCenter
@@ -131,7 +145,7 @@ object frmAddWireStubs: TfrmAddWireStubs
     end
     object txtOffsetBot: TEdit
       Left = 216
-      Top = 72
+      Top = 136
       Width = 24
       Height = 21
       Alignment = taCenter
@@ -141,7 +155,7 @@ object frmAddWireStubs: TfrmAddWireStubs
     end
     object txtOffsetRight: TEdit
       Left = 216
-      Top = 96
+      Top = 160
       Width = 24
       Height = 21
       Alignment = taCenter
@@ -151,13 +165,13 @@ object frmAddWireStubs: TfrmAddWireStubs
     end
     object txtOffsetLeft: TEdit
       Left = 216
-      Top = 120
+      Top = 184
       Width = 24
       Height = 21
       Alignment = taCenter
       NumbersOnly = True
       TabOrder = 4
-      Text = '3'
+      Text = '6'
     end
   end
 end
