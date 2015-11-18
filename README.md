@@ -31,6 +31,7 @@ You can read more about commiting your content here [AltiumAddonsCommitersRecome
 <h2>Scripts available at our Addons page:</h2>
 |Script|Description|
 |:---|:---|
+|*VariantFilter*|Script to apply a filter on the PCB in order to highlight the "fitted / unfitted" components of a chosen variant|
 |*HideParametersSch*| Script for show/hide function of component user parameter in the project. Script is fixed to search only parameters with "=CURRENTFOOTPRINT" string in the value. Could by modified to specific purposes (condition is on line #44). |
 |*TortoiseSVN*| script is using TortoiseSVN client to process SVN operations what brings standard TortoiseSVN dialogs into AD to have more features while working with SVN |
 |*BetterRevertVCS* | script reverts active document from repository and reopens working copy to be sure user is working with reverted data |
