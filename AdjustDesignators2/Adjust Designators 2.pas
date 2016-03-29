@@ -1,10 +1,19 @@
 {..............................................................................}
 { Summary   This scripts can be used to adjust designators on mech layers or   }
-{           on slikscreen.                                                     }
+{           on silkscreen. The designators are centred, rotated at 0 or 90 deg }
+{			depending on the component orientation and scaled appropriately.   }
 {                                                                              }
 {                                                                              }
 { Created by:     Mattias Ericson                                              }
-{ Reviewed by:    Petar Perisin                                                }
+{ Reviewed by:    Petar Perisin												   }
+{ Improvements:	  Miroslav Dobrev								               }
+{																			   }
+{		Last Update 15/03/2016 (Miroslav Dobrev)							   }
+{ - The script now works with Altium Designer version 14 and greater		   }
+{ - The script now also works with hidden designator components normally,	   }
+{	without the need to permanently un-hide the designators first			   }
+{ - Broken requests to interface elements fixed								   }
+{ - Other small fixes														   }
 {..............................................................................}
 
 
@@ -125,15 +134,13 @@ begin
       //Check AD version for layer stack version
       VersionStr:= ReadStringFromIniFile('Preference Location','Build',SpecialFolder_AltiumSystem+'\PrefFolder.ini','14');
       S := Copy(VersionStr,0,2);
-      ShowMessage(S);
+      //ShowMessage(S);
       MajorADVersion := StrToInt(S);
 
       for i := 1 to 32 do
       begin
-          if MajorADVersion >= 14 then
-             MechEnabled := Board.LayerStack_V7.LayerObject_V7[ILayer.MechanicalLayer(i)].MechanicalLayerEnabled
-          else
-             MechEnabled := Board.LayerStack.LayerObject_V7[ILayer.MechanicalLayer(i)].MechanicalLayerEnabled;
+             MechEnabled := Board.LayerStack_V7.LayerObject_V7[ILayer.MechanicalLayer(i)].MechanicalLayerEnabled;
+
 
           if MechEnabled = True then
           begin
@@ -167,15 +174,9 @@ begin
 
          // Here I need to fill in MechSingles, if user switches:
 
-            {Comment this section in earlier versions}
-            //USE THIS IN AD14
             if Board.LayerStack_V7.LayerObject_V7[ILayer.MechanicalLayer(i)].MechanicalLayerEnabled then
                  MechSingles.Add(Board.LayerName(ILayer.MechanicalLayer(i)));
-            {End of comment}
 
-            //USE THIS IN VERSIONS BEFORE AD14
-            { if Board.LayerStack.LayerObject_V7[ILayer.MechanicalLayer(i)].MechanicalLayerEnabled  then
-               MechSingles.Add(Board.LayerName(ILayer.MechanicalLayer(i)));}
 
       end;
    end;
@@ -283,6 +284,7 @@ Var
     OldXLocation            : Integer;
     OldYLocation            : Integer;
     OldAutoPosition         : TTextAutoposition;
+	OldVisibility			: Boolean;
 
     MechDesignator          : IPCB_Text;
     PCBSystemOptions        : IPCB_SystemOptions;
@@ -293,12 +295,12 @@ Var
     SecondLayerName         : String;
 
     MaximumHeight           : float;   // millimeters
-    MinimumHeight           : float;   // milimeters
+    MinimumHeight           : float;   // millimeters
     UnHideDesignators       : Boolean; // Unhides all designators
     LockStrings             : Boolean; // Lock all strings
     BoundingLayers          : Boolean; // Look for bounding rectangle in selected layers
     Layer1                  : TLayer;
-    Layer2                  : TLayer;  // Change this to the layer/layers that best represent the component
+    Layer2                  : TLayer;   // Change this to the layer/layers that best represent the component
     Layer3                  : Integer;  // In many cases eTopOverlay OR eBottomOverLay will be used
     Layer4                  : Integer;  // Layers not used must be set to false e.g Layer3=false;
     ShowOnce                : Boolean; // Only display the To many characters errors one time
@@ -336,35 +338,6 @@ begin
         Layer2 := false;
      end;
 
-     if CheckBoxOverlayPrimitives.Checked then
-     begin
-        for i := 1 to 32 do
-        begin
-           if RadioButtonLayerPair.Checked then
-           begin
-              if GetFirstLayerName(ComboBoxLayers.Text) = Board.LayerStack.LayerObject_V7[ILayer.MechanicalLayer(i)].Name then
-                 Layer3 := ILayer.MechanicalLayer(i);
-
-              if GetSecondLayerName(ComboBoxLayers.Text) = Board.LayerStack.LayerObject_V7[ILayer.MechanicalLayer(i)].Name then
-                 Layer4 := ILayer.MechanicalLayer(i);
-           end
-           else
-           begin
-              if ComboBoxLayers.Text := Board.LayerStack.LayerObject_V7[ILayer.MechanicalLayer(i)].Name then
-              begin
-                 Layer3 := ILayer.MechanicalLayer(i);
-                 Layer4 := ILayer.MechanicalLayer(i);
-              end;
-           end;
-        end;
-     end
-     else
-     begin
-        Layer3 := false;
-        Layer4 := false;
-     end;
-
-
      // Disables Online DRC during designator movement to improve speed
      PCBSystemOptions := PCBServer.SystemOptions;
 
@@ -382,9 +355,10 @@ begin
         ComponentIteratorHandle.AddFilter_IPCB_LayerSet(AllLayers);
         ComponentIteratorHandle.AddFilter_Method(eProcessAll);
 
-        S := '';
+        S := '';		
 
         Component := ComponentIteratorHandle.FirstPCBObject;
+		
         while (Component <> Nil) Do
         begin
 
@@ -394,22 +368,55 @@ begin
              MaxY:= 0;
              MinY:= 999999999;
 
-             TrackCount :=0;
+             TrackCount := 0;
 
-             //Show hidden designators?
-             if UnHideDesignators = true then
-                Component.NameOn := true;
-             //Lock all strings?
+             // Save designator visibility and unhide
+			 OldVisibility := Component.NameOn;
+			 Component.NameOn := true;
+             // Lock all strings?
              if LockStrings = true then
                 Component.LockStrings := true;
 
              TrackIteratorHandle := Component.GroupIterator_Create;
              TrackIteratorHandle.AddFilter_ObjectSet(MkSet(eTrackObject));
+			 
+			 // Check needs to be done for every component, otherwise doesn't work for some reason
+			 if CheckBoxMechPrimitives.Checked then
+			 begin
+				if RadioButtonLayerPair.Checked then
+				begin
+				  for i := 1 to 32 do
+				  begin
+					  if GetFirstLayerName(ComboBoxLayers.Text) = Board.LayerStack_V7.LayerObject_V7[ILayer.MechanicalLayer(i)].Name then
+						 Layer3 := ILayer.MechanicalLayer(i);
+
+					  if GetSecondLayerName(ComboBoxLayers.Text) = Board.LayerStack_V7.LayerObject_V7[ILayer.MechanicalLayer(i)].Name then
+						 Layer4 := ILayer.MechanicalLayer(i);
+				  end;
+				end
+				else
+				begin
+				  for i := 1 to 32 do
+				  begin
+					  if ComboBoxLayers.Text := Board.LayerStack_V7.LayerObject_V7[ILayer.MechanicalLayer(i)].Name then
+					  begin
+						 Layer3 := ILayer.MechanicalLayer(i);
+						 Layer4 := ILayer.MechanicalLayer(i);
+					  end;
+				  end;
+				end;
+			 end
+			 else
+			 begin
+				Layer3 := false;
+				Layer4 := false;
+			 end;		 
+			 
 
              Track := TrackIteratorHandle.FirstPCBObject;
              while (Track <> Nil) Do
              begin
-                  // Look for component's tracks on the layers choosen under settings only when BoundingLayers is true
+                  // Look for component's tracks on the layers chosen under settings only when BoundingLayers is true
                   If (((Track.Layer = Layer1) OR
                   (Track.Layer = Layer2) OR
                   (Track.Layer = Layer3) OR
@@ -436,7 +443,7 @@ begin
             Component.GroupIterator_Destroy(TrackIteratorHandle);
 
 
-            //Calculate the width and hegith of the bounding rectangle
+            // Calculate the width and heigth of the bounding rectangle
             if TrackCount > 0 then
             begin
                  Y:=MaxY-MinY;
@@ -467,7 +474,7 @@ begin
             OldYLocation  := Designator.YLocation;
             OldAutoPosition := Component.NameAutoPosition;
 
-            // Find text length so choose equation for size calcualtion
+            // Find text length so choose equation for size calculation
             S := Designator.GetDesignatorDisplayString;
             TextLength := Length(S);
 
@@ -479,14 +486,14 @@ begin
             begin
                  Size := CalculateSize(Y,S,TextLength);
                  if Size >= X then
-                      Designator.Size := CalculateSize(X,S,TextLength);
+                    Size := CalculateSize(X,S,TextLength);
 
             end
             else
             begin
-                  Size := CalculateSize(X,S,TextLength);
-                  if Size >= Y then
-                     Size := CalculateSize(Y,S,TextLength);
+                 Size := CalculateSize(X,S,TextLength);
+                 if Size >= Y then
+                    Size := CalculateSize(Y,S,TextLength);
 
             end;
 
@@ -508,7 +515,7 @@ begin
                Designator.FontName := 'Microsoft Sans Serif';
 
 
-               // Rotate the designator to increase the readabillity
+               // Rotate the designator to increase the readability
                if Y > X then
                begin
                     if Designator.Layer = eTopOverlay then
@@ -522,7 +529,7 @@ begin
                end;
 
 
-               // Trim down designator if its size is bigger then the MaximumHeight constant
+               // Trim down designator if its size is bigger than the MaximumHeight constant
                if Designator.Size >  MaximumHeight then
                   Designator.Size := MaximumHeight;
 
@@ -530,7 +537,7 @@ begin
                   Designator.Size := MinimumHeight;
 
 
-               // notify that the pcb object is modified
+               // Notify that the pcb object is modified
                Designator.EndModify;
 
                // Set the autoposition to the center-center
@@ -538,18 +545,18 @@ begin
 
                if CheckBoxMech.Checked then
                begin
-                  // here I need group iterator that will iterate all text object and look out for
-                  // Those on selected mech layers.
+                  // Here I need group iterator that will iterate all text object and look out for
+                  // those on selected mech layers
                   TrackIteratorHandle := Component.GroupIterator_Create;
                   TrackIteratorHandle.AddFilter_ObjectSet(MkSet(eTextObject));
                   if RadioButtonPair.Checked then
                   begin
                      for i := 1 to 32 do
                      begin
-                        if GetFirstLayerName(ComboBoxLayers.Text) = Board.LayerStack.LayerObject_V7[ILayer.MechanicalLayer(i)].Name then
+                        if GetFirstLayerName(ComboBoxDesignators.Text) = Board.LayerStack_V7.LayerObject_V7[ILayer.MechanicalLayer(i)].Name then
                            Layer3 := ILayer.MechanicalLayer(i);
 
-                        if GetSecondLayerName(ComboBoxLayers.Text) = Board.LayerStack.LayerObject_V7[ILayer.MechanicalLayer(i)].Name then
+                        if GetSecondLayerName(ComboBoxDesignators.Text) = Board.LayerStack_V7.LayerObject_V7[ILayer.MechanicalLayer(i)].Name then
                            Layer4 := ILayer.MechanicalLayer(i);
                      end;
                   end
@@ -557,7 +564,7 @@ begin
                   begin
                      for i := 1 to 32 do
                      begin
-                        if GetFirstLayerName(ComboBoxLayers.Text) = Board.LayerStack.LayerObject_V7[ILayer.MechanicalLayer(i)].Name then 
+                        if GetFirstLayerName(ComboBoxDesignators.Text) = Board.LayerStack_V7.LayerObject_V7[ILayer.MechanicalLayer(i)].Name then
                         begin
                            Layer3 := ILayer.MechanicalLayer(i);
                            Layer4 := ILayer.MechanicalLayer(i);
@@ -613,6 +620,10 @@ begin
                end;
 
             end;
+			
+			// Restoring designator visibility
+			if UnHideDesignators = false then
+                Component.NameOn := OldVisibility;
 
             // Get the next component handle
             Component := ComponentIteratorHandle.NextPCBObject;
