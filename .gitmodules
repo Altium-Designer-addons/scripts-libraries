@@ -1,3 +1,6 @@
+[submodule "TortoiseSVN/Libraries"]
+	path = TortoiseSVN/Libraries
+	url = https://github.com/justinmassiot/vbscript_altium_libraries.git
 [submodule "BetterRevertVCS/Libraries"]
 	path = BetterRevertVCS/Libraries
 	url = https://github.com/justinmassiot/vbscript_altium_libraries.git
