@@ -59,9 +59,11 @@
 ' ------------------
 '  * TortoiseSVN must be properly installed on your system. In particular,
 '    the Windows path must contain the TortoiseSVN binaries directory.
-'  * You must create a directory "C:\AltiumDesigner_Config\Scripts" on your
-'    system where you would store the "Libraries" folder containing the script
-'    dependencies.
+'  * The project file (*.PrjScr) associated with your script must include
+'    the following dependencies contained in the "Libraries" folder:
+'    - Lib_FileManagement.vbs
+'    - Lib_AltiumFunctions.vbs
+'    - Lib_VBScriptAdditions.vbs
 '  * It is strongly advised to install TortoiseSVN with its command-line
 '    binaries and configure Altium Designer to use them instead of the
 '    built-in Subversion client.
@@ -85,26 +87,6 @@
 ' ------------------------------------------------------------------------------
 
 
-
-' Function to include an external file
-Sub IncludeAbsolute (FilePathAbsolute)
-  Dim oFSO, File, FileContent
-  Set oFSO = CreateObject("Scripting.FileSystemObject")
-  On Error Resume Next
-  If oFSO.FileExists(FilePathAbsolute) Then
-    Set File = oFSO.OpenTextFile(FilePathAbsolute)
-    FileContent = File.ReadAll
-    File.Close
-    ExecuteGlobal FileContent ' this line executes the VBScript code of the included file
-  End If
-  On Error Goto 0
-  Set File = Nothing
-  Set oFSO = Nothing
-End Sub
-
-IncludeAbsolute "C:\AltiumDesigner_Config\Scripts\Libraries\Lib_VBScriptExtensions.vbs"
-IncludeAbsolute "C:\AltiumDesigner_Config\Scripts\Libraries\Lib_FileManagement.vbs"
-IncludeAbsolute "C:\AltiumDesigner_Config\Scripts\Libraries\Lib_AltiumFunctions.vbs"
 
 ' TortoiseSVN binary path
 Const TortoiseProc = """C:\\Program Files\\TortoiseSVN\\bin\\TortoiseProc.exe""" ' (since Altium Designer version 15, we need to precise the full path of the program)

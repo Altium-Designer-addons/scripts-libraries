@@ -59,9 +59,11 @@ Setup requirements
 ------------------
  * TortoiseSVN must be properly installed on your system. In particular,
    the Windows path must contain the TortoiseSVN binaries directory.
- * You must create a directory "C:\AltiumDesigner_Config\Scripts" on your
-   system where you would store the "Libraries" folder containing the script
-   dependencies.
+ * The project file (*.PrjScr) associated with your script must include
+   the following dependencies contained in the "Libraries" folder:
+   - Lib_FileManagement.vbs
+   - Lib_AltiumFunctions.vbs
+   - Lib_VBScriptAdditions.vbs
  * It is strongly advised to install TortoiseSVN with its command-line
    binaries and configure Altium Designer to use them instead of the
    built-in Subversion client.
