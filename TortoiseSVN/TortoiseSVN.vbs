@@ -20,9 +20,40 @@
 ' ============================================================================ '
 
 ' TortoiseSVN is an Open Source and free software licensed under the GNU General Public License (GPL). It is free to download and free to use, either personally or commercially, on any number of PCs. http://tortoisesvn.net/docs/release/TortoiseSVN_en/tsvn-preface-source.html
-' Altium®, Altium Designer®, Altium Vault®, Autotrax®, Camtastic®, CircuitMaker®, CircuitStudio®, Codemaker™, DXP™, Easytrax®, LiveDesign®, NanoBoard®, PCBWORKS™, P-CAD®, Protel®, TASKING® and their respective logos are trademarks or registered trademarks of Altium Limited or its subsidiaries. See the full Copyright at http://www.altium.com/copyrights-and-trademarks and the EULA at http://www.altium.com/eula .
+' Altium®, Altium Designer®, DXP™ and their respective logos are trademarks or registered trademarks of Altium Limited or its subsidiaries. See the full Copyright at http://www.altium.com/copyrights-and-trademarks and the EULA at http://www.altium.com/eula .
 ' All other registered or unregistered trademarks referenced herein are the property of their respective owners.
 
+' ------------------------------------------------------------------------------
+' What does this script do
+' -------------------
+'  * TSVN_CommitFolder is a function to commit a project, with extended features compared to the built-in function of Altium:
+'    -> it works on all the content of the project folder, not only the files contained in the Altium project
+'    -> it warns the user before committing if unsaved modifications are detected (everyone hates to forget to save just before a commit)
+'    -> it automatically refreshes the SVN icons at the end of the operation
+'  * TSVN_UpdateFolder is a function to update a project, with extended features compared to the built-in function of Altium:
+'    -> it works on all the content of the project folder, not only the files contained in the Altium project
+'    -> it does not update if unsaved modifications are detected on any file
+'    -> it closes and re-open all the project files that were previously open to be sure to work on the all fresh files
+'
+' ------------------------------------------------------------------------------
+' How to use this script
+' ----------------------
+'  1) From Altium Designer, open a file or a project that is/are under version
+'     control with SVN.
+'  2) If your files contain unsaved modifications, please save them all.
+'  3) With your document currently visible, run this script by one of
+'     this two means:
+'     a) Opening the PrjScr project, then click on "DXP > Run Script" and select
+'        TSVN_CommitFolder or TSVN_UpdateFolder.
+'     b) Creating a custom menu button with Process set to
+'          ScriptingSystem:RunScript
+'        and Parameters set to something like
+'          ProjectName=[*PathToPrjScr*]|ProcName=[*PathToTheCurrentFile*]>[*NameOfTheFunction*]
+'     Be sure that the visible document at the time you run the script
+'     is a document that you wish to update/commit.
+'  Note: In Update mode, all the open documents will be closed and re-opened
+'    after the update.
+'
 ' ------------------------------------------------------------------------------
 ' Setup requirements
 ' ------------------
@@ -44,19 +75,6 @@
 '  * The current version of this script is tested and works well with: 
 '     -> TortoiseSVN 1.8.11 build 26392
 '  * The current version of this script is known to work under Windows 7 64-bit.
-'
-' ------------------------------------------------------------------------------
-' How to use this script
-' ----------------------
-'  1) From Altium Designer, open a file or a project that is/are under version
-'     control with SVN.
-'  2) If your files contain unsaved modifications, please save them all.
-'  3) Run this script by the "DXP > Run Script" command and select
-'     TSVN_CommitFolder or TSVN_UpdateFolder, or use a dedicated menu button.
-'     Be sure that the visible document at the time you run the script
-'     is a document that you wish to update/commit.
-'  Note: In Update mode, all the open documents will be closed and re-opened
-'    after the update.
 
 ' TortoiseSVN command line help: http://tortoisesvn.net/docs/release/TortoiseSVN_en/tsvn-automation.html
 
