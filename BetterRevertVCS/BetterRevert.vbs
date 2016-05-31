@@ -19,7 +19,7 @@
 '                                                                              '
 ' ============================================================================ '
 
-' Altium®, Altium Designer®, DXP™ and their respective logos are trademarks or registered trademarks of Altium Limited or its subsidiaries. See the full Copyright at http://www.altium.com/copyrights-and-trademarks and the EULA at http://www.altium.com/eula .
+' AltiumÂ®, Altium DesignerÂ®, DXPâ„¢ and their respective logos are trademarks or registered trademarks of Altium Limited or its subsidiaries. See the full Copyright at http://www.altium.com/copyrights-and-trademarks and the EULA at http://www.altium.com/eula .
 ' All other registered or unregistered trademarks referenced herein are the property of their respective owners.
 
 ' ------------------------------------------------------------------------------
