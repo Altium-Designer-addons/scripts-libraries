@@ -27,18 +27,23 @@ You can read more about commiting your content here [AltiumAddonsCommitersRecome
 
 <h2>Altium Designer LIBRARIES available at Addons page:</h2>
 
- * *Libs_NetTieLib* - set of components for joining and splitting signals on PCB. Details here [NetTieLib] 
- * *Libs_CAndreatta* - set of individual schematic symbols and footprints Cyril Andreatta. Plain SchLib and PcbLib files. Details here [Libs_CAndreatta] 
- * *Libs_RRutledge* - General Library by Ryan Rutledge. Plain SchLib and PcbLib files. Details here [Libs_RRutledge] 
+|Library name|Library description|
+|:---|:---|
+|*Libs_NetTieLib*|set of components for joining and splitting signals on PCB. Details in [NetTieLib](https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/%23Libraries/Libs_NetTieLib)|
+|*Libs_CAndreatta*|set of individual schematic symbols and footprints Cyril Andreatta. Plain SchLib and PcbLib files. Details in [Libs_CAndreatta](https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/%23Libraries/Libs_CAndreatta)|
+|*Libs_RRutledge*|General Library by Ryan Rutledge. Plain SchLib and PcbLib files. Details in [Libs_RRutledge](https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/%23Libraries/Libs_RRutledge)|
 
 *Thank you Ryan for this kick off in the Libraries section.* 
 
 <h2>Altium Designer templates available at Addons page:</h2>
- * *AltiumPCBProjectTemplate* - Sample project template for 2 and 4 layer board design in Altium Designer. Details can be found here [AltiumPCBProjectTemplate] 
+
+|Template name|Template description|
+|:---|:---|
+|*AltiumPCBProjectTemplate*|Sample project template for 2 and 4 layer board design in Altium Designer. Details can be found in [AltiumPCBProjectTemplate](https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/%23Templates/AltiumPCBProjectTemplate).|
 
 <h2>Scripts available at our Addons page:</h2>
 
-|Script|Description|
+|Script name|Script description|
 |:---|:---|
 |*VariantFilter*|Script to apply a filter on the PCB in order to highlight the "fitted / unfitted" components of a chosen variant|
 |*HideParametersSch*| Script for show/hide function of component user parameter in the project. Script is fixed to search only parameters with "=CURRENTFOOTPRINT" string in the value. Could by modified to specific purposes (condition is on line #44). |
@@ -123,7 +128,7 @@ You can read more about commiting your content here [AltiumAddonsCommitersRecome
 |*SCH-SelectTouchingRectangle* | Script made because some people wanted select touching rectangle feature in Sch |
 |*IncrementingDesignators* | Script that enables user to set designators with mouse. Works on Components (in SchDoc and PCBDoc), pins (SCHLIB) and pads (PCBLIB). Designators can be swapped too. When working with pins it can also move pin names |
 |*IBIS Editor* | Script that overrides [Model Selector] and [Submodel] keywords in IBIS File |
-|*EagleToAD conversion package** | package of scripts for conversion of PCB project from Cadsoft Eagle to Altium Designer (manual available only in Czech)
+|*EagleToAD conversion package* | package of scripts for conversion of PCB project from Cadsoft Eagle to Altium Designer (manual available only in Czech)
 |*CopyAngleToComponent* | script for copying angle of track to a component
 |*SelectConnectedTrack* | script for selection of connected NoNet track on Mech layers
 |*Custom Pick&Place report* | script for generating user defined P&P for SMD components only 
