@@ -1,14 +1,20 @@
 <h1>Altium Designer addons</h1>
+
 Set of addons for Altium Designer unified design environment for electronics development.
 Moved from code.google.com/p/altium-designer-addons
 
 This project contains set of scripts, examples and other content which is developed to provide extended features for Altium Designer  unified design environment for electronics development.<br>
+
 The project is in Czech and English language. <br> 
+
 Distributed "as is" with no warranty. In case of difficulties please contact leaders of this project or create a record in Issues part of this page.<br>
+
 Genuine Altium Script Gallery (source used for API usage examples) can be found in <a href="http://techdocs.altium.com">Altium Techdocs</a> in <a href="http://techdocs.altium.com/display/SCRT/Script+Examples+Reference">Script Examples Reference</a> page.
 <br><br>
+
 *Contributors* (sorted chronologically): Petr Tosovsky, Petar Perisin, John Go-Soco, Mattias Ericson, Darren Moore, Colby Meyer, Juan Martinez, Rob Sterling, Jeff Collins, Ran Shahar, Tony Chilco, Ryan Rutledge, Erick Albach, Matija Markovic, Cyril Andreatta, Randy Clemmons, Miklós Zsikla, Justin Massiot
 <br><br>
+
 <hr>
 Easy download of scripts can be done through Google drive link here 
 
@@ -18,7 +24,9 @@ Easy download of scripts can be done through Google drive link here
 *If you are interested to be committer, please send an email to retry.var (a) gmail.com. It is needed to have GitHub account (gmail) to access repository with write permission.*<br>
 You can read more about commiting your content here [AltiumAddonsCommitersRecomendation]
 <hr>
+
 <h2>Altium Designer LIBRARIES available at Addons page:</h2>
+
  * *Libs_NetTieLib* - set of components for joining and splitting signals on PCB. Details here [NetTieLib] 
  * *Libs_CAndreatta* - set of individual schematic symbols and footprints Cyril Andreatta. Plain SchLib and PcbLib files. Details here [Libs_CAndreatta] 
  * *Libs_RRutledge* - General Library by Ryan Rutledge. Plain SchLib and PcbLib files. Details here [Libs_RRutledge] 
@@ -29,6 +37,7 @@ You can read more about commiting your content here [AltiumAddonsCommitersRecome
  * *AltiumPCBProjectTemplate* - Sample project template for 2 and 4 layer board design in Altium Designer. Details can be found here [AltiumPCBProjectTemplate] 
 
 <h2>Scripts available at our Addons page:</h2>
+
 |Script|Description|
 |:---|:---|
 |*VariantFilter*|Script to apply a filter on the PCB in order to highlight the "fitted / unfitted" components of a chosen variant|
