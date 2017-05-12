@@ -199,7 +199,7 @@ Begin
 		ShowMessage('Unable to create iterator for checking pins');
 		Exit;
 	End;
-	
+
 		Try
 			// SpatialIterator add filtering around Pin connection point
 			Case Orientation Of
@@ -402,7 +402,7 @@ begin
 		StubLength := 1;
 		txtStub.Text := 1;
 	end;
-	
+
 	LabelOffsetTop     := txtOffsetTop.Text;
 	LabelOffsetBot     := txtOffsetBot.Text;
 	LabelOffsetRight   := txtOffsetRight.Text;
@@ -452,5 +452,7 @@ end;
 {..............................................................................}
 procedure TfrmAddWireStubs.lstIgnoreKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
 begin
+    if Key = 46 then
+        lstIgnore.DeleteSelected();
 	end;
 {..............................................................................}

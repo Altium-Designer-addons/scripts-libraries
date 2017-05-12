@@ -2,8 +2,8 @@ object frmAddWireStubs: TfrmAddWireStubs
   Left = 0
   Top = 0
   Caption = 'Add Wire Stubs'
-  ClientHeight = 426
-  ClientWidth = 279
+  ClientHeight = 381
+  ClientWidth = 433
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -50,8 +50,8 @@ object frmAddWireStubs: TfrmAddWireStubs
     end
   end
   object btnAddStubs: TButton
-    Left = 8
-    Top = 384
+    Left = 304
+    Top = 296
     Width = 104
     Height = 32
     Caption = 'Add Stubs'
@@ -59,10 +59,11 @@ object frmAddWireStubs: TfrmAddWireStubs
     OnClick = btnAddStubsClick
   end
   object Cancel: TButton
-    Left = 168
-    Top = 384
+    Left = 304
+    Top = 336
     Width = 104
     Height = 32
+    Cancel = True
     Caption = 'Cancel'
     TabOrder = 2
     OnClick = CancelClick
@@ -172,6 +173,58 @@ object frmAddWireStubs: TfrmAddWireStubs
       NumbersOnly = True
       TabOrder = 4
       Text = '6'
+    end
+  end
+  object GroupBox3: TGroupBox
+    Left = 288
+    Top = 8
+    Width = 136
+    Height = 272
+    Caption = 'Ignore Patterns'
+    TabOrder = 4
+    object txtIgnore: TEdit
+      Left = 16
+      Top = 24
+      Width = 104
+      Height = 21
+      TabOrder = 0
+      Text = 'GND'
+      OnKeyPress = txtIgnoreKeyPress
+    end
+    object lstIgnore: TListBox
+      Left = 16
+      Top = 104
+      Width = 104
+      Height = 120
+      ItemHeight = 13
+      TabOrder = 1
+      OnKeyDown = lstIgnoreKeyDown
+    end
+    object btnAdd: TButton
+      Left = 16
+      Top = 72
+      Width = 104
+      Height = 24
+      Caption = 'Add'
+      TabOrder = 2
+      OnClick = btnAddClick
+    end
+    object btnRemove: TButton
+      Left = 16
+      Top = 232
+      Width = 104
+      Height = 24
+      Caption = 'Remove'
+      TabOrder = 3
+      OnClick = btnRemoveClick
+    end
+    object chkCaseSensitive: TCheckBox
+      Left = 16
+      Top = 48
+      Width = 104
+      Height = 17
+      Caption = 'Case Sensitive'
+      TabOrder = 4
     end
   end
 end
