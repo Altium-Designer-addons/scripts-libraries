@@ -30,7 +30,7 @@
 
 
 ' Function to add a "close then re-open" feature to the Revert function
-Sub BetterRevert
+Sub BetterRevertVCS
   Dim CurDocKind
   Dim CurDocPath
   
