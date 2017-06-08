@@ -39,7 +39,10 @@ Sub BetterRevertVCS
   ' Check if GetWorkspace is available
   If GetWorkspace Is Nothing Then Exit Sub
   ' Verify that the file path really exists
-  If Not FileExistsOrShowError(GetWorkspace.DM_FocusedDocument.DM_FullPath) Then Exit Sub
+  If Not FileExists(GetWorkspace.DM_FocusedDocument.DM_FullPath) Then
+    ShowError "You cannot revert a file that is not saved on your hard drive."
+    Exit Sub
+  End If
   ' Verify that there are no unsaved modifications
   If DocObj_IsModified(Client, GetWorkspace.DM_FocusedDocument) Then
     If Not ConfirmNoYesWithCaption("Modifications found", "Your document contains un-saved modifications." & vbCrLf & "Do you agree to lose them and revert the file anyway?") Then
