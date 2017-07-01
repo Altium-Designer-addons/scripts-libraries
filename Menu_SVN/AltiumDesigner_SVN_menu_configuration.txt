@@ -1,0 +1,97 @@
+SV&N
+N
+
+--------------------
+
+VersionControl:VersionControl
+ObjectKind=FocusedDocument|Action=Lock
+Loc&k
+Lock active document
+C:\AltiumDesigner_AddOns\MenuIcons\Menu_SVN\Lock.bmp
+Alt + Ctrl + K
+
+----------
+
+VersionControl:VersionControl
+ObjectKind=FocusedDocument|Action=Unlock
+U&nlock
+Unlock active document
+C:\AltiumDesigner_AddOns\MenuIcons\Menu_SVN\Unlock.bmp
+Alt + Ctrl + N
+
+----------
+
+VersionControl:VersionControl
+ObjectKind=FocusedProject|Action=RefreshProject
+&Refresh
+Refresh status from version control repository
+C:\AltiumDesigner_AddOns\MenuIcons\Menu_SVN\Refresh.bmp
+Alt + Ctrl + R
+F5 (not for PCB)
+
+----------
+
+ScriptingSystem:RunScript
+ProjectName=C:\AltiumDesigner_AddOns\Scripts\TortoiseSVN\TortoiseSVN.PrjScr|ProcName=C:\AltiumDesigner_AddOns\Scripts\TortoiseSVN\TortoiseSVN.vbs>TSVN_CommitFolder
+TSVN &Commit folder
+Commit the whole folder with TortoiseSVN
+C:\AltiumDesigner_AddOns\MenuIcons\Menu_SVN\TSVN_Commit.bmp
+Alt + Ctrl + PgUp
+
+----------
+
+ScriptingSystem:RunScript
+ProjectName=C:\AltiumDesigner_AddOns\Scripts\TortoiseSVN\TortoiseSVN.PrjScr|ProcName=C:\AltiumDesigner_AddOns\Scripts\TortoiseSVN\TortoiseSVN.vbs>TSVN_UpdateFolder
+TSVN &Update folder
+Update the whole folder with TortoiseSVN
+C:\AltiumDesigner_AddOns\MenuIcons\Menu_SVN\TSVN_Update.bmp
+Alt + Ctrl + PgDn
+
+----------
+
+&Advanced functions
+  
+  -----
+  
+  VersionControl:VersionControl
+  ObjectKind=FocusedProject|Action=CommitProject
+  Co&mmit whole project
+  Commit project documents to version control
+  C:\AltiumDesigner_AddOns\MenuIcons\Menu_SVN\Commit.bmp
+  Alt + Ctrl + M
+  
+  -----
+  
+  VersionControl:VersionControl
+  ObjectKind=FocusedProject|Action=UpdateProject
+  &Update whole project
+  Update project documents from version control
+  C:\AltiumDesigner_AddOns\MenuIcons\Menu_SVN\Update.bmp
+  Alt + Ctrl + U
+  
+  -----
+  
+  ScriptingSystem:RunScript
+  ProjectName=C:\AltiumDesigner_AddOns\Scripts\BetterRevertVCS\BetterRevertVCS.PrjScr|ProcName=C:\AltiumDesigner_AddOns\Scripts\BetterRevertVCS\BetterRevertVCS.vbs>BetterRevertVCS
+  Re&vert local modifications
+  Revert local modifications to focused document
+  C:\AltiumDesigner_AddOns\MenuIcons\Menu_SVN\Revert.bmp
+  Alt + Ctrl + V
+  
+  -----
+  
+  VersionControl:VersionControl
+  ObjectKind=FocusedDocument|Action=Add
+  &Add to version control
+  Add focused document to version control
+  C:\AltiumDesigner_AddOns\MenuIcons\Menu_SVN\Add.bmp
+  Alt + Ctrl + I
+  
+  -----
+
+  VersionControl:VersionControl
+  ObjectKind=FocusedDocument|Action=Remove
+  &Remove from version control
+  Remove focused document from version control
+  C:\AltiumDesigner_AddOns\MenuIcons\Menu_SVN\Delete.bmp
+  Alt + Ctrl + D
