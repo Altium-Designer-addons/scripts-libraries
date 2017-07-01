@@ -15,6 +15,9 @@ Genuine Altium Script Gallery (source used for API usage examples) can be found 
 *Contributors* (sorted chronologically): Petr Tosovsky, Petar Perisin, John Go-Soco, Mattias Ericson, Darren Moore, Colby Meyer, Juan Martinez, Rob Sterling, Jeff Collins, Ran Shahar, Tony Chilco, Ryan Rutledge, Erick Albach, Matija Markovic, Cyril Andreatta, Randy Clemmons, Miklós Zsikla, Justin Massiot
 <br><br>
 
+<hr />
+If you need to know <a href="https://github.com/Altium-Designer-addons/scripts-libraries/wiki/HowTo_execute_scripts">how to use a script inside Altium Designer, we have a wiki page</a> for you!
+
 <hr>
 Easy download of scripts can be done through Google drive link here 
 
