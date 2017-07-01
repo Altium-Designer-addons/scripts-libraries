@@ -42,10 +42,12 @@ How to use this script
  1) From Altium Designer, open a file that is under version control.
  2) Modify the document, then save it.
  3) With your document currently visible, run this script by one of
-    this two means:
-    a) Opening the PrjScr project, then click on "DXP > Run Script" and select
+    this three means:
+    a) Using a custom menu dedicated to SVN actions described at
+         https://github.com/Altium-Designer-addons/scripts-libraries/wiki/Menu_SVN
+    b) Opening the PrjScr project, then click on "DXP > Run Script" and select
        BetterRevertVCS.
-    b) Creating a custom menu button with Process set to
+    c) Creating a custom menu button with Process set to
          ScriptingSystem:RunScript
        and Parameters set to something like
          ProjectName=[*PathToPrjScr*]|ProcName=[*PathToTheCurrentFile*]>[*NameOfTheFunction*]
@@ -62,6 +64,7 @@ Setup requirements
 Compatibility concerns
 ----------------------
  * The current version of this script is tested and works well with:
+    -> Altium Designer 17.1.5 build 472
     -> Altium Designer 15.1.14 build 47215
     -> Altium Designer 14.3.18 build 45973
  * The current version of this script is known to work under Windows 7 64-bit.

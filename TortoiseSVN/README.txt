@@ -42,13 +42,15 @@ How to use this script
     control with SVN.
  2) If your files contain unsaved modifications, please save them all.
  3) With your document currently visible, run this script by one of
-    this two means:
-    a) Opening the PrjScr project, then click on "DXP > Run Script" and select
-       TSVN_CommitFolder or TSVN_UpdateFolder.
+    this three means:
+    a) Using a custom menu dedicated to SVN actions described at
+         https://github.com/Altium-Designer-addons/scripts-libraries/wiki/Menu_SVN
     b) Creating a custom menu button with Process set to
          ScriptingSystem:RunScript
        and Parameters set to something like
          ProjectName=[*PathToPrjScr*]|ProcName=[*PathToTheCurrentFile*]>[*NameOfTheFunction*]
+    c) Opening the PrjScr project, then click on "DXP > Run Script" and select
+       TSVN_CommitFolder or TSVN_UpdateFolder.
     Be sure that the visible document at the time you run the script
     is a document that you wish to update/commit.
  Note: In Update mode, all the open documents will be closed and re-opened
@@ -72,9 +74,11 @@ Setup requirements
 Compatibility concerns
 ----------------------
  * The current version of this script is tested and works well with:
+    -> Altium Designer 17.1.5 build 472
     -> Altium Designer 15.0.15 build 41991
     -> Altium Designer 14.3.17 build 42447
  * The current version of this script is tested and works well with: 
+    -> TortoiseSVN 1.9.5 build 27581
     -> TortoiseSVN 1.8.11 build 26392
  * The current version of this script is known to work under Windows 7 64-bit.
 
