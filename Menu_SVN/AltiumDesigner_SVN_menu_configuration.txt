@@ -27,7 +27,6 @@ ObjectKind=FocusedProject|Action=RefreshProject
 Refresh status from version control repository
 C:\AltiumDesigner_AddOns\MenuIcons\Menu_SVN\Refresh.bmp
 Alt + Ctrl + R
-F5 (not for PCB)
 
 ----------
 
