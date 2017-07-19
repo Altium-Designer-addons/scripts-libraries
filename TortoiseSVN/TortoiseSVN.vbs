@@ -141,7 +141,6 @@ Sub TSVN_CommitFolder
     Call ServerRunProcessSend("VersionControl:VersionControl", "ObjectKind=FocusedProject | Action=RefreshProject")
   End If
 End Sub
-End Sub
 
 
 
