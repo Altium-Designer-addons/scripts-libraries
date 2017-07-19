@@ -283,6 +283,83 @@ Sub TSVN_UpdateFolder
     Next
     
   End If
+End Sub
+
+
+
+' TortoiseSVN: lock the current file
+Sub TSVN_LockFile
+  Dim objShell
+  Dim lockResult
   
+  ' Check if Client is available
+  If Client Is Nothing Then Exit Sub
+  ' Check if GetWorkspace is available
+  If GetWorkspace Is Nothing Then Exit Sub
+  
+  ' Check if the command is launched from an opened file
+  If Not TryCmd("GetWorkspace.DM_FocusedDocument.DM_FileName") Then
+    ShowError "This script must be loaded from an open file."
+    Exit Sub ' no filename = no focused document = no document open
+  End If
+    
+  ' Check if the file exists (if this is a new file that has not been saved yet, the result is False)
+  If Not FileExists(GetWorkspace.DM_FocusedDocument.DM_FullPath) Then
+    ShowError "Please save the file before trying to lock it."
+    Exit Sub
+  End If
+  
+  ' let's lock the file
+  Set objShell = CreateObject( "WScript.Shell" )
+  If TortoiseProc <> "" Then
+    lockResult = objShell.Run( TortoiseProc & "/command:lock /path:""" & GetWorkspace.DM_FocusedDocument.DM_FullPath & """" , 10 , True ) ' blocking call
+  Else
+    ShowError "The path to the TortoiseSVN program is not properly defined. Impossible to lock!"
+  End If
+  Set objShell = Nothing
+  
+  ' then refresh the SVN status of the project files
+  If lockResult >= 0 Then
+    Call ServerRunProcessSend("VersionControl:VersionControl", "ObjectKind=FocusedProject | Action=RefreshProject")
+  End If
+End Sub
+
+
+
+' TortoiseSVN: unlock the current file
+Sub TSVN_UnlockFile
+  Dim objShell
+  Dim unlockResult
+  
+  ' Check if Client is available
+  If Client Is Nothing Then Exit Sub
+  ' Check if GetWorkspace is available
+  If GetWorkspace Is Nothing Then Exit Sub
+  
+  ' Check if the command is launched from an opened file
+  If Not TryCmd("GetWorkspace.DM_FocusedDocument.DM_FileName") Then
+    ShowError "This script must be loaded from an open file."
+    Exit Sub ' no filename = no focused document = no document open
+  End If
+    
+  ' Check if the file exists (if this is a new file that has not been saved yet, the result is False)
+  If Not FileExists(GetWorkspace.DM_FocusedDocument.DM_FullPath) Then
+    ShowError "Please save the file before trying to unlock it."
+    Exit Sub
+  End If
+  
+  ' let's unlock the file
+  Set objShell = CreateObject( "WScript.Shell" )
+  If TortoiseProc <> "" Then
+    unlockResult = objShell.Run( TortoiseProc & "/command:unlock /path:""" & GetWorkspace.DM_FocusedDocument.DM_FullPath & """" , 10 , True ) ' blocking call
+  Else
+    ShowError "The path to the TortoiseSVN program is not properly defined. Impossible to unlock!"
+  End If
+  Set objShell = Nothing
+  
+  ' then refresh the SVN status of the project files
+  If unlockResult >= 0 Then
+    Call ServerRunProcessSend("VersionControl:VersionControl", "ObjectKind=FocusedProject | Action=RefreshProject")
+  End If
 End Sub
 
