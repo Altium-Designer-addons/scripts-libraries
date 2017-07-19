@@ -58,6 +58,10 @@ End Function
 
 ' --------------------------------------------------------------------------------
 
+'***********
+' TODO: for every function, check if DM_FocusedDocument is part of DM_FocusedProject. There can be some cases where this is not true.
+'***********
+
 
 
 ' TortoiseSVN: commit the folder containing the current file
@@ -136,6 +140,7 @@ Sub TSVN_CommitFolder
   If commitResult >= 0 Then
     Call ServerRunProcessSend("VersionControl:VersionControl", "ObjectKind=FocusedProject | Action=RefreshProject")
   End If
+End Sub
 End Sub
 
 
@@ -275,6 +280,9 @@ Sub TSVN_UpdateFolder
     'Call Client.OpenDocument("", ProjectPath) ' does not work if the project is not already open...
     
     ' and re-open all the documents that were open before the update
+	'
+	' *********** TODO: re-open files in the same order as they have been closed ***********
+	'
     For DocCounter = 0 to (arrayCounter - 1)
       'ShowMessage arrayPleaseReOpen(DocCounter,1)
       If DoesFileExist( arrayPleaseReOpen(DocCounter,1) ) Then ' the file may not exist any more after the update!
