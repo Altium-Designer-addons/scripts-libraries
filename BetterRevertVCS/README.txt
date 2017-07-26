@@ -33,7 +33,7 @@ What does this script do
  3) It will then re-open the document without local modifications (reverted).
  Of course, this script CANNOT work with a file that does not exist on
    your hard drive because we need an existing file path to re-open it.
- See the following web page to learn more about VCS in ALtium Designer:
+ See the following web page to learn more about VCS in Altium Designer:
    http://techdocs.altium.com/display/ADOH/Version+Control+and+Altium+Designer
 
 ------------------------------------------------------------------------------
