@@ -429,7 +429,7 @@ end;
 {..............................................................................}
 procedure AddListItem();
 begin
-	lstIgnore.AddItem(txtIgnore.Text, TObject);
+	lstIgnore.AddItem(txtIgnore.Text, Nil);
 	txtIgnore.Clear;
 end;
 {..............................................................................}
@@ -444,7 +444,7 @@ end;
 {..............................................................................}
 procedure TfrmAddWireStubs.txtIgnoreKeyPress(Sender: TObject; var Key: Char);
 begin
-	if Key = 13 then
+	if Key = #13 then
 	AddListItem;
 end;
 {..............................................................................}
@@ -452,7 +452,7 @@ end;
 {..............................................................................}
 procedure TfrmAddWireStubs.lstIgnoreKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
 begin
-    if Key = 46 then
-        lstIgnore.DeleteSelected();
+	if Key = 46 then
+		lstIgnore.DeleteSelected();
 	end;
 {..............................................................................}
