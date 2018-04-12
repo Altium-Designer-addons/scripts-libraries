@@ -101,7 +101,6 @@ for (j = parseInt(firstRoomSuffix); j <= parseInt(lastRoomSuffix); j++)
 
     }
     }
-Close();
 }
 
 
