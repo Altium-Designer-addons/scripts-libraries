@@ -135,3 +135,4 @@ You can read more about commiting your content here [AltiumAddonsCommitersRecome
 |*CopyAngleToComponent* | script for copying angle of track to a component
 |*SelectConnectedTrack* | script for selection of connected NoNet track on Mech layers
 |*Custom Pick&Place report* | script for generating user defined P&P for SMD components only 
+|*GetPinData* | script which selects a schematic component and copies its pin information as a csv into the clipboard.
