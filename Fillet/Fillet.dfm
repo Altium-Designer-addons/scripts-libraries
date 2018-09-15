@@ -2,8 +2,8 @@ object Form1: TForm1
   Left = 0
   Top = 0
   Caption = 'Fillet'
-  ClientHeight = 120
-  ClientWidth = 271
+  ClientHeight = 100
+  ClientWidth = 170
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -11,70 +11,88 @@ object Form1: TForm1
   Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
+  DesignSize = (
+    170
+    100)
   PixelsPerInch = 96
   TextHeight = 13
   object Label1: TLabel
-    Left = 16
-    Top = 8
-    Width = 107
+    Left = 32
+    Top = 16
+    Width = 65
     Height = 13
-    Caption = 'Relative Raduis Value:'
-  end
-  object Label2: TLabel
-    Left = 16
-    Top = 32
-    Width = 16
-    Height = 13
-    Caption = 'Min'
-  end
-  object Label3: TLabel
-    Left = 232
-    Top = 32
-    Width = 20
-    Height = 13
-    Caption = 'Max'
-  end
-  object LabelValue: TLabel
-    Left = 136
-    Top = 8
-    Width = 12
-    Height = 13
-    Caption = '50'
-  end
-  object LabelRadius: TLabel
-    Left = 200
-    Top = 8
-    Width = 57
-    Height = 13
-    Caption = 'LabelRadius'
-    Visible = False
+    Caption = 'Radius Value:'
   end
   object ButtonOK: TButton
-    Left = 96
-    Top = 88
-    Width = 75
+    Left = 16
+    Top = 64
+    Width = 64
     Height = 25
-    Caption = 'OK'
-    TabOrder = 0
+    Caption = 'O&K'
+    Default = True
+    TabOrder = 3
     OnClick = ButtonOKClick
   end
   object ButtonCancel: TButton
-    Left = 184
-    Top = 88
-    Width = 75
+    Left = 88
+    Top = 64
+    Width = 64
     Height = 25
-    Caption = 'Cancel'
-    TabOrder = 1
+    Cancel = True
+    Caption = '&Cancel'
+    TabOrder = 2
     OnClick = ButtonCancelClick
   end
-  object ScrollBarPerc: TScrollBar
-    Left = 16
-    Top = 56
-    Width = 240
-    Height = 17
-    PageSize = 1
-    Position = 50
-    TabOrder = 2
-    OnChange = ScrollBarPercChange
+  object tRadius: TEdit
+    Left = 104
+    Top = 13
+    Width = 48
+    Height = 21
+    Anchors = [akLeft, akBottom]
+    OEMConvert = True
+    TabOrder = 0
+    Text = '31.25'
+    TextHint = 'Enter value for fixed radius'
+    OnChange = tRadiusChange
+    ExplicitTop = 12
+  end
+  object RadioPanel: TPanel
+    Left = 32
+    Top = 40
+    Width = 120
+    Height = 24
+    BevelOuter = bvNone
+    Ctl3D = True
+    ParentCtl3D = False
+    TabOrder = 1
+    object RadioUnitsMils: TRadioButton
+      Left = 0
+      Top = 0
+      Width = 40
+      Height = 16
+      Caption = 'mils'
+      Checked = True
+      TabOrder = 0
+      TabStop = True
+    end
+    object RadioUnitsMM: TRadioButton
+      Left = 40
+      Top = 0
+      Width = 40
+      Height = 16
+      Caption = 'mm'
+      TabOrder = 1
+      TabStop = True
+    end
+    object RadioUnitsRatio: TRadioButton
+      Left = 80
+      Top = 0
+      Width = 40
+      Height = 16
+      Caption = '%'
+      TabOrder = 2
+      TabStop = True
+      OnClick = RadioUnitsRatioClick
+    end
   end
 end
