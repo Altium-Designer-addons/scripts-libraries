@@ -10,20 +10,20 @@
 
 {..............................................................................}
 var
-   Board         : IPCB_Board;
-   MinDistance   : Double;
+    Board         : IPCB_Board;
+    MinDistance   : Double;
 
-   (* I need string list to memorize radius of each track.
-   Since arc is added betwen two tracks, I will need to find lesser value of the two
+    (* I need string list to memorize radius of each track.
+    Since arc is added betwen two tracks, I will need to find lesser value of the two
 
-   Data will be stored in stringlist in order:
-   I_ObjectAdress1;radius1
-   I_ObjectAdress2;radius2
-   ....
-   ....
-   I_ObjectAdressN;radiusN
-   *)
-   RadiusList     : TStringList;
+    Data will be stored in stringlist in order:
+    I_ObjectAdress1;radius1
+    I_ObjectAdress2;radius2
+    ....
+    ....
+    I_ObjectAdressN;radiusN
+    *)
+    RadiusList         :TStringList;
 
 
 
@@ -390,6 +390,15 @@ begin
 
     flag       := 0;
     RadiusList := TStringList.Create;
+
+    // Deselect any non-track objects
+    i := 0;
+    While i < Board.SelectecObjectCount do
+    begin
+        Track := Board.SelectecObject[i];
+        if Track.ObjectId <> eTrackObject then Track.SetState_Selected(false)
+        else i := i + 1;	// only iterate if object wasn't deselected
+    end;
 
     for i := 0 to Board.SelectecObjectCount - 1 do
     begin
