@@ -1,6 +1,7 @@
 object Form1: TForm1
   Left = 0
   Top = 0
+  BorderIcons = [biSystemMenu]
   Caption = 'Fillet'
   ClientHeight = 100
   ClientWidth = 170
@@ -11,6 +12,7 @@ object Form1: TForm1
   Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
+  Position = poOwnerFormCenter
   DesignSize = (
     170
     100)
@@ -54,7 +56,6 @@ object Form1: TForm1
     Text = '31.25'
     TextHint = 'Enter value for fixed radius'
     OnChange = tRadiusChange
-    ExplicitTop = 12
   end
   object RadioPanel: TPanel
     Left = 32
@@ -63,6 +64,7 @@ object Form1: TForm1
     Height = 24
     BevelOuter = bvNone
     Ctl3D = True
+    ParentBackground = False
     ParentCtl3D = False
     TabOrder = 1
     object RadioUnitsMils: TRadioButton
