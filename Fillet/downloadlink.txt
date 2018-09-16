@@ -1,0 +1,2 @@
+Copy the following link into your browser to download the latest version of the script:
+https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Fillet
