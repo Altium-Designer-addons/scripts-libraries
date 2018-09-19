@@ -20,6 +20,7 @@
 {                                                                              }
 {                                                                              }
 { Created by:    Matija Markovic, Petar Perisin                                }
+{ Edited by:    Ryan Rutledge                                                  }
 {..............................................................................}
 
 {..............................................................................}
@@ -194,7 +195,7 @@ end;
               // pcetak programa
 
 
-Procedure InitialCheck(dummy : Integer = 0);
+Procedure InitialCheck(Var status : Integer);
 var
    i : integer;
    Prim1 : IPCB_Primitive;
@@ -205,17 +206,18 @@ var
    x11, x12, y11,y12 : TCoord;       // altium zapis koordinata
    x21, x22, y21,y22 : TCoord;
 begin
+   status := 0;    // clear result status
+      // Checks if current document is a PCB kind if not, exit.
+   Board := PCBServer.GetCurrentPCBBoard;
+   If Board = Nil Then Exit;
+      // testiramo da li otvren trenutb aktivan PCB doc
 
-       // Checks if current document is a PCB kind if not, exit.
-    Board := PCBServer.GetCurrentPCBBoard;
-    If Board = Nil Then Exit;
-        // testiramo da li otvren trenutb aktivan PCB doc
-
-    If Board.SelectecObjectCount < 3 then
-    begin
-       Showmessage('Select more than 3 tracks');
-       exit;
-    end;
+   If Board.SelectecObjectCount < 2 then
+   begin
+      Showmessage('Select at least 2 tracks');
+      status := 1;
+      exit;
+   end;
 
 
    for i := 0 to Board.SelectecObjectCount - 1 do
@@ -225,6 +227,7 @@ begin
       if (Prim1.ObjectID <> eTrackObject) then
       begin
          showmessage ('Select only tracks');
+         status := 1;
          Exit;
       end;
    end;
@@ -242,6 +245,7 @@ begin
       if ((IsVert1 <> IsVert2) or (abs(k1 - k2) > 0.01)) then
       begin
          showmessage ('Selected tracks have to be parallel.');
+         status := 1;
          Exit;
       end;
    end;
@@ -276,7 +280,9 @@ begin
       exit;
    end;
                       // trazi min i max C tj grnice sirenja   vodova
-   Board.NewUndo;
+   //Board.NewUndo;
+   // Start undo
+   PCBServer.PreProcess;
    Prim1 := Board.SelectecObject[0];
    SetupDataFromTrack(Prim1,IsVert1,x11,y11,x12,y12,k1,c1);
 
@@ -554,33 +560,34 @@ begin
 
       Inc(i);
    end;
-
+   // Stop undo
+   PCBServer.PostProcess;
    close;
 end;
 
 
 
-function IsStringANum(Tekst : String) : Boolean;
+function IsStringANum(Text : String) : Boolean;
 var
    i : Integer;
    dotCount : Integer;
 begin
    Result := True;
 
-   if Tekst = '' then Result := False;
+   if Text = '' then Result := False;
 
    // Test weather we have number, dot or comma
-   for i := 1 to Length(Tekst) do
-      if not(((ord(Tekst[i]) > 47) and (ord(Tekst[i]) < 58)) or (ord(Tekst[i]) = 44) or (ord(Tekst[i]) = 46)) then
+   for i := 1 to Length(Text) do
+      if not(((ord(Text[i]) > 47) and (ord(Text[i]) < 58)) or (ord(Text[i]) = 44) or (ord(Text[i]) = 46)) then
          Result := False;
 
    // Test if we have more than one dot or comma
    dotCount := 0;
-   for i := 1 to Length(Tekst) do
-      if ((ord(Tekst[i]) = 44) or (ord(Tekst[i]) = 46)) then
+   for i := 1 to Length(Text) do
+      if ((ord(Text[i]) = 44) or (ord(Text[i]) = 46)) then
       begin
          Inc(dotCount);
-         if (i = 1) or (i = Length(Tekst)) then Result := False;
+         if (i = 1) or (i = Length(Text)) then Result := False;
       end;
 
    if dotCount > 1 then Result := False;
@@ -657,26 +664,54 @@ begin
 end;
 
 Procedure FastDistributeByCenterline;
+var
+   status : integer;
 begin
-   InitialCheck;
-   calculate;
+   InitialCheck(status);
+   if status = 0 then
+   begin
+      calculate;
+   end
+   else exit;
 end;
 
 Procedure FastDistributeByClearance;
+var
+   status : integer;
 begin
-   InitialCheck;
-   RadioButtonClearance.Checked := True;        
-   calculate;
+   InitialCheck(status);
+   if status = 0 then
+   begin
+      RadioButtonClearance.Checked := True;        
+      calculate;
+   end
+   else exit;
 end;
 
 Procedure Start;
+var
+   status : integer;
 begin
-   InitialCheck;
-   FormDistribute.ShowModal;
+   InitialCheck(status);
+   if status = 0 then
+   begin
+      FormDistribute.ShowModal;
+   end
+   else exit;
 end;
 
 procedure TFormDistribute.ButtonOKClick(Sender: TObject);
 begin
    calculate;
+end;
+
+procedure TFormDistribute.FormDistributeShow(Sender: TObject);
+begin
+   if Board.SelectecObjectCount = 2 then
+   begin
+         RadioButtonClearance.Enabled := False;
+         RadioButtonCenters.Enabled := False;
+         RadioButtonClearanceVal.Checked := True;
+   end;
 end;
 
