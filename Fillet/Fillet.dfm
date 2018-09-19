@@ -2,10 +2,9 @@ object Form1: TForm1
   Left = 0
   Top = 0
   BorderIcons = [biSystemMenu]
-  BorderStyle = bsDialog
   Caption = 'Fillet'
   ClientHeight = 100
-  ClientWidth = 180
+  ClientWidth = 170
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -15,19 +14,19 @@ object Form1: TForm1
   OldCreateOrder = False
   Position = poOwnerFormCenter
   DesignSize = (
-    180
+    170
     100)
   PixelsPerInch = 96
   TextHeight = 13
   object Label1: TLabel
-    Left = 40
+    Left = 32
     Top = 16
     Width = 65
     Height = 13
     Caption = 'Radius Value:'
   end
   object ButtonOK: TButton
-    Left = 24
+    Left = 16
     Top = 64
     Width = 64
     Height = 25
@@ -37,7 +36,7 @@ object Form1: TForm1
     OnClick = ButtonOKClick
   end
   object ButtonCancel: TButton
-    Left = 96
+    Left = 88
     Top = 64
     Width = 64
     Height = 25
@@ -47,22 +46,21 @@ object Form1: TForm1
     OnClick = ButtonCancelClick
   end
   object tRadius: TEdit
-    Left = 111
-    Top = 14
+    Left = 104
+    Top = 13
     Width = 48
     Height = 21
-    Alignment = taCenter
-    Anchors = []
+    Anchors = [akLeft, akBottom]
     OEMConvert = True
     TabOrder = 0
-    Text = '32.25'
+    Text = '31.25'
     TextHint = 'Enter value for fixed radius'
     OnChange = tRadiusChange
   end
   object RadioPanel: TPanel
-    Left = 38
+    Left = 32
     Top = 40
-    Width = 128
+    Width = 120
     Height = 24
     BevelOuter = bvNone
     Ctl3D = True
