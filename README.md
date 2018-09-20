@@ -5,57 +5,63 @@ This is a set of addons for Altium Designer, a CAD software for Electronic desig
 No real consistency exists between each script because they have been developed separately by individual developers.
 
 ## How to use
-If you are a newcomer to Altium scripts, <a href="https://github.com/Altium-Designer-addons/scripts-libraries/wiki/HowTo_execute_scripts">please read the appropriate wiki page</a>.\
-Some developers may also have provided some screen captures or examples of use.
+_Step 1_: download the add-on you want.
+1. Either clone the repository on your computer (if you're accustomed to Git)
+2. Or download only the add-on you want by clicking its download link from the list below.
+
+_Step 2_: integrate the script into Altium Designer and execute it.\
+If you are a newcomer to Altium scripts, [please read the "how to" wiki page](https://github.com/Altium-Designer-addons/scripts-libraries/wiki/HowTo_execute_scripts). Some developers may also have provided some screen captures or examples of use.
 
 ## License(s) to use/share
 Unless otherwise specified this project don't follow any particular license such as GPL, MIT or BSD. In any case everything is distributed "as is" with no warranty.\
-However some authors may have specified a license for their script. In this case you are of course supposed to follow the rules implied by this license.
+However some authors may have specified a license for their script(s). In this case you are supposed to follow the rules implied by this license for the concerned scripts.
 
 ## How to contribute
 If you want to add your contribution to our project feel free to fork the repository, commit your changes and submit a pull-request.\
 You are encouraged to read the [GitHub fork guide](https://guides.github.com/activities/forking/).
 
 ## List of available scripts
-| Add-on name & download link | Script description |
-| - | - |
-| AddDatumPointsToArcs | This script will add tracks to selected arcs. This tracks end in arc center, so after that you can easily move objects to arc center. |
-| AddWireStubsSch | it search for unconected pins of components in schematic sheet and draw small segment of a wire on it equipped by net label according to the name or designator of the pin |
-| AdjustDesignators | it will center the designator in top and bottom overlay |
-| Adjust Designators 2 | This script modifies designator position. It is based on AdjustDesignator script from Mattias Ericson, only user gets the form in which he can enable/disable and modify certain options, like layers, height etc. |
-| Arc8 | script that connects arc tangent and via/Pad, or places tangent to connect two arcs |
-| AutoHotkey Enhancement | script provides several enhancements to Altium Designer, such as limited autocomplete for filter expressions, improved mouse wheel support, and various tweaks to save time on frequently-used tasks |
-| AutoRouter_Interface | This script creates an interface to auto routers. It fixes some problems with rte importer and dsn exporter, and gives user the ability to import ses file. |
-| AutoSTEPplacer | This script will place STEP files on a footprint in a library if they have same name. STEP file must be in the same directory as library, or it's subfolder. |
-| BetterRevertVCS | script reverts active document from repository and reopens working copy to be sure user is working with reverted data |
-| BoardAutoSizer | Redefine Board Shape based on Embedded Board Arrays |
-| CalculateCopperArea | This script calculates area of selected poly or region |
-| Calculator for converting units [mil_mm_conv] | script allows easily convert entered value to all other units interpretations |
-| ComponentPlacement | This script allows user to equalize relative component placement between two groups of components |
-| ConnectionLinesOnSelection | script that enables user to show/hide connection lines on selected objects |
-| CopyAngleToComponent | script for copying angle of track to a component |
-| CreateTableOfContents | Script that can be used to create Table Of Contents on newly created top level sheet in PCB Project |
-| Current Calculator | PCB script that gives the user a dialog box with current (Amperes) handling calculations for a selected track. The script determines if the track is on an internal or external layer, and provides current calculations for 1, 5, and 10°C rise above ambient |
-| Custom Pick&Place report | script for generating user defined P&P for SMD components only |
-| DeleteAllSelectedItemsInPCBLIB | This script can be used to delete selected objects in PCB Library. Currently you can only delete selected objects that are part of currently visible footprint, but this script deletes selected objects that are in other footprints |
-| DeleteInvalidPCBObjects | Cleans a PCB documents of some current invalid objects. Checks for invalid regions or polygons and deletes them |
-| DeleteSelectedSplit | Script that can be used to delete selected split plane. It actually creates region based on selected split plane, with holes inside, so no copper will appear on that place |
-| DesignReuse_v3.0 | Script that simplifies true design reuse - route circuit once and reuse same routing in your next design. This automated design reuse is using Device Sheets or SCH snippets in SCH, and PCB Snippets in PCB. For more info read "How to use this script.odt" document (in OpenOffice or M$ Word) form the zip file |
-| Distribute | script that distributes distance between selected lines |
-| DrcOnOff | This script toggles Online DRC check box in DXP->Preferences->PCB editor->General what enables/disables online DRC checks. |
-| EagleToAD conversion package | package of scripts for conversion of PCB project from Cadsoft Eagle to Altium Designer (manual available only in Czech) |
-| Fillet | Script that places arcs to corners of selected tracks (Fillet command) |
-| FilletWithRadius | script that rounds connection on horizontaland vertical lines by fixed radius value |
-| FilterObjects | Script that filters objects based on type, layer and parent |
-| Fix Connections | Fix Connections is a modified version of Fix Overlaps v2.2 created by Petar Perisin, there are some features and UI improvements for better usability. |
-| FixOverlaps | script that will clean nets in chosen net class of overlaps |
-| FlipComponents | Script flips selected components. If there are no selected objects it asks user to click on components that will be flipped. It uses smart mechanism for flipping, which tries to keep pads position. |
-| FormatPaintBrush | This script is used to copy formattings from one object to the others. Currently it works on dimensions, coordinate, String and poly in PCB and all sch objects |
-| GetPinData | script which selects a schematic component and copies its pin information as a csv into the clipboard. |
-| HideParametersSch| Script for show/hide function of component user parameter in the project. Script is fixed to search only parameters with "=CURRENTFOOTPRINT" string in the value. Could by modified to specific purposes (condition is on line #44). |
-| Hyperlynx Exporter | Script for PCB export to hyp file. It adds fills, regions, polygons and split planes in hyp file |
-| IBIS Editor | Script that overrides [Model Selector] and [Submodel] keywords in IBIS File |
-| IncrementingDesignators | Script that enables user to set designators with mouse. Works on Components (in SchDoc and PCBDoc), pins (SCHLIB) and pads (PCBLIB). Designators can be swapped too. When working with pins it can also move pin names |
+Add-on name & download link | Script description
+--- | ---
+[AddDatumPointToArcs](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/AddDatumPointToArcs) | This script will add tracks to selected arcs. This tracks end in arc center, so after that you can easily move objects to arc center.
+[AddWireStubsSch](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/AddWireStubsSch) | it search for unconected pins of components in schematic sheet and draw small segment of a wire on it equipped by net label according to the name or designator of the pin
+[AdjustDesignators](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/AdjustDesignators) | it will center the designator in top and bottom overlay
+[AdjustDesignators2](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/AdjustDesignators2) | This script modifies designator position. It is based on AdjustDesignator script from Mattias Ericson, only user gets the form in which he can enable/disable and modify certain options, like layers, height etc.
+[Arc8](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Arc8) | script that connects arc tangent and via/Pad, or places tangent to connect two arcs
+[AutoHotkey Enhancement Script](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/AutoHotkey Enhancement Script) | script provides several enhancements to Altium Designer, such as limited autocomplete for filter expressions, improved mouse wheel support, and various tweaks to save time on frequently-used tasks
+[AutoRouter_Interface](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/AutoRouter_Interface) | This script creates an interface to auto routers. It fixes some problems with rte importer and dsn exporter, and gives user the ability to import ses file.
+[AutoSTEPplacer](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/AutoSTEPplacer) | This script will place STEP files on a footprint in a library if they have same name. STEP file must be in the same directory as library, or it's subfolder.
+[BetterRevertVCS](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/BetterRevertVCS) | script reverts active document from repository and reopens working copy to be sure user is working with reverted data
+[BoardAutoSizer](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/BoardAutoSizer) | Redefine Board Shape based on Embedded Board Arrays
+[CalculatePolyArea](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/CalculatePolyArea) | This script calculates area of selected poly or region
+[Calculator for converting units "mil_mm_conv"](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/mil_mm_conv) | script allows easily convert entered value to all other units interpretations
+[ComponentPlacement](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/ComponentPlacement) | This script allows user to equalize relative component placement between two groups of components
+[ConnectionLinesOnSelection](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/ConnectionLinesOnSelection) | script that enables user to show/hide connection lines on selected objects
+[CopyAngleToComponent](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/CopyAngleToComponent) | script for copying angle of track to a component
+[CopyDesignatorsToMechLayerPair](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/CopyDesignatorsToMechLayerPair) | _No description yet_
+[CopyTracesRadial](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/CopyTracesRadial) | _No description yet_
+[CreateTableOfContents](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/CreateTableOfContents) | Script that can be used to create Table Of Contents on newly created top level sheet in PCB Project
+[CurrentCalculator](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/CurrentCalculator) | PCB script that gives the user a dialog box with current (Amperes) handling calculations for a selected track. The script determines if the track is on an internal or external layer, and provides current calculations for 1, 5, and 10°C rise above ambient
+--Custom Pick&Place report-- | script for generating user defined P&P for SMD components only
+[DeleteAllSelectedItemsInPCBLib](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/DeleteAllSelectedItemsInPCBLib) | This script can be used to delete selected objects in PCB Library. Currently you can only delete selected objects that are part of currently visible footprint, but this script deletes selected objects that are in other footprints
+[DeleteInvalidPCBObjects](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/DeleteInvalidPCBObjects) | Cleans a PCB documents of some current invalid objects. Checks for invalid regions or polygons and deletes them
+[DeleteSelectedSplit](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/DeleteSelectedSplit) | Script that can be used to delete selected split plane. It actually creates region based on selected split plane, with holes inside, so no copper will appear on that place
+[DesignReuse](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/DesignReuse) | Script that simplifies true design reuse - route circuit once and reuse same routing in your next design. This automated design reuse is using Device Sheets or SCH snippets in SCH, and PCB Snippets in PCB. For more info read "How to use this script.odt" document (in OpenOffice or M$ Word) form the zip file
+[Distribute](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Distribute) | script that distributes distance between selected lines
+[DrcOnOff](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/DrcOnOff) | This script toggles Online DRC check box in DXP->Preferences->PCB editor->General what enables/disables online DRC checks.
+[EagleToAD](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/EagleToAD) | package of scripts for conversion of PCB project from Cadsoft Eagle to Altium Designer (manual available only in Czech)
+[Fillet](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Fillet) | Script that places arcs to corners of selected tracks (Fillet command)
+[FilletWithRadius](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/FilletWithRadius) | script that rounds connection on horizontaland vertical lines by fixed radius value
+[FilterObjects](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/FilterObjects) | Script that filters objects based on type, layer and parent
+[FixConnections](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/FixConnections) | Fix Connections is a modified version of Fix Overlaps v2.2 created by Petar Perisin, there are some features and UI improvements for better usability.
+[FixOverlaps](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/FixOverlaps) | script that will clean nets in chosen net class of overlaps
+[FlipComponents](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/FlipComponents) | Script flips selected components. If there are no selected objects it asks user to click on components that will be flipped. It uses smart mechanism for flipping, which tries to keep pads position.
+[FormatPaintBrush](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/FormatPaintBrush) | This script is used to copy formattings from one object to the others. Currently it works on dimensions, coordinate, String and poly in PCB and all sch objects
+[GetPinData](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/GetPinData) | script which selects a schematic component and copies its pin information as a csv into the clipboard.
+[HideParametersSch](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/HideParametersSch) | Script for show/hide function of component user parameter in the project. Script is fixed to search only parameters with "=CURRENTFOOTPRINT" string in the value. Could by modified to specific purposes (condition is on line #44).
+[Hyperlynx Exporter](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Hyperlynx Exporter) | Script for PCB export to hyp file. It adds fills, regions, polygons and split planes in hyp file
+[IBIS Editor](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/IBIS Editor) | Script that overrides [Model Selector] and [Submodel] keywords in IBIS File
+[IncrementDesignator](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/IncrementDesignator) | Script that enables user to set designators with mouse. Works on Components (in SchDoc and PCBDoc), pins (SCHLIB) and pads (PCBLIB). Designators can be swapped too. When working with pins it can also move pin names
 | IsPadCenterConnected | This script checks weather pads have track in their center. if not, pad is selected |
 | LayersAndObjects | This script creates a form similar to a panel, from which you can control layer and object display. Originated from LayersPanel script. |
 | LayerStackExporter | script that exports layer stack to a CSV file |
