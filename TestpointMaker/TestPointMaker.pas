@@ -260,9 +260,16 @@ begin
          begin
 
             PCBServer.PreProcess;
+
             NewTestPoint := TestPoint.Replicate;
 
             NewTestPoint.BeginModify;
+            PCBServer.SendMessageToRobots(
+               NewTestPoint.I_ObjectAddress,
+               c_Broadcast,
+               PCBM_BeginModify,
+               c_NoEventData);
+
             NewTestPoint.Net := Net;
             NewTestPoint.x := PosX;
             NewTestPoint.y := PosY;
@@ -274,9 +281,21 @@ begin
             NewTestPoint.Moveable := True;
 
             NewTestPoint.EndModify;
+            PCBServer.SendMessageToRobots(
+               NewTestPoint.I_ObjectAddress,
+               c_Broadcast,
+               PCBM_EndModify,
+               c_NoEventData);
 
             Board.AddPCBObject(NewTestPoint);
             Net.AddPCBObject(NewTestPoint);
+            PCBServer.SendMessageToRobots(
+               NewTestPoint.I_ObjectAddress,
+               c_Broadcast,
+               PCBM_BoardRegisteration,
+               c_NoEventData);
+
+
             PCBServer.PostProcess;
 
             PosX := PosX - SizeX - MilsToCoord(50);
@@ -328,5 +347,4 @@ begin
 
    TestPointMakerForm.ShowModal;
 end;
-
 
