@@ -41,7 +41,8 @@ object FormAdjustDesignators: TFormAdjustDesignators
       Width = 32
       Height = 21
       TabOrder = 0
-      Text = '5'
+      Text = '60'
+      OnChange = EditMaxHeightChange
     end
     object EditMinHeight: TEdit
       Left = 192
@@ -73,9 +74,7 @@ object FormAdjustDesignators: TFormAdjustDesignators
       Width = 48
       Height = 17
       Caption = 'mm'
-      Checked = True
       TabOrder = 4
-      TabStop = True
     end
     object RadioButton2: TRadioButton
       Left = 16
@@ -83,7 +82,19 @@ object FormAdjustDesignators: TFormAdjustDesignators
       Width = 48
       Height = 17
       Caption = 'mil'
+      Checked = True
       TabOrder = 5
+      TabStop = True
+    end
+    object cbxUseStrokeFonts: TCheckBox
+      Left = 143
+      Top = 24
+      Width = 97
+      Height = 17
+      Caption = 'Use Stroke Fonts'
+      Checked = True
+      State = cbChecked
+      TabOrder = 6
     end
   end
   object GroupBox1: TGroupBox
@@ -99,8 +110,6 @@ object FormAdjustDesignators: TFormAdjustDesignators
       Width = 208
       Height = 17
       Caption = 'Modify Designators on Overlay Layers'
-      Checked = True
-      State = cbChecked
       TabOrder = 0
     end
     object CheckBoxMech: TCheckBox

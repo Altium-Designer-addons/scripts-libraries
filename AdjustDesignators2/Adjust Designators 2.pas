@@ -1,19 +1,21 @@
 {..............................................................................}
 { Summary   This scripts can be used to adjust designators on mech layers or   }
 {           on silkscreen. The designators are centred, rotated at 0 or 90 deg }
-{			depending on the component orientation and scaled appropriately.   }
+{           depending on the component orientation and scaled appropriately.   }
 {                                                                              }
 {                                                                              }
 { Created by:     Mattias Ericson                                              }
-{ Reviewed by:    Petar Perisin												   }
-{ Improvements:	  Miroslav Dobrev								               }
-{																			   }
-{		Last Update 15/03/2016 (Miroslav Dobrev)							   }
-{ - The script now works with Altium Designer version 14 and greater		   }
-{ - The script now also works with hidden designator components normally,	   }
-{	without the need to permanently un-hide the designators first			   }
-{ - Broken requests to interface elements fixed								   }
-{ - Other small fixes														   }
+{ Reviewed by:    Petar Perisin                                                }
+{ Improvements:   Miroslav Dobrev, Stanislav Popelka                           }
+{                                                                              }
+{                                                                              }
+{ Last Update 30/09/2018 - added stroke font option                            }
+{ Update 15/03/2016 (Miroslav Dobrev)                                          }
+{ - The script now works with Altium Designer version 14 and greater           }
+{ - The script now also works with hidden designator components normally,      }
+{   without the need to permanently un-hide the designators first              }
+{ - Broken requests to interface elements fixed                                }
+{ - Other small fixes                                                          }
 {..............................................................................}
 
 
@@ -89,7 +91,7 @@ begin
 end;
 
 
-//Calculate the hight of the true type text to best fit for Microsoft Sans Serif
+//Calculate the hight of the true type text to best fit for Microsoft Serif
 function CalculateSize (Size:Integer,S:String,TextLength:Integer):Integer;
 begin
      case TextLength of
@@ -101,6 +103,11 @@ begin
           6 : Result := MMsToCoord(0.2194*CoordToMMs(Size)+0.1519);
           7 : Result := MMsToCoord(0.1957*CoordToMMs(Size)-0.2201);
           else Result := -1;
+     end;
+     // Use Stroke Fonts
+     If (cbxUseStrokeFonts.Checked = True) then
+     begin
+          Result := Result*0.4;  //Scaled Result for Stroked Fonts
      end;
 end;
 
@@ -274,6 +281,7 @@ Var
     Designator              : IPCB_Text;
 
     OldSize                 : Integer;
+    OldWidth                : Integer;
     OldUseTTFonts           : Boolean;
     OldItalic               : Boolean;
     OldBold                 : Boolean;
@@ -284,7 +292,7 @@ Var
     OldXLocation            : Integer;
     OldYLocation            : Integer;
     OldAutoPosition         : TTextAutoposition;
-	OldVisibility			: Boolean;
+    OldVisibility           : Boolean;
 
     MechDesignator          : IPCB_Text;
     PCBSystemOptions        : IPCB_SystemOptions;
@@ -306,6 +314,8 @@ Var
     ShowOnce                : Boolean; // Only display the To many characters errors one time
 begin
      // Here we will read various stuff from form
+
+     // User defined Minimum Stroke Font Width in Mils
 
      if RadioButtonMM.Checked then
      begin
@@ -355,10 +365,10 @@ begin
         ComponentIteratorHandle.AddFilter_IPCB_LayerSet(AllLayers);
         ComponentIteratorHandle.AddFilter_Method(eProcessAll);
 
-        S := '';		
+        S := '';        
 
         Component := ComponentIteratorHandle.FirstPCBObject;
-		
+        
         while (Component <> Nil) Do
         begin
 
@@ -371,47 +381,47 @@ begin
              TrackCount := 0;
 
              // Save designator visibility and unhide
-			 OldVisibility := Component.NameOn;
-			 Component.NameOn := true;
+             OldVisibility := Component.NameOn;
+             Component.NameOn := true;
              // Lock all strings?
              if LockStrings = true then
                 Component.LockStrings := true;
 
              TrackIteratorHandle := Component.GroupIterator_Create;
              TrackIteratorHandle.AddFilter_ObjectSet(MkSet(eTrackObject));
-			 
-			 // Check needs to be done for every component, otherwise doesn't work for some reason
-			 if CheckBoxMechPrimitives.Checked then
-			 begin
-				if RadioButtonLayerPair.Checked then
-				begin
-				  for i := 1 to 32 do
-				  begin
-					  if GetFirstLayerName(ComboBoxLayers.Text) = Board.LayerStack_V7.LayerObject_V7[ILayer.MechanicalLayer(i)].Name then
-						 Layer3 := ILayer.MechanicalLayer(i);
+             
+             // Check needs to be done for every component, otherwise doesn't work for some reason
+             if CheckBoxMechPrimitives.Checked then
+             begin
+                if RadioButtonLayerPair.Checked then
+                begin
+                  for i := 1 to 32 do
+                  begin
+                      if GetFirstLayerName(ComboBoxLayers.Text) = Board.LayerStack_V7.LayerObject_V7[ILayer.MechanicalLayer(i)].Name then
+                         Layer3 := ILayer.MechanicalLayer(i);
 
-					  if GetSecondLayerName(ComboBoxLayers.Text) = Board.LayerStack_V7.LayerObject_V7[ILayer.MechanicalLayer(i)].Name then
-						 Layer4 := ILayer.MechanicalLayer(i);
-				  end;
-				end
-				else
-				begin
-				  for i := 1 to 32 do
-				  begin
-					  if ComboBoxLayers.Text := Board.LayerStack_V7.LayerObject_V7[ILayer.MechanicalLayer(i)].Name then
-					  begin
-						 Layer3 := ILayer.MechanicalLayer(i);
-						 Layer4 := ILayer.MechanicalLayer(i);
-					  end;
-				  end;
-				end;
-			 end
-			 else
-			 begin
-				Layer3 := false;
-				Layer4 := false;
-			 end;		 
-			 
+                      if GetSecondLayerName(ComboBoxLayers.Text) = Board.LayerStack_V7.LayerObject_V7[ILayer.MechanicalLayer(i)].Name then
+                         Layer4 := ILayer.MechanicalLayer(i);
+                  end;
+                end
+                else
+                begin
+                  for i := 1 to 32 do
+                  begin
+                      if ComboBoxLayers.Text := Board.LayerStack_V7.LayerObject_V7[ILayer.MechanicalLayer(i)].Name then
+                      begin
+                         Layer3 := ILayer.MechanicalLayer(i);
+                         Layer4 := ILayer.MechanicalLayer(i);
+                      end;
+                  end;
+                end;
+             end
+             else
+             begin
+                Layer3 := false;
+                Layer4 := false;
+             end;        
+             
 
              Track := TrackIteratorHandle.FirstPCBObject;
              while (Track <> Nil) Do
@@ -463,6 +473,7 @@ begin
 
             Designator    := Component.Name;
             OldSize       := Designator.Size;
+            OldWidth      := Designator.Width;
             OldUseTTFonts := Designator.UseTTFonts;
             OldItalic     := Designator.Italic;
             OldBold       := Designator.Bold;
@@ -506,13 +517,19 @@ begin
             if Size > 0 then
             begin
 
-               Designator.Size := Size;
                // Setup the text properties
                Designator.UseTTFonts := True;
                Designator.Italic := False;
                Designator.Bold := True;
                Designator.Inverted := False;
                Designator.FontName := 'Microsoft Sans Serif';
+               Designator.Size := Size;
+
+               If (cbxUseStrokeFonts.Checked = True) then
+                         begin
+                              Designator.UseTTFonts := False;
+                              Designator.Width := Designator.Size/7;
+                         end;
 
 
                // Rotate the designator to increase the readability
@@ -531,7 +548,10 @@ begin
 
                // Trim down designator if its size is bigger than the MaximumHeight constant
                if Designator.Size >  MaximumHeight then
-                  Designator.Size := MaximumHeight;
+                          begin
+                               Designator.Size := MaximumHeight;
+                               Designator.Width := MaximumHeight/7;
+                          end;
 
                if Designator.Size <  MinimumHeight then
                   Designator.Size := MinimumHeight;
@@ -580,6 +600,7 @@ begin
                      if (((MechDesignator.Layer = Layer3) or (MechDesignator.Layer = Layer4)) and ((GetFirstLayerName(MechDesignator.Text) = '.Designator' ) or (MechDesignator.Text = Designator.Text))) then
                      begin
                         MechDesignator.Size       := Designator.Size;
+                        MechDesignator.Width      := Designator.Width;
                         MechDesignator.UseTTFonts := Designator.UseTTFonts;
                         MechDesignator.Italic     := Designator.Italic;
                         MechDesignator.Bold       := Designator.Bold;
@@ -601,6 +622,7 @@ begin
                if not CheckBoxOverlay.Checked then
                begin
                   Designator.BeginModify;
+                  Designator.Width      := OldWidth;
                   Designator.Size       := OldSize;
                   Designator.UseTTFonts := OldUseTTFonts;
                   Designator.Italic     := OldItalic;
@@ -620,9 +642,9 @@ begin
                end;
 
             end;
-			
-			// Restoring designator visibility
-			if UnHideDesignators = false then
+            
+            // Restoring designator visibility
+            if UnHideDesignators = false then
                 Component.NameOn := OldVisibility;
 
             // Get the next component handle
@@ -730,3 +752,5 @@ begin
 
    FormAdjustDesignators.ShowModal;
 end;
+
+
