@@ -28,6 +28,31 @@ var
 
 
 
+function IsStringANum(Text : String) : Boolean;
+var
+   i : Integer;
+   dotCount : Integer;
+begin
+   Result := True;
+
+   if Text = '' then Result := False;
+
+   // Test weather we have number, dot or comma
+   for i := 1 to Length(Text) do
+      if not(((ord(Text[i]) > 47) and (ord(Text[i]) < 58)) or (ord(Text[i]) = 44) or (ord(Text[i]) = 46)) then
+         Result := False;
+
+   // Test if we have more than one dot or comma
+   dotCount := 0;
+   for i := 1 to Length(Text) do
+      if ((ord(Text[i]) = 44) or (ord(Text[i]) = 46)) then
+      begin
+         Inc(dotCount);
+         if (i = 1) or (i = Length(Text)) then Result := False;
+      end;
+
+   if dotCount > 1 then Result := False;
+end;
 
 procedure TForm1.ButtonOKClick(Sender: TObject);
 var
@@ -468,31 +493,5 @@ procedure TForm1.RadioUnitsRatioClick(Sender: TObject);
 begin
     if (RadioUnitsRatio.Checked = true) and (StrToFloat(tRadius.Text) >= 100) then tRadius.Text := '99.99'
     else if (RadioUnitsRatio.Checked = true) and (StrToFloat(tRadius.Text) <= 0) then tRadius.Text := '0.01';
-end;
-
-function IsStringANum(Text : String) : Boolean;
-var
-   i : Integer;
-   dotCount : Integer;
-begin
-   Result := True;
-
-   if Text = '' then Result := False;
-
-   // Test weather we have number, dot or comma
-   for i := 1 to Length(Text) do
-      if not(((ord(Text[i]) > 47) and (ord(Text[i]) < 58)) or (ord(Text[i]) = 44) or (ord(Text[i]) = 46)) then
-         Result := False;
-
-   // Test if we have more than one dot or comma
-   dotCount := 0;
-   for i := 1 to Length(Text) do
-      if ((ord(Text[i]) = 44) or (ord(Text[i]) = 46)) then
-      begin
-         Inc(dotCount);
-         if (i = 1) or (i = Length(Text)) then Result := False;
-      end;
-
-   if dotCount > 1 then Result := False;
 end;
 
