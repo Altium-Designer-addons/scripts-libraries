@@ -1,1 +1,18 @@
+# Altium Designer gitignore
+
+# directories
 __Previews/
+History/
+
+# files
+*.rul
+*.stackup
+*.stk
+*.log
+*.tlt
+*.dat
+*.rep
+*.SchDocPreview
+*.PcbDocPreview
+*~$*
+*.~\([0-9]*\)
