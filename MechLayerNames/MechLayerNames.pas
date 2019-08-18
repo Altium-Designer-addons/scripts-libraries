@@ -23,6 +23,7 @@ var
     FileName    : String;
     INIFile     : TIniFile;
     Flag        : Integer;
+    ML1, ML2    : integer;
     i, j        : Integer;
 
 {.................................................................................}
@@ -53,14 +54,16 @@ begin
 
     for i := 1 to 32 do
     begin
-        MechLayer := LayerStack.LayerObject_V7[ILayer.MechanicalLayer(i)];
+        ML1 := LayerUtils.MechanicalLayer(i);
+        MechLayer := LayerStack.LayerObject_V7[ML1];
 
-        IniFile.WriteString('MechLayer' + IntToStr(i), 'Name', Board.LayerName(ILayer.MechanicalLayer(i)) );    //MechLayer.Name);
+        IniFile.WriteString('MechLayer' + IntToStr(i), 'Name', Board.LayerName(ML1) );    //MechLayer.Name);
 
         for j := 1 to 32 do
         begin
-            if MechPairs.PairDefined(ILayer.MechanicalLayer(i), ILayer.MechanicalLayer(j)) then
-                IniFile.WriteString('MechLayer' + IntToStr(i), 'Pair', Board.LayerName(ILayer.MechanicalLayer(j)) );
+            ML2 := LayerUtils.MechanicalLayer(j);
+            if MechPairs.PairDefined(ML1, ML2) then
+                IniFile.WriteString('MechLayer' + IntToStr(i), 'Pair', Board.LayerName(ML2) );
         end;
         IniFile.WriteBool  ('MechLayer' + IntToStr(i), 'Enabled', MechLayer.MechanicalLayerEnabled);
         IniFile.WriteBool  ('MechLayer' + IntToStr(i), 'Show',    MechLayer.IsDisplayed[Board]);
@@ -68,7 +71,7 @@ begin
         IniFile.WriteBool  ('MechLayer' + IntToStr(i), 'SLM',     MechLayer.DisplayInSingleLayerMode);
 // colour broken after eMech 16
         if (i <= (MaxMechanicalLayer - eMechanical1 + 1)) then
-            IniFile.WriteString('MechLayer' + IntToStr(i), 'Color',   ColorToString(Board.LayerColor[MechLayer.V6_LayerID]));
+            IniFile.WriteString('MechLayer' + IntToStr(i), 'Color',   ColorToString(Board.LayerColor[MechLayer.V6_LayerID]) );
     end;
 end;
 
@@ -102,24 +105,26 @@ begin
 
     For i := 1 To 32 do
     begin
-        MechLayer := LayerStack.LayerObject_V7[ILayer.MechanicalLayer(i)];
+        ML1 := LayerUtils.MechanicalLayer(i);
+        MechLayer := LayerStack.LayerObject_V7[ML1];
 
         MechLayer.Name := IniFile.ReadString('MechLayer' + IntToStr(i), 'Name',  '');
         MPairLayer     := IniFile.ReadString('MechLayer' + IntToStr(i), 'Pair',  '');
 
-    // remove existing mechpairs & add new ones.        
+    // remove existing mechpairs & add new ones.
     // potentially new layer names in this file are of mech pair; only check parsed ones.
         for j := 1 to (i -1) do
         begin
+            ML2 := LayerUtils.MechanicalLayer(j);
             // remove pair including backwards ones !
-            if MechPairs.PairDefined(ILayer.MechanicalLayer(j), ILayer.MechanicalLayer(i)) then
-                MechPairs.RemovePair(ILayer.MechanicalLayer(j), ILayer.MechanicalLayer(i));
-            if MechPairs.PairDefined(ILayer.MechanicalLayer(i), ILayer.MechanicalLayer(j)) then
-                MechPairs.RemovePair(ILayer.MechanicalLayer(i), ILayer.MechanicalLayer(j));
+            if MechPairs.PairDefined(ML2, ML1) then
+                MechPairs.RemovePair(ML2, ML1);
+            if MechPairs.PairDefined(ML1, ML2) then
+                MechPairs.RemovePair(ML1, ML2);
 
-            MechLayer2 := LayerStack.LayerObject_V7[ILayer.MechanicalLayer(j)];
-            if (MPairLayer = MechLayer2.Name) and not MechPairs.PairDefined(ILayer.MechanicalLayer(j), ILayer.MechanicalLayer(i)) then
-                MechPairs.AddPair(ILayer.MechanicalLayer(j), ILayer.MechanicalLayer(i));
+            MechLayer2 := LayerStack.LayerObject_V7[ML2];
+            if (MPairLayer = MechLayer2.Name) and not MechPairs.PairDefined(ML2, ML1) then
+                MechPairs.AddPair(ML2, ML1);
         end;
 
         If Not MechLayer.MechanicalLayerEnabled then
@@ -130,7 +135,7 @@ begin
         MechLayer.IsDisplayed[Board]       := IniFile.ReadBool('MechLayer' + IntToStr(i), 'Show',  True);
         LColour                            := IniFile.ReadString('MechLayer' + IntToStr(i), 'Color', NoColour);
         if LColour <> NoColour then
-            PCBSysOpts.LayerColors[ILayer.MechanicalLayer(i)] := StringToColor( LColour);
+            PCBSysOpts.LayerColors[ML1] := StringToColor( LColour);
 
     end;
 
