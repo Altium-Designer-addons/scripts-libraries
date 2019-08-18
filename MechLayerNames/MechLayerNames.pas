@@ -9,8 +9,11 @@
  Modified by : B. Miller
  03/07/2017  : mod to fix layer names output, why was import okay ??
  23/02/2018  : added MechLayer Pairs & colours, still loads old ini files.
+ 18/08/2019  : Layer colours above eMech16 are all cBlack so ignore.
 
 ..................................................................................}
+const
+    NoColour = 'ncol';
 var
     Board       : IPCB_Board;
     LayerStack  : IPCB_LayerStack_V7;
@@ -34,7 +37,9 @@ begin
     SaveDialog        := TSaveDialog.Create(Application);
     SaveDialog.Title  := 'Save Mech Layer Names to *.ini file';
     SaveDialog.Filter := 'INI file (*.ini)|*.ini';
-    
+    FileName := ExtractFilePath(Board.FileName);
+    SaveDialog.FileName := ChangeFileExt(FileName, '');
+
     Flag := SaveDialog.Execute;
     if (not Flag) then exit;
 
@@ -61,7 +66,9 @@ begin
         IniFile.WriteBool  ('MechLayer' + IntToStr(i), 'Show',    MechLayer.IsDisplayed[Board]);
         IniFile.WriteBool  ('MechLayer' + IntToStr(i), 'Sheet',   MechLayer.LinkToSheet);
         IniFile.WriteBool  ('MechLayer' + IntToStr(i), 'SLM',     MechLayer.DisplayInSingleLayerMode);
-        IniFile.WriteString('MechLayer' + IntToStr(i), 'Color',   ColorToString(Board.LayerColor[MechLayer.V6_LayerID]));
+// colour broken after eMech 16
+        if (i <= (MaxMechanicalLayer - eMechanical1 + 1)) then
+            IniFile.WriteString('MechLayer' + IntToStr(i), 'Color',   ColorToString(Board.LayerColor[MechLayer.V6_LayerID]));
     end;
 end;
 
@@ -83,7 +90,7 @@ begin
     OpenDialog        := TOpenDialog.Create(Application);
     OpenDialog.Title  := 'Import Mech Layer Names from *.ini file';
     OpenDialog.Filter := 'INI file (*.ini)|*.ini';
-
+    OpenDialog.InitialDir := ExtractFilePath(Board.FileName);
     Flag := OpenDialog.Execute;
     if (not Flag) then exit;
 
@@ -121,9 +128,10 @@ begin
         MechLayer.LinkToSheet              := IniFile.ReadBool('MechLayer' + IntToStr(i), 'Sheet', False);
         MechLayer.DisplayInSingleLayerMode := IniFile.ReadBool('MechLayer' + IntToStr(i), 'SLM',   False);
         MechLayer.IsDisplayed[Board]       := IniFile.ReadBool('MechLayer' + IntToStr(i), 'Show',  True);
+        LColour                            := IniFile.ReadString('MechLayer' + IntToStr(i), 'Color', NoColour);
+        if LColour <> NoColour then
+            PCBSysOpts.LayerColors[ILayer.MechanicalLayer(i)] := StringToColor( LColour);
 
-        LColour := StringToColor( IniFile.ReadString('MechLayer' + IntToStr(i), 'Color', '0') );
-        PCBSysOpts.LayerColors[ILayer.MechanicalLayer(i)] := LColour;
     end;
 
     ResetParameters;
