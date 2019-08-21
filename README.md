@@ -81,6 +81,7 @@ Add-on name & download link | Script description
 [OpenSchDocs](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/OpenSchDocs) | script will open all sch documents in current PCB project
 [PCBScale](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/PCBScale) | This script allows you to scale selected objects on a PCB by amount.
 [ParamToPCB](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/ParamToPCB) | This script allows user to transfer component parameters to the PCB
+[PlaceDashedLines](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/PlaceDashedLines) | Places dashed lines (union) on PCB current layer by repeated cursor/mouse clicks.
 [PlaceRectangle](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/PlaceRectangle) | This script places a rectangle on the PCB
 [PlanarTXv0.7](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/PlanarTXv0.7) | Script to create planar transformer made by Darren Moore
 [PnPcustom](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/PnPcustom) | _No description yet_
