@@ -1,0 +1,32 @@
+MechLayerNames.pas
+Altium version compatibility & functionality summary.
+
+AD17, AD18
+PcbDoc: 32 max mechanical layers.
+
+Script: 1 - 32 mechanical layers partially supported (name, enabled, colour, mech pairs)
+Script: 16 - 32 mech layer colours NOT supported & NOT changed.
+
+
+ 
+AD19
+PcbDoc: legacy (AD18) stack mode or 1024? max mech layers
+PcbDoc: Layer type
+PcbDoc: 1024? mode appears to restack existing mech layers in a "fill from the top" manner by remapping, they then appear twice (observed in my test script).
+
+Script: legacy mode same as AD17/AD18
+Script: 1024? mode appears to work same as legacy.
+
+
+
+I think it is unwise to use the script on AD19 1024? mech layer stack setup unless
+user confirms/checks result thoroughly.
+
+
+Why is there a problem:
+Scripting API appears to be 5 years old.
+There are multiple existing alternative interfaces for Layers, all have some problems.
+Most fail after eMechanical 16 or return values that crash other interfaces.
+There is no support in LayerStack interface for LayerClass = eLayerClass_Mechanical, just empty..
+
+
