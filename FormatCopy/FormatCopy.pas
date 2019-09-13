@@ -5,7 +5,13 @@
 
            Works with all schematic objects (in SCH document
            and library) and some objects in PCB Document.
-           Cross object format copying is possible in SchDoc simple text
+           Cross object format copying is possible in SchDoc.
+           <cntl>  key modifier prevent Text colour pasting   (C==Colour)
+           <alt>   key modifier prevents Area colour pasting  (A==Area)
+           <shift> key could prevent text Size change         (S==Size)
+           Note <cntl>+<Z> is active when running script.
+
+
 
  From FormatPaintbrush.pas
  Created by : Petar Perisin
@@ -19,8 +25,11 @@
 28/08/2019 v0.7  Group Sch Obj formatting operations by ancestor obj.
 31/08/2019 v0.71 Allow basic cross object type copy for text
 01/09/2019 v0.72 Sch pick object set based biasing.
+03/09/2019 v0.73 Sch: Move more operations to ancestor objects.
+14/09/2019 v0.74 Sch: Add modifier <cntl><alt> support
 
-tbd :  *fix* Current layer bias is a partial soln. Only works up to eMech16
+tbd :  *fix* Current layer bias is a partial soln. Only works up to eMech16 in AD17/18
+tbd: <shift> modifier key was to prevent font size change but FontManager is borked in AD19.
 
 }
 {..............................................................................}
@@ -31,37 +40,55 @@ tbd :  *fix* Current layer bias is a partial soln. Only works up to eMech16
   eConnectLayer = eMechanical16 + 3;     // 75 Mechanical 19 Connections
   MaxMechanicalLayer = eMechanical16;
 
-  eMech17 = 67108881   returned by AD17 Obj.Layer; but crashes GetObjectAtCursor()
-  eMech32 = 67108896   so can't use to make new layer objset
+ i=17, eMech17 : LayerID = 67108881   returned by AD17 Obj.Layer; but crashes GetObjectAtCursor(TLayer_V6)
+ i=32, eMech32 : LayerID = 67108896   LayerUtils.MechanicalLayer(i) returns correct values
+ Delphi Sets can only have max 256 elements.
+ The values 67108### above crash MkSet()
+ Consider use of Altium display LayerSets as mask.
+
 }
+
 const
     cNeverAsk = false;    // set true for no layer prompt (default copy layer yes)
-    cESC      = -1;
+    cESC      =-1;
+    cAltKey   = 1;
+    cShiftKey = 2;
+    cCntlKey  = 3;
 
-    eMech17    = 73;         // potentially correct emun values
-    eMech32    = 88;         // but still useless as can't get layer num returned
+    eMech17    = 73;      // LayerUtils.MechanicalLayer(i) returns correct values
+    eMech32    = 88;      // AD19 appears to return correct values in Board.CurrentLayer
 
 var
     // Common variables
     ASetOfObjects   : TObjectSet;
     TextObjSet      : TObjectSet;
+    KeySet          : TObjectSet;    // keyboard key modifiers <alt> <shift> <cntl>
     boolLoc         : Integer;
-    DocKind         : String;
+    DocKind         : String; 
+    VerMajor        : Widestring;
     Prompt          : WideString;
 
-    NewAllLayers    : TObjectSet;     // does NOT solve problem with GetObjectAtCursor()
+    NewAllLayers    : TLayerSet;     // does NOT directly solve problem with GetObjectAtCursor()
 
 {..............................................................................}
 
-function nGetObjectAtCursor(Board : TPCB_Board, const ObjectSet: TObjectSet, const LayerSet : TObjectSet, msg : TString) : IPCB_Primitive;
+function Version(const dummy : boolean) : TStringList;
+begin
+    Result := TStringList.Create;
+    Result.Delimiter := '.';
+    Result.Duplicates := dupAccept;
+    Result.DelimitedText := Client.GetProductVersion;
+end;
+
+function nGetObjectAtCursor(Board : TPCB_Board, const ObjectSet: TObjectSet, const LayerSet : TLayerSet, msg : TString) : IPCB_Primitive;
 var
-    x, y     : TCoord;
-    Iterator : IPCB_SpatialIterator;
-    Prim     : IPCB_Primitive;
-    Prev     : IPCB_Primitive;
-    Area     : double;
-    CLayer   : TLayer;
-    MechLayer   : IPCB_MechanicalLayer;
+    x, y      : TCoord;
+    Iterator  : IPCB_SpatialIterator;
+    Prim      : IPCB_Primitive;
+    Prev      : IPCB_Primitive;
+    Area      : double;
+    CLayer    : TLayer;
+    MechLayer : IPCB_MechanicalLayer;
 
 begin
     Result := eNoObject;
@@ -69,9 +96,8 @@ begin
     if Board.ChooseLocation(x,y,msg) then  // false = ESC Key is pressed
     begin
 // layer can be changed during ChooseLocation fn UI!
-        CLayer := Board.CurrentLayer;
-//        CLayer := BoardCurrentLayer(Board);
-
+        CLayer := Board.CurrentLayer;               // returns 0 for any unsupported layers.
+  
         Iterator := Board.SpatialIterator_Create;
         Iterator.SetState_FilterAll;
         Iterator.AddFilter_AllLayers;
@@ -95,7 +121,7 @@ begin
                         if ((Prev.ObjectID = eRegionObject) or (Prev.ObjectID = ePolyObject)) and
                             (Prev.Layer <> CLayer)                         then Result := Prim;
                         if (Prev.ObjectID = eTextObject) and Prev.IsHidden then Result := Prim;
-                        if Prim.Layer = CLayer                             then Result := Prim;
+                        if (Prim.Layer = CLayer) or (CLayer = 0)           then Result := Prim;
                     end
                     else Result := Prim;
                     Prev := Result;
@@ -138,22 +164,28 @@ begin
         eRoundRectangle      : Result := 'RndRectangle';
         eArc                 : Result := 'Arc';
     else
-        Result := 'unk';
+        Result := '';
     end;
 end;
 
-procedure ProcessSCHPrim(SchSourcePrim : ISch_Object, SchDestinPrim : ISch_Object, DocKind : WideString);
+procedure ProcessSCHPrim(SchSourcePrim : ISch_Object, SchDestinPrim : ISch_Object, DocKind : WideString, KeySet : TObjectSet);
 var
-    CommonObjID : TObjectId;
-    SubSetObj   : TobjectSet;
+    SubSetObj   : TObjectSet;
 begin
 // Objects do NOT have to be the same ObjectId, just same ancestor ObjectId /type.
+// ISch_Port text & colour is a messy mixture of label & entry properties; ignore.
+
 // ISch_GraphicalObject
-    try
+    if not InSet(cAltKey, KeySet) then
         SchDestinPrim.AreaColor := SchSourcePrim.AreaColor;
+    if not InSet(cCntlKey, KeySet) then
         SchDestinPrim.Color     := SchSourcePrim.Color;
-    except
-        ShowMessage('not supported');
+
+// ISch_GraphicalObject/ISch_Polygon & ./ISch_Line & ./ISch_Rectangle & ./ISch_RectangularGroup
+    SubSetObj := MkSet(ePolygon, ePolyLine, eBus, eWire, eBezier, eSignalHarness, eLine, eBusEntry, eRectangle, eRoundRectangle, eImage, eBlanket, eCompileMask, eSheetSymbol, eHighLevelCodeSymbol);
+    if InSet(SchSourcePrim.ObjectId, SubsetObj) and InSet(SchDestinPrim.ObjectID, SubSetObj) then
+    begin
+        SchDestinPrim.LineWidth     := SchSourcePrim.LineWidth;
     end;
 
 // ISch_GraphicalObject/ISch_Label
@@ -167,7 +199,7 @@ begin
     end;
 
 // ISch_GraphicalObject/ISch_Label/ISch_ComplexText
-    SubSetObj := MkSet(eDesignator, eParameter, eSheetName, eSheetFileName);
+    SubSetObj := MkSet(eDesignator, eParameter, eSheetName, eSheetFileName, eHarnessConnectorType);
     if InSet(SchSourcePrim.ObjectId, SubsetObj) and InSet(SchDestinPrim.ObjectID, SubSetObj) then
     begin
         SchDestinPrim.Autoposition   := SchSourcePrim.Autoposition;
@@ -192,35 +224,25 @@ begin
     end;
 
 // ISch_GraphicalObject/ISch_Polygon
-    SubSetObj := MkSet(ePolygon, ePolyLine, eBus, eWire, eBezier);
+    SubSetObj := MkSet(ePolygon, ePolyLine, eBus, eWire, eBezier, eSignalHarness);
     if InSet(SchSourcePrim.ObjectId, SubsetObj) and InSet(SchDestinPrim.ObjectID, SubSetObj) then
     begin
         SchDestinPrim.IsSolid       := SchSourcePrim.IsSolid;
-        SchDestinPrim.LineWidth     := SchSourcePrim.LineWidth;
         SchDestinPrim.Transparent   := SchSourcePrim.Transparent;
     end;
 
 // ISch_GraphicalObject/ISch_Polygon/ISch_BasicPolyline
-    SubSetObj := MkSet(ePolyLine, eBus, eWire, eBezier);
+    SubSetObj := MkSet(ePolyLine, eBus, eWire, eBezier, eSignalHarness);
     if InSet(SchSourcePrim.ObjectId, SubsetObj) and InSet(SchDestinPrim.ObjectID, SubSetObj) then
     begin
         SchDestinPrim.LineStyle      := SchSourcePrim.LineStyle;
     end;
 
 // ISch_GraphicalObject/ISch_Polygon/ISch_BasicPolyline/ISch_Wire
-    SubSetObj := MkSet(eBus, eWire);
+    SubSetObj := MkSet(eBus, eWire, eSignalHarness);
     if InSet(SchSourcePrim.ObjectId, SubsetObj) and InSet(SchDestinPrim.ObjectID, SubSetObj) then
     begin
         SchDestinPrim.UnderLineColor := SchSourcePrim.UnderLineColor;
-    end;
-
-// ISch_GraphicalObject/ISch_Rectangle
-    SubSetObj := MkSet(eRectangle, eRoundRectangle, eBlanket, eCompileMask);
-    if InSet(SchSourcePrim.ObjectId, SubsetObj) and InSet(SchDestinPrim.ObjectID, SubSetObj) then
-    begin
-        SchDestinPrim.IsSolid     := SchSourcePrim.IsSolid;
-        SchDestinPrim.LineWidth   := SchSourcePrim.LineWidth;
-        SchDestinPrim.Transparent := SchSourcePrim.Transparent;
     end;
 
 // ISch_GraphicalObject/ISch_Line
@@ -228,7 +250,14 @@ begin
     if InSet(SchSourcePrim.ObjectId, SubsetObj) and InSet(SchDestinPrim.ObjectID, SubSetObj) then
     begin
         SchDestinPrim.LineStyle   := SchSourcePrim.LineStyle;
-        SchDestinPrim.LineWidth   := SchSourcePrim.LineWidth;
+    end;
+
+// ISch_GraphicalObject/ISch_Rectangle
+    SubSetObj := MkSet(eRectangle, eRoundRectangle, eImage, eBlanket, eCompileMask);
+    if InSet(SchSourcePrim.ObjectId, SubsetObj) and InSet(SchDestinPrim.ObjectID, SubSetObj) then
+    begin
+        SchDestinPrim.IsSolid     := SchSourcePrim.IsSolid;
+        SchDestinPrim.Transparent := SchSourcePrim.Transparent;
     end;
 
 // ISch_GraphicalObject/ISch_Rectangle/ISch_TextFrame
@@ -239,24 +268,45 @@ begin
         SchDestinPrim.ClipToRect  := SchSourcePrim.ClipToRect;
         SchDestinPrim.FontID      := SchSourcePrim.FontID;
         SchDestinPrim.ShowBorder  := SchSourcePrim.ShowBorder;
-        SchDestinPrim.TextColor   := SchSourcePrim.TextColor;
+        if not InSet(cCntlKey, KeySet) then
+            SchDestinPrim.TextColor   := SchSourcePrim.TextColor;
         SchDestinPrim.WordWrap    := SchSourcePrim.WordWrap;
+    end;
+
+// ISch_GraphicalObject/ISch_ParametrizedGroup/ISch_RectangularGroup     excl eHarnessConnector
+    SubSetObj := MkSet(eSheetSymbol, eHighLevelCodeSymbol);
+    if InSet(SchSourcePrim.ObjectId, SubsetObj) and InSet(SchDestinPrim.ObjectID, SubSetObj) then
+    begin
+        SchDestinPrim.IsSolid          := SchSourcePrim.IsSolid;
+    end;
+
+// ISch_GraphicalObject/ISch_SheetEntry & ./ISch_HarnessEntry  & ./ISch_HighLevelCodeEntry
+    SubSetObj := MkSet(eSheetEntry, eHighLevelCodeEntry, eHarnessEntry);
+    if InSet(SchSourcePrim.ObjectId, SubsetObj) and InSet(SchDestinPrim.ObjectID, SubSetObj) then
+    begin
+      //  SchDestinPrim.IsVertical     := SchSourcePrim.IsVertical;
+        if not InSet(cCntlKey, KeySet) then
+            SchDestinPrim.TextColor      := SchSourcePrim.TextColor;
+        SchDestinPrim.TextFontID     := SchSourcePrim.TextFontID;
+        SchDestinPrim.TextStyle      := SchSourcePrim.TextStyle;
     end;
 
 
 // Special format copy for non matching objects
-// ISch_Label to ISch_SheetEntry or ISch_HarnessEntry 
-    SubSetObj := MkSet(eLabel, eCrossSheetConnector, eDesignator, eParameter, eNetlabel, ePowerObject, eSheetName, eSheetFileName); 
+// ISch_Label to ISch_SheetEntry or ISch_HarnessEntry
+    SubSetObj := MkSet(eLabel, eCrossSheetConnector, eDesignator, eParameter, eNetlabel, ePowerObject, eSheetName, eSheetFileName);
     if InSet(SchSourcePrim.ObjectId, SubSetObj) and InSet(SchDestinPrim.ObjectID, MkSet(eSheetEntry, eHarnessEntry)) then
     begin
         SchDestinPrim.TextFontID  := SchSourcePrim.FontID;
-        SchDestinPrim.TextColor   := SchSourcePrim.Color;
+        if not InSet(cCntlKey, KeySet) then
+            SchDestinPrim.TextColor   := SchSourcePrim.Color;
 //        SchDestinPrim.TextStyle   := SchSourcePrim.TextStyle;
     end;
     if InSet(SchSourcePrim.ObjectId, MkSet(eSheetEntry, eHarnessEntry)) and InSet(SchDestinPrim.ObjectID, SubSetObj) then
     begin
         SchDestinPrim.FontID      := SchSourcePrim.TextFontID;
-        SchDestinPrim.Color       := SchSourcePrim.TextColor;
+        if not InSet(cCntlKey, KeySet) then
+            SchDestinPrim.Color       := SchSourcePrim.TextColor;
 //        SchDestinPrim.TextStyle   := SchSourcePrim.TextStyle;
     end;
 
@@ -289,7 +339,8 @@ begin
 
     ePort :          // ISch_GraphicalObject/ISch_ParametrizedGroup/ISch_Port
         begin
-            SchDestinPrim.TextColor   := SchSourcePrim.TextColor;
+            if not InSet(cCntlKey, KeySet) then
+                SchDestinPrim.TextColor   := SchSourcePrim.TextColor;
             SchDestinPrim.Alignment   := SchSourcePrim.Alignment;
             SchDestinPrim.Style       := SchSourcePrim.Style;
             SchDestinPrim.FontId      := SchSourcePrim.FontId;
@@ -321,17 +372,69 @@ begin
         end;
 
     // Pin - Only use in SCHLIB
-    ePin :           // ISch_GraphicalObject/ISch_ParameterizedGroup/ISch_Pin
+    ePin :            // ISch_GraphicalObject/ISch_ParameterizedGroup/ISch_Pin
         if (DocKind = cDocKind_SchLib) then
         begin
             SchDestinPrim.ShowName       := SchSourcePrim.ShowName;
             SchDestinPrim.ShowDesignator := SchSourcePrim.ShowDesignator;
         end;
 
-    eParameterSet :  // ISch_GraphicalObject/ISch_ParametrizedGroup/ISch_ParameterSet
+    eParameterSet :   // ISch_GraphicalObject/ISch_ParametrizedGroup/ISch_ParameterSet
         begin
             SchDestinPrim.Style     := SchSourcePrim.Style;
         end;
+
+//  C Code Symbol
+//    eHighLevelCodeSymbol {58}:  //       ../ISch_ParametrizedGroup/ISch_RectangularGroup/ISch_HighLevelCodeSymbol
+
+    eSheetSymbol :    // ISch_GraphicalObject/ISch_ParametrizedGroup/ISch_RectangularGroup/ISch_SheetSymbol
+        SchDestinPrim.ShowHiddenFields := SchSourcePrim.ShowHiddenFields;
+
+    eHarnessConnector : //                 ../ISch_ParametrizedGroup/ISch_RectangularGroup/ISch_HarnessConnector
+        begin
+            SchDestinPrim.LineWidth                      := SchSourcePrim.LineWidth;
+            SchDestinPrim.MasterEntryLocation            := SchSourcePrim.MasterEntryLocation;
+            SchDestinPrim.HarnessConnectorType.IsHidden  := SchSourcePrim.HarnessConnectorType.IsHidden;
+        end;
+
+    eEllipse :        // ISch_GraphicalObject/ISch_Circle/ISch_Ellipse
+        begin
+            SchDestinPrim.IsSolid       := SchSourcePrim.IsSolid;
+            SchDestinPrim.Transparent   := SchSourcePrim.Transparent;
+        end;
+
+    eArc,             // ISch_GraphicalObject/ISch_Arc/ISch_EllipticalArc
+    eEllipticalArc :  // ISch_GraphicalObject/ISch_Arc/ISch_EllipticalArc
+        begin
+            SchDestinPrim.EndAngle      := SchSourcePrim.EndAngle;
+            SchDestinPrim.StartAngle    := SchSourcePrim.StartAngle;
+        end;
+
+    ePie :            // ISch_GraphicalObject/ISch_Arc/ISch_Pie
+        begin
+            SchDestinPrim.IsSolid       := SchSourcePrim.IsSolid;
+        end;
+
+//    eSignalHarness :  // ISch_GraphicalObject/ISch_Polygon/ISch_Wire/ ??
+
+    ePolyline :       // ISch_GraphicalObject/ISch_Polygon/ISch_BasicPolyline/ISch_Polyline
+        begin
+            SchDestinPrim.StartLineShape := SchSourcePrim.StartLineShape;
+            SchDestinPrim.EndLineShape   := SchSourcePrim.EndLineShape;
+            SchDestinPrim.LineShapeSize  := SchSourcePrim.LineShapeSize;
+        end;
+
+    // SheetSym & C Code Entry
+    eSheetEntry,      // ISch_GraphicalObject/ISch_SheetEntry
+    eHighLevelCodeEntry : // ISch_Graphical../ISch_HighLevelCodeEntry
+        begin
+            SchDestinPrim.Style          := SchSourcePrim.Style;
+            SchDestinPrim.ArrowKind      := SchSourcePrim.ArrowKind;
+            if not InSet(cAltKey, KeySet) then
+                SchDestinPrim.HarnessColor   := SchSourcePrim.HarnessColor;
+        end;
+
+//    eHarnessEntry :   // ISch_GraphicalObject/ISch_HarnessEntry
 
     eNote :          // ISch_GraphicalObject/ISch_Rectangle/ISch_TextFrame/ISch_Note
         begin
@@ -339,103 +442,26 @@ begin
             SchDestinPrim.Author        := SchSourcePrim.Author;
         end;
 
-    eEllipse :       // ISch_GraphicalObject/ISch_Circle/ISch_Ellipse
-        begin
-            SchDestinPrim.IsSolid       := SchSourcePrim.IsSolid;
-            SchDestinPrim.Transparent   := SchSourcePrim.Transparent;
-        end;
-
-    eArc, eEllipticalArc : //             ../ISch_Arc/ISch_EllipticalArc
-        begin
-            SchDestinPrim.EndAngle      := SchSourcePrim.EndAngle;
-            SchDestinPrim.StartAngle    := SchSourcePrim.StartAngle;
-        end;
-
-    // Pie Chart
-    ePie :           // ISch_GraphicalObject/ISch_Arc/ISch_Pie
-        begin
-            SchDestinPrim.IsSolid       := SchSourcePrim.IsSolid;
-        end;
-    
-    eSignalHarness : // ISch_GraphicalObject/ISch_    
-        begin
-            SchDestinPrim.IsSolid       := SchSourcePrim.IsSolid;
-        end;
-
-    ePolyline :      // ISch_GraphicalObject/ISch_Polygon/ISch_BasicPolyline/ISch_Polyline
-        begin
-            SchDestinPrim.StartLineShape := SchSourcePrim.StartLineShape;
-            SchDestinPrim.EndLineShape   := SchSourcePrim.EndLineShape;
-            SchDestinPrim.LineShapeSize  := SchSourcePrim.LineShapeSize;
-        end;
-
-    eSheetSymbol :   // ISch_GraphicalObject/ISch_ParametrizedGroup/ISch_RectangularGroup/ISch_SheetSymbol
-        begin
-            SchDestinPrim.IsSolid          := SchSourcePrim.IsSolid;
-            SchDestinPrim.ShowHiddenFields := SchSourcePrim.ShowHiddenFields;
-        end;
-
-    eSheetEntry :    // ISch_GraphicalObject/ISch_SheetEntry
-        begin
-            SchDestinPrim.Style          := SchSourcePrim.Style;
-            SchDestinPrim.ArrowKind      := SchSourcePrim.ArrowKind;
-            SchDestinPrim.HarnessColor   := SchSourcePrim.HarnessColor;
-            SchDestinPrim.TextFontID     := SchSourcePrim.TextFontID;
-            SchDestinPrim.TextColor      := SchSourcePrim.TextColor;
-            SchDestinPrim.TextStyle      := SchSourcePrim.TextStyle;
-        end;
-
-    // C Code Symbol    ISch_HighLevelCodeSymbol eHighLevelCodeSymbol = (58)
-    // C Code Entry
-    57 :             // ISch_HighLevelCodeEntry  eHighLevelCodeEntry  = (59)
-        begin
-            SchDestinPrim.TextColor     := SchSourcePrim.TextColor;
-            SchDestinPrim.Style         := SchSourcePrim.Style;
-            SchDestinPrim.HarnessColor  := SchSourcePrim.HarnessColor;
-        end;
-
-    // Diff Pair 28  ??? 18
-    // this is a type of directive??   ISch_Directive;
-    eDifferentialPairObject :  //  ISch_??
-        begin
-            //SchDestinPrim.FontID         := SchSourcePrim.FontID;
-            //SchDestinPrim.IsHidden       := SchSourcePrim.IsHidden;
-            //SchDestinPrim.Text           := SchSourcePrim.Text;
-        end;
-
-    eImage :         // ISch_GraphicalObject/ISch_Rectangle/ISch_Image
+    eImage :          // ISch_GraphicalObject/ISch_Rectangle/ISch_Image
         begin
             SchDestinPrim.KeepAspect    := SchSourcePrim.KeepAspect;
         end;
 
-    eRoundRectangle :// ISch_GraphicalObject/ISch_Rectangle/ISch_RoundRectangle
+    eRoundRectangle : // ISch_GraphicalObject/ISch_Rectangle/ISch_RoundRectangle
         begin
             SchDestinPrim.CornerXRadius := SchSourcePrim.CornerXRadius;
             SchDestinPrim.CornerYRadius := SchSourcePrim.CornerYRadius;
         end;
 
-    eCompileMask :   // ISch_GraphicalObject/ISch_Rectangle/ISch_CompileMask
+    eCompileMask :    // ISch_GraphicalObject/ISch_Rectangle/ISch_CompileMask
         begin
             SchDestinPrim.Collapsed      := SchSourcePrim.Collapsed;
         end;
 
-    eBlanket :       // ISch_GraphicalObject/ISch_Rectangle/ISch_Blanket
+    eBlanket :        // ISch_GraphicalObject/ISch_Rectangle/ISch_Blanket
         begin
             SchDestinPrim.LineStyle      := SchSourcePrim.LineStyle;
             SchDestinPrim.Collapsed      := SchSourcePrim.Collapsed;
-        end;
-  
-    eHarnessConnector : //                ../ISch_RectangularGroup/ISch_HarnessConnector
-        begin
-            SchDestinPrim.MasterEntryLocation            := SchSourcePrim.MasterEntryLocation;
-            SchDestinPrim.HarnessConnectorType.IsHidden  := SchSourcePrim.HarnessConnectorType.IsHidden;
-        end;
-
-    eHarnessEntry :  // ISch_GraphicalObject/ISch_HarnessEntry
-        begin
-            SchDestinPrim.IsVertical     := SchSourcePrim.IsVertical;
-            SchDestinPrim.TextFontID     := SchSourcePrim.TextFontID;
-            SchDestinPrim.TextColor      := SchSourcePrim.TextColor;
         end;
     end; //case
 end;
@@ -446,7 +472,7 @@ var
    Location        : TLocation;
    SchSourcePrim   : ISch_Object;
    SchDestinPrim   : ISch_Object;
-   SchTempPrim     : TObject;
+   SchTempPrim     : ISch_Object;
    SpatialIterator : ISch_Iterator;
    bRepeat         : boolean;
 
@@ -471,11 +497,11 @@ begin
             SchServer.ProcessControl.PreProcess(SchDoc, '');
             SchServer.RobotManager.SendMessage(SchDestinPrim.I_ObjectAddress, c_BroadCast, SCHM_BeginModify, c_NoEventData);
 
-            ProcessSCHPrim(SchSourcePrim, SchDestinPrim, DocKind);
+            ProcessSCHPrim(SchSourcePrim, SchDestinPrim, DocKind, KeySet);
 
             SchServer.RobotManager.SendMessage(SchDestinPrim.I_ObjectAddress, c_BroadCast, SCHM_EndModify  , c_NoEventData);
             SchServer.ProcessControl.PostProcess(SchDoc, '');
-            
+
             SchDestinPrim := nil;         // force Get Next Destination Object
         end;
 
@@ -491,15 +517,18 @@ begin
             end;
 
             Prompt := ObjectIDToString(SchSourcePrim.ObjectId);
-
-            GetStateString_ObjectId(SchSourcePrim.ObjectId);
-//            cContextHelpStringsByObjectId(SchSourcePrim.ObjectId);
-
-            if Prompt = '' then Prompt := SchSourcePrim.GetState_DescriptionString;
+            if Prompt = '' then Prompt :=  GetStateString_ObjectId(SchSourcePrim.ObjectId);  // SchSourcePrim.GetState_DescriptionString;
             Prompt := 'Choose Destination Object : ' + Prompt; 
 
-            // Get Object
+
+//        Get the right Object
             boolLoc := SchDoc.ChooseLocationInteractively(Location, Prompt);
+
+//        store key modifiers
+            KeySet := MkSet();
+            if ShiftKeyDown   then KeySet := MkSet(cShiftKey);
+            if AltKeyDown     then KeySet := SetUnion(KeySet, MkSet(cAltKey));
+            if ControlKeyDown then KeySet := SetUnion(KeySet, MkSet(cCntlKey));
 
             If Not boolLoc Then
             begin
@@ -668,15 +697,15 @@ begin
                         DestinPrim.YStackSizeOnLayer(Layer) := Pad.YStackSizeOnLayer(Layer);
                     end;
                 end;
-          //      DestinPrim.XPadOffset(Layer)            := Pad.XPadOffset(Layer);  This property is not implemented.
-          //      DestinPrim.YPadOffset(Layer)            := Pad.YPadOffset(Layer);  This property is not implemented.
+                // DestinPrim.XPadOffset(Layer)           := Pad.XPadOffset(Layer);  This property is not implemented.
+                // DestinPrim.YPadOffset(Layer)           := Pad.YPadOffset(Layer);  This property is not implemented.
             end;
             DestinPrim.InvalidateSizeShape;
             PadCache                        := Pad.GetState_Cache;
-            //DestinPrim.Cache.SolderMaskExpansionValid  := SourcePrim.Cache.SolderMaskExpansionValid;
-            //DestinPrim.Cache.SolderMaskExpansion       := SourcePrim.Cache.SolderMaskExpansion;
-            //DestinPrim.Cache.PasteMaskExpansionValid   := SourcePrim.Cache.PasteMaskExpansionValid;
-            //DestinPrim.Cache.PasteMaskExpansion        := SourcePrim.Cache.PasteMaskExpansion;
+            // DestinPrim.Cache.SolderMaskExpansionValid  := SourcePrim.Cache.SolderMaskExpansionValid;
+            // DestinPrim.Cache.SolderMaskExpansion       := SourcePrim.Cache.SolderMaskExpansion;
+            // DestinPrim.Cache.PasteMaskExpansionValid   := SourcePrim.Cache.PasteMaskExpansionValid;
+            // DestinPrim.Cache.PasteMaskExpansion        := SourcePrim.Cache.PasteMaskExpansion;
             DestinPrim.SetState_Cache       := PadCache;
             DestinPrim.PadCacheRobotFlag;
             DestinPrim.IsTenting            := Pad.IsTenting;
@@ -686,7 +715,7 @@ begin
             DestinPrim.GraphicallyInvalidate;
         end;
 
-        // Vias
+    // Vias
     eViaObject :
         begin
             DestinPrim.Mode                 := SourcePrim.Mode;
@@ -711,16 +740,16 @@ begin
                 DestinPrim.SizeOnLayer(Layer)           := SourcePrim.SizeOnLayer(Layer);
             end;
             PadCache                        := SourcePrim.GetState_Cache;
-            //Padcache.ReliefAirGap
-            //Padcache.PowerPlaneReliefExpansion
-            //Padcache.PowerPlaneClearance
-            //Padcache.ReliefConductorWidth
-            //Padcache.SolderMaskExpansion
-            //Padcache.SolderMaskExpansionValid
-            //  DestinPrim.Cache.SolderMaskExpansionValid  := SourcePrim.Cache.SolderMaskExpansionValid;
-            //  DestinPrim.Cache.SolderMaskExpansion       := SourcePrim.Cache.SolderMaskExpansion;
-            //Padcache.PasteMaskExpansion
-            //Padcache.PasteMaskExpansionValid
+            // Padcache.ReliefAirGap
+            // Padcache.PowerPlaneReliefExpansion
+            // Padcache.PowerPlaneClearance
+            // Padcache.ReliefConductorWidth
+            // Padcache.SolderMaskExpansion
+            // Padcache.SolderMaskExpansionValid
+            // DestinPrim.Cache.SolderMaskExpansionValid  := SourcePrim.Cache.SolderMaskExpansionValid;
+            // DestinPrim.Cache.SolderMaskExpansion       := SourcePrim.Cache.SolderMaskExpansion;
+            // Padcache.PasteMaskExpansion
+            // Padcache.PasteMaskExpansionValid
             DestinPrim.SetState_Cache       := Padcache;
             DestinPrim.PadCacheRobotFlag;
             DestinPrim.IsTenting_Top        := SourcePrim.IsTenting_Top;
@@ -924,7 +953,7 @@ begin
     // Make it work for Pads, Vias, Strings, Polygons, Dimensions and coordinates
     ASetOfObjects  := MkSet(ePadObject, eViaObject, eTextObject, ePolyObject, eRegionObject, eDimensionObject, eCoordinateObject);
   //  TextObjSet := MkSet(eTextObject);
-    NewAllLayers := SetUnion(AllLayers, MkSetRange(eMech17, eMech32));
+    NewAllLayers := SetUnion(AllLayers, MkSetRange(eMech17, eMech32));   // pass the safe layer ID values & handle later.
 
     SourcePrim := Nil;
     DestinPrim := Nil;
@@ -938,10 +967,12 @@ begin
         begin
             // copy formatting of PCB dimension
             PCBServer.PreProcess;
+//            PCBServer.SendMessageToRobots(DestinPrim.I_ObjectAddress ,c_Broadcast, PCBM_BeginModify, c_NoEventData);
+
             ProcessPCBPrim(SourcePrim, DestinPrim, boolLoc);
-
             DestinPrim := Nil;
-
+            
+//            PCBServer.SendMessageToRobots(DestinPrim.I_ObjectAddress, c_Broadcast, PCBM_EndModify, c_NoEventData);
             PCBServer.PostProcess;
             Board.ViewManager_FullUpdate;
         end;
@@ -997,13 +1028,14 @@ end;
 // main call entry point
 procedure FormatCopier;
 var
-   WS              : IWorkSpace;
-   Doc             : IDocument;
+   WS   : IWorkSpace;
+   Doc  : IDocument;
 
 begin
-   WS := GetWorkSpace;
-   Doc := WS.DM_FocusedDocument;
-   DocKind := Doc.DM_DocumentKind;
+   WS       := GetWorkSpace;
+   Doc      := WS.DM_FocusedDocument;
+   DocKind  := Doc.DM_DocumentKind;
+   VerMajor := Version(true).Strings(0);
 
    if (DocKind = cDocKind_Sch) or (DocKind = cDocKind_SchLib) then
        FormatCopySch(Doc);
