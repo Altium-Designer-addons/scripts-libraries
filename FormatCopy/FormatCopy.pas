@@ -1,17 +1,18 @@
-{
- FormatCopy.pas
- Summary   Used to copy some formatting properties from one (source) primitive
-           to other (destination) primitive(s) of the same or similar type.
+{ FormatCopy.pas
+Summary   Used to copy some formatting properties from one (source) primitive
+          to other (destination) primitive(s) of the same or similar type.
 
-           Works with all schematic objects (in SCH document
-           and library) and some objects in PCB Document.
-           Cross object format copying is possible in SchDoc.
-           <cntl>  key modifier prevent Text colour pasting   (C==Colour)
-           <alt>   key modifier prevents Area colour pasting  (A==Area)
-           <shift> key could prevent text Size change         (S==Size)
-           Note <cntl>+<Z> is active when running script.
-
-
+          Works with almost all schematic objects (in SchDoc and SchLib)
+          and some objects in PCB Document.
+          SchDoc:
+            Cross object format copying is possible.
+            <cntl>  key modifier prevent Text colour pasting   (C==Colour)
+            <alt>   key modifier prevents Area colour pasting  (A==Area)
+            <shift> key could prevent text Size change         (S==Size)
+Usage Notes:
+    While script is running:
+    - <cntl>+<Z> is active/usable.
+    - Current Layer (PCB) can be changed with <+> & <-> keys to influence layer pick bias.
 
  From FormatPaintbrush.pas
  Created by : Petar Perisin
@@ -27,12 +28,11 @@
 01/09/2019 v0.72 Sch pick object set based biasing.
 03/09/2019 v0.73 Sch: Move more operations to ancestor objects.
 14/09/2019 v0.74 Sch: Add modifier <cntl><alt> support
+14/09/2019 v0.75 PCB: remove layerset, use Source object & current layer as bias.
 
-tbd :  *fix* Current layer bias is a partial soln. Only works up to eMech16 in AD17/18
 tbd: <shift> modifier key was to prevent font size change but FontManager is borked in AD19.
 
 }
-{..............................................................................}
 
 { AllLayer = [MinLayer..eConnectLayer] , Set of TLayer
   MinLayer = eTopLayer;
@@ -44,9 +44,7 @@ tbd: <shift> modifier key was to prevent font size change but FontManager is bor
  i=32, eMech32 : LayerID = 67108896   LayerUtils.MechanicalLayer(i) returns correct values
  Delphi Sets can only have max 256 elements.
  The values 67108### above crash MkSet()
- Consider use of Altium display LayerSets as mask.
-
-}
+{..............................................................................}
 
 const
     cNeverAsk = false;    // set true for no layer prompt (default copy layer yes)
@@ -55,21 +53,15 @@ const
     cShiftKey = 2;
     cCntlKey  = 3;
 
-    eMech17    = 73;      // LayerUtils.MechanicalLayer(i) returns correct values
-    eMech32    = 88;      // AD19 appears to return correct values in Board.CurrentLayer
-
 var
     // Common variables
     ASetOfObjects   : TObjectSet;
     TextObjSet      : TObjectSet;
     KeySet          : TObjectSet;    // keyboard key modifiers <alt> <shift> <cntl>
     boolLoc         : Integer;
-    DocKind         : String; 
+    DocKind         : String;
     VerMajor        : Widestring;
     Prompt          : WideString;
-
-    NewAllLayers    : TLayerSet;     // does NOT directly solve problem with GetObjectAtCursor()
-
 {..............................................................................}
 
 function Version(const dummy : boolean) : TStringList;
@@ -80,7 +72,7 @@ begin
     Result.DelimitedText := Client.GetProductVersion;
 end;
 
-function nGetObjectAtCursor(Board : TPCB_Board, const ObjectSet: TObjectSet, const LayerSet : TLayerSet, msg : TString) : IPCB_Primitive;
+function nGetObjectAtCursor(Board : TPCB_Board, const ObjectSet: TObjectSet, const SourcPrimLayer : TLayer, msg : TString) : IPCB_Primitive;
 var
     x, y      : TCoord;
     Iterator  : IPCB_SpatialIterator;
@@ -107,7 +99,6 @@ begin
         while (Prim <> Nil) do
         begin
             if Board.LayerIsDisplayed(Prim.Layer) then   // filter on visible layers
-         //   if InSet(Prim.Layer, LayerSet) then        // can not use as actual layer numbers eM17-eM32 crash set assignment!
             begin
                 // need to exclude board region
                 if not ((Prim.Layer = eMultiLayer) and (Prim.ObjectID = eRegionObject)) then  // eBoardObject
@@ -121,7 +112,8 @@ begin
                         if ((Prev.ObjectID = eRegionObject) or (Prev.ObjectID = ePolyObject)) and
                             (Prev.Layer <> CLayer)                         then Result := Prim;
                         if (Prev.ObjectID = eTextObject) and Prev.IsHidden then Result := Prim;
-                        if (Prim.Layer = CLayer) or (CLayer = 0)           then Result := Prim;
+                        if (Prim.Layer = SourcPrimLayer)                   then Result := Prim;         // bias to same layer as SourcPrim
+                        if (Prim.Layer = CLayer) or (CLayer = 0)           then Result := Prim;         // highest bias to current layer
                     end
                     else Result := Prim;
                     Prev := Result;
@@ -571,7 +563,7 @@ begin
                             end;
                             SchTempPrim   := SpatialIterator.NextSchObject;
                         end;
-                       
+
                         if (SchDestinPrim = nil) and not bRepeat then        // go around with all/any objects
                         begin
                             ASetOfObjects := MkSetRange(eFirstObjectID, eLastObjectID);
@@ -949,11 +941,9 @@ begin
     // Get the document
     Board := PCBServer.GetCurrentPCBBoard;
     If Board = Nil Then Exit;
-    
+
     // Make it work for Pads, Vias, Strings, Polygons, Dimensions and coordinates
     ASetOfObjects  := MkSet(ePadObject, eViaObject, eTextObject, ePolyObject, eRegionObject, eDimensionObject, eCoordinateObject);
-  //  TextObjSet := MkSet(eTextObject);
-    NewAllLayers := SetUnion(AllLayers, MkSetRange(eMech17, eMech32));   // pass the safe layer ID values & handle later.
 
     SourcePrim := Nil;
     DestinPrim := Nil;
@@ -971,7 +961,7 @@ begin
 
             ProcessPCBPrim(SourcePrim, DestinPrim, boolLoc);
             DestinPrim := Nil;
-            
+
 //            PCBServer.SendMessageToRobots(DestinPrim.I_ObjectAddress, c_Broadcast, PCBM_EndModify, c_NoEventData);
             PCBServer.PostProcess;
             Board.ViewManager_FullUpdate;
@@ -981,8 +971,7 @@ begin
         if Assigned(SourcePrim) then
         begin
             Prompt := 'Choose Destination Primitive' + ' : ' + SourcePrim.ObjectIdString + ' on Layer ' + Board.LayerName(SourcePrim.Layer) + '  ';
-//            DestinPrim := PCBBoard.GetObjectAtCursor(MkSet(SourcePrim.ObjectId), NewAllLayers, Prompt);
-            DestinPrim := nGetObjectAtCursor(Board, MkSet(SourcePrim.ObjectId), NewAllLayers, Prompt);
+            DestinPrim := nGetObjectAtCursor(Board, MkSet(SourcePrim.ObjectId), SourcePrim.Layer, Prompt);
         end;
 
         if (not Assigned(DestinPrim)) or (DestinPrim = cESC) then SourcePrim := Nil;        //pick a new source obj
@@ -990,9 +979,8 @@ begin
         if not Assigned(SourcePrim) then
         begin
             DestinPrim := Nil;
-//            SourcePrim := PCBBoard.GetObjectAtCursor(ASetOfObjects, NewAllLayers, 'Choose Source Primitive');
             repeat
-               SourcePrim := nGetObjectAtCursor(Board, ASetOfObjects, NewAllLayers, 'Choose Source Primitive');
+               SourcePrim := nGetObjectAtCursor(Board, ASetOfObjects, 0, 'Choose Source Primitive');
             until Assigned(SourcePrim) or (SourcePrim = cEsc);
 
             if Assigned(SourcePrim) and (SourcePrim <> cESC)then
