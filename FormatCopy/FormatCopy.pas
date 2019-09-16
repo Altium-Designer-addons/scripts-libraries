@@ -29,6 +29,9 @@ Usage Notes:
 03/09/2019 v0.73 Sch: Move more operations to ancestor objects.
 14/09/2019 v0.74 Sch: Add modifier <cntl><alt> support
 14/09/2019 v0.75 PCB: remove layerset, use Source object & current layer as bias.
+16/09/2019 v0.76 PCB: Spatial iterator does NOT work with groups: dimensions & components.
+                      Pick UI does not cancel out from missed picks; more like the SchDoc picking
+
 
 tbd: <shift> modifier key was to prevent font size change but FontManager is borked in AD19.
 
@@ -71,57 +74,73 @@ begin
     Result.Duplicates := dupAccept;
     Result.DelimitedText := Client.GetProductVersion;
 end;
+function ShrinkBoundingRectangle( BR : CoordRect) : TCoordRect;
+begin                         // Rect(L, T, R, B)
+    Result := RectToCoordRect(
+    Rect(BR.X1 + RectWidth(BR) / 4, BR.Y2 - RectHeight(BR) / 4, BR.X2 - RectWidth(BR) / 4, BR.Y1 + RectHeight(BR) / 4) );
+end;
 
-function nGetObjectAtCursor(Board : TPCB_Board, const ObjectSet: TObjectSet, const SourcPrimLayer : TLayer, msg : TString) : IPCB_Primitive;
+function nGetObjectAtCursor(Board : TPCB_Board, const ObjectSet: TObjectSet, const SourcePrim : IPCB_Primitive, msg : TString) : IPCB_Primitive;
 var
     x, y      : TCoord;
-    Iterator  : IPCB_SpatialIterator;
+    Iterator  : IPCB_BoardIterator;
     Prim      : IPCB_Primitive;
     Prev      : IPCB_Primitive;
     Area      : double;
     CLayer    : TLayer;
-    MechLayer : IPCB_MechanicalLayer;
+    SPLayer   : TLayer;
+    SPId      : WideString;
+    BRect     : TCoordRect;
 
 begin
     Result := eNoObject;
 
-    if Board.ChooseLocation(x,y,msg) then  // false = ESC Key is pressed
+    if Board.ChooseLocation(x, y, msg) then  // false = ESC Key is pressed
     begin
 // layer can be changed during ChooseLocation fn UI!
         CLayer := Board.CurrentLayer;               // returns 0 for any unsupported layers.
-  
-        Iterator := Board.SpatialIterator_Create;
+        SPLayer := 0; SPId := '';
+        if SourcePrim <> Nil then
+        begin
+            SPLayer := SourcePrim.Layer;
+            SPId  := SourcePrim.Identifier;
+        end;
+        Iterator := Board.BoardIterator_Create;
         Iterator.SetState_FilterAll;
         Iterator.AddFilter_AllLayers;
         Iterator.AddFilter_ObjectSet(ObjectSet);
-        Iterator.AddFilter_Area (x - 10, y + 10, x + 10, y - 10);   //TCoord
+//        Iterator.AddFilter_Area (x - 100, y + 100, x + 100, y - 100);   // 1 Coord == 10Kmils   published method does not work board iterator
+
         Prim := Iterator.FirstPCBObject;
         while (Prim <> Nil) do
         begin
+            BRect := Prim.BoundingRectangle;          //  ShrinkBoundingRectangle(Prim.BoundingRectangle);
+//            if InSet(Prim.ObjectID, ObjectSet) then
+            if not (Prim.Identifier = SPId) then
+            if (BRect.X1 < x) and (BRect.X2 > x) and  (BRect.Y1 < y) and (BRect.Y2 > y) then
             if Board.LayerIsDisplayed(Prim.Layer) then   // filter on visible layers
+            // need to exclude board region
+            if not (Prim.ViewableObjectID = eViewableObject_BoardRegion) then   // Prim.Layer = eMultiLayer) and (Prim.ObjectID = eRegionObject))
             begin
-                // need to exclude board region
-                if not ((Prim.Layer = eMultiLayer) and (Prim.ObjectID = eRegionObject)) then  // eBoardObject
+                if Result <> eNoObject then
                 begin
-                    if Result <> eNoObject then
-                    begin
-                      // prioritise small area & sub objects & on current layer.
-                      //  if PrimArea(Result) > PrimArea(Prim) then Result := Prim;
-                        if (Prev.ObjectID = ePolyObject) and (Prim.ObjectID <> ePolyObject)     then Result := Prim;
-                        if (Prev.ObjectID = eRegionObject) and (Prim.ObjectID <> eRegionObject) then Result := Prim;
-                        if ((Prev.ObjectID = eRegionObject) or (Prev.ObjectID = ePolyObject)) and
-                            (Prev.Layer <> CLayer)                         then Result := Prim;
-                        if (Prev.ObjectID = eTextObject) and Prev.IsHidden then Result := Prim;
-                        if (Prim.Layer = SourcPrimLayer)                   then Result := Prim;         // bias to same layer as SourcPrim
-                        if (Prim.Layer = CLayer) or (CLayer = 0)           then Result := Prim;         // highest bias to current layer
-                    end
-                    else Result := Prim;
-                    Prev := Result;
-                end;
+                  // prioritise small area & sub objects & on current layer.
+                  //  if PrimArea(Result) > PrimArea(Prim) then Result := Prim;
+                    if (Prev.ObjectID = ePolyObject) and (Prim.ObjectID <> ePolyObject)     then Result := Prim;
+                    if (Prev.ObjectID = eRegionObject) and (Prim.ObjectID <> eRegionObject) then Result := Prim;
+                    if ((Prev.ObjectID = eRegionObject) or (Prev.ObjectID = ePolyObject)) and
+                        (Prev.Layer <> CLayer)                         then Result := Prim;
+                    if (Prev.ObjectID = eTextObject) and Prev.IsHidden then Result := Prim;
+                    if (Prev.InDimension) and (Prim.ObjectID = eDimensionObject) then Result := Prim;     // pick parent dim over the child text
+                    if (Prim.Layer = SPLayer)                          then Result := Prim;               // bias to same layer as SourcPrim
+                    if (Prim.Layer = CLayer) or (CLayer = 0)           then Result := Prim;               // highest bias to current layer
+                end
+                else Result := Prim;
+                Prev := Result;
             end;
             Prim := Iterator.NextPCBObject;
         end;
-        Board.SpatialIterator_Destroy(Iterator);
+        Board.BoardIterator_Destroy(Iterator);
     end
     else
         Result := cESC;
@@ -622,7 +641,7 @@ begin
 end;
 
 
-procedure ProcessPCBPrim(SourcePrim : IPCB_Primitive, DestinPrim : IPCB_Primitive, boolLoc : boolean);
+procedure ProcessPCBPrim(SourcePrim : IPCB_Primitive, DestinPrim : IPCB_Primitive, boolLoc : boolean, KeySet : TObjectSet);
 var
     Layer    : TLayer;
     PadCache : TPadCache;
@@ -630,6 +649,10 @@ var
 //    Flag     : Integer;
 
 begin
+// No support for cross objects format copying.
+// Objects now must be the same ObjectId to continue.
+    if SourcePrim.ObjectId <> DestinPrim.ObjectId then exit;
+
     // Always use IPCB_Primitive.BeginModify instead of PCBServer.SendMessageToRobots because is deprecated (?? no citation!)
     DestinPrim.BeginModify;
 
@@ -669,7 +692,7 @@ begin
                 DestinPrim.BotXSize     := Pad.BotXSize;
                 DestinPrim.BotShape     := Pad.BotShape;
             end;
-            
+
             if Pad.Mode <> ePadMode_Simple then
             begin
                 for Layer := eTopLayer to eBottomLayer Do
@@ -781,10 +804,9 @@ begin
             DestinPrim.BarCodeFullHeight    := SourcePrim.BarCodeFullHeight;
             DestinPrim.BarCodeFontName      := SourcePrim.BarCodeFontName;
 
-
             if boolLoc = mrYes then
                 DestinPrim.Layer            := SourcePrim.Layer;
-            
+
             if (SourcePrim.IsDesignator and DestinPrim.IsDesignator) then
             begin
                 DestinPrim.Component.Name.BeginModify;
@@ -798,6 +820,9 @@ begin
                 DestinPrim.Component.ChangeCommentAutoposition(SourcePrim.Component.CommentAutoPosition);
                 DestinPrim.Component.Comment.EndModify;
             end;
+            if DestinPrim.InDimension then
+                DestinPrim.SetState_XSizeYSize;
+
             DestinPrim.GraphicallyInvalidate;
         end;
 
@@ -846,6 +871,9 @@ begin
     // Dimensions
     eDimensionObject :
         Begin
+            DestinPrim.PrimitiveLock;
+            DestinPrim.AllowGlobalEdit;
+
             DestinPrim.ArrowLength         := SourcePrim.ArrowLength;
             DestinPrim.ArrowLineWidth      := SourcePrim.ArrowLineWidth;
             DestinPrim.ArrowSize           := SourcePrim.ArrowSize;
@@ -877,15 +905,12 @@ begin
             if boolLoc = mrYes then
                 DestinPrim.Layer           := SourcePrim.Layer;
 
-            // !!! Workaround for now - needed to fake Dimension has changed semantics. This
-            // is necesary because we don't currenly have access to the Dimension method that
-            // force a dimension update. Without this the call to DestinPrim.SetState_XSizeYSize
-            // is not doing anything
+     // !!! Workaround - need to fake Dimension has changed.
+     // Necesary because we don't currenly have access to the Dimension method that trigger
+     // a dimension update. Without that DestinPrim.SetState_XSizeYSize does nothing.
             DestinPrim.TextX              := DestinPrim.TextX + MilsToCoord(0.01);
             DestinPrim.SetState_XSizeYSize;
-            DestinPrim.EndModify;
-            DestinPrim.BeginModify;
-            //DestinPrim.GraphicallyInvalidate;
+            DestinPrim.GraphicallyInvalidate;
             DestinPrim.TextX              := DestinPrim.TextX - MilsToCoord(0.01);
             DestinPrim.SetState_XSizeYSize;
             DestinPrim.GraphicallyInvalidate;
@@ -907,17 +932,12 @@ begin
 
             if boolLoc = mrYes then
                 DestinPrim.Layer          := SourcePrim.Layer;
-            
-            // !!! Workaround for now - needed to fake Dimension has changed semantics. This
-            // is necessary because we don't currently have access to the Dimension method that
-            // force a dimension update. Without this the call to DestinPrim.SetState_XSizeYSize
-            // is not doing anything
-            
+
+      // !!! Workaround - need to fake Coordinate has changed.
+      // see Dimension comment above.
             DestinPrim.X     := DestinPrim.X + MilsToCoord(0.01);
             DestinPrim.SetState_XSizeYSize;
-            DestinPrim.EndModify;               // this could be enough
-          //  DestinPrim.GraphicallyInvalidate;
-            DestinPrim.BeginModify;
+            DestinPrim.GraphicallyInvalidate;
             DestinPrim.X     := DestinPrim.X - MilsToCoord(0.01);
             DestinPrim.SetState_XSizeYSize;
             DestinPrim.GraphicallyInvalidate;
@@ -941,13 +961,20 @@ begin
     // Get the document
     Board := PCBServer.GetCurrentPCBBoard;
     If Board = Nil Then Exit;
-
+{
+    if Board.SelectecObjectCount > 0 then
+    begin
+        SourcePrim := Board.SelectecObject(0);
+        SourcePrim.ObjectID;
+    end;
+}
     // Make it work for Pads, Vias, Strings, Polygons, Dimensions and coordinates
     ASetOfObjects  := MkSet(ePadObject, eViaObject, eTextObject, ePolyObject, eRegionObject, eDimensionObject, eCoordinateObject);
 
     SourcePrim := Nil;
     DestinPrim := Nil;
     boolLoc    := mrYes;      // default copy layer info
+    KeySet     := MkSet();
     bFirstTime := true;
     bNeverAsk  := cNeverAsk;
 
@@ -959,7 +986,7 @@ begin
             PCBServer.PreProcess;
 //            PCBServer.SendMessageToRobots(DestinPrim.I_ObjectAddress ,c_Broadcast, PCBM_BeginModify, c_NoEventData);
 
-            ProcessPCBPrim(SourcePrim, DestinPrim, boolLoc);
+            ProcessPCBPrim(SourcePrim, DestinPrim, boolLoc, KeySet);
             DestinPrim := Nil;
 
 //            PCBServer.SendMessageToRobots(DestinPrim.I_ObjectAddress, c_Broadcast, PCBM_EndModify, c_NoEventData);
@@ -970,17 +997,28 @@ begin
         // Get PCB Object
         if Assigned(SourcePrim) then
         begin
-            Prompt := 'Choose Destination Primitive' + ' : ' + SourcePrim.ObjectIdString + ' on Layer ' + Board.LayerName(SourcePrim.Layer) + '  ';
-            DestinPrim := nGetObjectAtCursor(Board, MkSet(SourcePrim.ObjectId), SourcePrim.Layer, Prompt);
+            Prompt := 'Choose Destination Primitive' + ' : ' + SourcePrim.ObjectIdString;
+            if SourcePrim.ObjectID = eViaObject then
+                Prompt := Prompt + ' on Layer ' + Board.LayerName(SourcePrim.LowLayer) + ' - ' + Board.LayerName(SourcePrim.HighLayer) + ' '
+            else
+                Prompt := Prompt + ' on Layer ' + Board.LayerName(SourcePrim.Layer) + ' ';
+
+            DestinPrim := nGetObjectAtCursor(Board, MkSet(SourcePrim.ObjectId), SourcePrim, Prompt);
         end;
 
-        if (not Assigned(DestinPrim)) or (DestinPrim = cESC) then SourcePrim := Nil;        //pick a new source obj
+//        store key modifiers
+        KeySet := MkSet();
+        if ShiftKeyDown   then KeySet := MkSet(cShiftKey);
+        if AltKeyDown     then KeySet := SetUnion(KeySet, MkSet(cAltKey));
+        if ControlKeyDown then KeySet := SetUnion(KeySet, MkSet(cCntlKey));
+
+        if (DestinPrim = cESC) then SourcePrim := Nil;        //pick a new source obj
 
         if not Assigned(SourcePrim) then
         begin
             DestinPrim := Nil;
             repeat
-               SourcePrim := nGetObjectAtCursor(Board, ASetOfObjects, 0, 'Choose Source Primitive');
+               SourcePrim := nGetObjectAtCursor(Board, ASetOfObjects, Nil, 'Choose Source Primitive');
             until Assigned(SourcePrim) or (SourcePrim = cEsc);
 
             if Assigned(SourcePrim) and (SourcePrim <> cESC)then
