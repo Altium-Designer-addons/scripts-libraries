@@ -2,17 +2,23 @@
 Summary   Used to copy some formatting properties from one (source) primitive
           to other (destination) primitive(s) of the same or similar type.
 
-          Works with almost all schematic objects (in SchDoc and SchLib)
-          and some objects in PCB Document.
-          SchDoc:
-            Cross object format copying is possible.
-            <cntl>  key modifier prevent Text colour pasting   (C==Colour)
-            <alt>   key modifier prevents Area colour pasting  (A==Area)
-            <shift> key could prevent text Size change         (S==Size)
+Works with almost all schematic objects (in SchDoc and SchLib) and some objects in PCB Document.
+  SchDoc:
+    Cross object format copying is possible.
+    <cntl>  key modifier prevent Text colour pasting   (C==Colour)
+    <alt>   key modifier prevents Area colour pasting  (A==Area)
+    <shift> key could prevent text Size change         (S==Size)
+  PcbDoc:
+    No cross object
+    <cntl>  key modifier Current Layer only pick
+    <shift> key modifier same Layer pick as Source Prim Layer
+    <+>, <->  changes current layer.
+
 Usage Notes:
     While script is running:
     - <cntl>+<Z> is active/usable.
     - Current Layer (PCB) can be changed with <+> & <-> keys to influence layer pick bias.
+    - Ambiguious UI Dialog ignores modifier keys if Layer > MaxLayers
 
  From FormatPaintbrush.pas
  Created by : Petar Perisin
@@ -31,7 +37,7 @@ Usage Notes:
 14/09/2019 v0.75 PCB: remove layerset, use Source object & current layer as bias.
 16/09/2019 v0.76 PCB: Spatial iterator does NOT work with groups: dimensions & components.
                       Pick UI does not cancel out from missed picks; more like the SchDoc picking
-
+17/09/2019 v0.80 PCB: Use Ambiguious object UI Dialog when possible, else uses prev. method
 
 tbd: <shift> modifier key was to prevent font size change but FontManager is borked in AD19.
 
@@ -82,65 +88,101 @@ end;
 
 function nGetObjectAtCursor(Board : TPCB_Board, const ObjectSet: TObjectSet, const SourcePrim : IPCB_Primitive, msg : TString) : IPCB_Primitive;
 var
-    x, y      : TCoord;
-    Iterator  : IPCB_BoardIterator;
-    Prim      : IPCB_Primitive;
-    Prev      : IPCB_Primitive;
-    Area      : double;
-    CLayer    : TLayer;
-    SPLayer   : TLayer;
-    SPId      : WideString;
-    BRect     : TCoordRect;
+    x, y          : TCoord;
+    Iterator      : IPCB_BoardIterator;
+    Prim          : IPCB_Primitive;
+    Prev          : IPCB_Primitive;
+//    Area      : double;
+    LayerSet      : TLayerSet;
+    TV6_LayerSet  : TLayerSet;
+    RealAllLayers : boolean;
+    CLayer        : TLayer;
+    SPLayer       : TLayer;
+    SPId          : WideString;
+    BRect         : TCoordRect;
 
 begin
+    KeySet := MkSet();
+    TV6_LayerSet := AllLayers;
+    LayerSet := AllLayers;       // can not make larger or add layers above MaxLayer
+    RealAllLayers := true;
     Result := eNoObject;
 
     if Board.ChooseLocation(x, y, msg) then  // false = ESC Key is pressed
     begin
-// layer can be changed during ChooseLocation fn UI!
+//   read modifier keys just as/after the "pick" mouse click
+        if ShiftKeyDown   then KeySet := MkSet(cShiftKey);
+        if AltKeyDown     then KeySet := SetUnion(KeySet, MkSet(cAltKey));
+        if ControlKeyDown then KeySet := SetUnion(KeySet, MkSet(cCntlKey));
+//   layer can be changed during ChooseLocation fn UI!
         CLayer := Board.CurrentLayer;               // returns 0 for any unsupported layers.
         SPLayer := 0; SPId := '';
         if SourcePrim <> Nil then
         begin
             SPLayer := SourcePrim.Layer;
             SPId  := SourcePrim.Identifier;
-        end;
-        Iterator := Board.BoardIterator_Create;
-        Iterator.SetState_FilterAll;
-        Iterator.AddFilter_AllLayers;
-        Iterator.AddFilter_ObjectSet(ObjectSet);
-//        Iterator.AddFilter_Area (x - 100, y + 100, x + 100, y - 100);   // 1 Coord == 10Kmils   published method does not work board iterator
-
-        Prim := Iterator.FirstPCBObject;
-        while (Prim <> Nil) do
-        begin
-            BRect := Prim.BoundingRectangle;          //  ShrinkBoundingRectangle(Prim.BoundingRectangle);
-//            if InSet(Prim.ObjectID, ObjectSet) then
-            if not (Prim.Identifier = SPId) then
-            if (BRect.X1 < x) and (BRect.X2 > x) and  (BRect.Y1 < y) and (BRect.Y2 > y) then
-            if Board.LayerIsDisplayed(Prim.Layer) then   // filter on visible layers
-            // need to exclude board region
-            if not (Prim.ViewableObjectID = eViewableObject_BoardRegion) then   // Prim.Layer = eMultiLayer) and (Prim.ObjectID = eRegionObject))
+            if InSet(cShiftKey, KeySet) then
             begin
+                LayerSet      := MkSet(SPLayer);
+                if (SPLayer <= MaxLayer) then TV6_LayerSet := LayerSet;
+                RealAllLayers := false;
+            end;
+        end;
+        if InSet(cCntlKey, KeySet) then
+        begin
+            LayerSet      := MkSet(CLayer);
+            if (CLayer <= MaxLayer) then TV6_LayerSet := LayerSet;
+            RealAllLayers := false;
+        end;
+//                                                                        vvv TV6_Layerset
+        Result := Board.GetObjectAtXYAskUserIfAmbiguous(x, y, ObjectSet, TV6_LayerSet, eEditAction_Focus);         // eEditAction_DontCare
+        if (Result = Nil) then Result := eNoObject;
+
+// try a bit harder, above call does not handle above emech16
+        if Result = eNoObject then
+        begin
+            Iterator := Board.BoardIterator_Create;
+            Iterator.SetState_FilterAll;
+            Iterator.AddFilter_AllLayers;
+            Iterator.AddFilter_ObjectSet(ObjectSet);
+//            Iterator.AddFilter_Area (x - 100, y + 100, x + 100, y - 100);   // 1 Coord == 10Kmils   published method does not work board iterator
+
+            Prim := Iterator.FirstPCBObject;
+            while (Prim <> Nil) do
+            begin
+                BRect := Prim.BoundingRectangle;                          //  ShrinkBoundingRectangle(Prim.BoundingRectangle);
+//        apply layer filter  real AllLayers
+                if RealAllLayers or InSet(Prim.Layer, LayerSet) then
+//        avoid picking Source nested objects with big bounding boxes
+                if not (Prim.Identifier = SPId) then
+                if (BRect.X1 < x) and (BRect.X2 > x) and  (BRect.Y1 < y) and (BRect.Y2 > y) then
+//        filter on visible layers
+                if Board.LayerIsDisplayed(Prim.Layer) then
+//        need to exclude board region
+                if not (Prim.ViewableObjectID = eViewableObject_BoardRegion) then   // Prim.Layer = eMultiLayer) and (Prim.ObjectID = eRegionObject))
                 if Result <> eNoObject then
                 begin
-                  // prioritise small area & sub objects & on current layer.
+//        prioritise small & sub objects & on current layer.
                   //  if PrimArea(Result) > PrimArea(Prim) then Result := Prim;
                     if (Prev.ObjectID = ePolyObject) and (Prim.ObjectID <> ePolyObject)     then Result := Prim;
                     if (Prev.ObjectID = eRegionObject) and (Prim.ObjectID <> eRegionObject) then Result := Prim;
                     if ((Prev.ObjectID = eRegionObject) or (Prev.ObjectID = ePolyObject)) and
-                        (Prev.Layer <> CLayer)                         then Result := Prim;
-                    if (Prev.ObjectID = eTextObject) and Prev.IsHidden then Result := Prim;
-                    if (Prev.InDimension) and (Prim.ObjectID = eDimensionObject) then Result := Prim;     // pick parent dim over the child text
-                    if (Prim.Layer = SPLayer)                          then Result := Prim;               // bias to same layer as SourcPrim
-                    if (Prim.Layer = CLayer) or (CLayer = 0)           then Result := Prim;               // highest bias to current layer
+                        (Prev.Layer <> CLayer)                                              then Result := Prim;
+                    if (Prev.ObjectID = eTextObject) and Prev.IsHidden                      then Result := Prim;
+//              pick parent dim over the child text
+                    if (Prev.InDimension) and (Prim.ObjectID = eDimensionObject)            then Result := Prim;
+//              bias to same layer as SourcPrim
+                    if (Prim.Layer = SPLayer)                                               then Result := Prim;
+//              highest bias to current layer
+                    if (Prim.Layer = CLayer)                                                then Result := Prim;
                 end
                 else Result := Prim;
+
                 Prev := Result;
+                Prim := Iterator.NextPCBObject;
             end;
-            Prim := Iterator.NextPCBObject;
+            Board.BoardIterator_Destroy(Iterator);
         end;
-        Board.BoardIterator_Destroy(Iterator);
     end
     else
         Result := cESC;
@@ -529,7 +571,7 @@ begin
 
             Prompt := ObjectIDToString(SchSourcePrim.ObjectId);
             if Prompt = '' then Prompt :=  GetStateString_ObjectId(SchSourcePrim.ObjectId);  // SchSourcePrim.GetState_DescriptionString;
-            Prompt := 'Choose Destination Object : ' + Prompt; 
+            Prompt := 'Choose Destination Object : ' + Prompt;
 
 
 //        Get the right Object
@@ -994,23 +1036,17 @@ begin
             Board.ViewManager_FullUpdate;
         end;
 
-        // Get PCB Object
+//    Get PCB Object
         if Assigned(SourcePrim) then
         begin
             Prompt := 'Choose Destination Primitive' + ' : ' + SourcePrim.ObjectIdString;
             if SourcePrim.ObjectID = eViaObject then
-                Prompt := Prompt + ' on Layer ' + Board.LayerName(SourcePrim.LowLayer) + ' - ' + Board.LayerName(SourcePrim.HighLayer) + ' '
+                Prompt := Prompt + ' on Layer ' + Board.LayerName(SourcePrim.LowLayer) + ' - ' + Board.LayerName(SourcePrim.HighLayer) + '  '
             else
-                Prompt := Prompt + ' on Layer ' + Board.LayerName(SourcePrim.Layer) + ' ';
+                Prompt := Prompt + ' on Layer ' + Board.LayerName(SourcePrim.Layer) + '  ';
 
             DestinPrim := nGetObjectAtCursor(Board, MkSet(SourcePrim.ObjectId), SourcePrim, Prompt);
         end;
-
-//        store key modifiers
-        KeySet := MkSet();
-        if ShiftKeyDown   then KeySet := MkSet(cShiftKey);
-        if AltKeyDown     then KeySet := SetUnion(KeySet, MkSet(cAltKey));
-        if ControlKeyDown then KeySet := SetUnion(KeySet, MkSet(cCntlKey));
 
         if (DestinPrim = cESC) then SourcePrim := Nil;        //pick a new source obj
 
@@ -1018,7 +1054,7 @@ begin
         begin
             DestinPrim := Nil;
             repeat
-               SourcePrim := nGetObjectAtCursor(Board, ASetOfObjects, Nil, 'Choose Source Primitive');
+               SourcePrim := nGetObjectAtCursor(Board, ASetOfObjects, Nil, 'Choose Source Primitive  ');
             until Assigned(SourcePrim) or (SourcePrim = cEsc);
 
             if Assigned(SourcePrim) and (SourcePrim <> cESC)then
@@ -1035,12 +1071,12 @@ begin
                     // if SourcePrim.ObjectId = ePadObject then
                     //    Prompt := 'Pad : Copy layer info (SMD/Thru)';
                     if SourcePrim.ObjectId = ePolyObject then
-                        Prompt := 'Polygon on layer : ' + Board.LayerName(SourcePrim.Layer) + '. Copy layer info ?'
+                        Prompt := 'Polygon on layer : ' + Board.LayerName(SourcePrim.Layer) + '. Copy layer info ?  '
                     else if SourcePrim.ObjectId = eViaObject then
                         Prompt := 'Via between : ' + Board.LayerName(SourcePrim.LowLayer) + '-' + Board.LayerName(SourcePrim.HighLayer)
-                                    + '. Copy Start/Stop Layer info ?'
+                                    + '. Copy Start/Stop Layer info ? '
                     else
-                        Prompt := SourcePrim.ObjectIdString + '. Copy layer ' + Board.LayerName(SourcePrim.Layer) + ' info ?';
+                        Prompt := SourcePrim.ObjectIdString + '. Copy layer ' + Board.LayerName(SourcePrim.Layer) + ' info ?  ';
 
                     boolLoc := MessageDlg(Prompt, mtConfirmation, mbYesNoCancel, 0);
                     if boolLoc = mrCancel then SourcePrim := Nil;
