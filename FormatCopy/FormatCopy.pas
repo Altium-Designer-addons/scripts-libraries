@@ -38,6 +38,8 @@ Usage Notes:
 16/09/2019 v0.76 PCB: Spatial iterator does NOT work with groups: dimensions & components.
                       Pick UI does not cancel out from missed picks; more like the SchDoc picking
 17/09/2019 v0.80 PCB: Use Ambiguious object UI Dialog when possible, else uses prev. method
+21/09/2019 v0.81 SCH: eTextFrame (& eNote?) was not copying IsSolid, Transparent or LineWidth
+22/09/2019 v0.82 SCH: Use CreateHitTest in place of SpatialIterator
 
 tbd: <shift> modifier key was to prevent font size change but FontManager is borked in AD19.
 
@@ -234,16 +236,36 @@ begin
     if not InSet(cCntlKey, KeySet) then
         SchDestinPrim.Color     := SchSourcePrim.Color;
 
-// ISch_GraphicalObject/ISch_Polygon & ./ISch_Line & ./ISch_Rectangle & ./ISch_RectangularGroup
-    SubSetObj := MkSet(ePolygon, ePolyLine, eBus, eWire, eBezier, eSignalHarness, eLine, eBusEntry, eRectangle, eRoundRectangle, eImage, eBlanket, eCompileMask, eSheetSymbol, eHighLevelCodeSymbol);
-    if InSet(SchSourcePrim.ObjectId, SubsetObj) and InSet(SchDestinPrim.ObjectID, SubSetObj) then
+// ISch_GraphicalObject/ISch_Polygon & ./ISch_Line & ./ISch_Rectangle
+// ./ISch_ParametrizedGroup/ISch_RectangularGroup  & ./ISch_HarnessConnector
+    SubSetObj := MkSet(ePolygon, ePolyLine, eBus, eWire, eBezier, eSignalHarness, eHarnessConnector, eLine, eBusEntry, eRectangle, eRoundRectangle,
+                       eArc, eEllipticalArc, eImage, eTextFrame, eNote, eBlanket, eCompileMask, eSheetSymbol, eHighLevelCodeSymbol);
+    if InSet(SchSourcePrim.ObjectId, SubSetObj) and InSet(SchDestinPrim.ObjectID, SubSetObj) then
     begin
         SchDestinPrim.LineWidth     := SchSourcePrim.LineWidth;
     end;
 
+// ISch_GraphicalObject/ISch_Polygon & ./ISch_Rectangle
+// ./ISch_ParametrizedGroup/ISch_RectangularGroup         excl eHarnessConnector
+// ISch_GraphicalObject/ISch_Circle/ISch_Ellipse          excl ePie
+    SubSetObj := MkSet(ePolygon, ePolyLine, eBus, eWire, eBezier, eSignalHarness, eRectangle, eRoundRectangle,
+                       eEllipse, eImage, eTextFrame, eNote, eBlanket, eCompileMask);
+    if InSet(SchSourcePrim.ObjectId, SubSetObj) and InSet(SchDestinPrim.ObjectID, SubSetObj) then
+    begin
+        SchDestinPrim.IsSolid       := SchSourcePrim.IsSolid;
+        SchDestinPrim.Transparent   := SchSourcePrim.Transparent;
+    end;
+
+// ISch_GraphicalObject/ISch_Polygon/ISch_BasicPolyline; ISch_GraphicalObject/ISch_Line
+    SubSetObj := MkSet(eLine, eBusEntry, ePolyLine, eBus, eWire, eBezier, eSignalHarness, eBlanket);
+    if InSet(SchSourcePrim.ObjectId, SubSetObj) and InSet(SchDestinPrim.ObjectID, SubSetObj) then
+    begin
+        SchDestinPrim.LineStyle      := SchSourcePrim.LineStyle;
+    end;
+
 // ISch_GraphicalObject/ISch_Label
     SubSetObj := MkSet(eLabel, eCrossSheetConnector, eDesignator, eParameter, eNetlabel, ePowerObject, eSheetName, eSheetFileName);
-    if InSet(SchSourcePrim.ObjectId, SubsetObj) and InSet(SchDestinPrim.ObjectID, SubSetObj) then
+    if InSet(SchSourcePrim.ObjectId, SubSetObj) and InSet(SchDestinPrim.ObjectID, SubSetObj) then
     begin
         SchDestinPrim.FontID        := SchSourcePrim.FontID;
         SchDestinPrim.Justification := SchSourcePrim.Justification;
@@ -253,7 +275,7 @@ begin
 
 // ISch_GraphicalObject/ISch_Label/ISch_ComplexText
     SubSetObj := MkSet(eDesignator, eParameter, eSheetName, eSheetFileName, eHarnessConnectorType);
-    if InSet(SchSourcePrim.ObjectId, SubsetObj) and InSet(SchDestinPrim.ObjectID, SubSetObj) then
+    if InSet(SchSourcePrim.ObjectId, SubSetObj) and InSet(SchDestinPrim.ObjectID, SubSetObj) then
     begin
         SchDestinPrim.Autoposition   := SchSourcePrim.Autoposition;
         SchDestinPrim.IsHidden       := SchSourcePrim.IsHidden;
@@ -263,59 +285,29 @@ begin
 
 // ISch_GraphicalObject/ISch_Label/ISch_ComplexText/ISch_Parameter
     SubSetObj := MkSet(eDesignator, eParameter);
-    if InSet(SchSourcePrim.ObjectId, SubsetObj) and InSet(SchDestinPrim.ObjectID, SubSetObj) then
+    if InSet(SchSourcePrim.ObjectId, SubSetObj) and InSet(SchDestinPrim.ObjectID, SubSetObj) then
     begin
         SchDestinPrim.ShowName      := SchSourcePrim.ShowName;
     end;
 
 //  ISch_GraphicalObject/ISch_Label/ISch_PowerObject
     SubSetObj := MkSet(ePowerObject, eCrossSheetConnector);
-    if InSet(SchSourcePrim.ObjectId, SubsetObj) and InSet(SchDestinPrim.ObjectID, SubSetObj) then
+    if InSet(SchSourcePrim.ObjectId, SubSetObj) and InSet(SchDestinPrim.ObjectID, SubSetObj) then
     begin
         SchDestinPrim.Style         := SchSourcePrim.Style;
         SchDestinPrim.ShowNetName   := SchSourcePrim.ShowNetName;
     end;
 
-// ISch_GraphicalObject/ISch_Polygon
-    SubSetObj := MkSet(ePolygon, ePolyLine, eBus, eWire, eBezier, eSignalHarness);
-    if InSet(SchSourcePrim.ObjectId, SubsetObj) and InSet(SchDestinPrim.ObjectID, SubSetObj) then
-    begin
-        SchDestinPrim.IsSolid       := SchSourcePrim.IsSolid;
-        SchDestinPrim.Transparent   := SchSourcePrim.Transparent;
-    end;
-
-// ISch_GraphicalObject/ISch_Polygon/ISch_BasicPolyline
-    SubSetObj := MkSet(ePolyLine, eBus, eWire, eBezier, eSignalHarness);
-    if InSet(SchSourcePrim.ObjectId, SubsetObj) and InSet(SchDestinPrim.ObjectID, SubSetObj) then
-    begin
-        SchDestinPrim.LineStyle      := SchSourcePrim.LineStyle;
-    end;
-
 // ISch_GraphicalObject/ISch_Polygon/ISch_BasicPolyline/ISch_Wire
     SubSetObj := MkSet(eBus, eWire, eSignalHarness);
-    if InSet(SchSourcePrim.ObjectId, SubsetObj) and InSet(SchDestinPrim.ObjectID, SubSetObj) then
+    if InSet(SchSourcePrim.ObjectId, SubSetObj) and InSet(SchDestinPrim.ObjectID, SubSetObj) then
     begin
         SchDestinPrim.UnderLineColor := SchSourcePrim.UnderLineColor;
     end;
 
-// ISch_GraphicalObject/ISch_Line
-    SubSetObj := MkSet(eLine, eBusEntry);
-    if InSet(SchSourcePrim.ObjectId, SubsetObj) and InSet(SchDestinPrim.ObjectID, SubSetObj) then
-    begin
-        SchDestinPrim.LineStyle   := SchSourcePrim.LineStyle;
-    end;
-
-// ISch_GraphicalObject/ISch_Rectangle
-    SubSetObj := MkSet(eRectangle, eRoundRectangle, eImage, eBlanket, eCompileMask);
-    if InSet(SchSourcePrim.ObjectId, SubsetObj) and InSet(SchDestinPrim.ObjectID, SubSetObj) then
-    begin
-        SchDestinPrim.IsSolid     := SchSourcePrim.IsSolid;
-        SchDestinPrim.Transparent := SchSourcePrim.Transparent;
-    end;
-
 // ISch_GraphicalObject/ISch_Rectangle/ISch_TextFrame
     SubSetObj := MkSet(eTextFrame, eNote);
-    if InSet(SchSourcePrim.ObjectId, SubsetObj) and InSet(SchDestinPrim.ObjectID, SubSetObj) then
+    if InSet(SchSourcePrim.ObjectId, SubSetObj) and InSet(SchDestinPrim.ObjectID, SubSetObj) then
     begin
         SchDestinPrim.Alignment   := SchSourcePrim.Alignment;
         SchDestinPrim.ClipToRect  := SchSourcePrim.ClipToRect;
@@ -326,16 +318,10 @@ begin
         SchDestinPrim.WordWrap    := SchSourcePrim.WordWrap;
     end;
 
-// ISch_GraphicalObject/ISch_ParametrizedGroup/ISch_RectangularGroup     excl eHarnessConnector
-    SubSetObj := MkSet(eSheetSymbol, eHighLevelCodeSymbol);
-    if InSet(SchSourcePrim.ObjectId, SubsetObj) and InSet(SchDestinPrim.ObjectID, SubSetObj) then
-    begin
-        SchDestinPrim.IsSolid          := SchSourcePrim.IsSolid;
-    end;
-
-// ISch_GraphicalObject/ISch_SheetEntry & ./ISch_HarnessEntry  & ./ISch_HighLevelCodeEntry
+// ISch_GraphicalObject/ISch_SheetEntry & ISch_HarnessEntry  & ISch_HighLevelCodeEntry
+// ISch_GraphicalObject/ISch_Polygon/ISch_Wire/ ??
     SubSetObj := MkSet(eSheetEntry, eHighLevelCodeEntry, eHarnessEntry);
-    if InSet(SchSourcePrim.ObjectId, SubsetObj) and InSet(SchDestinPrim.ObjectID, SubSetObj) then
+    if InSet(SchSourcePrim.ObjectId, SubSetObj) and InSet(SchDestinPrim.ObjectID, SubSetObj) then
     begin
       //  SchDestinPrim.IsVertical     := SchSourcePrim.IsVertical;
         if not InSet(cCntlKey, KeySet) then
@@ -367,6 +353,14 @@ begin
 // Objects now must be the same ObjectId to continue.
     if SchSourcePrim.ObjectId <> SchDestinPrim.ObjectId then exit;
 
+// ISch_GraphicalObject/ISch_ParametrizedGroup/ISch_Port & ISch_ParameterSet
+// ISch_GraphicalObject/ISch_SheetEntry & ISch_HighLevelCodeEntry
+    SubSetObj := MkSet(eProbe, ePort, eParameterSet, eSheetEntry, eHighLevelCodeEntry);
+    if InSet(SchSourcePrim.ObjectId, SubsetObj) then
+    begin
+        SchDestinPrim.Style       := SchSourcePrim.Style;
+    end;
+
     case SchSourcePrim.ObjectId of
     eJunction :      // ISch_GraphicalObject/ISch_Junction
         begin
@@ -377,7 +371,6 @@ begin
     eProbe :         // ISch_GraphicalObject/ISch_ParametrizedGroup/ISch_ParameterSet/ISch_Probe
         begin
             SchDestinPrim.Orientation := SchSourcePrim.Orientation;
-            SchDestinPrim.Style       := SchSourcePrim.Style;
         end;
 
     // NoERC Marker
@@ -395,7 +388,6 @@ begin
             if not InSet(cCntlKey, KeySet) then
                 SchDestinPrim.TextColor   := SchSourcePrim.TextColor;
             SchDestinPrim.Alignment   := SchSourcePrim.Alignment;
-            SchDestinPrim.Style       := SchSourcePrim.Style;
             SchDestinPrim.FontId      := SchSourcePrim.FontId;
             SchDestinPrim.IOType      := SchSourcePrim.IOType;
             SchDestinPrim.Height      := SchSourcePrim.Height;
@@ -432,30 +424,20 @@ begin
             SchDestinPrim.ShowDesignator := SchSourcePrim.ShowDesignator;
         end;
 
-    eParameterSet :   // ISch_GraphicalObject/ISch_ParametrizedGroup/ISch_ParameterSet
-        begin
-            SchDestinPrim.Style     := SchSourcePrim.Style;
-        end;
-
 //  C Code Symbol
 //    eHighLevelCodeSymbol {58}:  //       ../ISch_ParametrizedGroup/ISch_RectangularGroup/ISch_HighLevelCodeSymbol
 
     eSheetSymbol :    // ISch_GraphicalObject/ISch_ParametrizedGroup/ISch_RectangularGroup/ISch_SheetSymbol
-        SchDestinPrim.ShowHiddenFields := SchSourcePrim.ShowHiddenFields;
-
+        begin
+            SchDestinPrim.IsSolid          := SchSourcePrim.IsSolid;           // no Transparent!
+            SchDestinPrim.ShowHiddenFields := SchSourcePrim.ShowHiddenFields;
+        end;
     eHarnessConnector : //                 ../ISch_ParametrizedGroup/ISch_RectangularGroup/ISch_HarnessConnector
         begin
-            SchDestinPrim.LineWidth                      := SchSourcePrim.LineWidth;
             SchDestinPrim.MasterEntryLocation            := SchSourcePrim.MasterEntryLocation;
             SchDestinPrim.HarnessConnectorType.IsHidden  := SchSourcePrim.HarnessConnectorType.IsHidden;
         end;
-
-    eEllipse :        // ISch_GraphicalObject/ISch_Circle/ISch_Ellipse
-        begin
-            SchDestinPrim.IsSolid       := SchSourcePrim.IsSolid;
-            SchDestinPrim.Transparent   := SchSourcePrim.Transparent;
-        end;
-
+ 
     eArc,             // ISch_GraphicalObject/ISch_Arc/ISch_EllipticalArc
     eEllipticalArc :  // ISch_GraphicalObject/ISch_Arc/ISch_EllipticalArc
         begin
@@ -468,8 +450,6 @@ begin
             SchDestinPrim.IsSolid       := SchSourcePrim.IsSolid;
         end;
 
-//    eSignalHarness :  // ISch_GraphicalObject/ISch_Polygon/ISch_Wire/ ??
-
     ePolyline :       // ISch_GraphicalObject/ISch_Polygon/ISch_BasicPolyline/ISch_Polyline
         begin
             SchDestinPrim.StartLineShape := SchSourcePrim.StartLineShape;
@@ -478,21 +458,12 @@ begin
         end;
 
     // SheetSym & C Code Entry
-    eSheetEntry,      // ISch_GraphicalObject/ISch_SheetEntry
-    eHighLevelCodeEntry : // ISch_Graphical../ISch_HighLevelCodeEntry
+    eSheetEntry,          // ISch_GraphicalObject/ISch_SheetEntry
+    eHighLevelCodeEntry : // ISch_GraphicalObject/ISch_HighLevelCodeEntry
         begin
-            SchDestinPrim.Style          := SchSourcePrim.Style;
             SchDestinPrim.ArrowKind      := SchSourcePrim.ArrowKind;
             if not InSet(cAltKey, KeySet) then
                 SchDestinPrim.HarnessColor   := SchSourcePrim.HarnessColor;
-        end;
-
-//    eHarnessEntry :   // ISch_GraphicalObject/ISch_HarnessEntry
-
-    eNote :          // ISch_GraphicalObject/ISch_Rectangle/ISch_TextFrame/ISch_Note
-        begin
-            SchDestinPrim.Collapsed     := SchSourcePrim.Collapsed;
-            SchDestinPrim.Author        := SchSourcePrim.Author;
         end;
 
     eImage :          // ISch_GraphicalObject/ISch_Rectangle/ISch_Image
@@ -506,16 +477,15 @@ begin
             SchDestinPrim.CornerYRadius := SchSourcePrim.CornerYRadius;
         end;
 
-    eCompileMask :    // ISch_GraphicalObject/ISch_Rectangle/ISch_CompileMask
+    eCompileMask,     // ISch_GraphicalObject/ISch_Rectangle/ISch_CompileMask
+    eBlanket,         // ISch_GraphicalObject/ISch_Rectangle/ISch_Blanket
+    eNote :           // ISch_GraphicalObject/ISch_Rectangle/ISch_TextFrame/ISch_Note
         begin
             SchDestinPrim.Collapsed      := SchSourcePrim.Collapsed;
+            if SchSourcePrim.ObjectId = eNote then
+                SchDestinPrim.Author        := SchSourcePrim.Author;
         end;
 
-    eBlanket :        // ISch_GraphicalObject/ISch_Rectangle/ISch_Blanket
-        begin
-            SchDestinPrim.LineStyle      := SchSourcePrim.LineStyle;
-            SchDestinPrim.Collapsed      := SchSourcePrim.Collapsed;
-        end;
     end; //case
 end;
 
@@ -526,7 +496,11 @@ var
    SchSourcePrim   : ISch_Object;
    SchDestinPrim   : ISch_Object;
    SchTempPrim     : ISch_Object;
-   SpatialIterator : ISch_Iterator;
+   HitTest         : ISch_HitTest;
+   HitTestMode     : THitTestMode;
+   I               : integer;
+   Cursor          : TCursor;
+//   SpatialIterator : ISch_Iterator;
    bRepeat         : boolean;
 
 begin
@@ -564,7 +538,7 @@ begin
             ASetOfObjects := MkSet(eDesignator, eParameter, eLabel, eNetlabel, ePort, eCrossSheetConnector, eHarnessEntry, eSheetEntry);
             if not InSet(SchSourcePrim.ObjectId, ASetOfObjects) then
             begin
-                ASetOfObjects := MkSet(eRectangle, eRoundRectangle, eImage, eBlanket, eCompileMask);    // allow formatting across objects ?
+                ASetOfObjects := MkSet(eRectangle, eRoundRectangle, eNote, eTextFrame, eImage, eBlanket, eCompileMask);
                 if not InSet(SchSourcePrim.ObjectId, ASetOfObjects) then
                     ASetOfObjects := MkSetRange(eFirstObjectID, eLastObjectID);
             end;
@@ -589,24 +563,23 @@ begin
                   SchDestinPrim := nil;
             end;
 
-            if SchSourcePrim <> Nil then
+            if (SchSourcePrim <> Nil) then
             begin
-                SpatialIterator := SchDoc.SchIterator_Create;
-                SpatialIterator.SetState_FilterAll;
-
-                Try
-                    if (DocKind = cDocKind_SchLib) then
+                HitTestMode := eHitTest_AllObjects;                   // eHitTest_OnlyAccessible
+                HitTest := SchDoc.CreateHitTest(HitTestMode,Location);
+                if (HitTest <> Nil) then
+                begin
+                    for I := 0 to (HitTest.HitTestCount - 1) do
                     begin
-                        SpatialIterator.AddFilter_CurrentPartPrimitives;
-                        SpatialIterator.AddFilter_CurrentDisplayModePrimitives;
-                    end;
-                    SpatialIterator.AddFilter_Area(Location.X - 1, Location.Y - 1, Location.X + 1, Location.Y + 1);
+//                    if (DocKind = cDocKind_SchLib) then
+//                    begin
+//                        SpatialIterator.AddFilter_CurrentPartPrimitives;
+//                        SpatialIterator.AddFilter_CurrentDisplayModePrimitives;
+//                    end;
+                        bRepeat := false;
+                        Repeat
+                            SchTempPrim := HitTest.HitObject(I);
 
-                    bRepeat := false;
-                    Repeat
-                        SchTempPrim := SpatialIterator.FirstSchObject;
-                        while (SchTempPrim <> nil) do
-                        begin
                             if Inset(SchTempPrim.ObjectId, ASetOfObjects) then
                             begin
                                 if SchTempPrim.ObjectId = SchSourcePrim.ObjectID then SchDestinPrim := SchTempPrim
@@ -622,44 +595,46 @@ begin
 
                                 if bRepeat and (SchDestinPrim = nil) then SchDestinPrim := SchTempPrim;
                             end;
-                            SchTempPrim   := SpatialIterator.NextSchObject;
-                        end;
 
-                        if (SchDestinPrim = nil) and not bRepeat then        // go around with all/any objects
-                        begin
-                            ASetOfObjects := MkSetRange(eFirstObjectID, eLastObjectID);
-                            bRepeat := true;
-                        end
-                        else bRepeat := false;                               // force failed exit
-                    until (SchDestinPrim <> nil) or (bRepeat = false);
+                            if (SchDestinPrim = nil) and not bRepeat then        // go around with all/any objects
+                            begin
+                                ASetOfObjects := MkSetRange(eFirstObjectID, eLastObjectID);
+                                bRepeat := true;
+                            end
+                            else bRepeat := false;                               // force failed exit
 
-                Finally
-                    SchDoc.SchIterator_Destroy(SpatialIterator);
-                End;
+                        until (SchDestinPrim <> nil) or (bRepeat = false);
+                    end;  // for i
+                end;      // not nil
             end;
         end;
 
 //   Get Source Object
         if SchSourcePrim = nil then
         begin
+
             boolLoc := SchDoc.ChooseLocationInteractively(Location, 'Choose Source Object');
             If Not boolLoc Then continue;
 
-            SpatialIterator := SchDoc.SchIterator_Create;
-            Try
-                SpatialIterator.SetState_FilterAll;
-                SpatialIterator.AddFilter_Area(Location.X - 2, Location.Y - 2, Location.X + 2, Location.Y + 2);
+            HitTestMode := eHitTest_AllObjects;                     // eHitTest_OnlyAccessible
+            HitTest := SchDoc.CreateHitTest(HitTestMode,Location);
+            if HitTest <> Nil then
 
-                if (DocKind = cDocKind_SchLib) then
+            begin
+
+       //      cursor := HitTestResultToCursor(eHitTest_AllObjects);   //eHitTest_NoAction);   // eHitTest_CopyPaste : THitTestResult
+       //      HitTest := SchDoc.PopupMenuHitTest;                     // last UI obj selected ??
+
+                for I := 0 to (HitTest.HitTestCount - 1) do
                 begin
-                    SpatialIterator.AddFilter_CurrentPartPrimitives;
-                    SpatialIterator.AddFilter_CurrentDisplayModePrimitives;
-                end;
+                    SchTempPrim := HitTest.HitObject(I);
 
-                SchTempPrim := SpatialIterator.FirstSchObject;
+//                if (DocKind = cDocKind_SchLib) then
+//                begin
+//                    SpatialIterator.AddFilter_CurrentPartPrimitives;
+//                    SpatialIterator.AddFilter_CurrentDisplayModePrimitives;
+//                end;
 
-                while (SchTempPrim <> nil) do
-                begin
                     if SchSourcePrim <> nil then
                     begin
                         // prioritize unhidden & Harness & Sheet Entries over parent obj.
@@ -667,16 +642,12 @@ begin
                             if SchSourcePrim.IsHidden then SchSourcePrim := SchTempPrim;
                         if InSet(SchSourcePrim.ObjectId, MkSet(eSchComponent, eHarnessConnector, eSheetSymbol)) then
                             SchSourcePrim := SchTempPrim;
-//                        if SchSourcePrim.ObjectId = eSignalHarness {56?} then SchSourcePrim := SchTempPrim;
+                //        if SchSourcePrim.ObjectId = eSignalHarness {56?} then SchSourcePrim := SchTempPrim;
                     end
                     else SchSourcePrim := SchTempPrim;
-                    //SchSourcePrim.GetState_DescriptionString;
-
-                    SchTempPrim  := SpatialIterator.NextSchObject;
-                end;
-            Finally
-               SchDoc.SchIterator_Destroy(SpatialIterator);
-            End;
+                 //  SchSourcePrim.GetState_DescriptionString;
+                end;  // for i
+            end;
         end;
 
     until ((SchSourcePrim = nil) and (SchDestinPrim = nil));
