@@ -40,6 +40,7 @@ Usage Notes:
 17/09/2019 v0.80 PCB: Use Ambiguious object UI Dialog when possible, else uses prev. method
 21/09/2019 v0.81 SCH: eTextFrame (& eNote?) was not copying IsSolid, Transparent or LineWidth
 22/09/2019 v0.82 SCH: Use CreateHitTest in place of SpatialIterator
+27/09/2019 v0.83 SCH: Refactor out nested InSet & MkSet to avoid weirdness.
 
 tbd: <shift> modifier key was to prevent font size change but FontManager is borked in AD19.
 
@@ -226,10 +227,16 @@ end;
 procedure ProcessSCHPrim(SchSourcePrim : ISch_Object, SchDestinPrim : ISch_Object, DocKind : WideString, KeySet : TObjectSet);
 var
     SubSetObj   : TObjectSet;
+    SubSetObj2  : TObjectSet;
+    SourceObjId : integer;
+    DestinObjId : integer;
+
 begin
 // Objects do NOT have to be the same ObjectId, just same ancestor ObjectId /type.
-// ISch_Port text & colour is a messy mixture of label & entry properties; ignore.
+SourceObjId := SchSourcePrim.ObjectId;     // deref might help with weird InSet() issues
+DestinObjId := SchDestinPrim.ObjectID;
 
+// ISch_Port text & colour is a messy mixture of label & entry properties; ignore.
 // ISch_GraphicalObject
     if not InSet(cAltKey, KeySet) then
         SchDestinPrim.AreaColor := SchSourcePrim.AreaColor;
@@ -240,7 +247,7 @@ begin
 // ./ISch_ParametrizedGroup/ISch_RectangularGroup  & ./ISch_HarnessConnector
     SubSetObj := MkSet(ePolygon, ePolyLine, eBus, eWire, eBezier, eSignalHarness, eHarnessConnector, eLine, eBusEntry, eRectangle, eRoundRectangle,
                        eArc, eEllipticalArc, eImage, eTextFrame, eNote, eBlanket, eCompileMask, eSheetSymbol, eHighLevelCodeSymbol);
-    if InSet(SchSourcePrim.ObjectId, SubSetObj) and InSet(SchDestinPrim.ObjectID, SubSetObj) then
+    if InSet(SourceObjId, SubSetObj) and InSet(DestinObjId, SubSetObj) then
     begin
         SchDestinPrim.LineWidth     := SchSourcePrim.LineWidth;
     end;
@@ -250,7 +257,7 @@ begin
 // ISch_GraphicalObject/ISch_Circle/ISch_Ellipse          excl ePie
     SubSetObj := MkSet(ePolygon, ePolyLine, eBus, eWire, eBezier, eSignalHarness, eRectangle, eRoundRectangle,
                        eEllipse, eImage, eTextFrame, eNote, eBlanket, eCompileMask);
-    if InSet(SchSourcePrim.ObjectId, SubSetObj) and InSet(SchDestinPrim.ObjectID, SubSetObj) then
+    if InSet(SourceObjId, SubSetObj) and InSet(DestinObjId, SubSetObj) then
     begin
         SchDestinPrim.IsSolid       := SchSourcePrim.IsSolid;
         SchDestinPrim.Transparent   := SchSourcePrim.Transparent;
@@ -258,14 +265,14 @@ begin
 
 // ISch_GraphicalObject/ISch_Polygon/ISch_BasicPolyline; ISch_GraphicalObject/ISch_Line
     SubSetObj := MkSet(eLine, eBusEntry, ePolyLine, eBus, eWire, eBezier, eSignalHarness, eBlanket);
-    if InSet(SchSourcePrim.ObjectId, SubSetObj) and InSet(SchDestinPrim.ObjectID, SubSetObj) then
+    if InSet(SourceObjId, SubSetObj) and InSet(DestinObjId, SubSetObj) then
     begin
         SchDestinPrim.LineStyle      := SchSourcePrim.LineStyle;
     end;
 
 // ISch_GraphicalObject/ISch_Label
     SubSetObj := MkSet(eLabel, eCrossSheetConnector, eDesignator, eParameter, eNetlabel, ePowerObject, eSheetName, eSheetFileName);
-    if InSet(SchSourcePrim.ObjectId, SubSetObj) and InSet(SchDestinPrim.ObjectID, SubSetObj) then
+    if InSet(SourceObjId, SubSetObj) and InSet(DestinObjId, SubSetObj) then
     begin
         SchDestinPrim.FontID        := SchSourcePrim.FontID;
         SchDestinPrim.Justification := SchSourcePrim.Justification;
@@ -275,7 +282,7 @@ begin
 
 // ISch_GraphicalObject/ISch_Label/ISch_ComplexText
     SubSetObj := MkSet(eDesignator, eParameter, eSheetName, eSheetFileName, eHarnessConnectorType);
-    if InSet(SchSourcePrim.ObjectId, SubSetObj) and InSet(SchDestinPrim.ObjectID, SubSetObj) then
+    if InSet(SourceObjId, SubSetObj) and InSet(DestinObjId, SubSetObj) then
     begin
         SchDestinPrim.Autoposition   := SchSourcePrim.Autoposition;
         SchDestinPrim.IsHidden       := SchSourcePrim.IsHidden;
@@ -285,14 +292,14 @@ begin
 
 // ISch_GraphicalObject/ISch_Label/ISch_ComplexText/ISch_Parameter
     SubSetObj := MkSet(eDesignator, eParameter);
-    if InSet(SchSourcePrim.ObjectId, SubSetObj) and InSet(SchDestinPrim.ObjectID, SubSetObj) then
+    if InSet(SourceObjId, SubSetObj) and InSet(DestinObjId, SubSetObj) then
     begin
         SchDestinPrim.ShowName      := SchSourcePrim.ShowName;
     end;
 
 //  ISch_GraphicalObject/ISch_Label/ISch_PowerObject
     SubSetObj := MkSet(ePowerObject, eCrossSheetConnector);
-    if InSet(SchSourcePrim.ObjectId, SubSetObj) and InSet(SchDestinPrim.ObjectID, SubSetObj) then
+    if InSet(SourceObjId, SubSetObj) and InSet(DestinObjId, SubSetObj) then
     begin
         SchDestinPrim.Style         := SchSourcePrim.Style;
         SchDestinPrim.ShowNetName   := SchSourcePrim.ShowNetName;
@@ -300,14 +307,14 @@ begin
 
 // ISch_GraphicalObject/ISch_Polygon/ISch_BasicPolyline/ISch_Wire
     SubSetObj := MkSet(eBus, eWire, eSignalHarness);
-    if InSet(SchSourcePrim.ObjectId, SubSetObj) and InSet(SchDestinPrim.ObjectID, SubSetObj) then
+    if InSet(SourceObjId, SubSetObj) and InSet(DestinObjId, SubSetObj) then
     begin
         SchDestinPrim.UnderLineColor := SchSourcePrim.UnderLineColor;
     end;
 
 // ISch_GraphicalObject/ISch_Rectangle/ISch_TextFrame
     SubSetObj := MkSet(eTextFrame, eNote);
-    if InSet(SchSourcePrim.ObjectId, SubSetObj) and InSet(SchDestinPrim.ObjectID, SubSetObj) then
+    if InSet(SourceObjId, SubSetObj) and InSet(DestinObjId, SubSetObj) then
     begin
         SchDestinPrim.Alignment   := SchSourcePrim.Alignment;
         SchDestinPrim.ClipToRect  := SchSourcePrim.ClipToRect;
@@ -321,7 +328,7 @@ begin
 // ISch_GraphicalObject/ISch_SheetEntry & ISch_HarnessEntry  & ISch_HighLevelCodeEntry
 // ISch_GraphicalObject/ISch_Polygon/ISch_Wire/ ??
     SubSetObj := MkSet(eSheetEntry, eHighLevelCodeEntry, eHarnessEntry);
-    if InSet(SchSourcePrim.ObjectId, SubSetObj) and InSet(SchDestinPrim.ObjectID, SubSetObj) then
+    if InSet(SourceObjId, SubSetObj) and InSet(DestinObjId, SubSetObj) then
     begin
       //  SchDestinPrim.IsVertical     := SchSourcePrim.IsVertical;
         if not InSet(cCntlKey, KeySet) then
@@ -333,15 +340,18 @@ begin
 
 // Special format copy for non matching objects
 // ISch_Label to ISch_SheetEntry or ISch_HarnessEntry
-    SubSetObj := MkSet(eLabel, eCrossSheetConnector, eDesignator, eParameter, eNetlabel, ePowerObject, eSheetName, eSheetFileName);
-    if InSet(SchSourcePrim.ObjectId, SubSetObj) and InSet(SchDestinPrim.ObjectID, MkSet(eSheetEntry, eHarnessEntry)) then
+    SubSetObj  := MkSet(eLabel, eCrossSheetConnector, eDesignator, eParameter, eNetlabel, ePowerObject, eSheetName, eSheetFileName);
+    SubSetObj2 := MkSet(eSheetEntry, eHarnessEntry);
+    if InSet(SourceObjId, SubSetObj) and InSet(DestinObjId, SubSetObj2) then
     begin
         SchDestinPrim.TextFontID  := SchSourcePrim.FontID;
         if not InSet(cCntlKey, KeySet) then
             SchDestinPrim.TextColor   := SchSourcePrim.Color;
 //        SchDestinPrim.TextStyle   := SchSourcePrim.TextStyle;
     end;
-    if InSet(SchSourcePrim.ObjectId, MkSet(eSheetEntry, eHarnessEntry)) and InSet(SchDestinPrim.ObjectID, SubSetObj) then
+
+    SubSetObj := MkSet(eLabel, eCrossSheetConnector, eDesignator, eParameter, eNetlabel, ePowerObject, eSheetName, eSheetFileName);
+    if InSet(DestinObjId, SubSetObj) and InSet(SourceObjId, SubSetObj2) then
     begin
         SchDestinPrim.FontID      := SchSourcePrim.TextFontID;
         if not InSet(cCntlKey, KeySet) then
@@ -351,17 +361,17 @@ begin
 
 
 // Objects now must be the same ObjectId to continue.
-    if SchSourcePrim.ObjectId <> SchDestinPrim.ObjectId then exit;
+    if SourceObjId <> DestinObjId then exit;
 
 // ISch_GraphicalObject/ISch_ParametrizedGroup/ISch_Port & ISch_ParameterSet
 // ISch_GraphicalObject/ISch_SheetEntry & ISch_HighLevelCodeEntry
     SubSetObj := MkSet(eProbe, ePort, eParameterSet, eSheetEntry, eHighLevelCodeEntry);
-    if InSet(SchSourcePrim.ObjectId, SubsetObj) then
+    if InSet(SourceObjId, SubsetObj) then
     begin
         SchDestinPrim.Style       := SchSourcePrim.Style;
     end;
 
-    case SchSourcePrim.ObjectId of
+    case SourceObjId of
     eJunction :      // ISch_GraphicalObject/ISch_Junction
         begin
             SchDestinPrim.Locked    := SchSourcePrim.Locked;
@@ -482,7 +492,7 @@ begin
     eNote :           // ISch_GraphicalObject/ISch_Rectangle/ISch_TextFrame/ISch_Note
         begin
             SchDestinPrim.Collapsed      := SchSourcePrim.Collapsed;
-            if SchSourcePrim.ObjectId = eNote then
+            if (SourceObjId = eNote) then
                 SchDestinPrim.Author        := SchSourcePrim.Author;
         end;
 
