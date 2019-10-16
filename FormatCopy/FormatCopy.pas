@@ -41,6 +41,7 @@ Usage Notes:
 21/09/2019 v0.81 SCH: eTextFrame (& eNote?) was not copying IsSolid, Transparent or LineWidth
 22/09/2019 v0.82 SCH: Use CreateHitTest in place of SpatialIterator
 27/09/2019 v0.83 SCH: Refactor out nested InSet & MkSet to avoid weirdness.
+17/10/2019 v0.84 SCH: Refactor out more nested Inset MkSet around line 600 in just in case.
 
 tbd: <shift> modifier key was to prevent font size change but FontManager is borked in AD19.
 
@@ -508,6 +509,7 @@ var
    SchTempPrim     : ISch_Object;
    HitTest         : ISch_HitTest;
    HitTestMode     : THitTestMode;
+   TempSet         : TObjectset;
    I               : integer;
    Cursor          : TCursor;
 //   SpatialIterator : ISch_Iterator;
@@ -594,14 +596,23 @@ begin
                             begin
                                 if SchTempPrim.ObjectId = SchSourcePrim.ObjectID then SchDestinPrim := SchTempPrim
                                 else
-                                if InSet(SchTempPrim.ObjectId, MkSet(eDesignator, eParameter)) then
                                 begin
-                                    if not SchTempPrim.IsHidden then SchDestinPrim := SchTempPrim;
-                                end
-                                else
-                                if InSet(SchTempPrim.ObjectId, MkSet(eSheetEntry, eHarnessEntry)) then SchDestinPrim := SchTempPrim
-                                else
-                                if InSet(SchTempPrim.ObjectId, MkSet(eNetLabel, ePort, eCrossSheetConnector)) then SchDestinPrim := SchTempPrim;
+                                    TempSet := MkSet(eDesignator, eParameter);
+                                    if InSet(SchTempPrim.ObjectId, TempSet) then
+                                    begin
+                                        if not SchTempPrim.IsHidden then SchDestinPrim := SchTempPrim;
+                                    end
+                                    else
+                                    begin
+                                        TempSet := MkSet(eSheetEntry, eHarnessEntry);
+                                        if InSet(SchTempPrim.ObjectId, TempSet) then SchDestinPrim := SchTempPrim
+                                        else
+                                        begin
+                                            TempSet := MkSet(eNetLabel, ePort, eCrossSheetConnector);
+                                            if InSet(SchTempPrim.ObjectId, TempSet) then SchDestinPrim := SchTempPrim;
+                                        end;
+                                    end;
+                                end;
 
                                 if bRepeat and (SchDestinPrim = nil) then SchDestinPrim := SchTempPrim;
                             end;
@@ -648,9 +659,12 @@ begin
                     if SchSourcePrim <> nil then
                     begin
                         // prioritize unhidden & Harness & Sheet Entries over parent obj.
-                        if InSet(SchSourcePrim.ObjectId, MkSet(eDesignator, eParameter)) then
+                        TempSet := MkSet(eDesignator, eParameter);
+                        if InSet(SchSourcePrim.ObjectId, TempSet) then
                             if SchSourcePrim.IsHidden then SchSourcePrim := SchTempPrim;
-                        if InSet(SchSourcePrim.ObjectId, MkSet(eSchComponent, eHarnessConnector, eSheetSymbol)) then
+
+                        TempSet := MkSet(eSchComponent, eHarnessConnector, eSheetSymbol);
+                        if InSet(SchSourcePrim.ObjectId, TempSet) then
                             SchSourcePrim := SchTempPrim;
                 //        if SchSourcePrim.ObjectId = eSignalHarness {56?} then SchSourcePrim := SchTempPrim;
                     end
