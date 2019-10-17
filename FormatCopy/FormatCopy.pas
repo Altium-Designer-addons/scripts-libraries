@@ -43,18 +43,18 @@ Usage Notes:
 27/09/2019 v0.83 SCH: Refactor out nested InSet & MkSet to avoid weirdness.
 17/10/2019 v0.84 SCH: Refactor out more nested Inset MkSet around line 600 in just in case.
 
-tbd: <shift> modifier key was to prevent font size change but FontManager is borked in AD19.
-
+tbd: <shift> modifier key was intended to prevent font size change but FontManager is borked in AD19.
+     special SchLib filters disabled.
 }
-
-{ AllLayer = [MinLayer..eConnectLayer] , Set of TLayer
+{ Current API enumerations:  (in sad need of work)
+  AllLayer = [MinLayer..eConnectLayer] , Set of TLayer
   MinLayer = eTopLayer;
   MaxLayer = eViaHoleLayer;              // 82 Mechanical 26 Via Holes
   eConnectLayer = eMechanical16 + 3;     // 75 Mechanical 19 Connections
   MaxMechanicalLayer = eMechanical16;
 
  i=17, eMech17 : LayerID = 67108881   returned by AD17 Obj.Layer; but crashes GetObjectAtCursor(TLayer_V6)
- i=32, eMech32 : LayerID = 67108896   LayerUtils.MechanicalLayer(i) returns correct values
+ i=32, eMech32 : LayerID = 67108896   LayerUtils.MechanicalLayer(i) returns correct values TV7_Layer
  Delphi Sets can only have max 256 elements.
  The values 67108### above crash MkSet()
 {..............................................................................}
@@ -575,6 +575,7 @@ begin
                   SchDestinPrim := nil;
             end;
 
+//   Get Destination Object
             if (SchSourcePrim <> Nil) then
             begin
                 HitTestMode := eHitTest_AllObjects;                   // eHitTest_OnlyAccessible
