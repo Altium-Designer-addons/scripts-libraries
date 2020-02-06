@@ -82,6 +82,8 @@ Begin
           ReadLN(BomFile, InputString);
           if (InputString <> NULL) then
           begin
+               InputString := AnsiMidStr(InputString,2,length(InputString)-2);            // Remove "" 06.02.2020
+               InputString := InputString + ',';                                          // Add comma to each line 06.02.2020
                BomString := BomString + InputString;           // Create String with all designators
                i := i + 1;
           end
@@ -162,7 +164,7 @@ Begin
                               TestText := TextSegment[11];
                               i := length(TestText);
                               TextSegment[11] := AnsiRightStr(TextSegment[11], i-2);
-                              PartDesignator := TextSegment[7];
+                              PartDesignator := TextSegment[7] + ',';      // Add comma here too 06.02.2020
                               PartNumber := TextSegment[8];
                               if (AnsiContainsText(BomString, PartDesignator)) then
                               begin
@@ -280,7 +282,7 @@ Begin
                               TestText := TextSegment[11];
                               i := length(TestText);
                               TextSegment[11] := AnsiRightStr(TextSegment[11], i-2);
-                              PartDesignator := TextSegment[7];
+                              PartDesignator := TextSegment[7] + ','; // Add comma here also 06.02.2020
                               PartNumber := TextSegment[8];
                               if (AnsiContainsText(BomString, PartDesignator)) then
                               begin
