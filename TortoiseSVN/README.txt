@@ -1,6 +1,5 @@
 
-Copyright (C) 2015 Justin MASSIOT
-Author: Justin MASSIOT ( m [dot] just1 !at! free [dot] fr )
+Original author: Justin MASSIOT
 
 ' ============================================================================ '
 '                                                                              '
@@ -74,12 +73,14 @@ Setup requirements
 Compatibility concerns
 ----------------------
  * The current version of this script is tested and works well with:
+    -> Altium Designer 19.1.9 build 167
     -> Altium Designer 17.1.5 build 472
     -> Altium Designer 15.0.15 build 41991
     -> Altium Designer 14.3.17 build 42447
- * The current version of this script is tested and works well with: 
+ * The current version of this script is tested and works well with:
+    -> TortoiseSVN 1.13.1 build 28686
     -> TortoiseSVN 1.9.5 build 27581
     -> TortoiseSVN 1.8.11 build 26392
- * The current version of this script is known to work under Windows 7 64-bit.
+ * The current version of this script is known to work under Windows 10 (64-bit) and Windows 7 (64-bit).
 
 TortoiseSVN command line help: http://tortoisesvn.net/docs/release/TortoiseSVN_en/tsvn-automation.html

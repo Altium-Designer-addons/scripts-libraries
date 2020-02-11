@@ -1,6 +1,5 @@
 
-' Copyright (C) 2015 Justin MASSIOT
-' Author: Justin MASSIOT ( m [dot] just1 !at! free [dot] fr )
+' Original author: Justin MASSIOT
 
 ' ============================================================================ '
 '                                                                              '
@@ -23,18 +22,8 @@
 
 
 
-' ------------------------------------------------------------------------------
-' ------------------------------------------------------------------------------
-' ------------------------------------------------------------------------------
-
-
-
 ' TortoiseSVN binary path
 Const TortoiseProc = """C:\\Program Files\\TortoiseSVN\\bin\\TortoiseProc.exe""" ' (since Altium Designer version 15, we need to precise the full path of the program)
-
-
-
-' --------------------------------------------------------------------------------
 
 
 
@@ -55,8 +44,6 @@ Function GetTopMostFolderPath (Path1, Path2)
 End Function
 
 
-
-' --------------------------------------------------------------------------------
 
 '***********
 ' TODO: for every function, check if DM_FocusedDocument is part of DM_FocusedProject. There can be some cases where this is not true.

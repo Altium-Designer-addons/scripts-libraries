@@ -1,6 +1,5 @@
 
-Copyright (C) 2015 Justin MASSIOT
-Author: Justin MASSIOT ( m [dot] just1 !at! free [dot] fr )
+Original author: Justin MASSIOT
 
 ' ============================================================================ '
 '                                                                              '
@@ -64,7 +63,8 @@ Setup requirements
 Compatibility concerns
 ----------------------
  * The current version of this script is tested and works well with:
+    -> Altium Designer 19.1.9 build 167
     -> Altium Designer 17.1.5 build 472
     -> Altium Designer 15.1.14 build 47215
     -> Altium Designer 14.3.18 build 45973
- * The current version of this script is known to work under Windows 7 64-bit.
+ * The current version of this script is known to work under Windows 10 (64-bit) and Windows 7 (64-bit).
