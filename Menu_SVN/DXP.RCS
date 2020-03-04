@@ -1,0 +1,302 @@
+PL SVN_Lock Command='VersionControl:VersionControl' Params='ObjectKind=FocusedDocument|Action=Lock' Caption='Loc&k' Image='C:\AltiumDesigner_AddOns\MenuIcons\Menu_SVN\Lock.png' Description='Lock active document' Shortcut1='Alt+Ctrl+K' DefaultChecked=0  End
+PL SVN_Unlock Command='VersionControl:VersionControl' Params='ObjectKind=FocusedDocument|Action=Unlock' Caption='U&nlock' Image='C:\AltiumDesigner_AddOns\MenuIcons\Menu_SVN\Unlock.png' Description='Unlock active document' Shortcut1='Alt+Ctrl+N' DefaultChecked=0  End
+PL SVN_Refresh Command='VersionControl:VersionControl' Params='ObjectKind=FocusedProject|Action=RefreshProject' Caption='Re&fresh' Image='C:\AltiumDesigner_AddOns\MenuIcons\Menu_SVN\Refresh.png' Description='Refresh status from version control repository' Shortcut1='Alt+Ctrl+F' DefaultChecked=0  End
+PL SVN_CustomCommit Command='ScriptingSystem:RunScript' Params='ProjectName=C:\AltiumDesigner_AddOns\Scripts\TortoiseSVN\TortoiseSVN.PrjScr|ProcName=C:\AltiumDesigner_AddOns\Scripts\TortoiseSVN\TortoiseSVN.vbs>TSVN_CommitFolder' Caption='TSVN Co&mmit folder' Image='C:\AltiumDesigner_AddOns\MenuIcons\Menu_SVN\Tortoise.png' Description='Commit the whole folder with TortoiseSVN' Shortcut1='Alt+Ctrl+PgUp' DefaultChecked=0  End
+PL SVN_CustomUpdate Command='ScriptingSystem:RunScript' Params='ProjectName=C:\AltiumDesigner_AddOns\Scripts\TortoiseSVN\TortoiseSVN.PrjScr|ProcName=C:\AltiumDesigner_AddOns\Scripts\TortoiseSVN\TortoiseSVN.vbs>TSVN_UpdateFolder' Caption='TSVN &Update folder' Image='C:\AltiumDesigner_AddOns\MenuIcons\Menu_SVN\Tortoise2.png' Description='Update the whole folder with TortoiseSVN' Shortcut1='Alt+Ctrl+PgDn' DefaultChecked=0  End
+PL SVN_Commit Command='VersionControl:VersionControl' Params='ObjectKind=FocusedProject|Action=CommitProject' Caption='Co&mmit whole project' Image='C:\AltiumDesigner_AddOns\MenuIcons\Menu_SVN\Commit.png' Description='Commit project documents to version control' Shortcut1='Alt+Ctrl+M' DefaultChecked=0  End
+PL SVN_Update Command='VersionControl:VersionControl' Params='ObjectKind=FocusedProject|Action=UpdateProject' Caption='&Update whole project' Image='C:\AltiumDesigner_AddOns\MenuIcons\Menu_SVN\Update.png' Description='Update project documents from version control' Shortcut1='Alt+Ctrl+U' DefaultChecked=0  End
+PL SVN_CustomRevert Command='ScriptingSystem:RunScript' Params='ProjectName=C:\AltiumDesigner_AddOns\Scripts\BetterRevertVCS\BetterRevertVCS.PrjScr|ProcName=C:\AltiumDesigner_AddOns\Scripts\BetterRevertVCS\BetterRevertVCS.vbs>BetterRevertVCS' Caption='Re&vert local modifications' Image='C:\AltiumDesigner_AddOns\MenuIcons\Menu_SVN\Revert.png' Description='Revert local modifications to focused document' Shortcut1='Alt+Ctrl+V' DefaultChecked=0  End
+PL SVN_Add Command='VersionControl:VersionControl' Params='ObjectKind=FocusedDocument|Action=Add' Caption='&Add to version control' Image='C:\AltiumDesigner_AddOns\MenuIcons\Menu_SVN\Add.png' Description='Add focused document to version control' Shortcut1='Alt+Ctrl+I' DefaultChecked=0  End
+PL SVN_Delete Command='VersionControl:VersionControl' Params='ObjectKind=FocusedDocument|Action=Remove' Caption='&Remove from version control' Image='C:\AltiumDesigner_AddOns\MenuIcons\Menu_SVN\Delete.png' Description='Remove focused document from version control' Shortcut1='Alt+Ctrl+D' DefaultChecked=0  End
+
+Insertion SchDoc_SVN_Menu TargetID='MNSchematicMenu' RefID0='MNDesignMenu_Window1_3' 
+    Tree SchDoc_SVN_Tree Caption='SV&N' Popup='N' 
+        Link SchDoc_SVN_Lock PLID='SVN_Lock'          End
+        Link SchDoc_SVN_Unlock PLID='SVN_Unlock'          End
+        Link SchDoc_SVN_Refresh PLID='SVN_Refresh'          End
+        Link SchDoc_SVN_CustomCommit PLID='SVN_CustomCommit'          End
+        Link SchDoc_SVN_CustomUpdate PLID='SVN_CustomUpdate'          End
+        Tree SchDoc_SVN_Advanced Caption='&Advanced functions' 
+            Link SchDoc_SVN_Commit PLID='SVN_Commit'              End
+            Link SchDoc_SVN_Update PLID='SVN_Update'              End
+            Link SchDoc_SVN_CustomRevert PLID='SVN_CustomRevert'              End
+            Link SchDoc_SVN_Add PLID='SVN_Add'              End
+            Link SchDoc_SVN_Delete PLID='SVN_Delete'              End
+        End
+    End
+End
+Insertion PcbDoc_SVN_Menu TargetID='MNPCBMenu' RefID0='MNDesignMenu_Window1_1' 
+    Tree PcbDoc_SVN_Tree Caption='SV&N' Popup='N' 
+        Link PcbDoc_SVN_Lock PLID='SVN_Lock'          End
+        Link PcbDoc_SVN_Unlock PLID='SVN_Unlock'          End
+        Link PcbDoc_SVN_Refresh PLID='SVN_Refresh'          End
+        Link PcbDoc_SVN_CustomCommit PLID='SVN_CustomCommit'          End
+        Link PcbDoc_SVN_CustomUpdate PLID='SVN_CustomUpdate'          End
+        Tree PcbDoc_SVN_Advanced Caption='&Advanced functions' 
+            Link PcbDoc_SVN_Commit PLID='SVN_Commit'              End
+            Link PcbDoc_SVN_Update PLID='SVN_Update'              End
+            Link PcbDoc_SVN_CustomRevert PLID='SVN_CustomRevert'              End
+            Link PcbDoc_SVN_Add PLID='SVN_Add'              End
+            Link PcbDoc_SVN_Delete PLID='SVN_Delete'              End
+        End
+    End
+End
+Insertion SchLib_SVN_Menu TargetID='MNSchLibMenu' RefID0='MNDesignMenu_Window1_4' 
+    Tree SchLib_SVN_Tree Caption='SV&N' Popup='N' 
+        Link SchLib_SVN_Lock PLID='SVN_Lock'          End
+        Link SchLib_SVN_Unlock PLID='SVN_Unlock'          End
+        Link SchLib_SVN_Refresh PLID='SVN_Refresh'          End
+        Link SchLib_SVN_CustomCommit PLID='SVN_CustomCommit'          End
+        Link SchLib_SVN_CustomUpdate PLID='SVN_CustomUpdate'          End
+        Tree SchLib_SVN_Advanced Caption='&Advanced functions' 
+            Link SchLib_SVN_Commit PLID='SVN_Commit'              End
+            Link SchLib_SVN_Update PLID='SVN_Update'              End
+            Link SchLib_SVN_CustomRevert PLID='SVN_CustomRevert'              End
+            Link SchLib_SVN_Add PLID='SVN_Add'              End
+            Link SchLib_SVN_Delete PLID='SVN_Delete'              End
+        End
+    End
+End
+Insertion PcbLib_SVN_Menu TargetID='MNPCBLibMenu' RefID0='MNDesignMenu_Window1_2' 
+    Tree PcbLib_SVN_Tree Caption='SV&N' Popup='N' 
+        Link PcbLib_SVN_Lock PLID='SVN_Lock'          End
+        Link PcbLib_SVN_Unlock PLID='SVN_Unlock'          End
+        Link PcbLib_SVN_Refresh PLID='SVN_Refresh'          End
+        Link PcbLib_SVN_CustomCommit PLID='SVN_CustomCommit'          End
+        Link PcbLib_SVN_CustomUpdate PLID='SVN_CustomUpdate'          End
+        Tree PcbLib_SVN_Advanced Caption='&Advanced functions' 
+            Link PcbLib_SVN_Commit PLID='SVN_Commit'              End
+            Link PcbLib_SVN_Update PLID='SVN_Update'              End
+            Link PcbLib_SVN_CustomRevert PLID='SVN_CustomRevert'              End
+            Link PcbLib_SVN_Add PLID='SVN_Add'              End
+            Link PcbLib_SVN_Delete PLID='SVN_Delete'              End
+        End
+    End
+End
+Insertion OutJob_SVN_Menu TargetID='MNJobManager' RefID0='MNDesignMenu_Window1_Job' 
+    Tree OutJob_SVN_Tree Caption='SV&N' Popup='N' 
+        Link OutJob_SVN_Lock PLID='SVN_Lock'          End
+        Link OutJob_SVN_Unlock PLID='SVN_Unlock'          End
+        Link OutJob_SVN_Refresh PLID='SVN_Refresh'          End
+        Link OutJob_SVN_CustomCommit PLID='SVN_CustomCommit'          End
+        Link OutJob_SVN_CustomUpdate PLID='SVN_CustomUpdate'          End
+        Tree OutJob_SVN_Advanced Caption='&Advanced functions' 
+            Link OutJob_SVN_Commit PLID='SVN_Commit'              End
+            Link OutJob_SVN_Update PLID='SVN_Update'              End
+            Link OutJob_SVN_CustomRevert PLID='SVN_CustomRevert'              End
+            Link OutJob_SVN_Add PLID='SVN_Add'              End
+            Link OutJob_SVN_Delete PLID='SVN_Delete'              End
+        End
+    End
+End
+Insertion BomDoc_SVN_Menu TargetID='MNBOMMenu' RefID0='MNBOMDocument_Window' 
+    Tree BomDoc_SVN_Tree Caption='SV&N' Popup='N' 
+        Link BomDoc_SVN_Lock PLID='SVN_Lock'          End
+        Link BomDoc_SVN_Unlock PLID='SVN_Unlock'          End
+        Link BomDoc_SVN_Refresh PLID='SVN_Refresh'          End
+        Link BomDoc_SVN_CustomCommit PLID='SVN_CustomCommit'          End
+        Link BomDoc_SVN_CustomUpdate PLID='SVN_CustomUpdate'          End
+        Tree BomDoc_SVN_Advanced Caption='&Advanced functions' 
+            Link BomDoc_SVN_Commit PLID='SVN_Commit'              End
+            Link BomDoc_SVN_Update PLID='SVN_Update'              End
+            Link BomDoc_SVN_CustomRevert PLID='SVN_CustomRevert'              End
+            Link BomDoc_SVN_Add PLID='SVN_Add'              End
+            Link BomDoc_SVN_Delete PLID='SVN_Delete'              End
+        End
+    End
+End
+Insertion PcbDwf_SVN_Menu TargetID='MNPDEditMenu' RefID0='MNPDEditMenu_Window1' 
+    Tree PcbDwf_SVN_Tree Caption='SV&N' Popup='N' 
+        Link PcbDwf_SVN_Lock PLID='SVN_Lock'          End
+        Link PcbDwf_SVN_Unlock PLID='SVN_Unlock'          End
+        Link PcbDwf_SVN_Refresh PLID='SVN_Refresh'          End
+        Link PcbDwf_SVN_CustomCommit PLID='SVN_CustomCommit'          End
+        Link PcbDwf_SVN_CustomUpdate PLID='SVN_CustomUpdate'          End
+        Tree PcbDwf_SVN_Advanced Caption='&Advanced functions' 
+            Link PcbDwf_SVN_Commit PLID='SVN_Commit'              End
+            Link PcbDwf_SVN_Update PLID='SVN_Update'              End
+            Link PcbDwf_SVN_CustomRevert PLID='SVN_CustomRevert'              End
+            Link PcbDwf_SVN_Add PLID='SVN_Add'              End
+            Link PcbDwf_SVN_Delete PLID='SVN_Delete'              End
+        End
+    End
+End
+Insertion PvLib_SVN_Menu TargetID='MNPVLibMenu' RefID0='MNDesignMenu_Window1_21' 
+    Tree PvLib_SVN_Tree Caption='SV&N' Popup='N' 
+        Link PvLib_SVN_Lock PLID='SVN_Lock'          End
+        Link PvLib_SVN_Unlock PLID='SVN_Unlock'          End
+        Link PvLib_SVN_Refresh PLID='SVN_Refresh'          End
+        Link PvLib_SVN_CustomCommit PLID='SVN_CustomCommit'          End
+        Link PvLib_SVN_CustomUpdate PLID='SVN_CustomUpdate'          End
+        Tree PvLib_SVN_Advanced Caption='&Advanced functions' 
+            Link PvLib_SVN_Commit PLID='SVN_Commit'              End
+            Link PvLib_SVN_Update PLID='SVN_Update'              End
+            Link PvLib_SVN_CustomRevert PLID='SVN_CustomRevert'              End
+            Link PvLib_SVN_Add PLID='SVN_Add'              End
+            Link PvLib_SVN_Delete PLID='SVN_Delete'              End
+        End
+    End
+End
+Insertion MbsDoc_SVN_Menu TargetID='SDMNPDEditMenu' RefID0='SDMNPDEditMenu_Window1' 
+    Tree MbsDoc_SVN_Tree Caption='SV&N' Popup='N' 
+        Link MbsDoc_SVN_Lock PLID='SVN_Lock'          End
+        Link MbsDoc_SVN_Unlock PLID='SVN_Unlock'          End
+        Link MbsDoc_SVN_Refresh PLID='SVN_Refresh'          End
+        Link MbsDoc_SVN_CustomCommit PLID='SVN_CustomCommit'          End
+        Link MbsDoc_SVN_CustomUpdate PLID='SVN_CustomUpdate'          End
+        Tree MbsDoc_SVN_Advanced Caption='&Advanced functions' 
+            Link MbsDoc_SVN_Commit PLID='SVN_Commit'              End
+            Link MbsDoc_SVN_Update PLID='SVN_Update'              End
+            Link MbsDoc_SVN_CustomRevert PLID='SVN_CustomRevert'              End
+            Link MbsDoc_SVN_Add PLID='SVN_Add'              End
+            Link MbsDoc_SVN_Delete PLID='SVN_Delete'              End
+        End
+    End
+End
+Insertion MbaDoc_SVN_Menu TargetID='MNMBAMenu' RefID0='MNDesignMenu_Window1_MBA' 
+    Tree MbaDoc_SVN_Tree Caption='SV&N' Popup='N' 
+        Link MbaDoc_SVN_Lock PLID='SVN_Lock'          End
+        Link MbaDoc_SVN_Unlock PLID='SVN_Unlock'          End
+        Link MbaDoc_SVN_Refresh PLID='SVN_Refresh'          End
+        Link MbaDoc_SVN_CustomCommit PLID='SVN_CustomCommit'          End
+        Link MbaDoc_SVN_CustomUpdate PLID='SVN_CustomUpdate'          End
+        Tree MbaDoc_SVN_Advanced Caption='&Advanced functions' 
+            Link MbaDoc_SVN_Commit PLID='SVN_Commit'              End
+            Link MbaDoc_SVN_Update PLID='SVN_Update'              End
+            Link MbaDoc_SVN_CustomRevert PLID='SVN_CustomRevert'              End
+            Link MbaDoc_SVN_Add PLID='SVN_Add'              End
+            Link MbaDoc_SVN_Delete PLID='SVN_Delete'              End
+        End
+    End
+End
+
+Tree SchCustom Caption='[Custom]' TopLevel='True' 
+    Link SchCustom_SVN_Lock PLID='SVN_Lock'          End
+    Link SchCustom_SVN_Unlock PLID='SVN_Unlock'          End
+    Link SchCustom_SVN_Refresh PLID='SVN_Refresh'          End
+    Link SchCustom_SVN_CustomCommit PLID='SVN_CustomCommit'          End
+    Link SchCustom_SVN_CustomUpdate PLID='SVN_CustomUpdate'          End
+    Link SchCustom_SVN_Commit PLID='SVN_Commit'              End
+    Link SchCustom_SVN_Update PLID='SVN_Update'              End
+    Link SchCustom_SVN_CustomRevert PLID='SVN_CustomRevert'              End
+    Link SchCustom_SVN_Add PLID='SVN_Add'              End
+    Link SchCustom_SVN_Delete PLID='SVN_Delete'              End
+End
+Tree PCBCustom Caption='[Custom]' TopLevel='True' 
+    Link PCBCustom_SVN_Lock PLID='SVN_Lock'          End
+    Link PCBCustom_SVN_Unlock PLID='SVN_Unlock'          End
+    Link PCBCustom_SVN_Refresh PLID='SVN_Refresh'          End
+    Link PCBCustom_SVN_CustomCommit PLID='SVN_CustomCommit'          End
+    Link PCBCustom_SVN_CustomUpdate PLID='SVN_CustomUpdate'          End
+    Link PCBCustom_SVN_Commit PLID='SVN_Commit'              End
+    Link PCBCustom_SVN_Update PLID='SVN_Update'              End
+    Link PCBCustom_SVN_CustomRevert PLID='SVN_CustomRevert'              End
+    Link PCBCustom_SVN_Add PLID='SVN_Add'              End
+    Link PCBCustom_SVN_Delete PLID='SVN_Delete'              End
+End
+Tree SchLibCustom Caption='[Custom]' TopLevel='True' 
+    Link SchLibCustom_SVN_Lock PLID='SVN_Lock'          End
+    Link SchLibCustom_SVN_Unlock PLID='SVN_Unlock'          End
+    Link SchLibCustom_SVN_Refresh PLID='SVN_Refresh'          End
+    Link SchLibCustom_SVN_CustomCommit PLID='SVN_CustomCommit'          End
+    Link SchLibCustom_SVN_CustomUpdate PLID='SVN_CustomUpdate'          End
+    Link SchLibCustom_SVN_Commit PLID='SVN_Commit'              End
+    Link SchLibCustom_SVN_Update PLID='SVN_Update'              End
+    Link SchLibCustom_SVN_CustomRevert PLID='SVN_CustomRevert'              End
+    Link SchLibCustom_SVN_Add PLID='SVN_Add'              End
+    Link SchLibCustom_SVN_Delete PLID='SVN_Delete'              End
+End
+Tree PCBLibCustom Caption='[Custom]' TopLevel='True' 
+    Link PCBLibCustom_SVN_Lock PLID='SVN_Lock'          End
+    Link PCBLibCustom_SVN_Unlock PLID='SVN_Unlock'          End
+    Link PCBLibCustom_SVN_Refresh PLID='SVN_Refresh'          End
+    Link PCBLibCustom_SVN_CustomCommit PLID='SVN_CustomCommit'          End
+    Link PCBLibCustom_SVN_CustomUpdate PLID='SVN_CustomUpdate'          End
+    Link PCBLibCustom_SVN_Commit PLID='SVN_Commit'              End
+    Link PCBLibCustom_SVN_Update PLID='SVN_Update'              End
+    Link PCBLibCustom_SVN_CustomRevert PLID='SVN_CustomRevert'              End
+    Link PCBLibCustom_SVN_Add PLID='SVN_Add'              End
+    Link PCBLibCustom_SVN_Delete PLID='SVN_Delete'              End
+End
+Tree OutputJobCustom Caption='[Custom]' TopLevel='True' 
+    Link OutputJobCustom_SVN_Lock PLID='SVN_Lock'          End
+    Link OutputJobCustom_SVN_Unlock PLID='SVN_Unlock'          End
+    Link OutputJobCustom_SVN_Refresh PLID='SVN_Refresh'          End
+    Link OutputJobCustom_SVN_CustomCommit PLID='SVN_CustomCommit'          End
+    Link OutputJobCustom_SVN_CustomUpdate PLID='SVN_CustomUpdate'          End
+    Link OutputJobCustom_SVN_Commit PLID='SVN_Commit'              End
+    Link OutputJobCustom_SVN_Update PLID='SVN_Update'              End
+    Link OutputJobCustom_SVN_CustomRevert PLID='SVN_CustomRevert'              End
+    Link OutputJobCustom_SVN_Add PLID='SVN_Add'              End
+    Link OutputJobCustom_SVN_Delete PLID='SVN_Delete'              End
+End
+Tree BOMCustom Caption='[Custom]' TopLevel='True' 
+    Link BOMCustom_SVN_Lock PLID='SVN_Lock'          End
+    Link BOMCustom_SVN_Unlock PLID='SVN_Unlock'          End
+    Link BOMCustom_SVN_Refresh PLID='SVN_Refresh'          End
+    Link BOMCustom_SVN_CustomCommit PLID='SVN_CustomCommit'          End
+    Link BOMCustom_SVN_CustomUpdate PLID='SVN_CustomUpdate'          End
+    Link BOMCustom_SVN_Commit PLID='SVN_Commit'              End
+    Link BOMCustom_SVN_Update PLID='SVN_Update'              End
+    Link BOMCustom_SVN_CustomRevert PLID='SVN_CustomRevert'              End
+    Link BOMCustom_SVN_Add PLID='SVN_Add'              End
+    Link BOMCustom_SVN_Delete PLID='SVN_Delete'              End
+End
+Tree PcbDrawingCustom Caption='[Custom]' TopLevel='True' 
+    Link PcbDrawingCustom_SVN_Lock PLID='SVN_Lock'          End
+    Link PcbDrawingCustom_SVN_Unlock PLID='SVN_Unlock'          End
+    Link PcbDrawingCustom_SVN_Refresh PLID='SVN_Refresh'          End
+    Link PcbDrawingCustom_SVN_CustomCommit PLID='SVN_CustomCommit'          End
+    Link PcbDrawingCustom_SVN_CustomUpdate PLID='SVN_CustomUpdate'          End
+    Link PcbDrawingCustom_SVN_Commit PLID='SVN_Commit'              End
+    Link PcbDrawingCustom_SVN_Update PLID='SVN_Update'              End
+    Link PcbDrawingCustom_SVN_CustomRevert PLID='SVN_CustomRevert'              End
+    Link PcbDrawingCustom_SVN_Add PLID='SVN_Add'              End
+    Link PcbDrawingCustom_SVN_Delete PLID='SVN_Delete'              End
+End
+Tree PVLibCustom Caption='[Custom]' TopLevel='True' 
+    Link PVLibCustom_SVN_Lock PLID='SVN_Lock'          End
+    Link PVLibCustom_SVN_Unlock PLID='SVN_Unlock'          End
+    Link PVLibCustom_SVN_Refresh PLID='SVN_Refresh'          End
+    Link PVLibCustom_SVN_CustomCommit PLID='SVN_CustomCommit'          End
+    Link PVLibCustom_SVN_CustomUpdate PLID='SVN_CustomUpdate'          End
+    Link PVLibCustom_SVN_Commit PLID='SVN_Commit'              End
+    Link PVLibCustom_SVN_Update PLID='SVN_Update'              End
+    Link PVLibCustom_SVN_CustomRevert PLID='SVN_CustomRevert'              End
+    Link PVLibCustom_SVN_Add PLID='SVN_Add'              End
+    Link PVLibCustom_SVN_Delete PLID='SVN_Delete'              End
+End
+Tree SdDocCustom Caption='[Custom]' TopLevel='True' 
+    Link SdDocCustom_SVN_Lock PLID='SVN_Lock'          End
+    Link SdDocCustom_SVN_Unlock PLID='SVN_Unlock'          End
+    Link SdDocCustom_SVN_Refresh PLID='SVN_Refresh'          End
+    Link SdDocCustom_SVN_CustomCommit PLID='SVN_CustomCommit'          End
+    Link SdDocCustom_SVN_CustomUpdate PLID='SVN_CustomUpdate'          End
+    Link SdDocCustom_SVN_Commit PLID='SVN_Commit'              End
+    Link SdDocCustom_SVN_Update PLID='SVN_Update'              End
+    Link SdDocCustom_SVN_CustomRevert PLID='SVN_CustomRevert'              End
+    Link SdDocCustom_SVN_Add PLID='SVN_Add'              End
+    Link SdDocCustom_SVN_Delete PLID='SVN_Delete'              End
+End
+Tree MultiBoardAssemblyCustom Caption='[Custom]' TopLevel='True' 
+    Link MultiBoardAssemblyCustom_SVN_Lock PLID='SVN_Lock'          End
+    Link MultiBoardAssemblyCustom_SVN_Unlock PLID='SVN_Unlock'          End
+    Link MultiBoardAssemblyCustom_SVN_Refresh PLID='SVN_Refresh'          End
+    Link MultiBoardAssemblyCustom_SVN_CustomCommit PLID='SVN_CustomCommit'          End
+    Link MultiBoardAssemblyCustom_SVN_CustomUpdate PLID='SVN_CustomUpdate'          End
+    Link MultiBoardAssemblyCustom_SVN_Commit PLID='SVN_Commit'              End
+    Link MultiBoardAssemblyCustom_SVN_Update PLID='SVN_Update'              End
+    Link MultiBoardAssemblyCustom_SVN_CustomRevert PLID='SVN_CustomRevert'              End
+    Link MultiBoardAssemblyCustom_SVN_Add PLID='SVN_Add'              End
+    Link MultiBoardAssemblyCustom_SVN_Delete PLID='SVN_Delete'              End
+End
+
+Tree DefaultEditorCustom Caption='[Custom]' TopLevel='True'  End
+Tree EditScriptVBSCustom Caption='[Custom]' TopLevel='True'  End
+Tree CAMtasticCustom Caption='[Custom]' TopLevel='True'  End
+Tree PickATaskCustom Caption='[Custom]' TopLevel='True'  End
+Tree TextCustom Caption='[Custom]' TopLevel='True'  End
+Tree HarnessCustom Caption='[Custom]' TopLevel='True'  End
+Tree ProtelNetlistCustom Caption='[Custom]' TopLevel='True'  End
+Tree AnnotationCustom Caption='[Custom]' TopLevel='True'  End
+Tree SimDataCustom Caption='[Custom]' TopLevel='True'  End
