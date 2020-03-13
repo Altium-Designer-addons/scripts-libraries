@@ -1,0 +1,9 @@
+Add-on name & download link | Script description
+--- | ---
+[AddPopInfoToODBPP](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Scripts+-+Outputs/AddPopInfoToODBPP) | This script/outjob adds the populated/not populated info to Altium Designer ODB++ Output.
+[Hyperlynx Exporter](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Scripts+-+Outputs/Hyperlynx+Exporter) | Script for PCB export to hyp file. It adds fills, regions, polygons and split planes in hyp file
+[LayerStackExporter](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Scripts+-+Outputs/LayerStackExporter) | script that exports layer stack to a CSV file
+[MechLayerNames](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Scripts+-+Outputs/MechLayerNames) | Script that saves mech layer names to txt file. This names can then be imported it to another PCB Document
+[PnPcustom](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Scripts+-+Outputs/PnPcustom) | _No description yet_
+[PrintAllvariants](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Scripts+-+Outputs/PrintAllvariants) | This Script saves variant information to CSV file, which can then be easily opened in excel
+[SinglePinNets](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Scripts+-+Outputs/SinglePinNets) | _No description yet_

@@ -1,0 +1,6 @@
+Add-on name & download link | Script description
+--- | ---
+[DeleteAllSelectedItemsInPCBLib](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Scripts+-+Parts+library/DeleteAllSelectedItemsInPCBLib) | This script can be used to delete selected objects in PCB Library. Currently you can only delete selected objects that are part of currently visible footprint, but this script deletes selected objects that are in other footprints
+[OpenComponentPCBLib](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Scripts+-+Parts+library/OpenComponentPCBLib) | opens the component footprint library of a selected component on PCB
+[OpenLib](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Scripts+-+Parts+library/OpenLib) | _No description yet_
+[UpdateFootprintHeightFrom3dModelHeight](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Scripts+-+Parts+library/UpdateFootprintHeightFrom3dModelHeight) | script that updates Footprint height based on height of it's 3D model (in PCB library)
