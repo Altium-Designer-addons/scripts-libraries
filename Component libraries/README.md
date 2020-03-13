@@ -1,0 +1,5 @@
+Library name & download link | Library description
+--- | ---
+[Libs_CAndreatta](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Component+libraries/Libs_CAndreatta) | set of individual schematic symbols and footprints Cyril Andreatta. Plain SchLib and PcbLib files.<br>[Wiki page](https://github.com/Altium-Designer-addons/scripts-libraries/wiki/Libs_CAndreatta)
+[Libs_NetTieLib](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Component+libraries/Libs_NetTieLib) | set of components for joining and splitting signals on PCB.<br>[Wiki page](https://github.com/Altium-Designer-addons/scripts-libraries/wiki/NetTieLib)
+[Libs_RRutledge](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Component+libraries/Libs_RRutledge) | General Library by Ryan Rutledge. Plain SchLib and PcbLib files.<br>[Wiki page](https://github.com/Altium-Designer-addons/scripts-libraries/wiki/Libs_RRutledge)
