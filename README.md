@@ -4,7 +4,7 @@
 This is a set of addons for Altium Designer, a CAD software for Electronic designers. This project contains some scripts, examples and other content which is developed to provide extended features for Altium Designer.\
 No real consistency exists between each script because they have been developed separately by individual developers. You can use only one script out of the full set if you want.
 
-This project is currently maintained by [Justin MASSIOT](http://justinmassiot.me), from [Zentek](http://zentek.fr).
+This project is currently maintained by [Justin MASSIOT](https://justinmassiot.me), from [Zentek](https://zentek.fr).
 
 ## How to use
 _Step 1_: download the add-on you want.
