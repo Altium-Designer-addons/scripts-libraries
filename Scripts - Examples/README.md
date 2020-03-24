@@ -1,5 +1,6 @@
 Add-on name & download link | Script description
 --- | ---
+[AddText](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Scripts+-+Examples/AddText) | Adds a string onto a pcb at the specified location and layer. It could be a good example for someone who is new to Altium scripting to learn from.
 [DrcOnOff](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Scripts+-+Examples/DrcOnOff) | This script toggles Online DRC check box in DXP->Preferences->PCB editor->General what enables/disables online DRC checks.
 [OpenSchDocs](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Scripts+-+Examples/OpenSchDocs) | script will open all sch documents in current PCB project
 [Run_exe](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Scripts+-+Examples/Run_exe) | script that can open exe file from Altium. Currently supports PCB Toolkit, TraceSim and TX-Line
