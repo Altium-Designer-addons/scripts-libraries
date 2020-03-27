@@ -1,40 +1,40 @@
 Procedure StartScript ();
 var
-   Board              : IPCB_Board;         //Переменная объекта печатной платы
-   X                  : Tcoord;             //Координата X - точка выбора компонента
-   Y                  : Tcoord;             //Координата Y - точка выбора компонента
+   Board              : IPCB_Board;         //Circuit Board Object Variable
+   X                  : Tcoord;             //X coordinate - component selection point
+   Y                  : Tcoord;             //Y coordinate - component selection point
 
-   ComponentIterator  : IPCB_BoardIterator; //Итератор компонентов
-   Comp               : IPCB_Component;     //Компонент полученный через итератор
-   CompItog           : IPCB_Component;     //Найденный компонент
-   X1                 : Tcoord;             //Координата X - Текуший компонент в итераторе
-   Y1                 : Tcoord;             //Координата Y - Текуший компонент в итераторе
-   d                  : real;               //Длина до компонента
-   dOld               : real;               //Длина до компонента с минимальной длиной
+   ComponentIterator  : IPCB_BoardIterator; //Component iterator
+   Comp               : IPCB_Component;     //Component obtained through iterator
+   CompItog           : IPCB_Component;     //Component found
+   X1                 : Tcoord;             //X coordinate - The current component in the iterator
+   Y1                 : Tcoord;             //Y coordinate - The current component in the iterator
+   d                  : real;               //The distance to the component.
+   dOld               : real;               //The previous distance to the component.
 
-   lyrMehPairs        : IPCB_MechanicalLayerPairs; // Переменная содержащая пары механических слоев
-   LayerM1            : Tlayer;                    // Первый механический слой
-   LayerM2            : Tlayer;                    // Второй механический слой
-   CurrentLayer       : integer;            //Индекс текущего слоя
+   lyrMehPairs        : IPCB_MechanicalLayerPairs; // Variable containing pairs of mechanical layers
+   LayerM1            : Tlayer;                    // First mechanical layer
+   LayerM2            : Tlayer;                    // Second mechanical layer
+   CurrentLayer       : integer;            //Current layer index
 
    Area               : Tcoord;
 
 
 Begin  // StartScript
-       CurrentLayer  := eTopLayer;  //Инициализация переменной текущего слоя значением по умолчанию
+       CurrentLayer  := eTopLayer;  //Initialization of the current layer variable by default
 
        Board := PCBServer.GetCurrentPCBBoard;
 
-       if Board = nil then // проверка на наличие открытой печатной платы
+       if Board = nil then // check for open circuit board
           Begin
                ShowError('Open Board!');
                Exit;
           end;
 
        Area := Board.SnapGridSize*2.1;
-       Board.ChooseLocation(X,Y,'Choose Component'); //Выбираем компонент на плате
+       Board.ChooseLocation(X,Y,'Choose Component'); //Select a component on the board
 
-       //*******Определение рабочей стороны платы*****
+       //*******Determination of the working side of the board*****
        if (board.CurrentLayer = eTopLayer) | (board.CurrentLayer = eTopPaste) | (board.CurrentLayer =eTopOverlay)
        then CurrentLayer  := eTopLayer;
        if (board.CurrentLayer = eBottomLayer) | (board.CurrentLayer = eBottomPaste) | (board.CurrentLayer =eBottomOverlay)
@@ -49,30 +49,30 @@ Begin  // StartScript
                      if Board.CurrentLayer =  PCBServer.LayerUtils.MechanicalLayer(LayerM2) then CurrentLayer  := eBottomLayer;
                 end;
            end;
-       //******Конец определения рабочей стороны платы*****
+       //******The end of the definition of the working side of the board*****
 
-       ComponentIterator := Board.BoardIterator_Create; // Перебор всех обьектов на плате
-       ComponentIterator.AddFilter_ObjectSet(MkSet(eComponentObject));  //фильтр перебора только компонентов.
-       ComponentIterator.AddFilter_LayerSet(MkSet(CurrentLayer));        //Фильтр выбора компонентов на определенном слое.
-       ComponentIterator.AddFilter_Method(eProcessAll);                 //Метод перебора.
+       ComponentIterator := Board.BoardIterator_Create; // Enumeration of all objects on the board
+       ComponentIterator.AddFilter_ObjectSet(MkSet(eComponentObject));  //filter filtering only components.
+       ComponentIterator.AddFilter_LayerSet(MkSet(CurrentLayer));        //Filter for selecting components on a specific layer.
+       ComponentIterator.AddFilter_Method(eProcessAll);                 //Brute force method.
 
-       Comp := ComponentIterator.FirstPCBObject;                        //Получение первого компонента.
-       CompItog := Comp;                                                //Инициализация первого значения.
+       Comp := ComponentIterator.FirstPCBObject;                        //Getting the first component.
+       CompItog := Comp;                                                //Initialization of the first value.
        X1 := Comp.x;
        Y1 := Comp.y;
        dOld := sqrt(sqr(X1-X)+sqr(Y1-Y));
-       While (Comp <> Nil) Do  //Цикл перебора компонентов
+       While (Comp <> Nil) Do  //Component Iteration Cycle
        Begin
             X1:=Comp.x;
             Y1:=Comp.y;
             d := sqrt(sqr(X1-X)+sqr(Y1-Y));
-            if d <= Area then   // Оптимизация работы скрипта при точном указании компонента.
+            if d <= Area then   // Optimization of the script with the exact indication of the component.
             begin
                CompItog := Comp;
                Break;
             end;
 
-            if d < dOld then   // Поиск компонента по принципу - ближайший к точке
+            if d < dOld then   // Component search by principle - closest to point
             begin
                  CompItog := Comp;
                  dOld := d;
