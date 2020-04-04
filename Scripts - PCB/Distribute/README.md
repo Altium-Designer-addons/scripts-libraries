@@ -4,7 +4,7 @@
 This script can set the clearance or center-to-center distance between two or more tracks, and in the case of three or more tracks, can distribute the track centers or clearances evenly between the outer pair of tracks.
 
 ## How to install and use
-_Step 1_: [DOWNLOAD the script](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Distribute)
+_Step 1_: [DOWNLOAD the script](https://altium-designer-addons.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Distribute)
 
 _Step 2_: integrate the script into Altium Designer and execute it.\
 If you are a newcomer to Altium scripts, [please read the "how to" wiki page](https://github.com/Altium-Designer-addons/scripts-libraries/wiki/HowTo_execute_scripts).
