@@ -124,8 +124,8 @@ Sub TSVN_CommitFolder
   Set objShell = Nothing
   
   ' then refresh the SVN status of the project files
-  If commitResult >= 0 Then
-    Call ServerRunProcessSend("VersionControl:VersionControl", "ObjectKind=FocusedProject | Action=RefreshProject")
+  If commitResult = 0 Then
+    Call ServerRunProcessSend("VersionControl:VersionControl", "ObjectKind=FocusedProject|Action=RefreshProject")
   End If
 End Sub
 
@@ -208,7 +208,7 @@ Sub TSVN_UpdateFolder
     updateResult = objShell.Run( TortoiseProc & "/command:update /includeexternals /path:""" & updateFromPath & """" , 10 , True ) ' blocking call
     Set objShell = Nothing
     ' refresh the SVN status inside Altium Designer
-    Call ServerRunProcessSend("VersionControl:VersionControl", "ObjectKind=FocusedDocument | Action=RefreshProject")
+    Call ServerRunProcessSend("VersionControl:VersionControl", "ObjectKind=FocusedDocument|Action=RefreshProject")
     ' ----------
     
     Client.ShowDocument( Client.OpenDocument(CurDocKind, CurDocPath) ) ' re-open the document after the update
@@ -258,11 +258,11 @@ Sub TSVN_UpdateFolder
     updateResult = objShell.Run( TortoiseProc & "/command:update /includeexternals /path:""" & updateFromPath & """" , 10 , True ) ' blocking call
     Set objShell = Nothing
     ' refresh the SVN status inside Altium Designer
-    Call ServerRunProcessSend("VersionControl:VersionControl", "ObjectKind=FocusedProject | Action=RefreshProject")
+    Call ServerRunProcessSend("VersionControl:VersionControl", "ObjectKind=FocusedProject|Action=RefreshProject")
     ' ----------
     
     ' re-open the project
-    Call ServerRunProcessSend("WorkspaceManager:OpenObject", "ObjectKind=Project | FileName=" & ProjectPath)
+    Call ServerRunProcessSend("WorkspaceManager:OpenObject", "ObjectKind=Project|FileName=" & ProjectPath)
     'Call Client.OpenDocument("", ProjectPath) ' does not work if the project is not already open...
     
     ' and re-open all the documents that were open before the update
