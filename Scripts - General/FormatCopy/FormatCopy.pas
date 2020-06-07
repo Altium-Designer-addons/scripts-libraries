@@ -512,7 +512,6 @@ var
    SchSourcePrim   : ISch_Object;
    SchDestinPrim   : ISch_Object;
    SchTempPrim     : ISch_Object;
-   PrimID          : TObjectId;
    HitTest         : ISch_HitTest;
    HitTestMode     : THitTestMode;
    TempSet         : TObjectset;
@@ -522,16 +521,12 @@ var
    bRepeat         : boolean;
    iWeight         : integer;
    iBestWeight     : integer;
-   bCycleSPrim     : boolean;
 
 begin
     // Get the focused (loaded & open)document; Server must already be running
     SchDoc := SchServer.GetCurrentSchDocument;
     if SchDoc = nil then exit;
 
-//    ResetParameters;
-//    AddStringParameter('Action', 'AllOpenDocuments');
-//    RunProcess('Sch:DeSelect');
     Client.SendMessage('SCH:DeSelect', 'Action=AllOpenDocuments', 255, Client.CurrentView);
 
     Location := TLocation;
@@ -632,12 +627,7 @@ begin
 
             HitTestMode := eHitTest_AllObjects;                     // eHitTest_OnlyAccessible
             HitTest := SchDoc.CreateHitTest(HitTestMode,Location);
-{            if ShiftKeyDown then
-            begin
-//             cursor := HitTestResultToCursor(eHitTest_NoAction);   // eHitTest_CopyPaste : THitTestResult
-                    SchDoc.PopupMenuHitTest := HitTest;          // last UI obj selected ??
-            end;
-}
+
             if HitTest <> Nil then
             begin
                 iBestWeight := 0;
