@@ -42,6 +42,10 @@ Usage Notes:
 22/09/2019 v0.82 SCH: Use CreateHitTest in place of SpatialIterator
 27/09/2019 v0.83 SCH: Refactor out nested InSet & MkSet to avoid weirdness.
 17/10/2019 v0.84 SCH: Refactor out more nested Inset MkSet around line 600 in just in case.
+18/02/2020 v0.85 PCB: Improve Pad & Via expansion rule & value copying
+07/05/2020 v0.86 SCH: Graphically.Invalidate after each copy; trigger bounding box resize for components; fix bug in Comp desc.
+07/05/2020 v0.87 SCH: simplied pick ranking/weighting.
+
 
 tbd: <shift> modifier key was intended to prevent font size change but FontManager is borked in AD19.
      special SchLib filters disabled.
@@ -229,13 +233,13 @@ procedure ProcessSCHPrim(SchSourcePrim : ISch_Object, SchDestinPrim : ISch_Objec
 var
     SubSetObj   : TObjectSet;
     SubSetObj2  : TObjectSet;
-    SourceObjId : integer;
-    DestinObjId : integer;
+    SourceObjId : TObjectId;
+    DestinObjId : TObjectId;
 
 begin
 // Objects do NOT have to be the same ObjectId, just same ancestor ObjectId /type.
 SourceObjId := SchSourcePrim.ObjectId;     // deref might help with weird InSet() issues
-DestinObjId := SchDestinPrim.ObjectID;
+DestinObjId := SchDestinPrim.ObjectId;
 
 // ISch_Port text & colour is a messy mixture of label & entry properties; ignore.
 // ISch_GraphicalObject
@@ -415,16 +419,17 @@ DestinObjId := SchDestinPrim.ObjectID;
     // Part
     eSchComponent :  // ISch_GraphicalObject/ISch_ParametrizedGroup/ISch_Component
         begin
-            SchDestinPrim.SetState_DisplayMode        (SchSourcePrim.DisplayMode);
-            SchDestinPrim.SetState_IsMirrored         (SchSourcePrim.IsMirrored);
-            SchDestinPrim.SetState_ComponentKind      (SchSourcePrim.ComponentKind);
-            SchDestinPrim.SetState_ShowHiddenFields   (SchSourcePrim.ShowHiddenFields);
-            SchDestinPrim.SetState_ShowHiddenPins     (SchSourcePrim.ShowHiddenPins);
-            SchDestinPrim.Designator.SetState_ShowName(SchSourcePrim.Designator.ShowName);
-            SchDestinPrim.Comment.SetState_ShowName   (SchSourcePrim.Comment.ShowName);
-            SchDestinPrim.SetState_Description        (SchSourcePrim.SetState_Description);
-            SchDestinPrim.SetState_OverideColors      (SchSourcePrim.OverideColors);
+            SchDestinPrim.SetState_DisplayMode          (SchSourcePrim.DisplayMode);
+            SchDestinPrim.SetState_IsMirrored           (SchSourcePrim.IsMirrored);
+            SchDestinPrim.SetState_ComponentKind        (SchSourcePrim.ComponentKind);
+            SchDestinPrim.SetState_ShowHiddenFields     (SchSourcePrim.ShowHiddenFields);
+            SchDestinPrim.SetState_ShowHiddenPins       (SchSourcePrim.ShowHiddenPins);
+            SchDestinPrim.Designator.SetState_ShowName  (SchSourcePrim.Designator.ShowName);
+            SchDestinPrim.Comment.SetState_ShowName     (SchSourcePrim.Comment.ShowName);
+            SchDestinPrim.SetState_ComponentDescription (SchSourcePrim.GetState_ComponentDescription);
+            SchDestinPrim.SetState_OverideColors        (SchSourcePrim.OverideColors);
             SchDestinPrim.PinColor                    := SchSourcePrim.PinColor;
+            SchDestinPrim.SetState_xSizeySize;
         end;
 
     // Pin - Only use in SCHLIB
@@ -507,6 +512,7 @@ var
    SchSourcePrim   : ISch_Object;
    SchDestinPrim   : ISch_Object;
    SchTempPrim     : ISch_Object;
+   PrimID          : TObjectId;
    HitTest         : ISch_HitTest;
    HitTestMode     : THitTestMode;
    TempSet         : TObjectset;
@@ -514,6 +520,9 @@ var
    Cursor          : TCursor;
 //   SpatialIterator : ISch_Iterator;
    bRepeat         : boolean;
+   iWeight         : integer;
+   iBestWeight     : integer;
+   bCycleSPrim     : boolean;
 
 begin
     // Get the focused (loaded & open)document; Server must already be running
@@ -540,6 +549,7 @@ begin
 
             SchServer.RobotManager.SendMessage(SchDestinPrim.I_ObjectAddress, c_BroadCast, SCHM_EndModify  , c_NoEventData);
             SchServer.ProcessControl.PostProcess(SchDoc, '');
+            SchDestinPrim.GraphicallyInvalidate;
 
             SchDestinPrim := nil;         // force Get Next Destination Object
         end;
@@ -589,43 +599,25 @@ begin
 //                        SpatialIterator.AddFilter_CurrentPartPrimitives;
 //                        SpatialIterator.AddFilter_CurrentDisplayModePrimitives;
 //                    end;
+                        iBestWeight := 0;
                         bRepeat := false;
-                        Repeat
-                            SchTempPrim := HitTest.HitObject(I);
+                        SchTempPrim := HitTest.HitObject(I);
 
-                            if Inset(SchTempPrim.ObjectId, ASetOfObjects) then
-                            begin
-                                if SchTempPrim.ObjectId = SchSourcePrim.ObjectID then SchDestinPrim := SchTempPrim
-                                else
-                                begin
-                                    TempSet := MkSet(eDesignator, eParameter);
-                                    if InSet(SchTempPrim.ObjectId, TempSet) then
-                                    begin
-                                        if not SchTempPrim.IsHidden then SchDestinPrim := SchTempPrim;
-                                    end
-                                    else
-                                    begin
-                                        TempSet := MkSet(eSheetEntry, eHarnessEntry);
-                                        if InSet(SchTempPrim.ObjectId, TempSet) then SchDestinPrim := SchTempPrim
-                                        else
-                                        begin
-                                            TempSet := MkSet(eNetLabel, ePort, eCrossSheetConnector);
-                                            if InSet(SchTempPrim.ObjectId, TempSet) then SchDestinPrim := SchTempPrim;
-                                        end;
-                                    end;
-                                end;
+                        Case SchTempPrim.ObjectId of
+                          eDesignator, eParameter :
+                          begin
+                              iWeight := 5;
+                              if SchTempPrim.IsHidden then  iWeight := iWeight - 3;
+                          end;
+                          eHarnessEntry, eSheetEntry                     : iWeight := 4;
+                          eLabel, eNetlabel, ePort, eCrossSheetConnector : iWeight := 2;
+                          eSchComponent, eHarnessConnector, eSheetSymbol : iWeight := 3;
+                        else iWeight := 1;
+                        end;
 
-                                if bRepeat and (SchDestinPrim = nil) then SchDestinPrim := SchTempPrim;
-                            end;
-
-                            if (SchDestinPrim = nil) and not bRepeat then        // go around with all/any objects
-                            begin
-                                ASetOfObjects := MkSetRange(eFirstObjectID, eLastObjectID);
-                                bRepeat := true;
-                            end
-                            else bRepeat := false;                               // force failed exit
-
-                        until (SchDestinPrim <> nil) or (bRepeat = false);
+                        if SchSourcePrim.ObjectID = SchTempPrim.ObjectId then iWeight := 6;
+                        if iWeight >= iBestWeight then SchDestinPrim := SchTempPrim;
+                        iBestWeight := Max(iBestWeight,iWeight);
                     end;  // for i
                 end;      // not nil
             end;
@@ -640,50 +632,48 @@ begin
 
             HitTestMode := eHitTest_AllObjects;                     // eHitTest_OnlyAccessible
             HitTest := SchDoc.CreateHitTest(HitTestMode,Location);
-            if HitTest <> Nil then
-
+{            if ShiftKeyDown then
             begin
-
-       //      cursor := HitTestResultToCursor(eHitTest_AllObjects);   //eHitTest_NoAction);   // eHitTest_CopyPaste : THitTestResult
-       //      HitTest := SchDoc.PopupMenuHitTest;                     // last UI obj selected ??
+//             cursor := HitTestResultToCursor(eHitTest_NoAction);   // eHitTest_CopyPaste : THitTestResult
+                    SchDoc.PopupMenuHitTest := HitTest;          // last UI obj selected ??
+            end;
+}
+            if HitTest <> Nil then
+            begin
+                iBestWeight := 0;
 
                 for I := 0 to (HitTest.HitTestCount - 1) do
                 begin
                     SchTempPrim := HitTest.HitObject(I);
 
-//                if (DocKind = cDocKind_SchLib) then
-//                begin
-//                    SpatialIterator.AddFilter_CurrentPartPrimitives;
-//                    SpatialIterator.AddFilter_CurrentDisplayModePrimitives;
-//                end;
+                    Case SchTempPrim.ObjectId of
+                      eDesignator, eParameter :
+                      begin
+                          iWeight := 5;
+                          if SchTempPrim.IsHidden then  iWeight := iWeight - 3;
+                      end;
+                      eHarnessEntry, eSheetEntry                     : iWeight := 5;
+                      eLabel, eNetlabel, ePort, eCrossSheetConnector : iWeight := 3;
+                      eSchComponent, eHarnessConnector, eSheetSymbol : iWeight := 4;
+                    else iWeight := 1;
+                    end;
 
-                    if SchSourcePrim <> nil then
-                    begin
-                        // prioritize unhidden & Harness & Sheet Entries over parent obj.
-                        TempSet := MkSet(eDesignator, eParameter);
-                        if InSet(SchSourcePrim.ObjectId, TempSet) then
-                            if SchSourcePrim.IsHidden then SchSourcePrim := SchTempPrim;
+                    if iWeight >= iBestWeight then SchSourcePrim := SchTempPrim;
+                    iBestWeight := Max(iBestWeight,iWeight);
 
-                        TempSet := MkSet(eSchComponent, eHarnessConnector, eSheetSymbol);
-                        if InSet(SchSourcePrim.ObjectId, TempSet) then
-                            SchSourcePrim := SchTempPrim;
-                //        if SchSourcePrim.ObjectId = eSignalHarness {56?} then SchSourcePrim := SchTempPrim;
-                    end
-                    else SchSourcePrim := SchTempPrim;
-                 //  SchSourcePrim.GetState_DescriptionString;
                 end;  // for i
             end;
         end;
-
     until ((SchSourcePrim = nil) and (SchDestinPrim = nil));
 end;
 
 
 procedure ProcessPCBPrim(SourcePrim : IPCB_Primitive, DestinPrim : IPCB_Primitive, boolLoc : boolean, KeySet : TObjectSet);
 var
-    Layer    : TLayer;
-    PadCache : TPadCache;
-    Pad      : IPCB_Pad;
+    Layer     : TLayer;
+    SPadCache : TPadCache;
+    DPadCache : TPadCache;
+    Pad       : IPCB_Pad;
 //    Flag     : Integer;
 
 begin
@@ -754,12 +744,21 @@ begin
                 // DestinPrim.YPadOffset(Layer)           := Pad.YPadOffset(Layer);  This property is not implemented.
             end;
             DestinPrim.InvalidateSizeShape;
-            PadCache                        := Pad.GetState_Cache;
-            // DestinPrim.Cache.SolderMaskExpansionValid  := SourcePrim.Cache.SolderMaskExpansionValid;
-            // DestinPrim.Cache.SolderMaskExpansion       := SourcePrim.Cache.SolderMaskExpansion;
-            // DestinPrim.Cache.PasteMaskExpansionValid   := SourcePrim.Cache.PasteMaskExpansionValid;
-            // DestinPrim.Cache.PasteMaskExpansion        := SourcePrim.Cache.PasteMaskExpansion;
-            DestinPrim.SetState_Cache       := PadCache;
+
+            SPadCache := Pad.GetState_Cache;
+            DPadCache := DestinPrim.GetState_Cache;
+
+            DPadCache.SolderMaskExpansionValid  := eCacheManual;
+            DPadCache.SolderMaskExpansion       := SPadCache.SolderMaskExpansion;
+            DPadCache.UseSeparateExpansions     := SPadCache.UseSeparateExpansions;
+            DPadCache.SolderMaskBottomExpansion := SPadCache.SolderMaskBottomExpansion;
+            if SPadCache.SolderMaskExpansionValid = eCacheValid then DPadCache.SolderMaskExpansionValid := eCacheValid;
+
+            DPadCache.PasteMaskExpansionValid   := eCacheManual;
+            DPadCache.PasteMaskExpansion        := SPadCache.PasteMaskExpansion;
+            if SPadCache.PasteMaskExpansionValid = eCacheValid then DPadCache.PasteMaskExpansionValid := eCacheValid;
+
+            DestinPrim.SetState_Cache           := DPadCache;
             DestinPrim.PadCacheRobotFlag;
             DestinPrim.IsTenting            := Pad.IsTenting;
             DestinPrim.IsTenting_Top        := Pad.IsTenting_Top;
@@ -792,18 +791,21 @@ begin
                 DestinPrim.StackSizeOnLayer(Layer)      := SourcePrim.StackSizeOnLayer(Layer);
                 DestinPrim.SizeOnLayer(Layer)           := SourcePrim.SizeOnLayer(Layer);
             end;
-            PadCache                        := SourcePrim.GetState_Cache;
-            // Padcache.ReliefAirGap
-            // Padcache.PowerPlaneReliefExpansion
-            // Padcache.PowerPlaneClearance
-            // Padcache.ReliefConductorWidth
-            // Padcache.SolderMaskExpansion
-            // Padcache.SolderMaskExpansionValid
-            // DestinPrim.Cache.SolderMaskExpansionValid  := SourcePrim.Cache.SolderMaskExpansionValid;
-            // DestinPrim.Cache.SolderMaskExpansion       := SourcePrim.Cache.SolderMaskExpansion;
-            // Padcache.PasteMaskExpansion
-            // Padcache.PasteMaskExpansionValid
-            DestinPrim.SetState_Cache       := Padcache;
+            SPadCache := SourcePrim.GetState_Cache;
+            DPadCache := DestinPrim.GetState_Cache;
+            // SPadcache.ReliefAirGap
+            // SPadcache.PowerPlaneReliefExpansion
+            // SPadcache.PowerPlaneClearance
+            // SPadcache.ReliefConductorWidth
+            DPadCache.SolderMaskExpansionValid  := eCacheManual;
+            DPadCache.SolderMaskExpansion       := SPadCache.SolderMaskExpansion;
+            DPadCache.UseSeparateExpansions     := SPadCache.UseSeparateExpansions;
+            DPadCache.SolderMaskBottomExpansion := SPadCache.SolderMaskBottomExpansion;
+            if SPadCache.SolderMaskExpansionValid = eCacheValid then DPadCache.SolderMaskExpansionValid := eCacheValid;
+
+            // SPadcache.PasteMaskExpansion
+            // SPadCache.PasteMaskExpansionValid
+            DestinPrim.SetState_Cache       := DPadCache;
             DestinPrim.PadCacheRobotFlag;
             DestinPrim.IsTenting_Top        := SourcePrim.IsTenting_Top;
             DestinPrim.IsTenting_Bottom     := SourcePrim.IsTenting_Bottom;
