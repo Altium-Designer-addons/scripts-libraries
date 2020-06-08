@@ -72,7 +72,7 @@ Begin
   filter := copy(filter,1,Length(filter) - 4) + ')';
 
   RulePaste := PCBServer.PCBRuleFactory(eRule_PasteMaskExpansion);
-  RulePaste.Expansion := MMsToCoord(-100);
+  RulePaste.Expansion := MMsToCoord(-5000);
   RulePaste.DRCEnabled := false;
   RulePaste.Name := 'Disable paste :' +Variant.DM_Description;
   RulePaste.Comment := 'Disable paste';
