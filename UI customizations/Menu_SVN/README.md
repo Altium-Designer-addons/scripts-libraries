@@ -1,8 +1,8 @@
 # Menu_SVN, dedicated SVN menu for Altium Designer
 
-![Screen capture AD19](https://github.com/Altium-Designer-addons/scripts-libraries/raw/master/Menu_SVN/Menu_SVN_AD19.png "Screen capture AD19")
+![Screen capture AD19](https://github.com/Altium-Designer-addons/scripts-libraries/raw/master/UI%20customizations/Menu_SVN/Menu_SVN_AD19.png "Screen capture AD19")
 
-![Screen capture AD17](https://github.com/Altium-Designer-addons/scripts-libraries/raw/master/Menu_SVN/Menu_SVN_AD17.png "Screen capture AD17")
+![Screen capture AD17](https://github.com/Altium-Designer-addons/scripts-libraries/raw/master/UI%20customizations/Menu_SVN/Menu_SVN_AD17.png "Screen capture AD17")
 
 
 ## How to use
@@ -23,7 +23,7 @@ All customizations are stored in a `DXP.RCS` file.
 2) Rename the ZIP file in `Menu_SVN.DXPPrf`
 3) Open Altium Designer and load the file `Menu_SVN.DXPPrf` from the preferences panel ; see the below capture for an example
 
-![Load customizations](https://github.com/Altium-Designer-addons/scripts-libraries/raw/master/Menu_SVN/Load_Custom_Menus_Altium.png "Load customizations")
+![Load customizations](https://github.com/Altium-Designer-addons/scripts-libraries/raw/master/UI%20customizations/Menu_SVN/Load_Custom_Menus_Altium.png "Load customizations")
 
 
 ## More help
