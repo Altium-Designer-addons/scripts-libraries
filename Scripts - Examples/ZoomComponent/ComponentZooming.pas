@@ -1,5 +1,5 @@
 {..............................................................................}
-{ Summary   This scripts can be used to Zoom/Select/Mask component my it's     }
+{ Summary   This scripts can be used to Zoom/Select/Mask component by it's     }
 {           Designator. It is similar to "Jump component" command.             }
 {                                                                              }
 { Created by:    Petar Perisin                                                 }
