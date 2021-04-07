@@ -1,5 +1,5 @@
 <h1>Altium PCB Project Template</h1>
-PCB Project Template is sample project template for Altium Designer with all necessary settings of source documents and settings of output generation process for 2 layer and 4 layer boards. It should make starting of a new project easier. Please read <a href='AltiumPCBProjectTemplate#Terms_of_use.md'>Terms of use</a> at the end of this page.<br>
+PCB Project Template is sample project template for Altium Designer with all necessary settings of source documents and settings of output generation process for 2 layer and 4 layer boards. It should make starting of a new project easier. Please read <a href='#terms-of-use'>Terms of use</a> at the end of this page.<br>
 <br>
 The template was created and is using features of Altium Designer 13.3.<br>
 <br>
@@ -7,7 +7,7 @@ Design rules in this template are set according to Seeed Studio Fusion service, 
 <br>
 <h1>How use this template for your project</h1>
 
-Detailed description of template files can be found in section <a href='AltiumPCBProjectTemplate#Content_of_the_template.md'>Content of the template</a>.<br>
+Detailed description of template files can be found in section <a href='#content-of-the-template'>Content of the template</a>.<br>
 <br>
 Note: All file extensions must remain untouched during renaming operations.<br>
 <br>
@@ -36,7 +36,7 @@ Note: All file extensions must remain untouched during renaming operations.<br>
 </li><li>If polygon pours are used for GND signal you can add them into GNDpolygons class in Design » Classes » Polygon Classes what causes they will be handled with differen clearance by ClearanceGNDpolygons rule<br>
 </li><li>Run Tools » Design Rule Check » Run Design Rule Check and solve all violations through PCB Rules and Violations panel by PCB modifications and DRC exceptions<br>
 </li></ol></li><li><b>Outputs</b>
-<ol><li>Open Outputs.OutJob file and click on Generate content in each Output container what will produce all data outputs into the separate folders described in <a href='#Template_Folder_Structure.md'>Template Folder Structure</a> section<br>
+<ol><li>Open Outputs.OutJob file and click on Generate content in each Output container what will produce all data outputs into the separate folders described in <a href='#template-folder-structure'>Template Folder Structure</a> section<br>
 </li><li>Check all generated files, Gerber files will be automatically open in CAMtastic (build-in gerber editor)<br>
 </li><li>Backup all project data prior sending to a manufacturer by Project » Project Packager (turn on timestamp option)<br>
 </li><li>Send data - Gerber and NC drill folder - to the board manufacturer, do the assembly, testing ...</li></ol></li></ul>
@@ -94,8 +94,8 @@ PCB file contains settings of layer stackup, naming of mechanical layers, layer 
 </li><li>Note: All design rules are exported to RUL files in PCB\ folder. You can import the rules by Design » Rules dialog to another PCB files.<br>
 </li></ul></li><li>PCB file contains simple <b>title block</b>/stamp drawn directly in the PCB file. Values are loaded from Global/Project parameters and system parameters. Primitives of the stamp are locked to prevent unwanted moving.<br>
 </li><li><b>Copper Layers</b>
-<ul><li>2 layer PCB <img src='https://raw.githubusercontent.com/Altium-Designer-addons/scripts-libraries/master/AltiumPCBProjectTemplate/2%20Layer%20PCB%20template/PCB/additional/2%20Layer%20PCB%20template.png' />
-</li><li>4 layer PCB - planes are inverse layers (line drawn in this layer mean there will be a gap in copper) used for power supply distribution, they can be split into smaller regions with different net attached by closed shapes drawn by lines, see Altium wiki page <a href='http://wiki.altium.com/display/ADOH/Internal+Power+and+Split+Planes'>Split Planes</a> <img src='https://raw.githubusercontent.com/Altium-Designer-addons/scripts-libraries/master/AltiumPCBProjectTemplate/4%20Layer%20PCB%20template/PCB/additional/4%20Layer%20PCB%20template.png' />
+<ul><li>2 layer PCB <img src='https://github.com/Altium-Designer-addons/scripts-libraries/raw/master/Document%20templates/AltiumPCBProjectTemplate/2%20Layer%20PCB%20template/PCB/additional/2%20Layer%20PCB%20template.png' />
+</li><li>4 layer PCB - planes are inverse layers (line drawn in this layer mean there will be a gap in copper) used for power supply distribution, they can be split into smaller regions with different net attached by closed shapes drawn by lines, see Altium wiki page <a href='http://wiki.altium.com/display/ADOH/Internal+Power+and+Split+Planes'>Split Planes</a> <img src='https://github.com/Altium-Designer-addons/scripts-libraries/raw/master/Document%20templates/AltiumPCBProjectTemplate/4%20Layer%20PCB%20template/PCB/additional/4%20Layer%20PCB%20template.png' />
 </li></ul></li><li><b>Mechanical layers</b> usage<br>
 <ul><li><b>Outlines</b> (Mech 1) - board outline, use Design » Board Shape » Define from selected primitives to update actual Board Shape from this layer<br>
 </li><li><b>Dimensions</b> (Mech 2) - dimensions of board shape and important objects (mounting holes)<br>
@@ -110,7 +110,7 @@ PCB file contains settings of layer stackup, naming of mechanical layers, layer 
 </li><li><b>Courtyard Bot</b> (Mech 16) - as above for the bottom side components on the board<br>
 Note: Top and Bot layers are linked by layer pairs settings in the PCB file, the data will be distributed into the layers automatically when the component is flipped to other board side.</li></ul></li></ul>
 
-Hint: settings of mechanical layers can be imported/exported by <a href='https://code.google.com/p/altium-designer-addons/downloads/detail?name=MechLayerNames_v2.0.zip&can=2&q='>MechLayerNames</a> script. Settings from the template are stored in PCB\additional\ folder.<br>
+~~Hint: settings of mechanical layers can be imported/exported by <a href='https://code.google.com/p/altium-designer-addons/downloads/detail?name=MechLayerNames_v2.0.zip&can=2&q='>MechLayerNames</a> script.~~ Settings from the template are stored in PCB\additional\ folder.<br>
 <br>
 <h2>Outputs</h2>
 Outputs from the PCB projects has many options so the setup is fixed in OutputJob file which is able to run batch generation of outputs. The Outputs.OutJob is split into several containers (output folders according to the output type). You should click on Generate content in all containers separately to get complete set of updated output data. Predefined containers:<br>
