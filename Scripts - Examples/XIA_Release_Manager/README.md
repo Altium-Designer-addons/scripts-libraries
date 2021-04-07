@@ -1,6 +1,6 @@
 ## XIA_Release_Manager script package
 
-The `XIA_Release_Manager` targets a specific organisation and its internal processes, that's why it might not be appropriate to run this script as is.
+The `XIA_Release_Manager` targets a specific organisation and its internal processes, that's why it might not be appropriate to run this script as is.\
 However it could be a goldmine for any developer looking for real use case examples of advanced scripting. Credits go to Jeff Collins, the initial author of this script package.
 
 **IMPORTANT NOTICE**: the code (more than 16k lines of code) is **old** and unmaintained. Many features may be broken with newer versions of Altium Designer.
@@ -19,9 +19,9 @@ However it could be a goldmine for any developer looking for real use case examp
 5. Roughly speaking, this script is setup such that the user is allowed to run OutJobs 1; 1,2; 1,2,3; 1,2,3,4; 1,2,3,4,5; or 1,2,3,4,5,6. In other words, running later OutJobs require the earlier ones. So you can stop at a certain point, but you are not allowed to just run the later ones. This limitation is by design, to make sure that the earlier OutJobs (which generate various outputs for design reviews, etc.) must be run prior to the later ones (which actually generate fab & assembly outputs).
 
 6. This script will perform certain additional operations on certain output files, after Altium generates them.  
-  6a. This script will sort a multi-wire netlist, so that a designer may use this sorted, human-readable, netlist to track connectivity changes as the design progresses.
-  6b. This script will (if necessary) fix Altium-generated IPC356 netlists in order to address an Altium bug that we've been hitting.
-  6c. This script will perform some additional handling in order to get an svn rev number inserted into Excel BOMs.
+  6a. This script will sort a multi-wire netlist, so that a designer may use this sorted, human-readable, netlist to track connectivity changes as the design progresses.  
+  6b. This script will (if necessary) fix Altium-generated IPC356 netlists in order to address an Altium bug that we've been hitting.  
+  6c. This script will perform some additional handling in order to get an svn rev number inserted into Excel BOMs.  
   6d. This script will "mark" Excel BOMs when we're doing an assembly packaging operation. This currently takes the form of replacing a special string within the xls file with a new string of the exact same length. This operation is done with sed, outside of Excel.
 
 7. This script will checkin all generated output files (including additional ones like sorted multiwire netlist and fixed IPC356 netlist) to svn, in trunk/.
@@ -44,7 +44,7 @@ Walk through schematics and electrical connectivity | XIA_Generate_Sorted_Multiw
 Sync parameters with the components database (Update from database) | XIA_Update_From_Database.pas
 Sync footprints with the components database (Update from database) | XIA_Update_From_Database.pas
 Run output job files from a script | XIA_Release_Manager.pas
-Execute SVN commands | XIA_Release_Manager.pas\ XIA_Utils.pas
+Execute SVN commands | XIA_Release_Manager.pas<br>XIA_Utils.pas
 Many more things ... | XIA_Release_Manager.pas
 
 
