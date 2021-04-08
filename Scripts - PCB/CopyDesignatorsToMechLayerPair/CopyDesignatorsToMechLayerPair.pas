@@ -267,6 +267,7 @@ begin
 // should NOT add or delete from inside an iterated collection.
                 for i := 0 to (NewPrims.Count -1) do
                 begin
+                    NewPrim := NewPrims.Items(i);
                     Board.AddPCBObject(NewPrim);
                     Component.AddPCBObject(NewPrim);
                 end;
