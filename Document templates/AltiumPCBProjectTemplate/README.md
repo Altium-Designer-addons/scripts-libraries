@@ -110,7 +110,7 @@ PCB file contains settings of layer stackup, naming of mechanical layers, layer 
 </li><li><b>Courtyard Bot</b> (Mech 16) - as above for the bottom side components on the board<br>
 Note: Top and Bot layers are linked by layer pairs settings in the PCB file, the data will be distributed into the layers automatically when the component is flipped to other board side.</li></ul></li></ul>
 
-~~Hint: settings of mechanical layers can be imported/exported by <a href='https://code.google.com/p/altium-designer-addons/downloads/detail?name=MechLayerNames_v2.0.zip&can=2&q='>MechLayerNames</a> script.~~ Settings from the template are stored in PCB\additional\ folder.<br>
+Hint: settings of mechanical layers can be imported/exported by <a href='https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Scripts%20-%20Outputs/MechLayerNames'>MechLayerNames</a> script. Settings from the template are stored in PCB\additional\ folder.<br>
 <br>
 <h2>Outputs</h2>
 Outputs from the PCB projects has many options so the setup is fixed in OutputJob file which is able to run batch generation of outputs. The Outputs.OutJob is split into several containers (output folders according to the output type). You should click on Generate content in all containers separately to get complete set of updated output data. Predefined containers:<br>
