@@ -30,7 +30,7 @@ Known issues (on import only):
 
 
 ## Credits
-Created by:    Petar Perisin
-Fixes from:    Claudio Verones
-               - Issue with Unconnected net labels on same coordinat
+Created by:    Petar Perisin\
+Fixes from:    Claudio Verones\
+               - Issue with Unconnected net labels on same coordinat\
                - Issue with Alternate part vie
