@@ -1,15 +1,17 @@
-{..............................................................................}
-{ Summary   This scripts can be used to copy component designators to mech     }
-{           layer or mech layer pair.                                          }
-{                                                                              }
-{           Designators will be the same as in main components, but they will  }
-{           have '.Designator' text, and they will be part of component        }
-{                                                                              }
-{                                                                              }
-{ Created by:    Petar Perisin                                                 }
-{..............................................................................}
-
-
+{.......................................................................................}
+{ Summary   Used to replicate Component special text (designators & Comment) to mech    }
+{           layer or mech layer pair.                                                   }
+{                                                                                       }
+{           Designators will be the same as in main components, but they will           }
+{           have '.Designator' text, and they will be part of component                 }
+{                                                                                       }
+{                                                                                       }
+{ Created by:    Petar Perisin                                                          }
+{                                                                                       }
+{ circa 2014 v3.1  Modified by Randy Clemmons for AD14 and Higher                                 }
+{              Changed Board.LayerStack. to Board.LayerStack_V7.                                }
+{                                                                                       }
+{.......................................................................................}
 
 
 var
@@ -28,8 +30,6 @@ begin
    Result := Pair;
 end;
 
-
-
 function GetSecondLayerName(Pair : String) : String;
 var
    pos : Integer;
@@ -41,13 +41,10 @@ begin
 end;
 
 
-
 procedure TFormMechLayerDesignators.ButtonCancelClick(Sender: TObject);
 begin
    Close;
 end;
-
-
 
 procedure TFormMechLayerDesignators.FormMechLayerDesignatorsShow(Sender: TObject);
 var
@@ -66,7 +63,7 @@ begin
       RadioButtonLayer2.Enabled := False;
 
       for i := 1 to 32 do
-         if Board.LayerStack.LayerObject_V7[ILayer.MechanicalLayer(i)].MechanicalLayerEnabled then
+         if Board.LayerStack_V7.LayerObject_V7[ILayer.MechanicalLayer(i)].MechanicalLayerEnabled then
          begin
             ComboBoxLayers.Items.Add(Board.LayerName(ILayer.MechanicalLayer(i)));
             if comboBoxLayers.Items.Count = 1 then
@@ -91,12 +88,11 @@ begin
             end;
 
          // Here I need to fill in MechSingles, if user switches:
-         if Board.LayerStack.LayerObject_V7[ILayer.MechanicalLayer(i)].MechanicalLayerEnabled then
+         if Board.LayerStack_V7.LayerObject_V7[ILayer.MechanicalLayer(i)].MechanicalLayerEnabled then
             MechSingles.Add(Board.LayerName(ILayer.MechanicalLayer(i)));
       end;
    end;
 end;
-
 
 
 procedure TFormMechLayerDesignators.RadioButtonSingleClick(Sender: TObject);
@@ -126,7 +122,6 @@ begin
 end;
 
 
-
 procedure TFormMechLayerDesignators.RadioButtonPairClick(Sender: TObject);
 var
    i : integer;
@@ -152,7 +147,6 @@ begin
 end;
 
 
-
 procedure TFormMechLayerDesignators.ComboBoxLayersChange(Sender: TObject);
 begin
    if GroupBoxLayer.Caption = 'Choose Mech Layer Pair:' then
@@ -163,11 +157,10 @@ begin
 end;
 
 
-
 procedure TFormMechLayerDesignators.ButtonOKClick(Sender: TObject);
 var
-   MechTop         : IPCB_LayerObject;
-   MechBot         : IPCB_LayerObject;
+   MechTop         : integer;
+   MechBot         : integer;
    i, flag         : Integer;
    Primitive       : IPCB_Primitive;
    NewPrim         : IPCB_Primitive;
@@ -182,10 +175,10 @@ begin
    begin
       for i := 1 to 32 do
       begin
-         if (Board.LayerStack.LayerObject_V7[ILayer.MechanicalLayer(i)].Name = RadioButtonLayer1.Caption) then
+         if (Board.LayerStack_V7.LayerObject_V7[ILayer.MechanicalLayer(i)].Name = RadioButtonLayer1.Caption) then
             if RadioButtonLayer1.Checked then MechTop := ILayer.MechanicalLayer(i)
             else                              MechBot := ILayer.MechanicalLayer(i);
-         if (Board.LayerStack.LayerObject_V7[ILayer.MechanicalLayer(i)].Name = RadioButtonLayer2.Caption) then
+         if (Board.LayerStack_V7.LayerObject_V7[ILayer.MechanicalLayer(i)].Name = RadioButtonLayer2.Caption) then
             if RadioButtonLayer2.Checked then MechTop := ILayer.MechanicalLayer(i)
             else                              MechBot := ILayer.MechanicalLayer(i);
       end;
@@ -193,7 +186,7 @@ begin
    else
    begin
       for i := 1 to 32 do
-         if (Board.LayerStack.LayerObject_V7[ILayer.MechanicalLayer(i)].Name = ComboBoxLayers.Text) then
+         if (Board.LayerStack_V7.LayerObject_V7[ILayer.MechanicalLayer(i)].Name = ComboBoxLayers.Text) then
          begin
             MechTop := ILayer.MechanicalLayer(i);
             MechBot := ILayer.MechanicalLayer(i);
@@ -341,11 +334,14 @@ begin
 end;
 
 
-
 Procedure Start;
 begin
    Board := PCBServer.GetCurrentPCBBoard;
-   if Board = nil then exit;
+   if Board = nil then
+   begin
+        ShowMessage('Active Window is Not a .PcbDoc File');
+        exit;
+   end;
 
    MechPairs   := TStringList.Create;
    MechSingles := TStringList.Create;
