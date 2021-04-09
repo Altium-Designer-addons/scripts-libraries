@@ -25,7 +25,7 @@ var
    MechSingles : TStringList;
 
 {procedure ReadStringFromIniFile read settings from the ini-file.....................}
-function ReadStringFromIniFile(Section,Name:String,FilePath:String,IfEmpty:String):String;
+function ReadStringFromIniFile(Section,Name : String, FilePath : String, IfEmpty : String) : String;
 var
   IniFile     : TIniFile;
 begin
@@ -35,7 +35,7 @@ begin
           try
              IniFile := TIniFile.Create(FilePath);
 
-             Result := IniFile.ReadString(Section,Name,IfEmpty);
+             Result := IniFile.ReadString(Section, Name, IfEmpty);
 
           finally
                  Inifile.Free;
@@ -62,7 +62,7 @@ var
    pos : Integer;
 begin
    Pos := AnsiPos(' <----> ', Pair);
-   Delete(Pair, 1, Pos  + 7);
+   Delete(Pair, 1, Pos + 7);
 
    Result := Pair;
 end;
@@ -311,7 +311,7 @@ Var
     Layer2                  : TLayer;   // Change this to the layer/layers that best represent the component
     Layer3                  : Integer;  // In many cases eTopOverlay OR eBottomOverLay will be used
     Layer4                  : Integer;  // Layers not used must be set to false e.g Layer3=false;
-    ShowOnce                : Boolean; // Only display the To many characters errors one time
+    ShowOnce                : Boolean;  // Only display the To many characters errors one time
 begin
      // Here we will read various stuff from form
 
@@ -358,11 +358,13 @@ begin
 
      try
 
+        ASetOfLayers := LayerSetUtils.SignalLayers;
+
         // Notify the pcbserver that we will make changes
         PCBServer.PreProcess;
         ComponentIteratorHandle := Board.BoardIterator_Create;
         ComponentIteratorHandle.AddFilter_ObjectSet(MkSet(eComponentObject));
-        ComponentIteratorHandle.AddFilter_IPCB_LayerSet(AllLayers);
+        ComponentIteratorHandle.AddFilter_IPCB_LayerSet(ASetOfLayers);
         ComponentIteratorHandle.AddFilter_Method(eProcessAll);
 
         S := '';        
@@ -387,9 +389,6 @@ begin
              if LockStrings = true then
                 Component.LockStrings := true;
 
-             TrackIteratorHandle := Component.GroupIterator_Create;
-             TrackIteratorHandle.AddFilter_ObjectSet(MkSet(eTrackObject));
-             
              // Check needs to be done for every component, otherwise doesn't work for some reason
              if CheckBoxMechPrimitives.Checked then
              begin
@@ -422,29 +421,34 @@ begin
                 Layer4 := false;
              end;        
              
+             TrackIteratorHandle := Component.GroupIterator_Create;
+             TrackIteratorHandle.AddFilter_ObjectSet(MkSet(eTrackObject));
+             ASetOfLayers := LayerSetUtils.EmptySet;
+             ASetOfLayers.Include(Layer1);
+             ASetOfLayers.Include(Layer2);
+             ASetOfLayers.Include(Layer3);
+             ASetOfLayers.Include(Layer4);
+             TrackIteratorHandle.AddFilter_IPCB_LayerSet(ASetOfLayers);
 
              Track := TrackIteratorHandle.FirstPCBObject;
              while (Track <> Nil) Do
              begin
                   // Look for component's tracks on the layers chosen under settings only when BoundingLayers is true
-                  If (((Track.Layer = Layer1) OR
-                  (Track.Layer = Layer2) OR
-                  (Track.Layer = Layer3) OR
-                  (Track.Layer = Layer4)) AND (BoundingLayers = True))Then
+                  If (BoundingLayers = True) Then
                   begin
                        Inc(TrackCount);
 
-                       if Track.X1>= MaxX then MaxX:=Track.X1;
-                       if Track.X1<= MinX then MinX:=Track.X1;
+                       if Track.X1>= MaxX then MaxX := Track.X1;
+                       if Track.X1<= MinX then MinX := Track.X1;
 
-                       if Track.X2>= MaxX then MaxX:=Track.X2;
-                       if Track.X2<= MinX then MinX:=Track.X2;
+                       if Track.X2>= MaxX then MaxX := Track.X2;
+                       if Track.X2<= MinX then MinX := Track.X2;
 
-                       if Track.Y1>= MaxY then MaxY:=Track.Y1;
-                       if Track.Y1<= MinY then MinY:=Track.Y1;
+                       if Track.Y1>= MaxY then MaxY := Track.Y1;
+                       if Track.Y1<= MinY then MinY := Track.Y1;
 
-                       if Track.Y2>= MaxY then MaxY:=Track.Y2;
-                       if Track.Y2<= MinY then MinY:=Track.Y2;
+                       if Track.Y2>= MaxY then MaxY := Track.Y2;
+                       if Track.Y2<= MinY then MinY := Track.Y2;
                   end;
 
                   Track := TrackIteratorHandle.NextPCBObject;
@@ -462,13 +466,13 @@ begin
             else
             begin
                  R := Component.BoundingRectangleNoNameComment;
-                 if R.left < MinX then MinX := R.left;
+                 if R.left < MinX   then MinX := R.left;
                  if R.bottom < MinY then MinY := R.bottom;
-                 if R.right > MaxX then MaxX := R.right;
-                 if R.top > MaxY then MaxY := R.top;
+                 if R.right > MaxX  then MaxX := R.right;
+                 if R.top > MaxY    then MaxY := R.top;
 
-                 Y:=MaxY-MinY;
-                 X:=MaxX-MinX;
+                 Y := MaxY - MinY;
+                 X := MaxX - MinX;
             end;
 
             Designator    := Component.Name;
@@ -495,17 +499,15 @@ begin
             // Set the size based on the bounding rectangle
             if Y >= X then
             begin
-                 Size := CalculateSize(Y,S,TextLength);
-                 if Size >= X then
+                Size := CalculateSize(Y,S,TextLength);
+                if Size >= X then
                     Size := CalculateSize(X,S,TextLength);
 
-            end
-            else
+            end else
             begin
-                 Size := CalculateSize(X,S,TextLength);
-                 if Size >= Y then
+                Size := CalculateSize(X,S,TextLength);
+                if Size >= Y then
                     Size := CalculateSize(Y,S,TextLength);
-
             end;
 
             if ((Size = -1) AND (ShowOnce = False)) then
@@ -526,32 +528,31 @@ begin
                Designator.Size := Size;
 
                If (cbxUseStrokeFonts.Checked = True) then
-                         begin
-                              Designator.UseTTFonts := False;
-                              Designator.Width := Designator.Size/7;
-                         end;
+               begin
+                   Designator.UseTTFonts := False;
+                   Designator.Width := Designator.Size / 5;
+               end;
 
 
                // Rotate the designator to increase the readability
                if Y > X then
                begin
-                    if Designator.Layer = eTopOverlay then
+                   if Designator.Layer = eTopOverlay then
                        Designator.Rotation := 90
-                    else
-                        Designator.Rotation := 270;
-               end
-               else
+                   else
+                       Designator.Rotation := 270;
+               end else
                begin
-                    Designator.Rotation := 0;
+                   Designator.Rotation := 0;
                end;
 
 
                // Trim down designator if its size is bigger than the MaximumHeight constant
                if Designator.Size >  MaximumHeight then
-                          begin
-                               Designator.Size := MaximumHeight;
-                               Designator.Width := MaximumHeight/7;
-                          end;
+               begin
+                   Designator.Size := MaximumHeight;
+                   Designator.Width := MaximumHeight / 5;
+               end;
 
                if Designator.Size <  MinimumHeight then
                   Designator.Size := MinimumHeight;
@@ -579,8 +580,7 @@ begin
                         if GetSecondLayerName(ComboBoxDesignators.Text) = Board.LayerStack_V7.LayerObject_V7[ILayer.MechanicalLayer(i)].Name then
                            Layer4 := ILayer.MechanicalLayer(i);
                      end;
-                  end
-                  else
+                  end else
                   begin
                      for i := 1 to 32 do
                      begin
@@ -592,12 +592,16 @@ begin
                      end;
                   end;
 
-                  TrackIteratorHandle.AddFilter_LayerSet(AllLayers);
+                  ASetOfLayers := LayerSetUtils.EmptySet;
+                  ASetOfLayers.Include(Layer3);
+                  ASetOfLayers.Include(Layer4);
+                  TrackIteratorHandle.AddFilter_PCB_LayerSet(ASetOfLayers);
 
                   MechDesignator := TrackIteratorHandle.FirstPCBObject;
                   while (MechDesignator <> Nil) Do
                   begin                                                        //                     \/ This function returns just string of MechDesignator.Text
-                     if (((MechDesignator.Layer = Layer3) or (MechDesignator.Layer = Layer4)) and ((GetFirstLayerName(MechDesignator.Text) = '.Designator' ) or (MechDesignator.Text = Designator.Text))) then
+//                     if (((MechDesignator.Layer = Layer3) or (MechDesignator.Layer = Layer4)) and ((GetFirstLayerName(MechDesignator.Text) = '.Designator' ) or (MechDesignator.Text = Designator.Text))) then
+                     if (( (GetFirstLayerName(MechDesignator.Text) = '.Designator' ) or (MechDesignator.Text = Designator.Text))) then
                      begin
                         MechDesignator.Size       := Designator.Size;
                         MechDesignator.Width      := Designator.Width;
@@ -669,24 +673,22 @@ begin
 end;
 
 
-
 procedure TFormAdjustDesignators.CheckBoxMechClick(Sender: TObject);
 begin
    If CheckBoxMech.Checked then
    begin
       if MechPairs.Count <> 0 then
-         RadioButtonPair.Enabled   := True;
-      RadioButtonSingle.Enabled := True;
-      ComboBoxDesignators.Enabled    := True;
+         RadioButtonPair.Enabled := True;
+      RadioButtonSingle.Enabled   := True;
+      ComboBoxDesignators.Enabled := True;
    end
    else
    begin
-      RadioButtonPair.Enabled   := False;
-      RadioButtonSingle.Enabled := False;
-      ComboBoxDesignators.Enabled    := False;
+      RadioButtonPair.Enabled     := False;
+      RadioButtonSingle.Enabled   := False;
+      ComboBoxDesignators.Enabled := False;
    end;
 end;
-
 
 
 procedure TFormAdjustDesignators.CheckBoxMechPrimitivesClick(Sender: TObject);
@@ -694,7 +696,7 @@ begin
    If CheckBoxMechPrimitives.Checked then
    begin
       if MechPairs.Count <> 0 then
-         RadioButtonLayerPair.Enabled   := True;
+         RadioButtonLayerPair.Enabled := True;
       RadioButtonLayerSingle.Enabled := True;
       ComboBoxLayers.Enabled         := True;
    end
@@ -705,7 +707,6 @@ begin
       ComboBoxLayers.Enabled         := False;
    end;
 end;
-
 
 
 procedure TFormAdjustDesignators.EditMinHeightChange(Sender: TObject);
@@ -724,7 +725,6 @@ begin
 end;
 
 
-
 procedure TFormAdjustDesignators.EditMaxHeightChange(Sender: TObject);
 begin
    if not IsStringANum(EditMaxHeight.Text) then
@@ -739,7 +739,6 @@ begin
          ButtonOK.Enabled := True;
    end;
 end;
-
 
 
 Procedure Start;
