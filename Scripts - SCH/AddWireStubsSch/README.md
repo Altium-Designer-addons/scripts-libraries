@@ -21,7 +21,7 @@ LabelOffset | offset of new net labels from pin in up, down, left, right directi
 
 
 ## Credits
-Petr Tosovsky, Retry, www.edatools.cz\
+Petr Tosovsky, Retry, www.edatools.cz \
 Cyril Andreatta, extension with GUI
 
 Script was developed from Altium script `PlaceSchObjects.PAS` from Scripting Gallery and with inspiration of `FormatPaintBrush.pas` from Petar Perisin, Altium Designer addons page.

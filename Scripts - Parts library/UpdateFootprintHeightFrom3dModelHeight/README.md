@@ -3,5 +3,5 @@ Iterate and find Selected Objects for all footprints within the current library,
 
 
 ## Credits
-Created by: Colby Siemer
+Created by: Colby Siemer\
 Modified by Tony Chilco to update comp height.
