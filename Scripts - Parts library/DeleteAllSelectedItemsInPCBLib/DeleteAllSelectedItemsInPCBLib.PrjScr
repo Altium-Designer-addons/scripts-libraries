@@ -31,7 +31,7 @@ PushECOToAnnotationFile=1
 DItemRevisionGUID=
 
 [Document1]
-DocumentPath=DeleteAllSelectedItemsInPCBLibraryParts.pas
+DocumentPath=DeleteAllSelectedItemsInPCBLib.pas
 AnnotationEnabled=1
 AnnotateStartValue=1
 AnnotationIndexControlEnabled=0
