@@ -16,7 +16,7 @@ begin
     SchServer.RobotManager.SendMessage(TObject.I_ObjectAddress, c_BroadCast, SCHM_EndModify, c_NoEventData);
 end;
 
-procedure LR_Justify;
+procedure LRJustify;
   Var
     sk       :  ISCH_Document;
     txt      :  ISch_GraphicalObject;

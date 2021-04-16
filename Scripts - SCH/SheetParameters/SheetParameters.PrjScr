@@ -31,7 +31,7 @@ PushECOToAnnotationFile=1
 DItemRevisionGUID=
 
 [Document1]
-DocumentPath=SchParameters.dfm
+DocumentPath=SheetParameters.dfm
 AnnotationEnabled=1
 AnnotateStartValue=1
 AnnotationIndexControlEnabled=0
@@ -47,7 +47,7 @@ DItemRevisionGUID=
 GenerateClassCluster=0
 
 [Document2]
-DocumentPath=SchParameters.pas
+DocumentPath=SheetParameters.pas
 AnnotationEnabled=1
 AnnotateStartValue=1
 AnnotationIndexControlEnabled=0
@@ -70,7 +70,7 @@ Variant=[No Variations]
 GenerateBOM=0
 
 [Generic_ScriptingSystem]
-StartProcName=SchParameters.pas>UpdateSchematicParameters
+StartProcName=SheetParameters.pas>UpdateSchematicParameters
 
 [OutputGroup1]
 Name=Netlist Outputs
