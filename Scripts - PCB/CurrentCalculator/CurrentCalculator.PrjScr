@@ -31,7 +31,7 @@ PushECOToAnnotationFile=1
 DItemRevisionGUID=
 
 [Document1]
-DocumentPath=Current Calculator.pas
+DocumentPath=CurrentCalculator.pas
 AnnotationEnabled=1
 AnnotateStartValue=1
 AnnotationIndexControlEnabled=0
@@ -54,7 +54,7 @@ Variant=[No Variations]
 GenerateBOM=0
 
 [Generic_ScriptingSystem]
-StartProcName=Current Calculator.pas>CurrentCalc
+StartProcName=CurrentCalculator.pas>CurrentCalc
 
 [OutputGroup1]
 Name=Netlist Outputs

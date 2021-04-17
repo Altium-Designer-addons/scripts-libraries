@@ -32,7 +32,7 @@ DItemRevisionGUID=
 ReportSuppressedErrorsInMessages=0
 
 [Document1]
-DocumentPath=CalculateCopperArea.pas
+DocumentPath=CalculatePolyRegionArea.pas
 AnnotationEnabled=1
 AnnotateStartValue=1
 AnnotationIndexControlEnabled=0
@@ -55,7 +55,7 @@ Variant=[No Variations]
 GenerateBOM=0
 
 [Generic_ScriptingSystem]
-StartProcName=CalculateCopperArea.pas>CalculateCopperArea
+StartProcName=CalculatePolyRegionArea.pas>CalculatePolyRegionArea
 
 [OutputGroup1]
 Name=Netlist Outputs
