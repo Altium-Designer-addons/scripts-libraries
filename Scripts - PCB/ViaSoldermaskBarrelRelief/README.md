@@ -4,7 +4,7 @@ Soldermask Barrel Relief for VIAs
 Barrel Relief Equals Drill Hole Size + Relief\
 PCB Fabricators typically request Drill + 5mil when Via Hole > 13 mils
 
-![Example](Via Soldermask Barrel Relief screenshot.png)
+![Example](Via%20Soldermask%20Barrel%20Relief%20screenshot.png)
 
 
 ## Usage
