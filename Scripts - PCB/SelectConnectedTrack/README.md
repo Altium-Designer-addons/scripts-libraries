@@ -1,0 +1,2 @@
+# SelectConnectedTrack
+After manual selection of a track object on PCB, iteration algorithm starts searching for connected segments of the track on the same layer - segments with at least one equal end point coordinates. Every segment with equal end point coordinates is added to selection. Iterative approach allows to select entire track in few cycles. Procedure is not clearing selection at start, new selection is added to previous selection in PCB document.
