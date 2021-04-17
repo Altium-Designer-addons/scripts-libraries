@@ -153,7 +153,7 @@ begin
 end;
 
 
-Procedure CalculateCopperArea;
+Procedure CalculatePolyRegionArea;
 var
    Board      : IPCB_Board;
    Poly       : IPCB_Polygon;
