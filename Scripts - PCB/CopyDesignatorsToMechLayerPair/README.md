@@ -5,5 +5,5 @@ Designators will be the same as in main components, but they will have `.Designa
 
 
 ## Credits
-Created by: Petar Perisin
+Created by: Petar Perisin\
 Edited by: Brett Miller
