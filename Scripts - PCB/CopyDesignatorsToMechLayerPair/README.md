@@ -1,7 +1,7 @@
 # CopyDesignatorsToMechLayerPair
-This script can be used to copy component designators to a mechinal layer or a mechanical layer pair.
-
-Designators will be the same as in main components, but they will have `.Designator` text, and they will be part of component.
+This script can be used to create a mechanical layer designator as a copy of the true designator.
+The new mechanical designator will be set to special string text '.Designator' and be part of
+the component footprint.
 
 
 ## Credits

@@ -10,6 +10,7 @@
  circa 2014 v3.1  Modified by Randy Clemmons for AD14 and Higher
                   Changed Board.LayerStack. to Board.LayerStack_V7.
  09/04/2021 v4.0  BLM  Added support for AD19+ mech layers & some refactoring.
+ 25/04/2021 v4.1  BLM  Minor tweaks to UI text & stringlist handling.
 .................................................................................}
 
 const
@@ -25,25 +26,25 @@ var
     LayerObj        : IPCB_LayerObject_V7;
     MechLayer1      : IPCB_MechanicalLayer;
     MechLayer2      : IPCB_MechanicalLayer;
-    MechLayerPairs  : IPCB_MechanicalLayerPairs;
     MechPair        : TMechanicalPair;       // IPCB_MechanicalLayerPairs.LayerPair(MechPairIdx)
     MaxMechLayers   : integer;
     ML1, ML2        : integer;
     slMechPairs     : TStringList;
     slMechSingles   : TStringList;
 
-function GetFirstLayerName(Pair : String) : String; forward;
-function GetSecondLayerName(Pair : String) : String; forward;
 function Version(const dummy : boolean) : TStringList; forward;
 
 procedure TFormMechLayerDesignators.ButtonCancelClick(Sender: TObject);
 begin
-   Close;
+    Close;
+    slMechPairs.Clear;
+    slMechSingles.Clear;
 end;
 
 procedure TFormMechLayerDesignators.FormMechLayerDesignatorsShow(Sender: TObject);
 var
-   i, j      : Integer;
+    MechLayerPairs  : IPCB_MechanicalLayerPairs;
+    i, j            : Integer;
 
 begin
     LayerStack := Board.LayerStack_V7;
@@ -78,11 +79,11 @@ begin
                     if MechLayer2.MechanicalLayerEnabled then
                     if MechLayerPairs.PairDefined(ML1, ML2) then
                     begin
-                        slMechPairs.Add(Board.LayerName(ML1) + ' <----> ' + Board.LayerName(ML2));
+                        slMechPairs.Add(Board.LayerName(ML1) + '=' + Board.LayerName(ML2));
                         ComboBoxLayers.Items.Add(Board.LayerName(ML1) + ' <----> ' + Board.LayerName(ML2));
                         if ComboBoxLayers.Items.Count = 1 then
                         begin
-                            ComboBoxLayers.Text := ComboBoxLayers.Items[0];
+                            ComboBoxLayers.SetItemIndex(0);
                             RadioButtonLayer1.caption := Board.LayerName(ML1);
                             RadioButtonLayer2.caption := Board.LayerName(ML2);
                         end;
@@ -93,7 +94,7 @@ begin
 // single layer radio button ticked/checked.
                 ComboBoxLayers.Items.Add(Board.LayerName(ML1));
                 if ComboBoxLayers.Items.Count = 1 then
-                    ComboBoxLayers.Text := ComboBoxLayers.Items[0];
+                    ComboBoxLayers.SetItemIndex(0);
             end;
         end;
     end;
@@ -105,12 +106,10 @@ var
 begin
    if GroupBoxLayer.Caption <> 'Choose Mech Layer:' then
    begin
-      RadioButtonLayer1.Enabled := False;
+      RadioButtonLayer1.Enabled := True;
       RadioButtonLayer2.Enabled := False;
 
-      RadioButtonLayer1.Caption := 'Single Layer';
       RadioButtonLayer2.Caption := 'Single Layer';
-
       GroupBoxLayer.Caption := 'Choose Mech Layer:';
 
       ComboBoxLayers.Clear;
@@ -119,8 +118,11 @@ begin
       begin
          ComboBoxLayers.Items.Add(slMechSingles[i]);
       end;
-
-      ComboBoxLayers.Text := ComboBoxLayers.Items[0];
+      if slMechSingles.Count > 0 then
+      begin
+         ComboBoxLayers.SetItemIndex(0);
+         RadioButtonLayer1.Caption := slMechSingles.Strings(0);
+      end;
    end;
 end;
 
@@ -138,22 +140,34 @@ begin
 
       for i := 0 to (slMechPairs.Count - 1) do
       begin
-         ComboBoxLayers.Items.Add(slMechPairs[i]);
+         ComboBoxLayers.Items.Add(slMechPairs.Names(i) + ' <----> ' + slMechPairs.ValueFromIndex(i) );
       end;
-
-      ComboBoxLayers.Text := ComboBoxLayers.Items[0];
-      RadioButtonLayer1.Caption := GetFirstLayerName(ComboBoxLayers.Text);
-      RadioButtonLayer2.Caption := GetSecondLayerName(ComboBoxLayers.Text);
-
+      if slMechPairs.Count > 0 then
+      begin
+          ComboBoxLayers.SetItemIndex(0);
+          RadioButtonLayer1.Caption := slMechPairs.Names(0);
+          RadioButtonLayer2.Caption := slMechPairs.ValueFromIndex(0);
+      end;
    end;
 end;
 
 procedure TFormMechLayerDesignators.ComboBoxLayersChange(Sender: TObject);
 begin
-   if GroupBoxLayer.Caption = 'Choose Mech Layer Pair:' then
+   if RadioButtonPair.Checked then
    begin
-      RadioButtonLayer1.Caption := GetFirstLayerName(ComboBoxLayers.Text);
-      RadioButtonLayer2.Caption := GetSecondLayerName(ComboBoxLayers.Text);
+      if slMechPairs.Count > 0 then
+      begin
+         RadioButtonLayer1.Caption := slMechPairs.Names(ComboBoxLayers.GetItemIndex);
+         RadioButtonLayer2.Caption := slMechPairs.ValueFromIndex(ComboBoxLayers.GetItemIndex);
+      end;
+   end;
+   if RadioButtonSingle.Checked then
+   begin
+      if slMechSingles.Count > 0 then
+      begin
+         RadioButtonLayer1.Caption := slMechSingles.Strings(ComboBoxLayers.GetItemIndex);
+         RadioButtonLayer2.Caption := 'Single Layer';
+      end;
    end;
 end;
 
@@ -302,32 +316,15 @@ begin
     end;
 
     slMechPairs   := TStringList.Create;
+    slMechPairs.StrictDelimiter := true;
+    slMechPairs.NameValueSeparator := '=';
+
     slMechSingles := TStringList.Create;
 
     FormMechLayerDesignators.ShowModal;
 end;
 
 {.......................................................................................}
-function GetFirstLayerName(Pair : String) : String;
-var
-   pos : Integer;
-begin
-   Pos := AnsiPos(' <----> ', Pair);
-   SetLength(Pair, Pos - 1);
-
-   Result := Pair;
-end;
-
-function GetSecondLayerName(Pair : String) : String;
-var
-   pos : Integer;
-begin
-   Pos := AnsiPos(' <----> ', Pair);
-   Delete(Pair, 1, Pos  + 7);
-
-   Result := Pair;
-end;
-
 function Version(const dummy : boolean) : TStringList;
 begin
     Result               := TStringList.Create;
