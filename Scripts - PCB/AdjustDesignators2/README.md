@@ -1,7 +1,7 @@
 # AdjustDesignators2
 This scripts can be used to adjust designators on mech layers or on silkscreen. The designators are centred, rotated at 0 or 90 deg depending on the component orientation and scaled appropriately.
 
-To create these mechanical designators you can:-
+To create these mechanical designators you can:
 - add special strings to PcbLib footprints
 - add strings in the PcbDoc component footprints with script CopyDesignatorsToMechLayerPair
 
@@ -12,12 +12,12 @@ Improvements: Miroslav Dobrev, Stanislav Popelka, Brett Miller
 
 
 ## Changelog
-Update 25/04/2021
+Update 25/04/2021 (Brett Miller)
 - Stop Comment moving with Designator AutoCenterCenter method.
 - Support AD19+ mech layers, handle any existing multiline text
 - Add constants for text widths for overlay & non-overlay
 
-Last Update 30/09/2018 - added stroke font option
+Update 30/09/2018 - added stroke font option
 
 Update 15/03/2016 (Miroslav Dobrev)
 - The script now works with Altium Designer version 14 and greater
