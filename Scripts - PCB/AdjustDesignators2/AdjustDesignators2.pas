@@ -12,7 +12,7 @@
  Reviewed by:    Petar Perisin                                                         
  Improvements:   Miroslav Dobrev, Stanislav Popelka, Brett Miller                      
 
- Update 25/04/2021 - Stop Comment moving with Designator AutoCenter.
+ Update 30/04/2021 - Stop Comment moving with Designator AutoCenter.
                      Support AD19+ mech layers, handle existing multiline text
                      Add constants for text widths for overlay & non-overlay
  Update 30/09/2018 - added stroke font option
@@ -218,6 +218,8 @@ Var
     OldXLocation            : Integer;
     OldYLocation            : Integer;
     OldAutoPosition         : TTextAutoposition;
+    OldMultiline            : boolean;
+    OldMultilineAuto        : TTextAutoposition;
     OldVisibility           : Boolean;
     OldAutoPosComment       : TTextAutoposition;
 
@@ -415,17 +417,13 @@ begin
         OldRotation       := Designator.Rotation;
         OldXLocation      := Designator.XLocation;
         OldYLocation      := Designator.YLocation;
+        OldMultiline      := Designator.Multiline;
+        OldMultilineAuto  :=  Designator.MultilineTextAutoPosition;
         OldAutoPosition   := Component.GetState_NameAutoPos;
         OldAutoPosComment := Component.GetState_CommentAutoPos;
-        
+
         // Find text length so choose equation for size calculation
         S := Designator.GetDesignatorDisplayString;
-        
-        // notify that the pcb object is going to be modified
-        Component.Name.BeginModify;
-        Component.Comment.BeginModify;
-        
-        // Set the size based on the bounding rectangle
         if Y >= X then
         begin
             Size := CalculateSize(Y, S);
@@ -443,6 +441,10 @@ begin
             ShowMessage('To many characters in one or more components such as (' + Component.Name.Text + '). More than 7 characters are not supported and these components will be ommited.');
             ShowOnce := True;
         end;
+
+        // notify that the pcb object is going to be modified
+        Component.Name.BeginModify;
+        Component.Comment.BeginModify;
 
         if Size > 0 then
         begin
@@ -487,6 +489,10 @@ begin
                 Designator.Size := MinimumHeight;
 
             // Set the Designator AutoPosition to the center-center but stop comment being moved.
+            Designator.SetState_MultilineTextAutoPosition(eAutoPos_CenterLeft);
+            Designator.SetState_Multiline(false);
+            Component.Name.EndModify;
+
             Component.ChangeCommentAutoposition( eAutoPos_Manual );
             Component.ChangeNameAutoposition(eAutoPos_CenterCenter);
             Component.SetState_NameAutoPos(eAutoPos_CenterCenter);
@@ -537,6 +543,7 @@ begin
 //    Having copyied the position etc of Designator, return to original state
             if not CheckBoxOverlay.Checked then
             begin
+                Component.Name.BeginModify;
                 Designator.Width      := OldWidth;
                 Designator.Size       := OldSize;
                 Designator.UseTTFonts := OldUseTTFonts;
@@ -546,11 +553,17 @@ begin
                 Designator.FontName   := OldFontName;
                 Designator.FontID     := OldFontID;
 
+                Designator.SetState_Multiline(OldMultiline);
+                Designator.SetState_MultilineTextAutoPosition(OldMultilineAuto);
                 Component.ChangeNameAutoposition(OldAutoPosition);
+                Component.SetState_NameAutoPos(OldAutoPosition);
 
                 Designator.Rotation   := OldRotation;
                 Designator.XLocation  := OldXLocation;
                 Designator.YLocation  := OldYLocation;
+                Component.Name.EndModify;
+                Designator.SetState_XSizeYSize;
+                Designator.GraphicallyInvalidate;
             end;
             Component.ChangeCommentAutoposition(OldAutoPosComment);
 
@@ -560,10 +573,9 @@ begin
         if UnHideDesignators = false then
             Component.NameOn := OldVisibility;
 
-        Component.Name.EndModify;
         Component.Comment.EndModify;
-        Component.SetState_XSizeYSize;
         Component.EndModify;
+        Component.SetState_XSizeYSize;
         Component.GraphicallyInvalidate;
 
         // Get the next component
