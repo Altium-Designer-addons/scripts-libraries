@@ -12,9 +12,10 @@
  Reviewed by:    Petar Perisin                                                         
  Improvements:   Miroslav Dobrev, Stanislav Popelka, Brett Miller                      
 
- Update 30/04/2021 - Stop Comment moving with Designator AutoCenter.
+ Update 02/05/2021 - Stop Comment moving with Designator AutoCenter.
                      Support AD19+ mech layers, handle existing multiline text
                      Add constants for text widths for overlay & non-overlay
+                     Fix AD20+ some text not moving back correctly.
  Update 30/09/2018 - added stroke font option
  Update 15/03/2016 (Miroslav Dobrev)
   - The script now works with Altium Designer version 14 and greater
@@ -56,7 +57,6 @@ function GetSecondLayerName(Pair : String) : String;           forward;
 function Version(const dummy : boolean) : TStringList;         forward;
 function IsStringANum(Tekst : String) : Boolean;               forward;
 function CalculateSize (Size : Integer, S : String) : Integer; forward;
-
 
 procedure TFormAdjustDesignators.ButtonCancelClick(Sender: TObject);
 begin
@@ -418,7 +418,7 @@ begin
         OldXLocation      := Designator.XLocation;
         OldYLocation      := Designator.YLocation;
         OldMultiline      := Designator.Multiline;
-        OldMultilineAuto  :=  Designator.MultilineTextAutoPosition;
+        OldMultilineAuto  := Designator.MultilineTextAutoPosition;
         OldAutoPosition   := Component.GetState_NameAutoPos;
         OldAutoPosComment := Component.GetState_CommentAutoPos;
 
@@ -465,7 +465,6 @@ begin
                     Designator.Width := Designator.Size / cSilkTextWidthRatio;
             end;
 
-
             // Rotate the designator to increase the readability
             if Y > X then
             begin
@@ -479,14 +478,17 @@ begin
             end;
 
             // Trim down designator if its size is bigger than the MaximumHeight constant
-            if Designator.Size >  MaximumHeight then
+            if Size > MaximumHeight then
             begin
-                Designator.Size := MaximumHeight;
+                Size := MaximumHeight;
                 Designator.Width := MaximumHeight / cTextWidthRatio;
             end;
 
-            if Designator.Size <  MinimumHeight then
-                Designator.Size := MinimumHeight;
+            if Size <  MinimumHeight then
+                Size := MinimumHeight;
+
+             Designator.Size := Size;
+             Designator.SetState_XSizeYSize;
 
             // Set the Designator AutoPosition to the center-center but stop comment being moved.
             Designator.SetState_MultilineTextAutoPosition(eAutoPos_CenterLeft);
@@ -510,6 +512,8 @@ begin
                 MechDesignator := GroupIterator.FirstPCBObject;
                 while (MechDesignator <> Nil) Do
                 begin
+
+                     if not MechDesignator.IsDesignator then
                      if ASetOfLayers.Contains(MechDesignator.Layer) then
                      if ((LowerCase(MechDesignator.GetState_UnderlyingString) = '.designator' ) or (MechDesignator.GetState_ConvertedString = Designator.GetState_ConvertedString)) then
                      begin
@@ -522,8 +526,7 @@ begin
                          MechDesignator.Inverted   := Designator.Inverted;
                          MechDesignator.FontName   := Designator.FontName;
                          MechDesignator.Rotation   := Designator.Rotation;
-                         MechDesignator.XLocation  := Designator.XLocation;
-                         MechDesignator.YLocation  := Designator.YLocation;
+                         MechDesignator.MoveToXY(Designator.XLocation, Designator.YLocation);
                          If (cbxUseStrokeFonts.Checked = True) then
                          begin
                              MechDesignator.UseTTFonts := False;
@@ -559,11 +562,11 @@ begin
                 Component.SetState_NameAutoPos(OldAutoPosition);
 
                 Designator.Rotation   := OldRotation;
-                Designator.XLocation  := OldXLocation;
-                Designator.YLocation  := OldYLocation;
-                Component.Name.EndModify;
+                Designator.MoveToXY(OldXLocation, OldYLocation);
+
                 Designator.SetState_XSizeYSize;
                 Designator.GraphicallyInvalidate;
+                Component.Name.EndModify;
             end;
             Component.ChangeCommentAutoposition(OldAutoPosComment);
 
