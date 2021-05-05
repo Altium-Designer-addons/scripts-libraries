@@ -12,9 +12,10 @@
  Reviewed by:    Petar Perisin                                                         
  Improvements:   Miroslav Dobrev, Stanislav Popelka, Brett Miller                      
 
- Update 25/04/2021 - Stop Comment moving with Designator AutoCenter.
+ Update 05/05/2021 - Stop Comment moving with Designator AutoCenter.
                      Support AD19+ mech layers, handle existing multiline text
                      Add constants for text widths for overlay & non-overlay
+                     Fix AD20+ some text not moving back correctly.
  Update 30/09/2018 - added stroke font option
  Update 15/03/2016 (Miroslav Dobrev)
   - The script now works with Altium Designer version 14 and greater
@@ -56,7 +57,6 @@ function GetSecondLayerName(Pair : String) : String;           forward;
 function Version(const dummy : boolean) : TStringList;         forward;
 function IsStringANum(Tekst : String) : Boolean;               forward;
 function CalculateSize (Size : Integer, S : String) : Integer; forward;
-
 
 procedure TFormAdjustDesignators.ButtonCancelClick(Sender: TObject);
 begin
@@ -218,6 +218,8 @@ Var
     OldXLocation            : Integer;
     OldYLocation            : Integer;
     OldAutoPosition         : TTextAutoposition;
+    OldMultiline            : boolean;
+    OldMultilineAuto        : TTextAutoposition;
     OldVisibility           : Boolean;
     OldAutoPosComment       : TTextAutoposition;
 
@@ -415,17 +417,13 @@ begin
         OldRotation       := Designator.Rotation;
         OldXLocation      := Designator.XLocation;
         OldYLocation      := Designator.YLocation;
+        OldMultiline      := Designator.Multiline;
+        OldMultilineAuto  := Designator.MultilineTextAutoPosition;
         OldAutoPosition   := Component.GetState_NameAutoPos;
         OldAutoPosComment := Component.GetState_CommentAutoPos;
-        
+
         // Find text length so choose equation for size calculation
         S := Designator.GetDesignatorDisplayString;
-        
-        // notify that the pcb object is going to be modified
-        Component.Name.BeginModify;
-        Component.Comment.BeginModify;
-        
-        // Set the size based on the bounding rectangle
         if Y >= X then
         begin
             Size := CalculateSize(Y, S);
@@ -443,6 +441,10 @@ begin
             ShowMessage('To many characters in one or more components such as (' + Component.Name.Text + '). More than 7 characters are not supported and these components will be ommited.');
             ShowOnce := True;
         end;
+
+        // notify that the pcb object is going to be modified
+        Component.Name.BeginModify;
+        Component.Comment.BeginModify;
 
         if Size > 0 then
         begin
@@ -463,7 +465,6 @@ begin
                     Designator.Width := Designator.Size / cSilkTextWidthRatio;
             end;
 
-
             // Rotate the designator to increase the readability
             if Y > X then
             begin
@@ -477,16 +478,23 @@ begin
             end;
 
             // Trim down designator if its size is bigger than the MaximumHeight constant
-            if Designator.Size >  MaximumHeight then
+            if Size > MaximumHeight then
             begin
-                Designator.Size := MaximumHeight;
+                Size := MaximumHeight;
                 Designator.Width := MaximumHeight / cTextWidthRatio;
             end;
 
-            if Designator.Size <  MinimumHeight then
-                Designator.Size := MinimumHeight;
+            if Size <  MinimumHeight then
+                Size := MinimumHeight;
+
+             Designator.Size := Size;
+             Designator.SetState_XSizeYSize;
 
             // Set the Designator AutoPosition to the center-center but stop comment being moved.
+            Designator.SetState_MultilineTextAutoPosition(eAutoPos_CenterLeft);
+            Designator.SetState_Multiline(false);
+            Component.Name.EndModify;
+
             Component.ChangeCommentAutoposition( eAutoPos_Manual );
             Component.ChangeNameAutoposition(eAutoPos_CenterCenter);
             Component.SetState_NameAutoPos(eAutoPos_CenterCenter);
@@ -504,31 +512,33 @@ begin
                 MechDesignator := GroupIterator.FirstPCBObject;
                 while (MechDesignator <> Nil) Do
                 begin
-                     if ASetOfLayers.Contains(MechDesignator.Layer) then
-                     if ((LowerCase(MechDesignator.GetState_UnderlyingString) = '.designator' ) or (MechDesignator.GetState_ConvertedString = Designator.GetState_ConvertedString)) then
-                     begin
-                         MechDesignator.SetState_Multiline(Designator.Multiline);
-                         MechDesignator.MultilineTextAutoPosition := Designator.MultilineTextAutoPosition;
-                         MechDesignator.Size       := Designator.Size;
-                         MechDesignator.UseTTFonts := Designator.UseTTFonts;
-                         MechDesignator.Italic     := Designator.Italic;
-                         MechDesignator.Bold       := Designator.Bold;
-                         MechDesignator.Inverted   := Designator.Inverted;
-                         MechDesignator.FontName   := Designator.FontName;
-                         MechDesignator.Rotation   := Designator.Rotation;
-                         MechDesignator.XLocation  := Designator.XLocation;
-                         MechDesignator.YLocation  := Designator.YLocation;
-                         If (cbxUseStrokeFonts.Checked = True) then
-                         begin
-                             MechDesignator.UseTTFonts := False;
-                             MechDesignator.Width := MechDesignator.Size / cTextWidthRatio;
-                             // Thicker strokes for Overlay text
-                             if (MechDesignator.Layer = eTopOverlay) or (MechDesignator.Layer = eBottomOverlay) then
-                                 MechDesignator.Width := MechDesignator.Size / cSilkTextWidthRatio;
-                             end;
-                     end;
+                    if not MechDesignator.IsDesignator then
+                    if ASetOfLayers.Contains(MechDesignator.Layer) then
+                    if ((LowerCase(MechDesignator.GetState_UnderlyingString) = '.designator' ) or (MechDesignator.GetState_ConvertedString = Designator.GetState_ConvertedString)) then
+                    begin
+                        MechDesignator.SetState_Multiline(Designator.Multiline);
+                        MechDesignator.MultilineTextAutoPosition := Designator.MultilineTextAutoPosition;
+                        MechDesignator.Size       := Designator.Size;
+                        MechDesignator.UseTTFonts := Designator.UseTTFonts;
+                        MechDesignator.Italic     := Designator.Italic;
+                        MechDesignator.Bold       := Designator.Bold;
+                        MechDesignator.Inverted   := Designator.Inverted;
+                        MechDesignator.FontName   := Designator.FontName;
+                        MechDesignator.Rotation   := Designator.Rotation;
+                        MechDesignator.MoveToXY(Designator.XLocation, Designator.YLocation);
+                        If (cbxUseStrokeFonts.Checked = True) then
+                        begin
+                            MechDesignator.UseTTFonts := False;
+                            MechDesignator.Width := MechDesignator.Size / cTextWidthRatio;
+                            // Thicker strokes for Overlay text
+                            if (MechDesignator.Layer = eTopOverlay) or (MechDesignator.Layer = eBottomOverlay) then
+                                MechDesignator.Width := MechDesignator.Size / cSilkTextWidthRatio;
+                        end;
+                        MechDesignator.SetState_XSizeYSize;
+                        MechDesignator.GraphicallyInvalidate;
+                    end;
 
-                     MechDesignator := GroupIterator.NextPCBObject;
+                    MechDesignator := GroupIterator.NextPCBObject;
                 end;
                 // Destroy the track interator
                 Component.GroupIterator_Destroy(GroupIterator);
@@ -537,6 +547,7 @@ begin
 //    Having copyied the position etc of Designator, return to original state
             if not CheckBoxOverlay.Checked then
             begin
+                Component.Name.BeginModify;
                 Designator.Width      := OldWidth;
                 Designator.Size       := OldSize;
                 Designator.UseTTFonts := OldUseTTFonts;
@@ -546,11 +557,17 @@ begin
                 Designator.FontName   := OldFontName;
                 Designator.FontID     := OldFontID;
 
+                Designator.SetState_Multiline(OldMultiline);
+                Designator.SetState_MultilineTextAutoPosition(OldMultilineAuto);
                 Component.ChangeNameAutoposition(OldAutoPosition);
+                Component.SetState_NameAutoPos(OldAutoPosition);
 
                 Designator.Rotation   := OldRotation;
-                Designator.XLocation  := OldXLocation;
-                Designator.YLocation  := OldYLocation;
+                Designator.MoveToXY(OldXLocation, OldYLocation);
+
+                Designator.SetState_XSizeYSize;
+                Designator.GraphicallyInvalidate;
+                Component.Name.EndModify;
             end;
             Component.ChangeCommentAutoposition(OldAutoPosComment);
 
@@ -560,10 +577,9 @@ begin
         if UnHideDesignators = false then
             Component.NameOn := OldVisibility;
 
-        Component.Name.EndModify;
         Component.Comment.EndModify;
-        Component.SetState_XSizeYSize;
         Component.EndModify;
+        Component.SetState_XSizeYSize;
         Component.GraphicallyInvalidate;
 
         // Get the next component
