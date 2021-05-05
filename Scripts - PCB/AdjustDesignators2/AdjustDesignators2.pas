@@ -12,7 +12,7 @@
  Reviewed by:    Petar Perisin                                                         
  Improvements:   Miroslav Dobrev, Stanislav Popelka, Brett Miller                      
 
- Update 02/05/2021 - Stop Comment moving with Designator AutoCenter.
+ Update 05/05/2021 - Stop Comment moving with Designator AutoCenter.
                      Support AD19+ mech layers, handle existing multiline text
                      Add constants for text widths for overlay & non-overlay
                      Fix AD20+ some text not moving back correctly.
@@ -512,32 +512,33 @@ begin
                 MechDesignator := GroupIterator.FirstPCBObject;
                 while (MechDesignator <> Nil) Do
                 begin
+                    if not MechDesignator.IsDesignator then
+                    if ASetOfLayers.Contains(MechDesignator.Layer) then
+                    if ((LowerCase(MechDesignator.GetState_UnderlyingString) = '.designator' ) or (MechDesignator.GetState_ConvertedString = Designator.GetState_ConvertedString)) then
+                    begin
+                        MechDesignator.SetState_Multiline(Designator.Multiline);
+                        MechDesignator.MultilineTextAutoPosition := Designator.MultilineTextAutoPosition;
+                        MechDesignator.Size       := Designator.Size;
+                        MechDesignator.UseTTFonts := Designator.UseTTFonts;
+                        MechDesignator.Italic     := Designator.Italic;
+                        MechDesignator.Bold       := Designator.Bold;
+                        MechDesignator.Inverted   := Designator.Inverted;
+                        MechDesignator.FontName   := Designator.FontName;
+                        MechDesignator.Rotation   := Designator.Rotation;
+                        MechDesignator.MoveToXY(Designator.XLocation, Designator.YLocation);
+                        If (cbxUseStrokeFonts.Checked = True) then
+                        begin
+                            MechDesignator.UseTTFonts := False;
+                            MechDesignator.Width := MechDesignator.Size / cTextWidthRatio;
+                            // Thicker strokes for Overlay text
+                            if (MechDesignator.Layer = eTopOverlay) or (MechDesignator.Layer = eBottomOverlay) then
+                                MechDesignator.Width := MechDesignator.Size / cSilkTextWidthRatio;
+                        end;
+                        MechDesignator.SetState_XSizeYSize;
+                        MechDesignator.GraphicallyInvalidate;
+                    end;
 
-                     if not MechDesignator.IsDesignator then
-                     if ASetOfLayers.Contains(MechDesignator.Layer) then
-                     if ((LowerCase(MechDesignator.GetState_UnderlyingString) = '.designator' ) or (MechDesignator.GetState_ConvertedString = Designator.GetState_ConvertedString)) then
-                     begin
-                         MechDesignator.SetState_Multiline(Designator.Multiline);
-                         MechDesignator.MultilineTextAutoPosition := Designator.MultilineTextAutoPosition;
-                         MechDesignator.Size       := Designator.Size;
-                         MechDesignator.UseTTFonts := Designator.UseTTFonts;
-                         MechDesignator.Italic     := Designator.Italic;
-                         MechDesignator.Bold       := Designator.Bold;
-                         MechDesignator.Inverted   := Designator.Inverted;
-                         MechDesignator.FontName   := Designator.FontName;
-                         MechDesignator.Rotation   := Designator.Rotation;
-                         MechDesignator.MoveToXY(Designator.XLocation, Designator.YLocation);
-                         If (cbxUseStrokeFonts.Checked = True) then
-                         begin
-                             MechDesignator.UseTTFonts := False;
-                             MechDesignator.Width := MechDesignator.Size / cTextWidthRatio;
-                             // Thicker strokes for Overlay text
-                             if (MechDesignator.Layer = eTopOverlay) or (MechDesignator.Layer = eBottomOverlay) then
-                                 MechDesignator.Width := MechDesignator.Size / cSilkTextWidthRatio;
-                             end;
-                     end;
-
-                     MechDesignator := GroupIterator.NextPCBObject;
+                    MechDesignator := GroupIterator.NextPCBObject;
                 end;
                 // Destroy the track interator
                 Component.GroupIterator_Destroy(GroupIterator);
