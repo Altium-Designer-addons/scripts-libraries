@@ -12,7 +12,7 @@ _Step 1_: download the add-on you want.
 2. Or download only the add-on you want. You can do so by navigating into a script folder and then clicking the script link from the list.
 
 _Step 2_: integrate the script into Altium Designer and execute it.\
-If you are a newcomer to Altium scripts, [please read the "how to" help page](https://github.com/Altium-Designer-addons/scripts-libraries/blob/master/HowTo_execute_scripts). Some developers may also have provided some screen captures or examples of use.
+If you are a newcomer to Altium scripts, [please read the "how to" help page](https://github.com/Altium-Designer-addons/scripts-libraries/blob/master/HowTo_execute_scripts.md). Some developers may also have provided some screen captures or examples of use.
 
 __Please be advised__: Some scripts may not work out-of-the-box. Some may be old, unmaintained. Others may be provided as a demonstration, or should be integrated in an other script to fully work.
 
