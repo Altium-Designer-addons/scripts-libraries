@@ -43,7 +43,7 @@ How to use this script
  3) With your document currently visible, run this script by one of
     this three means:
     a) Using a custom menu dedicated to SVN actions described at
-         https://github.com/Altium-Designer-addons/scripts-libraries/wiki/Menu_SVN
+         https://github.com/Altium-Designer-addons/scripts-libraries/blob/master/UI%20customizations/Menu_SVN/README.md
     b) Opening the PrjScr project, then click on "DXP > Run Script" and select
        BetterRevertVCS.
     c) Creating a custom menu button with Process set to
