@@ -7,7 +7,7 @@ This script can set the clearance or center-to-center distance between two or mo
 _Step 1_: [DOWNLOAD the script](https://altium-designer-addons.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Distribute)
 
 _Step 2_: integrate the script into Altium Designer and execute it.\
-If you are a newcomer to Altium scripts, [please read the "how to" wiki page](https://github.com/Altium-Designer-addons/scripts-libraries/wiki/HowTo_execute_scripts).
+If you are a newcomer to Altium scripts, [please read the "how to" help page](https://github.com/Altium-Designer-addons/scripts-libraries/blob/master/HowTo_execute_scripts.md).
 
 ## Usage guide
 _Eligible objects_: Select two or more parallel tracks.
