@@ -1,3 +1,5 @@
+1234
+
 #usage	"<b>Export PCB project to Protel .PCBDOC (ASCII)</b>"
         "<p>"
         "This ULP script tries to export PCB file which can be opened by Protel. "
