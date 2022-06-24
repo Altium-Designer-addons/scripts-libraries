@@ -47,6 +47,7 @@ Usage Notes:
 07/05/2020 v0.87 SCH: simplified pick ranking/weighting.
 26/12/2020 v0.88 PCB: remove 2 useless lines in Dimensions. Change MessageDlg to mtCustom. Does it beep?
 24/06/2022 v0.89 PCB: add pad & via template link copying.
+24/06/2022 v0.90 PCB: copy over primitive keepout restrictions.
 
 
 tbd: <shift> modifier key was intended to prevent font size change but FontManager is borked in AD19.
@@ -683,6 +684,7 @@ var
     ViaTPlate : IPCB_ViaTemplate;
     PadTPlate : IPCB_PadTemplate;
     Pad       : IPCB_Pad;
+    KORS      : TKeepoutRestrictionsSet;
 //    Flag     : Integer;
 
 begin
@@ -918,7 +920,7 @@ begin
             DestinPrim.SetState_Kind (SourcePrim.Kind);
         //    DestinPrim.IsSimpleRegion       := SourcePrim.IsSimpleRegion;
             DestinPrim.IsKeepout            := SourcePrim.IsKeepout;
-            DestinPrim.InNet                := SourcePrim.InNet;    
+            DestinPrim.InNet                := SourcePrim.InNet;
             //DestinPrim.Net                  := SourcePrim.Net;
             DestinPrim.GraphicallyInvalidate;
         end;
@@ -995,6 +997,13 @@ begin
             DestinPrim.GraphicallyInvalidate;
         end;
     end; //case
+
+// handle primitives with KeepOut property.
+    if SourcePrim.IsKeepout then
+    begin
+        KORS := SourcePrim.GetState_KeepoutRestrictions;
+        DestinPrim.SetState_KeepoutRestrictions(KORS);
+    end;
 
     DestinPrim.EndModify;
 end;
