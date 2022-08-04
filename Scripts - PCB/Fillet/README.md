@@ -23,7 +23,8 @@ Default setting is fixed radius in mils. Value presets are unitless.
 ### Using Presets
 Press the preset button (or Alt+Number) to execute the fillet operation with that value. Pressing <Enter> while editing a preset will immediately execute that preset and save it.
 ### Saving Presets
-Preset values are saved _every_ time you execute the fillet command, if you change a preset value. Does _not_ save if you cancel the dialog.
+Preset values are saved _every_ time you execute the fillet command, if you change a preset value. Does _not_ save if you cancel the dialog.\
+Unit and last used radius will be saved too.
 
 
 ## How to install and use

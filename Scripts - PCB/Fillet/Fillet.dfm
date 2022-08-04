@@ -57,8 +57,8 @@ object Form1: TForm1
     TabOrder = 0
     Text = '32.25'
     TextHint = 'Enter value for fixed radius'
-    OnChange = tRadiusChange
-    OnKeyPress = tRadiusKeyPress
+    OnChange = ValidateOnChange
+    OnKeyPress = UserKeyPress
   end
   object RadioPanel: TPanel
     Left = 38
@@ -105,7 +105,7 @@ object Form1: TForm1
     Caption = 'Preset &1'
     TabOrder = 12
     TabStop = False
-    OnClick = Button1Click
+    OnClick = PresetButtonClicked
   end
   object tPreset1: TEdit
     Left = 24
@@ -119,8 +119,8 @@ object Form1: TForm1
     TabOrder = 1
     Text = '25.2'
     TextHint = 'Enter value for fixed radius'
-    OnChange = tRadiusChange
-    OnKeyPress = tPreset1KeyPress
+    OnChange = ValidateOnChange
+    OnKeyPress = UserKeyPress
   end
   object Button2: TButton
     Left = 96
@@ -130,7 +130,7 @@ object Form1: TForm1
     Caption = 'Preset &2'
     TabOrder = 13
     TabStop = False
-    OnClick = Button2Click
+    OnClick = PresetButtonClicked
   end
   object tPreset2: TEdit
     Left = 24
@@ -144,8 +144,8 @@ object Form1: TForm1
     TabOrder = 2
     Text = '39.1'
     TextHint = 'Enter value for fixed radius'
-    OnChange = tRadiusChange
-    OnKeyPress = tPreset2KeyPress
+    OnChange = ValidateOnChange
+    OnKeyPress = UserKeyPress
   end
   object Button3: TButton
     Left = 96
@@ -155,7 +155,7 @@ object Form1: TForm1
     Caption = 'Preset &3'
     TabOrder = 14
     TabStop = False
-    OnClick = Button3Click
+    OnClick = PresetButtonClicked
   end
   object tPreset3: TEdit
     Left = 24
@@ -169,8 +169,8 @@ object Form1: TForm1
     TabOrder = 3
     Text = '32.4'
     TextHint = 'Enter value for fixed radius'
-    OnChange = tRadiusChange
-    OnKeyPress = tPreset3KeyPress
+    OnChange = ValidateOnChange
+    OnKeyPress = UserKeyPress
   end
   object Button4: TButton
     Left = 96
@@ -180,7 +180,7 @@ object Form1: TForm1
     Caption = 'Preset &4'
     TabOrder = 15
     TabStop = False
-    OnClick = Button4Click
+    OnClick = PresetButtonClicked
   end
   object tPreset4: TEdit
     Left = 24
@@ -194,8 +194,8 @@ object Form1: TForm1
     TabOrder = 4
     Text = '46.3'
     TextHint = 'Enter value for fixed radius'
-    OnChange = tRadiusChange
-    OnKeyPress = tPreset4KeyPress
+    OnChange = ValidateOnChange
+    OnKeyPress = UserKeyPress
   end
   object Button5: TButton
     Left = 96
@@ -205,7 +205,7 @@ object Form1: TForm1
     Caption = 'Preset &5'
     TabOrder = 16
     TabStop = False
-    OnClick = Button5Click
+    OnClick = PresetButtonClicked
   end
   object tPreset5: TEdit
     Left = 24
@@ -219,8 +219,8 @@ object Form1: TForm1
     TabOrder = 5
     Text = '41.05'
     TextHint = 'Enter value for fixed radius'
-    OnChange = tRadiusChange
-    OnKeyPress = tPreset5KeyPress
+    OnChange = ValidateOnChange
+    OnKeyPress = UserKeyPress
   end
   object Button6: TButton
     Left = 96
@@ -230,7 +230,7 @@ object Form1: TForm1
     Caption = 'Preset &6'
     TabOrder = 17
     TabStop = False
-    OnClick = Button6Click
+    OnClick = PresetButtonClicked
   end
   object tPreset6: TEdit
     Left = 24
@@ -244,8 +244,8 @@ object Form1: TForm1
     TabOrder = 6
     Text = '10'
     TextHint = 'Enter value for fixed radius'
-    OnChange = tRadiusChange
-    OnKeyPress = tPreset6KeyPress
+    OnChange = ValidateOnChange
+    OnKeyPress = UserKeyPress
   end
   object Button7: TButton
     Left = 96
@@ -255,7 +255,7 @@ object Form1: TForm1
     Caption = 'Preset &7'
     TabOrder = 18
     TabStop = False
-    OnClick = Button7Click
+    OnClick = PresetButtonClicked
   end
   object tPreset7: TEdit
     Left = 24
@@ -269,8 +269,8 @@ object Form1: TForm1
     TabOrder = 7
     Text = '20'
     TextHint = 'Enter value for fixed radius'
-    OnChange = tRadiusChange
-    OnKeyPress = tPreset7KeyPress
+    OnChange = ValidateOnChange
+    OnKeyPress = UserKeyPress
   end
   object Button8: TButton
     Left = 96
@@ -280,7 +280,7 @@ object Form1: TForm1
     Caption = 'Preset &8'
     TabOrder = 19
     TabStop = False
-    OnClick = Button8Click
+    OnClick = PresetButtonClicked
   end
   object tPreset8: TEdit
     Left = 24
@@ -294,7 +294,7 @@ object Form1: TForm1
     TabOrder = 8
     Text = '30'
     TextHint = 'Enter value for fixed radius'
-    OnChange = tRadiusChange
-    OnKeyPress = tPreset8KeyPress
+    OnChange = ValidateOnChange
+    OnKeyPress = UserKeyPress
   end
 end
