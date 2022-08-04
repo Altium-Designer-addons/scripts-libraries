@@ -6,9 +6,12 @@
 { Created by:    Petar Perisin                                                 }
 { Edited by:    Ryan Rutledge                                                  }
 {           Edited 2018-09-15 to support any-angle tracks and fixed radius     }
+{           Edited 2022-08-01 to add configurable presets                      }
 {..............................................................................}
 
 {..............................................................................}
+uses
+    IniFiles;
 var
     Board         : IPCB_Board;
     MinDistance   : Double;
@@ -23,8 +26,9 @@ var
     ....
     I_ObjectAdressN;radiusN
     *)
-    RadiusList         :TStringList;
-
+    RadiusList  : TStringList;
+    PresetFilePath : String;
+    PresetList  : TStringList;
 
 
 
@@ -54,37 +58,38 @@ begin
    if dotCount > 1 then Result := False;
 end;
 
-procedure TForm1.ButtonOKClick(Sender: TObject);
+procedure DoFillets;
 var
-    FirstTrack         :IPCB_Primitive;
-    SecondTrack        :IPCB_Primitive;
-    XCommon            :Integer;
-    YCommon            :Integer;
-    angle1             :Double;
-    angle2             :Double;
-    Radius             :Integer;
-    k1                 :Double;
-    k2                 :Double;
-    FirstCommon        :Integer;
-    SecondCommon       :Integer;
-    Xc                 :Integer;
-    Yc                 :Integer;
-    i, j               :integer;
-    flag               :integer;
-    X1, X2, Y1, Y2     :Integer;
-    StartAngle         :Double;
-    StopAngle          :Double;
-    ArcAngle           :Double;
-    HalfAngle          :Double;
-    Arc                :IPCB_Arc;
-    Line               :String;
-    TempString         :String;
-    ObjAdr             :Int64;
-    Leng               :Integer;
-    ShortLength        :Integer;
-    NumCommon          :Integer;
-    Ratio              :Double;
-    a, b               :Integer;
+    FirstTrack          :IPCB_Primitive;
+    SecondTrack         :IPCB_Primitive;
+    XCommon             :Integer;
+    YCommon             :Integer;
+    angle1              :Double;
+    angle2              :Double;
+    Radius              :Integer;
+    k1                  :Double;
+    k2                  :Double;
+    FirstCommon         :Integer;
+    SecondCommon        :Integer;
+    Xc                  :Integer;
+    Yc                  :Integer;
+    i, j                :integer;
+    flag                :integer;
+    X1, X2, Y1, Y2      :Integer;
+    StartAngle          :Double;
+    StopAngle           :Double;
+    ArcAngle            :Double;
+    HalfAngle           :Double;
+    Arc                 :IPCB_Arc;
+    Line                :String;
+    TempString          :String;
+    ObjAdr              :Int64;
+    Leng                :Integer;
+    ShortLength         :Integer;
+    NumCommon           :Integer;
+    Ratio               :Double;
+    a, b                :Integer;
+    TempPresetList      :TStringList;
 
 begin
     // Start undo
@@ -215,8 +220,8 @@ begin
                         j    := LastDelimiter(';', Line);
 
                         ObjAdr := StrToInt64(Copy(Line, 1, j - 1));
-                        if Ratio > 0 then    
-                        begin 
+                        if Ratio > 0 then
+                        begin
                             Leng := Int(StrToInt64(Copy(Line, j + 1, length(Line))) * Ratio / 100)
                         end
                         else Leng                 := Radius;
@@ -384,6 +389,30 @@ begin
 
     RadiusList.Clear;
     
+    // build list of currect preset values
+    TempPresetList := TStringList.Create;
+    TempPresetList.Add(tPreset1.Text);
+    TempPresetList.Add(tPreset2.Text);
+    TempPresetList.Add(tPreset3.Text);
+    TempPresetList.Add(tPreset4.Text);
+    TempPresetList.Add(tPreset5.Text);
+    TempPresetList.Add(tPreset6.Text);
+    TempPresetList.Add(tPreset7.Text);
+    TempPresetList.Add(tPreset8.Text);
+   
+    If TempPresetList.Equals(PresetList) then
+    Begin
+        //presets match saved list so do nothing
+    End
+    Else Begin
+        // save new list to MyPresetList.txt
+        TempPresetList.SaveToFile(PresetFilePath);
+    End;
+    
+    // cleanup
+    PresetList.Free;
+    TempPresetList.Free;
+    
     // Display a message if no fillets have been added by script, presumably because there is an issue with track joints.
     // If even one fillet is added, don't show message. The intent is to be informative if the user runs the script and it does nothing.
     if NumCommon = 0 then ShowMessage('Selected tracks have no common point (track ends must meet EXACTLY)');
@@ -415,14 +444,15 @@ begin
 
     flag       := 0;
     RadiusList := TStringList.Create;
-
+    PresetFilePath := ClientAPI_SpecialFolder_AltiumApplicationData + '\MyFilletPresets.txt';
+    
     // Deselect any non-track objects
     i := 0;
     While i < Board.SelectecObjectCount do
     begin
         Track := Board.SelectecObject[i];
         if Track.ObjectId <> eTrackObject then Track.SetState_Selected(false)
-        else i := i + 1;	// only iterate if object wasn't deselected
+        else i := i + 1;    // only iterate if object wasn't deselected
     end;
 
     for i := 0 to Board.SelectecObjectCount - 1 do
@@ -487,11 +517,200 @@ begin
         tRadius.Text := '0.01';
         ShowInfo('% input limited to 0.01%');
     end;
+
 end;
 
 procedure TForm1.RadioUnitsRatioClick(Sender: TObject);
 begin
     if (RadioUnitsRatio.Checked = true) and (StrToFloat(tRadius.Text) >= 100) then tRadius.Text := '99.99'
     else if (RadioUnitsRatio.Checked = true) and (StrToFloat(tRadius.Text) <= 0) then tRadius.Text := '0.01';
+end;
+
+
+procedure TForm1.Form1Show(Sender: TObject);
+var
+    I : Integer;
+begin
+    // read from MyFilletPresets.txt
+    PresetList := TStringList.Create;
+    If FileExists(PresetFilePath) then
+    Begin
+        PresetList.LoadFromFile(PresetFilePath);
+        
+        // if PresetList count is short, start padding with default value
+        If PresetList.Count < 8 then
+        Begin
+            While PresetList.Count < 8 do
+            Begin
+                PresetList.Add('10');
+            End;
+            PresetList.SaveToFile(PresetFilePath);
+        End;
+        
+        //set text boxes to match preset list
+        tPreset1.Text := PresetList[0];
+        tPreset2.Text := PresetList[1];
+        tPreset3.Text := PresetList[2];
+        tPreset4.Text := PresetList[3];
+        tPreset5.Text := PresetList[4];
+        tPreset6.Text := PresetList[5];
+        tPreset7.Text := PresetList[6];
+        tPreset8.Text := PresetList[7];
+    End
+    Else Begin
+        //ShowMessage(PresetFilePath + ' does not exist.');
+        PresetList.Clear;
+        PresetList.Add(tPreset1.Text);
+        PresetList.Add(tPreset2.Text);
+        PresetList.Add(tPreset3.Text);
+        PresetList.Add(tPreset4.Text);
+        PresetList.Add(tPreset5.Text);
+        PresetList.Add(tPreset6.Text);
+        PresetList.Add(tPreset7.Text);
+        PresetList.Add(tPreset8.Text);
+        PresetList.SaveToFile(PresetFilePath);
+    end;
+end;
+
+procedure TForm1.ButtonOKClick(Sender: TObject);
+begin
+    DoFillets;
+end;
+
+procedure TForm1.tRadiusKeyPress(Sender: TObject; var Key: Char);
+begin
+    if Key = #13 then
+    begin
+        Key := #0; //don't beep
+        DoFillets;
+    end;
+end;
+
+procedure TForm1.Button1Click(Sender: TObject);
+begin
+    tRadius.Text := tPreset1.Text;
+    DoFillets;
+end;
+
+procedure TForm1.tPreset1KeyPress(Sender: TObject; var Key: Char);
+begin
+    if Key = #13 then
+    begin
+        Key := #0; //don't beep
+        tRadius.Text := tPreset1.Text;
+        DoFillets;
+    end;
+end;
+
+procedure TForm1.Button2Click(Sender: TObject);
+begin
+    tRadius.Text := tPreset2.Text;
+    DoFillets;
+end;
+
+procedure TForm1.tPreset2KeyPress(Sender: TObject; var Key: Char);
+begin
+    if Key = #13 then
+    begin
+        Key := #0; //don't beep
+        tRadius.Text := tPreset2.Text;
+        DoFillets;
+    end;
+end;
+
+procedure TForm1.Button3Click(Sender: TObject);
+begin
+    tRadius.Text := tPreset3.Text;
+    DoFillets;
+end;
+
+procedure TForm1.tPreset3KeyPress(Sender: TObject; var Key: Char);
+begin
+    if Key = #13 then
+    begin
+        Key := #0; //don't beep
+        tRadius.Text := tPreset3.Text;
+        DoFillets;
+    end;
+end;
+
+procedure TForm1.Button4Click(Sender: TObject);
+begin
+    tRadius.Text := tPreset4.Text;
+    DoFillets;
+end;
+
+procedure TForm1.tPreset4KeyPress(Sender: TObject; var Key: Char);
+begin
+    if Key = #13 then
+    begin
+        Key := #0; //don't beep
+        tRadius.Text := tPreset4.Text;
+        DoFillets;
+    end;
+end;
+
+procedure TForm1.Button5Click(Sender: TObject);
+begin
+    tRadius.Text := tPreset5.Text;
+    DoFillets;
+end;
+
+procedure TForm1.tPreset5KeyPress(Sender: TObject; var Key: Char);
+begin
+    if Key = #13 then
+    begin
+        Key := #0; //don't beep
+        tRadius.Text := tPreset5.Text;
+        DoFillets;
+    end;
+end;
+
+procedure TForm1.Button6Click(Sender: TObject);
+begin
+    tRadius.Text := tPreset6.Text;
+    DoFillets;
+end;
+
+procedure TForm1.tPreset6KeyPress(Sender: TObject; var Key: Char);
+begin
+    if Key = #13 then
+    begin
+        Key := #0; //don't beep
+        tRadius.Text := tPreset6.Text;
+        DoFillets;
+    end;
+end;
+
+procedure TForm1.Button7Click(Sender: TObject);
+begin
+    tRadius.Text := tPreset7.Text;
+    DoFillets;
+end;
+
+procedure TForm1.tPreset7KeyPress(Sender: TObject; var Key: Char);
+begin
+    if Key = #13 then
+    begin
+        Key := #0; //don't beep
+        tRadius.Text := tPreset7.Text;
+        DoFillets;
+    end;
+end;
+
+procedure TForm1.Button8Click(Sender: TObject);
+begin
+    tRadius.Text := tPreset8.Text;
+    DoFillets;
+end;
+
+procedure TForm1.tPreset8KeyPress(Sender: TObject; var Key: Char);
+begin
+    if Key = #13 then
+    begin
+        Key := #0; //don't beep
+        tRadius.Text := tPreset8.Text;
+        DoFillets;
+    end;
 end;
 
