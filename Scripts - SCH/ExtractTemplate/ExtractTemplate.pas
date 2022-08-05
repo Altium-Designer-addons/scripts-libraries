@@ -8,6 +8,7 @@ Modified:
  B Miller
  16/05/2021 v2.0  Fix some object stuff so objs can be selected without closing/opening etc.
  10/12/2021 v2.1  removed (unnecessary?) obj.GraphicallyInvalidate
+ 02/08/2022 v2.2  TObjectList --> TList; remove automatic template in new doc creation.
 
  Not supported in AD20+
     .UnRegisterSchObjectFromContainer()
@@ -34,6 +35,7 @@ begin
     new_doc := CreateNewDocumentFromDocumentKind(cDocKind_Sch);
     if (new_doc <> nil) then
         Result := SchServer.GetCurrentSchDocument;
+
 end;
 {..............................................................................}
 
@@ -65,9 +67,9 @@ end;
 
 {..............................................................................}
 function GetContainedObjects(Container   : ISch_BasicContainer;
-                             obj_list    : TObjectList;
+                             obj_list    : TList;
                              Recursively : Bool;
-                             var level : integer) : TObjectList;
+                             var level : integer) : TList;
 var
     iter   : ISch_Iterator;
     child  : ISch_BasicContainer;
@@ -95,16 +97,14 @@ end;
 procedure MoveContainedObjects(FromContainer : ISch_BasicContainer;
                                ToContainer   : ISch_BasicContainer);
 var
-    obj_list : TObjectList;
+    obj_list : TList;
     obj      : ISch_BasicContainer;
     new_obj  : ISch_BasicContainer;
     i        : Integer;
     level    : integer;
 
 begin
-// default is TObjectList owns the objects so are deleted with objectList .. BE WARNED !!
-    obj_list := TObjectList.Create;
-    obj_list.OwnsObjects := false;
+    obj_list := TList.Create;
 
     level := 0;
     obj_list :=  GetContainedObjects(FromContainer, obj_list, true, level);
@@ -127,16 +127,14 @@ end;
 procedure CopyContainedObjects(FromContainer : ISch_BasicContainer;
                                ToContainer   : ISch_BasicContainer);
 var
-    obj_list : TObjectList;
+    obj_list : TList;
     obj      : ISch_BasicContainer;
     new_obj  : ISch_BasicContainer;
     i        : Integer;
     level    : integer;
 
 begin
-// default is TObjectList owns the objects so are deleted with objectList .. BE WARNED !!
-    obj_list := TObjectList.Create;
-    obj_list.OwnsObjects := false;
+    obj_list := TList.Create;
 
     level := 0;
     obj_list := GetContainedObjects(FromContainer, obj_list, true, level);
@@ -180,6 +178,7 @@ End;
 procedure SaveTemplate;
 var
     template      : ISch_Template;
+    new_template  : ISch_Template;
     sheet         : ISch_Document;
     new_sheet     : ISch_Document;
     i             : Integer;
@@ -194,6 +193,14 @@ begin
             new_sheet := GetNewSheet(true);
             if new_sheet <> nil then
             begin
+//    remove any automatic template with the new doc.
+                new_template := GetTemplate(new_sheet);
+                if new_template <> nil then
+                begin
+                    new_sheet.RemoveSchObject(new_template);
+                    SchServer.DestroySchObject(new_template);
+                end;
+
                 // Set up the new sheet size
                 new_sheet.TitleBlockOn     := False;
                 new_sheet.ReferenceZonesOn := False;
