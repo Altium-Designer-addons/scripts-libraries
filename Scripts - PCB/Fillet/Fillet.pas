@@ -6,7 +6,8 @@
 { Created by:    Petar Perisin                                                 }
 { Edited by:    Ryan Rutledge                                                  }
 {           Edited 2018-09-15 to support any-angle tracks and fixed radius     }
-{           Edited 2022-08-01 to add configurable presets                      }
+{           Edited 2022-08-01 to add configurable presets
+            Edit : 2022-08-06  cleanup TStringList object methods etc.         }
 {..............................................................................}
 
 {..............................................................................}
@@ -19,49 +20,40 @@ var
     (* I need string list to memorize radius of each track.
     Since arc is added betwen two tracks, I will need to find lesser value of the two
 
-    Data will be stored in stringlist in order:
-    I_ObjectAdress1;radius1
-    I_ObjectAdress2;radius2
-    ....
-    ....
-    I_ObjectAdressN;radiusN
-    *)
-    RadiusList  : TStringList;
+    Data will be stored in a TStringList as (string, object) tuples
+    (radius as string, Prim_Object)  *)
+
+    RadiusList     : TStringList;
     PresetFilePath : String;
-    PresetList  : TStringList;
+    PresetList     : TStringList;
 
-
-
-function IsStringANum(Text : String) : Boolean;
+function IsStringANum(Tekst : String) : Boolean;
 var
-   i : Integer;
-   dotCount : Integer;
+    i        : Integer;
+    dotCount : Integer;
+    ChSet    : TSet;
 begin
-   Result := True;
+    Result := True;
+    // Test for number, dot or comma
+    ChSet := SetUnion(MkSet(Ord('.'),Ord(',')), MkSetRange(Ord('0'), Ord('9')) );
+    for i := 1 to Length(Tekst) do
+       if not InSet(Ord(Tekst[i]), ChSet) then Result := false;
 
-   if Text = '' then Result := False;
+    // Test if we have more than one dot or comma
+    dotCount := 0;
+    ChSet := MkSet(Ord('.'),Ord(','));
+    for i := 1 to Length(Tekst) do
+       if InSet(Ord(Tekst[i]), ChSet) then
+          Inc(dotCount);
 
-   // Test weather we have number, dot or comma
-   for i := 1 to Length(Text) do
-      if not(((ord(Text[i]) > 47) and (ord(Text[i]) < 58)) or (ord(Text[i]) = 44) or (ord(Text[i]) = 46)) then
-         Result := False;
-
-   // Test if we have more than one dot or comma
-   dotCount := 0;
-   for i := 1 to Length(Text) do
-      if ((ord(Text[i]) = 44) or (ord(Text[i]) = 46)) then
-      begin
-         Inc(dotCount);
-         if (i = 1) or (i = Length(Text)) then Result := False;
-      end;
-
-   if dotCount > 1 then Result := False;
+    if dotCount > 1 then Result := False;
 end;
-
-procedure DoFillets;
+procedure DoFillets(const dummy : integer);
 var
+    Prim                : IPCB_Primitive;
     FirstTrack          :IPCB_Primitive;
     SecondTrack         :IPCB_Primitive;
+    Arc                 :IPCB_Arc;
     XCommon             :Integer;
     YCommon             :Integer;
     angle1              :Double;
@@ -80,10 +72,7 @@ var
     StopAngle           :Double;
     ArcAngle            :Double;
     HalfAngle           :Double;
-    Arc                 :IPCB_Arc;
-    Line                :String;
     TempString          :String;
-    ObjAdr              :Int64;
     Leng                :Integer;
     ShortLength         :Integer;
     NumCommon           :Integer;
@@ -105,12 +94,12 @@ begin
     else if (RadioUnitsMils.Checked = true) then Radius := milsToCoord(StrToFloat(TempString))
     else Ratio := StrToFloat(TempString);
 
-    For a := 0 to Board.SelectecObjectCount - 1 do
+    For a := 0 to (Board.SelectecObjectCount - 1) do
     begin
-        FirstTrack := Board.SelectecObject[a];
+        FirstTrack := Board.SelectecObject(a);
         for b := 0 to Board.SelectecObjectCount - 1 do
         begin
-            SecondTrack := Board.SelectecObject[b];
+            SecondTrack := Board.SelectecObject(b);
             if (FirstTrack.ObjectId = eTrackObject) and (SecondTrack.ObjectId = eTrackObject) and (a <> b) and
                 (SecondTrack.Layer = FirstTrack.Layer) and (
                 ((SecondTrack.x1 = FirstTrack.x1) and (SecondTrack.y1 = FirstTrack.y1)) or
@@ -205,7 +194,7 @@ begin
                 if Angle2 < 0 then Angle2 := 2 * pi + Angle2;
                 //ShowMessage('first_X1,Y1: ' + IntToStr(FirstTrack.x1) + ',' + IntToStr(FirstTrack.y1) + ',' + FloatToStr(Angle1));
 
-                // Now we need to check weather we will be placing any arcs
+                // check whether will be placing any arcs
                 if not ((Angle1 = Angle2) or
                     ((Angle1 > Angle2) and (Angle1 - pi = Angle2)) or
                     ((Angle1 < Angle2) and (Angle2 - pi = Angle1))) then
@@ -216,19 +205,18 @@ begin
 
                     while i < RadiusList.Count do
                     begin
-                        Line := RadiusList[i];
-                        j    := LastDelimiter(';', Line);
+                        Prim := RadiusList.GetObject(i);
+                        Leng := StrToInt(RadiusList.Strings(i));
 
-                        ObjAdr := StrToInt64(Copy(Line, 1, j - 1));
                         if Ratio > 0 then
                         begin
-                            Leng := Int(StrToInt64(Copy(Line, j + 1, length(Line))) * Ratio / 100)
+                            Leng := Int(Leng * Ratio / 100)
                         end
-                        else Leng                 := Radius;
+                        else Leng := Radius;
 
-                        // ShowMessage(Line + ' ' + Copy(Line, 1, j-1) + ' ' + Copy(Line, j+1, length(Line)) + ' ' + IntToStr(FirstTrack.I_ObjectAddress) + ' ' + IntToStr(SecondTrack.I_ObjectAddress));
+                        // ShowMessage( IntToStr(Prim.I_ObjectAddress) + ' ' + RadiusList.Strings(i) + ' ' + IntToStr(FirstTrack.I_ObjectAddress) + ' ' + IntToStr(SecondTrack.I_ObjectAddress));
 
-                        if (ObjAdr = FirstTrack.I_ObjectAddress) then
+                        if (Prim = FirstTrack) then
                         begin
                             if flag = 0 then    Radius := Leng
                             //if flag = 0 then           Radius := Radius
@@ -237,7 +225,7 @@ begin
                             flag := 1;
                         end;
 
-                        if (ObjAdr = SecondTrack.I_ObjectAddress) then
+                        if (Prim = SecondTrack) then
                         begin
                             if flag = 0 then    Radius := Leng
                             //if flag = 0 then           Radius := Radius
@@ -304,6 +292,7 @@ begin
                         Y1            := FirstTrack.y2;
                     end;
                     FirstTrack.EndModify;
+                    FirstTrack.GraphicallyInvalidate;
 
                     if Angle1 < 0 then Angle1 := pi + Angle1;
 
@@ -323,6 +312,7 @@ begin
                         Y2             := SecondTrack.y2;
                     end;
                     SecondTrack.EndModify;
+                    SecondTrack.GraphicallyInvalidate;
 
                     // Calculate X center of arc
                     if ((Angle1 = 0) or (Angle1 = pi)) then Xc := X1
@@ -342,9 +332,7 @@ begin
                     else if ((Angle1 <> 0) and (Angle1 <> pi)) then Yc := tan(pi / 2 + Angle1) * (Xc - X1) + Y1
                     else if ((Angle2 <> 0) and (Angle2 <> pi)) then Yc := tan(pi / 2 + Angle2) * (Xc - X2) + Y2;
 
-
                     // Count radius - I have no idea why
-
 
                     Arc := PCBServer.PCBObjectFactory(eArcObject, eNoDimension, eCreate_Default);
                     Arc.XCenter := Int(Xc);
@@ -356,11 +344,8 @@ begin
                     Arc.Layer := FirstTrack.Layer;
                     if FirstTrack.InNet then Arc.Net := FirstTrack.Net;
                     Board.AddPCBObject(Arc);
-                    Arc.Selected := False;
-
-                    Board.DispatchMessage(Board.I_ObjectAddress, c_Broadcast, PCBM_BoardRegisteration, FirstTrack.I_ObjectAddress);
-                    Board.DispatchMessage(Board.I_ObjectAddress, c_Broadcast, PCBM_BoardRegisteration, SecondTrack.I_ObjectAddress);
                     Board.DispatchMessage(Board.I_ObjectAddress, c_Broadcast, PCBM_BoardRegisteration, Arc.I_ObjectAddress);
+                    Arc.Selected := False;
 
                 end;
             end;
@@ -370,25 +355,27 @@ begin
     // RDR: This section's undo doesn't work properly, the removed track never comes back, so below I'm capping the ratios to 0.01 and 99.99
     if Ratio = 100 then
     begin
-        // Start undo
-        //PCBServer.PreProcess;
-        for i := 0 to Board.SelectecObjectCount - 1 do
+        for i := 0 to (Board.SelectecObjectCount - 1) do
         begin
-            FirstTrack := Board.SelectecObject[i];
-            if ((FirstTrack.x1 = FirstTrack.x2) and (FirstTrack.y1 = FirstTrack.y2)) then RadiusList.AddObject(FirstTrack.I_ObjectAddress, FirstTrack);
+            FirstTrack := Board.SelectecObject(i);
+            if ((FirstTrack.x1 = FirstTrack.x2) and (FirstTrack.y1 = FirstTrack.y2)) then RadiusList.AddObject(IntToStr(i), FirstTrack);
         end;
 
-        for i := 0 to Radiuslist.Count - 1 do
+        for i := 0 to (Radiuslist.Count - 1) do
         begin
-            Board.RemovePCBObject(RadiusList.GetObject(i));
-            Board.DispatchMessage(Board.I_ObjectAddress, c_Broadcast, PCBM_BoardRegisteration, RadiusList.GetObject(i));
+            FirstTrack := RadiusList.GetObject(i);
+            Board.RemovePCBObject(FirstTrack);
         end;
-        // Stop undo
-        //PCBServer.PostProcess;
     end;
 
     RadiusList.Clear;
-    
+
+    // Stop undo
+    PCBServer.PostProcess;
+
+    Client.SendMessage('PCB:DeSelect', 'Scope=All' , 255, Client.CurrentView);
+    Client.SendMessage('PCB:Zoom', 'Action=Redraw' , 255, Client.CurrentView);
+
     // build list of currect preset values
     TempPresetList := TStringList.Create;
     TempPresetList.Add(tPreset1.Text);
@@ -412,31 +399,21 @@ begin
         // save new list to MyPresetList.txt
         TempPresetList.SaveToFile(PresetFilePath);
     End;
-    
+
     // cleanup
     PresetList.Free;
     TempPresetList.Free;
-    
+
     // Display a message if no fillets have been added by script, presumably because there is an issue with track joints.
     // If even one fillet is added, don't show message. The intent is to be informative if the user runs the script and it does nothing.
     if NumCommon = 0 then ShowMessage('Selected tracks have no common point (track ends must meet EXACTLY)');
 
-    ResetParameters;
-    AddStringParameter('Scope', 'All');
-    RunProcess('PCB:DeSelect');
-
-    ResetParameters;
-    AddStringParameter('Action', 'Redraw');
-    RunProcess('PCB:Zoom');
-
-    // Stop undo
-    PCBServer.PostProcess;
     close;
 end;
 
 procedure Start;
 var
-    Track     : IPCB_Primitive;
+    Prim      : IPCB_Primitive;
     Leng      : Integer;
     Flag      : Integer;
     i         : Integer;
@@ -450,29 +427,33 @@ begin
     RadiusList := TStringList.Create;
     PresetFilePath := ClientAPI_SpecialFolder_AltiumApplicationData + '\MyFilletPresets.txt';
     
-    // Deselect any non-track objects
+//  Deselect any non-track objects in a self modifying "collection"
     i := 0;
     While i < Board.SelectecObjectCount do
     begin
-        Track := Board.SelectecObject[i];
-        if Track.ObjectId <> eTrackObject then Track.SetState_Selected(false)
-        else i := i + 1;    // only iterate if object wasn't deselected
+        Prim := Board.SelectecObject(i);
+        if Prim.ObjectId <> eTrackObject then
+            Prim.SetState_Selected(false)
+        else
+            i := i + 1;    // only iterate if object wasn't deselected
     end;
 
-    for i := 0 to Board.SelectecObjectCount - 1 do
+    for i := 0 to (Board.SelectecObjectCount - 1) do
     begin
-        Track := Board.SelectecObject[i];
+        Prim := Board.SelectecObject(i);
        (*
        if Track.ObjectID <> eTrackObject then
        begin
           showMessage('Select only Tracks');
           exit;
        end;  *)
-
-        Leng := Int(sqrt(sqr(Track.x2 - Track.x1) + sqr(Track.y2 - Track.y1)) * 1);
-        RadiusList.Add(IntToStr(Track.I_ObjectAddress) + ';' + IntToStr(Leng));
-
-        flag := 1;
+        if Prim.ObjectId = eTrackObject then
+        begin
+            Leng := Power((Prim.x2 - Prim.x1),2) + Power((Prim.y2 - Prim.y1),2);
+            Leng := Int(Sqrt(Leng));
+            RadiusList.AddObject(IntToStr(Leng), Prim);
+            flag := 1;
+        end;
     end;
 
     If flag = 0 then
@@ -482,13 +463,17 @@ begin
     end;
 
     MinDistance := -1;
-    for i := 1 to Board.SelectecObjectCount - 1 do
-        if Track.ObjectID <> eTrackObject then
+    for i := 1 to (Board.SelectecObjectCount - 1) do
+    begin
+        Prim := Board.SelectecObject(i);
+        if Prim.ObjectID <> eTrackObject then
         begin
-            Distance := sqrt(sqr(Board.SelectecObject[i].x1 - Board.SelectecObject[i].x2) + sqr(Board.SelectecObject[i].y1 - Board.SelectecObject[i].y2));
+//    this can never get run ??
+            Distance := sqrt(sqr(Prim.x1 - Prim.x2) + sqr(Prim.y1 - Prim.y2));
 
             if (Distance < Mindistance) or (MinDistance = -1) then Mindistance := Distance;
         end;
+    end;
 
     Mindistance := MinDistance / 2;
 
@@ -514,26 +499,26 @@ begin
     PresetList := TStringList.Create;
     If FileExists(PresetFilePath) then
     Begin
-        PresetList.LoadFromFile(PresetFilePath);	// load presets from file if it exists
+        PresetList.LoadFromFile(PresetFilePath);    // load presets from file if it exists
 
         // if PresetList file exists but count is short, just regenerate preset file from defaults
         If PresetList.Count < 12 then
         Begin
-        	//ShowMessage(PresetFilePath + ' exists but is not the correct length. Defaults will be used.');
-	        PresetList.Clear;
-	        PresetList.Add(tPreset1.Text);				//PresetList[0]
-	        PresetList.Add(tPreset2.Text);				//PresetList[1]
-	        PresetList.Add(tPreset3.Text);				//PresetList[2]
-	        PresetList.Add(tPreset4.Text);              //PresetList[3]
-	        PresetList.Add(tPreset5.Text);              //PresetList[4]
-	        PresetList.Add(tPreset6.Text);              //PresetList[5]
-	        PresetList.Add(tPreset7.Text);              //PresetList[6]
-	        PresetList.Add(tPreset8.Text);              //PresetList[7]
-	        PresetList.Add(tRadius.Text);     			//PresetList[8]
-	        PresetList.Add(RadioUnitsMils.Checked);		//PresetList[9]
-	        PresetList.Add(RadioUnitsMM.Checked);		//PresetList[10]
-	        PresetList.Add(RadioUnitsRatio.Checked);	//PresetList[11]
-	        PresetList.SaveToFile(PresetFilePath);
+            //ShowMessage(PresetFilePath + ' exists but is not the correct length. Defaults will be used.');
+            PresetList.Clear;
+            PresetList.Add(tPreset1.Text);              //PresetList[0]
+            PresetList.Add(tPreset2.Text);              //PresetList[1]
+            PresetList.Add(tPreset3.Text);              //PresetList[2]
+            PresetList.Add(tPreset4.Text);              //PresetList[3]
+            PresetList.Add(tPreset5.Text);              //PresetList[4]
+            PresetList.Add(tPreset6.Text);              //PresetList[5]
+            PresetList.Add(tPreset7.Text);              //PresetList[6]
+            PresetList.Add(tPreset8.Text);              //PresetList[7]
+            PresetList.Add(tRadius.Text);               //PresetList[8]
+            PresetList.Add(RadioUnitsMils.Checked);     //PresetList[9]
+            PresetList.Add(RadioUnitsMM.Checked);       //PresetList[10]
+            PresetList.Add(RadioUnitsRatio.Checked);    //PresetList[11]
+            PresetList.SaveToFile(PresetFilePath);
         End;
 
         //set text boxes to match preset list (redundant if list was regenerated above
@@ -551,21 +536,21 @@ begin
         else if (PresetList[10] = 'True') then RadioUnitsMM.Checked := true
         else RadioUnitsRatio.Checked := true;
     End
-    Else Begin  	//if preset file didn't exist at all, create from defaults
+    Else Begin      //if preset file didn't exist at all, create from defaults
         //ShowMessage(PresetFilePath + ' does not exist.');
         PresetList.Clear;
-        PresetList.Add(tPreset1.Text);				//PresetList[0]
-        PresetList.Add(tPreset2.Text);				//PresetList[1]
-        PresetList.Add(tPreset3.Text);				//PresetList[2]
+        PresetList.Add(tPreset1.Text);              //PresetList[0]
+        PresetList.Add(tPreset2.Text);              //PresetList[1]
+        PresetList.Add(tPreset3.Text);              //PresetList[2]
         PresetList.Add(tPreset4.Text);              //PresetList[3]
         PresetList.Add(tPreset5.Text);              //PresetList[4]
         PresetList.Add(tPreset6.Text);              //PresetList[5]
         PresetList.Add(tPreset7.Text);              //PresetList[6]
         PresetList.Add(tPreset8.Text);              //PresetList[7]
-        PresetList.Add(tRadius.Text);     			//PresetList[8]
-        PresetList.Add(RadioUnitsMils.Checked);		//PresetList[9]
-        PresetList.Add(RadioUnitsMM.Checked);		//PresetList[10]
-        PresetList.Add(RadioUnitsRatio.Checked);	//PresetList[11]
+        PresetList.Add(tRadius.Text);               //PresetList[8]
+        PresetList.Add(RadioUnitsMils.Checked);     //PresetList[9]
+        PresetList.Add(RadioUnitsMM.Checked);       //PresetList[10]
+        PresetList.Add(RadioUnitsRatio.Checked);    //PresetList[11]
         PresetList.SaveToFile(PresetFilePath);
     end;
 end;
@@ -573,14 +558,14 @@ end;
 
 procedure ValidateOnChange(Sender : TObject);
 var
-	textbox : TEdit;
+    textbox : TEdit;
 begin
-	textbox := Sender;
+    textbox := Sender;
     //ShowMessage(textbox.Text);
     if IsStringANum(textbox.Text) then
     begin
-    	If Sender <> tRadius then tRadius.Text := textbox.Text;
-    	ButtonOK.Enabled := True;
+        If Sender <> tRadius then tRadius.Text := textbox.Text;
+        ButtonOK.Enabled := True;
     end
     else ButtonOK.Enabled := False;
 
@@ -598,16 +583,16 @@ end;
 
 procedure UserKeyPress(Sender: TObject; var Key: Char);     //programmatically, OnKeyPress fires before OnChange event and "catches" the key press
 begin
-    if (ButtonOK.Enabled) And (Key = #13) then
+    if (ButtonOK.Enabled) And (Ord(Key) = 13) then
     begin
         Key := #0; //catch and discard key press to avoid beep
-        DoFillets;
+        DoFillets(0);
     end;
 end;
 
 procedure TForm1.ButtonOKClick(Sender: TObject);
 begin
-    DoFillets;
+    DoFillets(1);
 end;
 
 procedure PresetButtonClicked(Sender: TObject);
@@ -620,6 +605,5 @@ begin
     Else If Sender = Button6 then tRadius.Text := tPreset6.Text
     Else If Sender = Button7 then tRadius.Text := tPreset7.Text
     Else If Sender = Button8 then tRadius.Text := tPreset8.Text;
-    DoFillets;
+    DoFillets(2);
 end;
-
