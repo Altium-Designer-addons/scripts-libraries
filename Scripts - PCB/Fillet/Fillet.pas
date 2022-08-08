@@ -27,7 +27,7 @@ var
     PresetFilePath : String;
     PresetList     : TStringList;
 
-function IsStringANum(Tekst : String) : Boolean;
+function IsStringANum(Text : String) : Boolean;
 var
     i        : Integer;
     dotCount : Integer;
@@ -36,18 +36,19 @@ begin
     Result := True;
     // Test for number, dot or comma
     ChSet := SetUnion(MkSet(Ord('.'),Ord(',')), MkSetRange(Ord('0'), Ord('9')) );
-    for i := 1 to Length(Tekst) do
-       if not InSet(Ord(Tekst[i]), ChSet) then Result := false;
+    for i := 1 to Length(Text) do
+       if not InSet(Ord(Text[i]), ChSet) then Result := false;
 
-    // Test if we have more than one dot or comma
+    // Test for more than one dot or comma
     dotCount := 0;
     ChSet := MkSet(Ord('.'),Ord(','));
-    for i := 1 to Length(Tekst) do
-       if InSet(Ord(Tekst[i]), ChSet) then
+    for i := 1 to Length(Text) do
+       if InSet(Ord(Text[i]), ChSet) then
           Inc(dotCount);
 
     if dotCount > 1 then Result := False;
 end;
+
 procedure DoFillets(const dummy : integer);
 var
     Prim                : IPCB_Primitive;
