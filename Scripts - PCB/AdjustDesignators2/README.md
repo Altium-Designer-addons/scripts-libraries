@@ -12,6 +12,9 @@ Improvements: Miroslav Dobrev, Stanislav Popelka, Brett Miller
 
 
 ## Changelog
+Update 28/09/2021 (Brett Miller)
+- Resize text bounding box before move() to fix multi-line text offsets.
+
 Update 25/04/2021 (Brett Miller)
 - Stop Comment moving with Designator AutoCenterCenter method.
 - Support AD19+ mech layers, handle any existing multiline text
