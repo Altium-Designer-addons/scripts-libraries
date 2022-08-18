@@ -4,10 +4,10 @@
 {           Radius value = (shorter of two lines) * percentage OR fixed value  }
 {                                                                              }
 { Created by:    Petar Perisin                                                 }
-{ Edited by:    Ryan Rutledge                                                  }
+{ Edited by:    Ryan Rutledge, Brett Miller                                    }
 {           Edited 2018-09-15 to support any-angle tracks and fixed radius     }
-{           Edited 2022-08-01 to add configurable presets
-            Edit : 2022-08-06  cleanup TStringList object methods etc.         }
+{           Edited 2022-08-01 to add configurable presets                      }
+{           Edit : 2022-08-06  cleanup TStringList object methods etc.        }
 {..............................................................................}
 
 {..............................................................................}
