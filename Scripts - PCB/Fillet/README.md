@@ -13,8 +13,8 @@ Edited 2022-08-06 to cleanup TStringList object methods etc.
 
 
 ## Usage guide
-_Eligible objects_: two or more tracks with _exactly_ joined vertices
-_Ineligible objects_: any non-track objects will be deselected when script is launched
+_Eligible objects_: two or more tracks with _exactly_ joined vertices\
+_Ineligible objects_: any non-track objects will be deselected when script is launched\
 _Invoke script_ and choose relevant operation from GUI.
 ### Fixed Radius
 _"mils" or "mm"_ will fillet selected tracks with an arc of the specified radius. Can exceed limit and reverse direction of track(s).
