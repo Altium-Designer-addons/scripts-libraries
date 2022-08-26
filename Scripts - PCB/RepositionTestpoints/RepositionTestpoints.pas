@@ -16,6 +16,7 @@
 {                                                                              }
 {           Changelog:                                                         }
 {           - v1.0 - Initial Release                                           }
+{           - v1.1 - Added dummy args to hide private procedures               }
 {                                                                              }
 {           Possible Future Improvements:                                      }
 {           - Move testpoint to the layer of the selected trace                }
@@ -167,7 +168,7 @@ end;
 
 
 
-function SelectNet : IPCB_Net;
+function SelectNet(Const Dummy : Integer) : IPCB_Net;
 var
     Primitive : IPCB_Primitive;
 
@@ -195,7 +196,7 @@ begin
 
     while True do
     begin
-        Net :=  SelectNet;
+        Net :=  SelectNet(0);
         if (Net = nil) and (TestpointList.Count = 0) then
             break;
 
@@ -223,5 +224,3 @@ begin
 
     TestpointList.Free;
 end;
-
-
