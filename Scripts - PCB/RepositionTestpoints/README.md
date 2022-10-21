@@ -26,6 +26,12 @@ to checking for overlap with the testpoint pad. Along with this, polygons are as
 to have copper in the entire virtual area. Thus, the script can inaccurately assume  
 testpoints are placed when they may not actually be in contact with copper.  
 
+## How to install and use
+_Step 1_: [DOWNLOAD the script](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Scripts%20-%20PCB/RepositionTestpoints)
+
+_Step 2_: integrate the script into Altium Designer and execute it.\
+If you are a newcomer to Altium scripts, [please read the "how to" wiki page](https://github.com/Altium-Designer-addons/scripts-libraries/wiki/HowTo_execute_scripts).
+
 ## Changelog
-Version 1.0 - Corey Beyer - Initial Release  
+Version 1.0 - Corey Beyer - Initial Release\
 Version 1.1 - Corey Beyer - Added dummy args to hide private procedures  
