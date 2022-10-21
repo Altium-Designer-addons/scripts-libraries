@@ -16,7 +16,7 @@ Hold Ctrl to allow selecting testpoints which are already placed
 ### Assumptions
 It is assumed that all testpoints contain a Pad with an assigned net and use the designator prefix 'TP'  
 
-### Issues
+### Known Issues
 When a net has multiple testpoints the script may not select the desired  
 testpoint, as it just grabs the first free testpoint it finds with the net.  
 
@@ -25,6 +25,8 @@ Irregularly shaped polygon areas are natively converted to a virtual rectangle p
 to checking for overlap with the testpoint pad. Along with this, polygons are assumed  
 to have copper in the entire virtual area. Thus, the script can inaccurately assume  
 testpoints are placed when they may not actually be in contact with copper.  
+
+Testpoints connected with only a via will be considered unconnected.
 
 ## How to install and use
 _Step 1_: [DOWNLOAD the script](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Scripts%20-%20PCB/RepositionTestpoints)
