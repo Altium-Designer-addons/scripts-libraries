@@ -85,7 +85,6 @@ object Form_PlaceSilk: TForm_PlaceSilk
     Width = 193
     Height = 21
     TabOrder = 5
-    Text = 'cbCmpOutlineLayer'
     OnChange = cbCmpOutlineLayerChange
   end
   object chkAvoidVias: TCheckBox
