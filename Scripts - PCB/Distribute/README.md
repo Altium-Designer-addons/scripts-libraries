@@ -4,10 +4,10 @@
 This script can set the clearance or center-to-center distance between two or more tracks, and in the case of three or more tracks, can distribute the track centers or clearances evenly between the outer pair of tracks.
 
 ## How to install and use
-_Step 1_: [DOWNLOAD the script](https://altium-designer-addons.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Distribute)
+_Step 1_: [DOWNLOAD](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/RnDMonkey/scripts-libraries/new/Update-Distribute-script/Distribute) script
 
 _Step 2_: integrate the script into Altium Designer and execute it.\
-If you are a newcomer to Altium scripts, [please read the "how to" help page](https://github.com/Altium-Designer-addons/scripts-libraries/blob/master/HowTo_execute_scripts.md).
+If you are a newcomer to Altium scripts, [please read the "how to" wiki page](https://github.com/Altium-Designer-addons/scripts-libraries/wiki/HowTo_execute_scripts).
 
 ## Usage guide
 _Eligible objects_: Select two or more parallel tracks.
@@ -28,3 +28,7 @@ For tracks rotated anti-clockwise from vertical, the leftmost track is first.
 For tracks rotated clockwise from vertical, the rightmost track is first.
 ### Changing Units
 When one of the by-value options is active, clicking the "mil" label next to the input value will change it to "MM" and vice versa.
+### Presets
+When one of the by-value options is active, 8 user preset values are available. Editing a preset value and pressing Enter, or pressing the corresponding button will run the distribute command with that value.
+### Change log
+2022-11-02 by R. Rutledge : Added support for up to 8 user presets for by-value inputs; remembers last-used by-value input
