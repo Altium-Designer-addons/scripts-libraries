@@ -208,6 +208,7 @@ begin
 end;
 
 
+// bundles up track move functionality that is common among all modes
 Function MoveTrackToIntercept(ThisTrackIndex : Integer, ConnectedTrackOneIndex : Integer, ConnectedTrackTwoIndex : Integer, TrimTrackIndex : Integer, TargetSlope : Double, TargetIntercept : TCoord, coef : Double, Reverse : Boolean, out LastIntercept : TCoord);
 var
     k0, k1, k2                             : Double;    // k0 is throwaway
@@ -584,24 +585,21 @@ end;
 // main procedure to distribute tracks
 procedure calculate(dummy : Integer = 0);
 var
-    i, j                                   : Integer;
-    k1, k2                                 : Double;
-    c1, c2, minc, midc, maxc, stepc, cFromWidths : TCoord;
-    IsVert1                                : Boolean;
-    IsVert2                                : Boolean;
-    IsFirstPoint                           : Boolean;
-    x01, x02, y01, y02                     : TCoord; // used for storing first line endpoints
-    x11, x12, y11, y12                     : TCoord; // altium zapis koordinata
-    x21, x22, y21, y22                     : TCoord;
-    Prim1                                  : IPCB_Primitive;
-    Prim2                                  : IPCB_Primitive;
-    LastAdded                              : IPCB_Primitive;
-    MaxNumOfChar                           : Integer; // najvci broj znamenki u stringu
-    NumOfChar                              : Integer; // broj znamenki
-    TempString                             : string;
-    X, Y                                   : TCoord;
-    coef                                   : Double;
-    TempPresetList                         : TStringList;
+    i, j                                            : Integer;
+    k1, k2                                          : Double;
+    c1, c2, minc, midc, maxc, stepc, cFromWidths    : TCoord;
+    IsVert1                                         : Boolean;
+    IsVert2                                         : Boolean;
+    IsFirstPoint                                    : Boolean;
+    x11, x12, y11, y12                              : TCoord; // altium zapis koordinata
+    x21, x22, y21, y22                              : TCoord;
+    Prim1                                           : IPCB_Primitive;
+    Prim2                                           : IPCB_Primitive;
+    MaxNumOfChar                                    : Integer; // najvci broj znamenki u stringu
+    NumOfChar                                       : Integer; // broj znamenki
+    TempString                                      : string;
+    coef                                            : Double;
+    TempPresetList                                  : TStringList;
 
 begin
     if (Board <> PCBServer.GetCurrentPCBBoard) then
