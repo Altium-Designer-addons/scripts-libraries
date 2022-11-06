@@ -3,18 +3,18 @@
 // For documentation see README.md
 
 var
-    Board               : IPCB_Board;
-    PresetFilePath      : String;
-    PresetList          : TStringList;
-    SortedTracks        : TStringList;
-    TrimPerpendicular   : Boolean; // test feature that trims dangling track ends
+    Board             : IPCB_Board;
+    PresetFilePath    : string;
+    PresetList        : TStringList;
+    SortedTracks      : TStringList;
+    TrimPerpendicular : Boolean; // test feature that trims dangling track ends
 
-Const
+const
     NumPresets = 14; // no longer just for presets, also used to save previous state
 
 
 // critical function to get normalized line properties. k is slope, c is intercept
-Procedure SetupDataFromTrack(var Prim1 : IPCB_Track, out IsVertical : Boolean, out X1 : TCoord, out Y1 : TCoord, out X2 : TCoord : Out Y2 : TCoord, out k : Double, out c : TCoord);
+procedure SetupDataFromTrack(var Prim1 : IPCB_Track, out IsVertical : Boolean, out X1 : TCoord, out Y1 : TCoord, out X2 : TCoord : out Y2 : TCoord, out k : Double, out c : TCoord);
 var
     a, b : Integer;
 begin
@@ -104,7 +104,7 @@ end;
 
 
 // function to create slope and intercept for virtual line perpendicular to a point
-Function GetPerpendicularLine(k1 : Double, c1 : TCoord, IsPrim1Vert : Boolean, out k2 : Double, out c2 : TCoord, out IsPrim2Vert : Boolean, X : TCoord, Y : TCoord) : Boolean;
+function GetPerpendicularLine(k1 : Double, c1 : TCoord, IsPrim1Vert : Boolean, out k2 : Double, out c2 : TCoord, out IsPrim2Vert : Boolean, X : TCoord, Y : TCoord) : Boolean;
 begin
     Result := True;
     if IsPrim1Vert then
@@ -123,14 +123,14 @@ begin
     begin
         Result      := False; // return false if perpendicular line is not horizontal or vertical
         IsPrim2Vert := False;
-        k2          := 1.0 / (-k1);    // perpendicular slope is negative reciprocal
+        k2          := 1.0 / (-k1);  // perpendicular slope is negative reciprocal
         c2          := Y - (k2 * X); // perpendicular line intercept
     end;
 end;
 
 
 // function to test if two tracks have an intercept point (tracks are not parallel)
-Function GetIntersection(k1 : Double, c1 : TCoord, IsPrim1Vert : Boolean, k2 : Double, c2 : TCoord, IsPrim2Vert : Boolean, out X : TCoord, out Y : TCoord) : Boolean;
+function GetIntersection(k1 : Double, c1 : TCoord, IsPrim1Vert : Boolean, k2 : Double, c2 : TCoord, IsPrim2Vert : Boolean, out X : TCoord, out Y : TCoord) : Boolean;
 begin
     Result := True;
     if (IsPrim1Vert and IsPrim2Vert) or ((not IsPrim1Vert) and (not IsPrim2Vert) and (Abs(k1 - k2) < 0.01)) then
@@ -167,7 +167,7 @@ end;
 
 
 // function to check if there is another track connected to the given endpoint of this track, and which of its ends is connected
-Function GetAnotherTrackInPoint(Prim1 : IPCB_Track, X : TCoord, Y : TCoord, out OnFirstPoint : Boolean) : IPCB_Primitive;
+function GetAnotherTrackInPoint(Prim1 : IPCB_Track, X : TCoord, Y : TCoord, out OnFirstPoint : Boolean) : IPCB_Primitive;
 var
     SIter : IPCB_SpatialIterator;
     Prim2 : IPCB_Track;
@@ -182,7 +182,7 @@ begin
     SIter.AddFilter_Area(X - 1, Y - 1, X + 1, Y + 1);
 
     Prim2 := SIter.FirstPCBObject;
-    While (Prim2 <> nil) do
+    while (Prim2 <> nil) do
     begin
         if (Prim2.InNet) and (Prim2.Net.Name = Prim1.Net.Name) and (Prim1.I_ObjectAddress <> Prim2.I_ObjectAddress) and (not Prim2.TearDrop) then
         begin
@@ -209,16 +209,17 @@ end;
 
 
 // bundles up track move functionality that is common among all modes
-Function MoveTrackToIntercept(ThisTrackIndex : Integer, ConnectedTrackOneIndex : Integer, ConnectedTrackTwoIndex : Integer, TrimTrackIndex : Integer, TargetSlope : Double, TargetIntercept : TCoord, coef : Double, Reverse : Boolean, out LastIntercept : TCoord);
+function MoveTrackToIntercept(ThisTrackIndex : Integer, ConnectedTrackOneIndex : Integer, ConnectedTrackTwoIndex : Integer, TrimTrackIndex : Integer, TargetSlope : Double,
+    TargetIntercept : TCoord, coef : Double, Reverse : Boolean, out LastIntercept : TCoord);
 var
-    k0, k1, k2                             : Double;    // k0 is throwaway
-    c0, c1, c2                             : TCoord;    // c0, c1 are throwaway
-    IsVert0, IsVert1, IsVert2              : Boolean;   // isVert0 is throwaway
-    x01, x02, y01, y02                     : TCoord; // used for storing first line endpoints
-    x11, x12, y11, y12                     : TCoord; // altium zapis koordinata
-    x21, x22, y21, y22                     : TCoord;
-    Prim0, Prim1, Prim2                    : IPCB_Primitive;
-    X, Y                                   : TCoord;
+    k0, k1, k2                : Double;  // k0 is throwaway
+    c0, c1, c2                : TCoord;  // c0, c1 are throwaway
+    IsVert0, IsVert1, IsVert2 : Boolean; // isVert0 is throwaway
+    x01, x02, y01, y02        : TCoord;  // used for storing first line endpoints
+    x11, x12, y11, y12        : TCoord;  // altium zapis koordinata
+    x21, x22, y21, y22        : TCoord;
+    Prim0, Prim1, Prim2       : IPCB_Primitive;
+    X, Y                      : TCoord;
 
 begin
     Prim1 := SortedTracks.getObject(ThisTrackIndex);
@@ -232,7 +233,7 @@ begin
 
     Prim1.BeginModify;
 
-    Prim2 := SortedTracks.getObject(ConnectedTrackOneIndex);    // track connected to first end of the moving track
+    Prim2 := SortedTracks.getObject(ConnectedTrackOneIndex); // track connected to first end of the moving track
     if (SortedTracks[ConnectedTrackOneIndex] <> '0') then
     begin // if there *is* a connected track on this end
         SetupDataFromTrack(Prim2, IsVert2, x21, y21, x22, y22, k2, c2);
@@ -244,7 +245,7 @@ begin
 
             Prim2.BeginModify;
             if (SortedTracks[ConnectedTrackOneIndex] = '1') then // connected track was connected by its first point
-            begin                           // move connected track's first point to the intercept point
+            begin                                                // move connected track's first point to the intercept point
                 Prim2.X1 := X;
                 Prim2.Y1 := Y;
             end
@@ -261,9 +262,9 @@ begin
     else if TrimPerpendicular then
     begin // there was no track connected to the first point ('0' padded)
         if GetPerpendicularLine(TargetSlope, TargetIntercept, IsVert1, k2, c2, IsVert2, x01, y01) then
-        begin // GetPerpendicularLine returns true if perpendicular line is either vertical or horizontal
+        begin                                         // GetPerpendicularLine returns true if perpendicular line is either vertical or horizontal
             if IsVert1 then Prim1.X1 := TargetIntercept // if IsVert1 is true then perpendicular line is horizontal (else X doesn't move anyway)
-            else Prim1.Y1 := TargetSlope * Prim1.X1 + TargetIntercept;
+            else Prim1.Y1            := TargetSlope * Prim1.X1 + TargetIntercept;
         end
         else  // GetPerpendicularLine returns false if perpendicular line is neither vertical nor horizontal
         begin // extend/trim Prim1 to intercept virtual perpendicular line
@@ -278,10 +279,10 @@ begin
     else // else TrimPerpendicular is False
     begin
         if IsVert1 then Prim1.X1 := TargetIntercept
-        else Prim1.Y1 := TargetSlope * Prim1.X1 + TargetIntercept;
+        else Prim1.Y1            := TargetSlope * Prim1.X1 + TargetIntercept;
     end;
 
-    Prim2 := SortedTracks.getObject(ConnectedTrackTwoIndex);    // track connected to second end of the moving track
+    Prim2 := SortedTracks.getObject(ConnectedTrackTwoIndex); // track connected to second end of the moving track
     if (SortedTracks[ConnectedTrackTwoIndex] <> '0') then
     begin
         SetupDataFromTrack(Prim2, IsVert2, x21, y21, x22, y22, k2, c2);
@@ -310,9 +311,9 @@ begin
     else if TrimPerpendicular then
     begin // there was no track connected to the first point ('0' padded)
         if GetPerpendicularLine(TargetSlope, TargetIntercept, IsVert1, k2, c2, IsVert2, x02, y02) then
-        begin // GetPerpendicularLine returns true if perpendicular line is either vertical or horizontal
+        begin                                         // GetPerpendicularLine returns true if perpendicular line is either vertical or horizontal
             if IsVert1 then Prim1.X2 := TargetIntercept // if IsVert1 is true then perpendicular line is horizontal (else X doesn't move anyway)
-            else Prim1.Y2 := TargetSlope * Prim1.X2 + TargetIntercept;
+            else Prim1.Y2            := TargetSlope * Prim1.X2 + TargetIntercept;
         end
         else  // GetPerpendicularLine returns false if perpendicular line is neither vertical nor horizontal
         begin // extend/trim Prim1 to intercept virtual perpendicular line
@@ -324,10 +325,10 @@ begin
             end;
         end;
     end
-    else  // else TrimPerpendicular is False
+    else // else TrimPerpendicular is False
     begin
         if IsVert1 then Prim1.X2 := TargetIntercept
-        else Prim1.Y2 := TargetSlope * Prim1.X2 + TargetIntercept;
+        else Prim1.Y2            := TargetSlope * Prim1.X2 + TargetIntercept;
     end;
 
     Prim1.EndModify;
@@ -340,24 +341,24 @@ begin
     end;
 
     if Reverse then LastIntercept := TargetIntercept - (Prim1.Width / (2 * coef)) // subtract half of current track width for next pass (intercept at moved track edge)
-    else LastIntercept := TargetIntercept + (Prim1.Width / (2 * coef)); // add half of current track width for next pass (intercept at moved track edge)
+    else LastIntercept            := TargetIntercept + (Prim1.Width / (2 * coef)); // add half of current track width for next pass (intercept at moved track edge)
 
 end;
 
 
-Function DistributeForward(startc : TCoord, coef : Double, stepc : Tcoord);
+function DistributeForward(startc : TCoord, coef : Double, stepc : TCoord);
 var
-    i                               : Integer;
-    TrimTrackIndex                  : Integer;
-    TargetSlope                     : Double;
-    TargetIntercept, LastIntercept  : TCoord;
-    IsVert1                         : Boolean;
-    x11, x12, y11, y12              : TCoord;
-    Prim1                           : IPCB_Primitive;
+    i                              : Integer;
+    TrimTrackIndex                 : Integer;
+    TargetSlope                    : Double;
+    TargetIntercept, LastIntercept : TCoord;
+    IsVert1                        : Boolean;
+    x11, x12, y11, y12             : TCoord;
+    Prim1                          : IPCB_Primitive;
 
 begin
     // start sliding tracks around
-    i := 0;
+    i              := 0;
     TrimTrackIndex := i;
     while i < SortedTracks.Count do
     begin
@@ -371,10 +372,8 @@ begin
         end
         else
         begin // calculate target intercepts
-            if RadioButtonCenters.Checked or RadioButtonCentersVal.Checked then
-                TargetIntercept := (i / 3) * stepc + startc // if using centers, use step size directly
-            else
-                TargetIntercept := LastIntercept + stepc + Prim1.Width / (2 * coef); // if using clearances, use previous track intercept plus step size plus half of this track's width
+            if RadioButtonCenters.Checked or RadioButtonCentersVal.Checked then TargetIntercept := (i / 3) * stepc + startc // if using centers, use step size directly
+            else TargetIntercept := LastIntercept + stepc + Prim1.Width / (2 * coef); // if using clearances, use previous track intercept plus step size plus half of this track's width
         end;
 
         MoveTrackToIntercept(i, i + 1, i + 2, TrimTrackIndex, TargetSlope, TargetIntercept, coef, False, LastIntercept);
@@ -384,19 +383,19 @@ begin
 end;
 
 
-Function DistributeBackward(startc : TCoord, coef : Double, stepc : Tcoord);
+function DistributeBackward(startc : TCoord, coef : Double, stepc : TCoord);
 var
-    i                               : Integer;
-    TrimTrackIndex                  : Integer;
-    TargetSlope                     : Double;
-    TargetIntercept, LastIntercept  : TCoord;
-    IsVert1                         : Boolean;
-    x11, x12, y11, y12              : TCoord;
-    Prim1                           : IPCB_Primitive;
+    i                              : Integer;
+    TrimTrackIndex                 : Integer;
+    TargetSlope                    : Double;
+    TargetIntercept, LastIntercept : TCoord;
+    IsVert1                        : Boolean;
+    x11, x12, y11, y12             : TCoord;
+    Prim1                          : IPCB_Primitive;
 
 begin
     // start sliding tracks around
-    i := SortedTracks.Count - 3; // start at the end so we can work backward
+    i              := SortedTracks.Count - 3; // start at the end so we can work backward
     TrimTrackIndex := i;
     while i >= 0 do
     begin
@@ -410,10 +409,8 @@ begin
         end
         else
         begin // calculate target intercepts
-            if RadioButtonCenters.Checked or RadioButtonCentersVal.Checked then
-                TargetIntercept := startc + ((3 + i - SortedTracks.Count) / 3) * stepc // if using centers, use step size directly
-            else
-                TargetIntercept := LastIntercept - stepc - Prim1.Width / (2 * coef); // if using clearances, use previous track intercept plus step size plus half of this track's width
+            if RadioButtonCenters.Checked or RadioButtonCentersVal.Checked then TargetIntercept := startc + ((3 + i - SortedTracks.Count) / 3) * stepc // if using centers, use step size directly
+            else TargetIntercept := LastIntercept - stepc - Prim1.Width / (2 * coef); // if using clearances, use previous track intercept plus step size plus half of this track's width
         end;
 
         MoveTrackToIntercept(i, i + 1, i + 2, TrimTrackIndex, TargetSlope, TargetIntercept, coef, True, LastIntercept);
@@ -423,23 +420,23 @@ begin
 end;
 
 
-Function DistributeFromCenter(startc : TCoord, coef : Double, stepc : Tcoord);
+function DistributeFromCenter(startc : TCoord, coef : Double, stepc : TCoord);
 var
-    i                               : Integer;
-    TrimTrackIndex                  : Integer;
-    ListSplitIndex                  : Integer;
-    TargetSlope                     : Double;
-    TargetIntercept, LastIntercept  : TCoord;
-    SplitIntercept                  : TCoord;
-    IsVert1                         : Boolean;
-    x11, x12, y11, y12              : TCoord;
-    Prim1                           : IPCB_Primitive;
+    i                              : Integer;
+    TrimTrackIndex                 : Integer;
+    ListSplitIndex                 : Integer;
+    TargetSlope                    : Double;
+    TargetIntercept, LastIntercept : TCoord;
+    SplitIntercept                 : TCoord;
+    IsVert1                        : Boolean;
+    x11, x12, y11, y12             : TCoord;
+    Prim1                          : IPCB_Primitive;
 
 begin
     // first, find index to split track list for forward and backward operations
     // odd number of tracks means center will be a track
     if (SortedTracks.Count mod 6) <> 0 then
-    begin   // odd track count
+    begin // odd track count
         // need to set middle track to center
         // 3 tracks (9 elements) should split at track 2 (i=3) and distribute 1 track forward and 1 back from center            0 < 3* > 6
         // 5 tracks (15 elements) should split at track 3 (i=6) and distribute 2 tracks forward and 2 back from center      0 < 3 < 6* > 9 > 12
@@ -448,19 +445,19 @@ begin
         SplitIntercept := startc;
     end
     else
-    begin   // even track count
+    begin // even track count
         // middle two tracks need to straddle center
         // 2 tracks (6 elements) should split at track 1 (i=0) and distribute 1 track forward                           0* > 3
         // 4 tracks (12 elements) should split at track 2 (i=3) and distribute 3 tracks forward and 1 back          0 < 3* > 6 > 9
         // 6 tracks (18 elements) should split at track 3 (i=6) and distribute 4 tracks forward and 2 back      0 < 3 < 6* > 9 > 12 > 15
         // 8 tracks (24 elements) should split at track 4 (i=9) and distribute 5 tracks forward and 3 back  0 < 3 < 6 < 9* > 12 > 15 > 18 > 21
         ListSplitIndex := (SortedTracks.Count div 2) - 3;
-        Prim1 := SortedTracks.getObject(ListSplitIndex);    // need to grab anchor track to compensate for its width
+        Prim1          := SortedTracks.getObject(ListSplitIndex); // need to grab anchor track to compensate for its width
         SplitIntercept := startc - (stepc / 2) - Prim1.Width / (2 * coef);
     end;
 
-     // start sliding tracks around (forward section)
-    i := ListSplitIndex;
+    // start sliding tracks around (forward section)
+    i              := ListSplitIndex;
     TrimTrackIndex := ListSplitIndex;
     while i < SortedTracks.Count do
     begin
@@ -474,10 +471,8 @@ begin
         end
         else
         begin // calculate target intercepts
-            if RadioButtonCenters.Checked or RadioButtonCentersVal.Checked then
-                TargetIntercept := (i / 3) * stepc + startc // if using centers, use step size directly
-            else
-                TargetIntercept := LastIntercept + stepc + Prim1.Width / (2 * coef); // if using clearances, use previous track intercept plus step size plus half of this track's width
+            if RadioButtonCenters.Checked or RadioButtonCentersVal.Checked then TargetIntercept := (i / 3) * stepc + startc // if using centers, use step size directly
+            else TargetIntercept := LastIntercept + stepc + Prim1.Width / (2 * coef); // if using clearances, use previous track intercept plus step size plus half of this track's width
         end;
 
         MoveTrackToIntercept(i, i + 1, i + 2, TrimTrackIndex, TargetSlope, TargetIntercept, coef, False, LastIntercept);
@@ -486,7 +481,7 @@ begin
     end;
 
     // now start sliding tracks around (backward section)
-    i := ListSplitIndex;
+    i              := ListSplitIndex;
     TrimTrackIndex := ListSplitIndex;
     while i >= 0 do
     begin
@@ -500,10 +495,8 @@ begin
         end
         else
         begin // calculate target intercepts
-            if RadioButtonCenters.Checked or RadioButtonCentersVal.Checked then
-                TargetIntercept := startc + ((3 + i - SortedTracks.Count) / 3) * stepc // if using centers, use step size directly
-            else
-                TargetIntercept := LastIntercept - stepc - Prim1.Width / (2 * coef); // if using clearances, use previous track intercept plus step size plus half of this track's width
+            if RadioButtonCenters.Checked or RadioButtonCentersVal.Checked then TargetIntercept := startc + ((3 + i - SortedTracks.Count) / 3) * stepc // if using centers, use step size directly
+            else TargetIntercept := LastIntercept - stepc - Prim1.Width / (2 * coef); // if using clearances, use previous track intercept plus step size plus half of this track's width
         end;
 
         MoveTrackToIntercept(i, i + 1, i + 2, TrimTrackIndex, TargetSlope, TargetIntercept, coef, True, LastIntercept);
@@ -513,7 +506,7 @@ begin
 end;
 
 
-Procedure InitialCheck(Var status : Integer);
+procedure InitialCheck(var status : Integer);
 var
     i                  : Integer;
     Prim1              : IPCB_Primitive;
@@ -525,25 +518,23 @@ var
     x21, x22, y21, y22 : TCoord;
 begin
     status := 0; // clear result status
+
     // Checks if current document is a PCB kind if not, exit.
     Board := PCBServer.GetCurrentPCBBoard;
-    If Board = Nil Then
-        exit;
+    if Board = nil then exit;
     // testiramo da li otvren trenutb aktivan PCB doc
 
     // need to deselect anything that isn't an electrical track as these will cause errors elsewhere
     i := 0;
-    While i < Board.SelectecObjectCount do
+    while i < Board.SelectecObjectCount do
     begin
         Prim1 := Board.SelectecObject[i];
-        if ((Prim1.ObjectId <> eTrackObject) Or (Not Prim1.InNet)) then
-            Prim1.SetState_Selected(False)
-        else
-            i := i + 1; // advance iterator if current object remains selected
+        if ((Prim1.ObjectId <> eTrackObject) or (not Prim1.InNet)) then Prim1.SetState_Selected(False)
+        else i := i + 1; // advance iterator if current object remains selected
     end;
 
 
-    If Board.SelectecObjectCount < 2 then
+    if Board.SelectecObjectCount < 2 then
     begin
         Showmessage('Select at least 2 tracks that belong to nets');
         status := 1;
@@ -585,21 +576,21 @@ end;
 // main procedure to distribute tracks
 procedure calculate(dummy : Integer = 0);
 var
-    i, j                                            : Integer;
-    k1, k2                                          : Double;
-    c1, c2, minc, midc, maxc, stepc, cFromWidths    : TCoord;
-    IsVert1                                         : Boolean;
-    IsVert2                                         : Boolean;
-    IsFirstPoint                                    : Boolean;
-    x11, x12, y11, y12                              : TCoord; // altium zapis koordinata
-    x21, x22, y21, y22                              : TCoord;
-    Prim1                                           : IPCB_Primitive;
-    Prim2                                           : IPCB_Primitive;
-    MaxNumOfChar                                    : Integer; // najvci broj znamenki u stringu
-    NumOfChar                                       : Integer; // broj znamenki
-    TempString                                      : string;
-    coef                                            : Double;
-    TempPresetList                                  : TStringList;
+    i, j                                         : Integer;
+    k1, k2                                       : Double;
+    c1, c2, minc, midc, maxc, stepc, cFromWidths : TCoord;
+    IsVert1                                      : Boolean;
+    IsVert2                                      : Boolean;
+    IsFirstPoint                                 : Boolean;
+    x11, x12, y11, y12                           : TCoord; // altium zapis koordinata
+    x21, x22, y21, y22                           : TCoord;
+    Prim1                                        : IPCB_Primitive;
+    Prim2                                        : IPCB_Primitive;
+    MaxNumOfChar                                 : Integer; // najvci broj znamenki u stringu
+    NumOfChar                                    : Integer; // broj znamenki
+    TempString                                   : string;
+    coef                                         : Double;
+    TempPresetList                               : TStringList;
 
 begin
     if (Board <> PCBServer.GetCurrentPCBBoard) then
@@ -630,17 +621,15 @@ begin
         Prim1 := Board.SelectecObject[i];
         SetupDataFromTrack(Prim1, IsVert2, x21, y21, x22, y22, k2, c2);
 
-        if (minc > c2) then
-            minc := c2;
-        if (maxc < c2) then
-            maxc := c2;
+        if (minc > c2) then minc := c2;
+        if (maxc < c2) then maxc := c2;
 
         cFromWidths := cFromWidths + Prim1.Width / coef; // add subsequent track widths
     end;
 
     cFromWidths := cFromWidths - Prim1.Width / (2 * coef); // subtract half of last track's width
 
-    midc := (minc + maxc) div 2;    // average but floored to nearest multiple of 10
+    midc := (minc + maxc) div 2; // midline between the outer pair of tracks
 
     // we have to sort the tracks in order because they are random (moramo srediti trackove po redu jer su izavrani random)
     SortedTracks := TStringList.Create;
@@ -656,8 +645,7 @@ begin
 
         TempString := IntToStr(c2);
 
-        if c2 > 0 then
-            TempString := '+' + TempString;
+        if c2 > 0 then TempString := '+' + TempString;
 
         SortedTracks.AddObject(TempString, Prim1); // store track object using intercept as key
     end;
@@ -666,9 +654,8 @@ begin
     MaxNumOfChar := 0;
     for i        := 0 to SortedTracks.Count - 1 do
     begin
-        NumOfChar := Length(SortedTracks.Get(i));
-        if (MaxNumOfChar < NumOfChar) then
-            MaxNumOfChar := NumOfChar;
+        NumOfChar                                       := Length(SortedTracks.Get(i));
+        if (MaxNumOfChar < NumOfChar) then MaxNumOfChar := NumOfChar;
     end;
 
 
@@ -676,8 +663,7 @@ begin
     begin
         TempString := SortedTracks[i];
 
-        while (Length(TempString) < MaxNumOfChar) do
-            Insert('0', TempString, 2);
+        while (Length(TempString) < MaxNumOfChar) do Insert('0', TempString, 2);
 
         SortedTracks[i] := TempString;
     end;
@@ -690,12 +676,11 @@ begin
         i := 0;
 
         // advance i to last positive intercept
-        While (SortedTracks[i][1] = '+') do
-            Inc(i);
+        while (SortedTracks[i][1] = '+') do Inc(i);
 
         j := 0;
 
-        While (i < SortedTracks.Count) do
+        while (i < SortedTracks.Count) do
         begin // move negative intercepts to beginning of list (before positive intercepts)
             SortedTracks.Move(SortedTracks.Count - 1, j);
             Inc(j);
@@ -703,7 +688,6 @@ begin
         end;
 
     end;
-
 
     {
         // Test case if all is good until now
@@ -732,8 +716,7 @@ begin
         // look for a track (call it track 1a) that is connected to this track's first point and insert it after this track in the list (provjera za prvu tocku i umece 1a liniju ispod 1 linije tracka)
         Prim2 := GetAnotherTrackInPoint(Prim1, Prim1.X1, Prim1.Y1, IsFirstPoint);
 
-        if (Prim2 = nil) then
-            SortedTracks.Insert(i + 1, '0') // no connected track so insert placeholder
+        if (Prim2 = nil) then SortedTracks.Insert(i + 1, '0') // no connected track so insert placeholder
         else
         begin // there is a connected track, validate it
             SetupDataFromTrack(Prim2, IsVert2, x21, y21, x22, y22, k2, c2);
@@ -750,18 +733,15 @@ begin
             end;
 
             // insert the connected track keyed by which of its ends is connected
-            if IsFirstPoint then
-                SortedTracks.InsertObject(i + 1, '1', Prim2)
-            else
-                SortedTracks.InsertObject(i + 1, '2', Prim2);
+            if IsFirstPoint then SortedTracks.InsertObject(i + 1, '1', Prim2)
+            else SortedTracks.InsertObject(i + 1, '2', Prim2);
         end;
 
         // look for another track (call it track 1b) that is connected to this track's second point and insert it after track 1a in the list.
         // this makes a total of 3 lines: the track of interest and the two tracks connected to it, if any (Provjera za drugu tocku i umece 1b ispod linije 1a. Ukupno 3 linije)
         Prim2 := GetAnotherTrackInPoint(Prim1, Prim1.X2, Prim1.Y2, IsFirstPoint);
 
-        if (Prim2 = nil) then
-            SortedTracks.Insert(i + 2, '0') // no connected track so insert placeholder
+        if (Prim2 = nil) then SortedTracks.Insert(i + 2, '0') // no connected track so insert placeholder
         else
         begin // there is a connected track, validate it
             SetupDataFromTrack(Prim2, IsVert2, x21, y21, x22, y22, k2, c2);
@@ -777,18 +757,15 @@ begin
             end;
 
             // insert the connected track keyed by which of its ends is connected
-            if IsFirstPoint then
-                SortedTracks.InsertObject(i + 2, '1', Prim2)
-            else
-                SortedTracks.InsertObject(i + 2, '2', Prim2);
+            if IsFirstPoint then SortedTracks.InsertObject(i + 2, '1', Prim2)
+            else SortedTracks.InsertObject(i + 2, '2', Prim2);
         end;
 
         i := i + 3; // jump ahead to next track of interest
     end;
 
     // there shouldn't be any tracks selected unless there were problems
-    If Board.SelectecObjectCount <> 0 then
-        exit;
+    if Board.SelectecObjectCount <> 0 then exit;
 
     if RadioButtonCenters.Checked then
     begin
@@ -803,23 +780,20 @@ begin
     else
     begin // distributing using input value rather than between intercept extents
         TempString := EditDistance.Text;
-        if (LastDelimiter(',.', TempString) <> 0) then
-            TempString[LastDelimiter(',.', TempString)] := DecimalSeparator;
+        if (LastDelimiter(',.', TempString) <> 0) then TempString[LastDelimiter(',.', TempString)] := DecimalSeparator;
 
         // convert desired intercept step using intercept coefficient and selected units
-        if (ButtonUnits.Caption = 'mm') then
-            stepc := mmsToCoord(StrToFloat(TempString)) / (coef)
-        else
-            stepc := milsToCoord(StrToFloat(TempString)) / (coef);
+        if (ButtonUnits.Caption = 'mm') then stepc := mmsToCoord(StrToFloat(TempString)) / (coef)
+        else stepc                                 := milsToCoord(StrToFloat(TempString)) / (coef);
 
         // CALL FUNCTION to actually move the tracks
         case RadioDirections.ItemIndex of
             0 : DistributeForward(minc, coef, stepc);
             1 : DistributeFromCenter(midc, coef, stepc);
             2 : DistributeBackward(maxc, coef, stepc);
-        else DistributeForward(minc, coef, stepc);
+            else DistributeForward(minc, coef, stepc);
         end;
-   end;
+    end;
 
 
     // Stop undo
@@ -842,15 +816,15 @@ begin
     TempPresetList.Add(RadioButtonClearanceVal.Checked);
     TempPresetList.Add(RadioButtonCentersVal.Checked);
 
-    If TempPresetList.Equals(PresetList) then
-    Begin
+    if TempPresetList.Equals(PresetList) then
+    begin
         // presets match saved list so do nothing
-    End
-    Else
-    Begin
+    end
+    else
+    begin
         // save new list to MyDistributePresets.txt
         TempPresetList.SaveToFile(PresetFilePath);
-    End;
+    end;
 
     // cleanup
     PresetList.Free;
@@ -862,25 +836,25 @@ end;
 
 function EnableByValControls(NewEnable : Boolean);
 begin
-    ButtonPreset1.Enabled           := NewEnable;
-    ButtonPreset2.Enabled           := NewEnable;
-    ButtonPreset3.Enabled           := NewEnable;
-    ButtonPreset4.Enabled           := NewEnable;
-    ButtonPreset5.Enabled           := NewEnable;
-    ButtonPreset6.Enabled           := NewEnable;
-    ButtonPreset7.Enabled           := NewEnable;
-    ButtonPreset8.Enabled           := NewEnable;
-    tPreset1.Enabled                := NewEnable;
-    tPreset2.Enabled                := NewEnable;
-    tPreset3.Enabled                := NewEnable;
-    tPreset4.Enabled                := NewEnable;
-    tPreset5.Enabled                := NewEnable;
-    tPreset6.Enabled                := NewEnable;
-    tPreset7.Enabled                := NewEnable;
-    tPreset8.Enabled                := NewEnable;
-    ButtonUnits.Enabled             := NewEnable;
-    RadioDirections.Enabled         := NewEnable;
-    EditDistance.Enabled            := NewEnable;
+    ButtonPreset1.Enabled   := NewEnable;
+    ButtonPreset2.Enabled   := NewEnable;
+    ButtonPreset3.Enabled   := NewEnable;
+    ButtonPreset4.Enabled   := NewEnable;
+    ButtonPreset5.Enabled   := NewEnable;
+    ButtonPreset6.Enabled   := NewEnable;
+    ButtonPreset7.Enabled   := NewEnable;
+    ButtonPreset8.Enabled   := NewEnable;
+    tPreset1.Enabled        := NewEnable;
+    tPreset2.Enabled        := NewEnable;
+    tPreset3.Enabled        := NewEnable;
+    tPreset4.Enabled        := NewEnable;
+    tPreset5.Enabled        := NewEnable;
+    tPreset6.Enabled        := NewEnable;
+    tPreset7.Enabled        := NewEnable;
+    tPreset8.Enabled        := NewEnable;
+    ButtonUnits.Enabled     := NewEnable;
+    RadioDirections.Enabled := NewEnable;
+    EditDistance.Enabled    := NewEnable;
 
     if NewEnable then
     begin
@@ -896,40 +870,37 @@ begin
 end;
 
 
-function IsStringANum(Text : String) : Boolean;
+function IsStringANum(Text : string) : Boolean;
 var
     i        : Integer;
     dotCount : Integer;
     ChSet    : TSet;
 begin
     Result := True;
-    // Test for number, dot or comma
+
+        // Test for number, dot or comma
     ChSet := SetUnion(MkSet(Ord('.'), Ord(',')), MkSetRange(Ord('0'), Ord('9')));
     for i := 1 to Length(Text) do
-        if not InSet(Ord(Text[i]), ChSet) then
-            Result := False;
+        if not InSet(Ord(Text[i]), ChSet) then Result := False;
 
     // Test for more than one dot or comma
     dotCount := 0;
-    ChSet    := MkSet(Ord('.'), Ord(','));
-    for i    := 1 to Length(Text) do
-        if InSet(Ord(Text[i]), ChSet) then
-            Inc(dotCount);
+    ChSet := MkSet(Ord('.'), Ord(','));
+    for i := 1 to Length(Text) do
+        if InSet(Ord(Text[i]), ChSet) then Inc(dotCount);
 
-    if dotCount > 1 then
-        Result := False;
+    if dotCount > 1 then Result := False;
 end;
 
 
 procedure TFormDistribute.ButtonUnitsClick(Sender : TObject);
 var
-    TempString : String;
+    TempString : string;
 begin
     TempString := EditDistance.Text;
-    if (LastDelimiter(',.', TempString) <> 0) then
-        TempString[LastDelimiter(',.', TempString)] := DecimalSeparator;
+    if (LastDelimiter(',.', TempString) <> 0) then TempString[LastDelimiter(',.', TempString)] := DecimalSeparator;
 
-    If ButtonUnits.Caption = 'mil' then
+    if ButtonUnits.Caption = 'mil' then
     begin
         ButtonUnits.Caption := 'mm';
         EditDistance.Text   := CoordToMMs(milsToCoord(StrToFloat(TempString)));
@@ -946,7 +917,7 @@ end;
 procedure TFormDistribute.EditDistanceChange(Sender : TObject);
 begin
 
-    If IsStringANum(EditDistance.Text) then
+    if IsStringANum(EditDistance.Text) then
     begin
         EditDistance.Font.Color := clWindowText;
         ButtonOK.Enabled        := True;
@@ -991,7 +962,7 @@ begin
 end;
 
 
-Procedure FastDistributeByCenterline;
+procedure FastDistributeByCenterline;
 var
     status : Integer;
 begin
@@ -1000,12 +971,11 @@ begin
     begin
         calculate;
     end
-    else
-        exit;
+    else exit;
 end;
 
 
-Procedure FastDistributeByClearance;
+procedure FastDistributeByClearance;
 var
     status : Integer;
 begin
@@ -1015,12 +985,11 @@ begin
         RadioButtonClearance.Checked := True;
         calculate;
     end
-    else
-        exit;
+    else exit;
 end;
 
 
-Procedure Start;
+procedure Start;
 var
     status : Integer;
 begin
@@ -1030,8 +999,7 @@ begin
         PresetFilePath := ClientAPI_SpecialFolder_AltiumApplicationData + '\MyDistributePresets.txt';
         FormDistribute.ShowModal;
     end
-    else
-        exit;
+    else exit;
 end;
 
 
@@ -1045,39 +1013,37 @@ procedure TFormDistribute.FormDistributeShow(Sender : TObject);
 begin
     // Set direction control hint
     Application.HintHidePause := 11000; // extend hint show time
-    RadioDirections.Hint := 'FWD: The original direction that the distribute script spreads tracks.'
-        + sLineBreak
-        + 'CEN: Redistributes tracks from the center of extents. For example, a pair of tracks will move symmetrically.'
-        + sLineBreak
-        + 'REV: Will reverse the direction of distribution i.e. what would normally be the last track is instead the first track.';
+    RadioDirections.Hint      := 'FWD: The original direction that the distribute script spreads tracks.' + sLineBreak +
+        'CEN: Redistributes tracks from the center of extents. For example, a pair of tracks will move symmetrically.' + sLineBreak +
+        'REV: Will reverse the direction of distribution i.e. what would normally be the last track is instead the first track.';
 
     // read from MyDistributePresets.txt
     PresetList := TStringList.Create;
-    If FileExists(PresetFilePath) then
-    Begin
+    if FileExists(PresetFilePath) then
+    begin
         PresetList.LoadFromFile(PresetFilePath); // load presets from file if it exists
 
         // if PresetList file exists but count is short, just regenerate preset file from defaults
-        If PresetList.Count < NumPresets then
-        Begin
+        if PresetList.Count < NumPresets then
+        begin
             // ShowMessage(PresetFilePath + ' exists but is not the correct length. Defaults will be used.');
             PresetList.Clear;
-            PresetList.Add(EditDistance.Text);                  // PresetList[0]
-            PresetList.Add(tPreset1.Text);                      // PresetList[1]
-            PresetList.Add(tPreset2.Text);                      // PresetList[2]
-            PresetList.Add(tPreset3.Text);                      // PresetList[3]
-            PresetList.Add(tPreset4.Text);                      // PresetList[4]
-            PresetList.Add(tPreset5.Text);                      // PresetList[5]
-            PresetList.Add(tPreset6.Text);                      // PresetList[6]
-            PresetList.Add(tPreset7.Text);                      // PresetList[7]
-            PresetList.Add(tPreset8.Text);                      // PresetList[8]
-            PresetList.Add(RadioDirections.ItemIndex);          // PresetList[9]
-            PresetList.Add(RadioButtonClearance.Checked);       // PresetList[10]
-            PresetList.Add(RadioButtonCenters.Checked);         // PresetList[11]
-            PresetList.Add(RadioButtonClearanceVal.Checked);    // PresetList[12]
-            PresetList.Add(RadioButtonCentersVal.Checked);      // PresetList[13]
+            PresetList.Add(EditDistance.Text);               // PresetList[0]
+            PresetList.Add(tPreset1.Text);                   // PresetList[1]
+            PresetList.Add(tPreset2.Text);                   // PresetList[2]
+            PresetList.Add(tPreset3.Text);                   // PresetList[3]
+            PresetList.Add(tPreset4.Text);                   // PresetList[4]
+            PresetList.Add(tPreset5.Text);                   // PresetList[5]
+            PresetList.Add(tPreset6.Text);                   // PresetList[6]
+            PresetList.Add(tPreset7.Text);                   // PresetList[7]
+            PresetList.Add(tPreset8.Text);                   // PresetList[8]
+            PresetList.Add(RadioDirections.ItemIndex);       // PresetList[9]
+            PresetList.Add(RadioButtonClearance.Checked);    // PresetList[10]
+            PresetList.Add(RadioButtonCenters.Checked);      // PresetList[11]
+            PresetList.Add(RadioButtonClearanceVal.Checked); // PresetList[12]
+            PresetList.Add(RadioButtonCentersVal.Checked);   // PresetList[13]
             PresetList.SaveToFile(PresetFilePath);
-        End;
+        end;
 
         // set text boxes to match preset list (redundant if list was regenerated above
         // ShowMessage('Loading presets from ' + PresetFilePath);
@@ -1095,25 +1061,25 @@ begin
         RadioButtonClearanceVal.Checked := PresetList[12];
         RadioButtonCentersVal.Checked   := PresetList[13];
         EditDistance.Text               := PresetList[0]; // Main input field needs to be set last because setting each preset updates it
-    End
-    Else
-    Begin // if preset file didn't exist at all, create from defaults
+    end
+    else
+    begin // if preset file didn't exist at all, create from defaults
         // ShowMessage(PresetFilePath + ' does not exist.');
         PresetList.Clear;
-        PresetList.Add(EditDistance.Text);                  // PresetList[0]
-        PresetList.Add(tPreset1.Text);                      // PresetList[1]
-        PresetList.Add(tPreset2.Text);                      // PresetList[2]
-        PresetList.Add(tPreset3.Text);                      // PresetList[3]
-        PresetList.Add(tPreset4.Text);                      // PresetList[4]
-        PresetList.Add(tPreset5.Text);                      // PresetList[5]
-        PresetList.Add(tPreset6.Text);                      // PresetList[6]
-        PresetList.Add(tPreset7.Text);                      // PresetList[7]
-        PresetList.Add(tPreset8.Text);                      // PresetList[8]
-        PresetList.Add(RadioDirections.ItemIndex);          // PresetList[9]
-        PresetList.Add(RadioButtonClearance.Checked);       // PresetList[10]
-        PresetList.Add(RadioButtonCenters.Checked);         // PresetList[11]
-        PresetList.Add(RadioButtonClearanceVal.Checked);    // PresetList[12]
-        PresetList.Add(RadioButtonCentersVal.Checked);      // PresetList[13]
+        PresetList.Add(EditDistance.Text);               // PresetList[0]
+        PresetList.Add(tPreset1.Text);                   // PresetList[1]
+        PresetList.Add(tPreset2.Text);                   // PresetList[2]
+        PresetList.Add(tPreset3.Text);                   // PresetList[3]
+        PresetList.Add(tPreset4.Text);                   // PresetList[4]
+        PresetList.Add(tPreset5.Text);                   // PresetList[5]
+        PresetList.Add(tPreset6.Text);                   // PresetList[6]
+        PresetList.Add(tPreset7.Text);                   // PresetList[7]
+        PresetList.Add(tPreset8.Text);                   // PresetList[8]
+        PresetList.Add(RadioDirections.ItemIndex);       // PresetList[9]
+        PresetList.Add(RadioButtonClearance.Checked);    // PresetList[10]
+        PresetList.Add(RadioButtonCenters.Checked);      // PresetList[11]
+        PresetList.Add(RadioButtonClearanceVal.Checked); // PresetList[12]
+        PresetList.Add(RadioButtonCentersVal.Checked);   // PresetList[13]
         PresetList.SaveToFile(PresetFilePath);
     end;
 
@@ -1126,7 +1092,7 @@ begin
     end
     else if (RadioButtonClearanceVal.Checked or RadioButtonCentersVal.Checked) then
     begin
-         EnableByValControls(True);
+        EnableByValControls(True);
     end
     else EnableByValControls(False);
 
@@ -1141,23 +1107,20 @@ begin
     // ShowMessage(textbox.Text);
     if IsStringANum(textbox.Text) then
     begin
-        If Sender <> EditDistance then
-            EditDistance.Text := textbox.Text;
-        ButtonOK.Enabled    := True;
+        if Sender <> EditDistance then EditDistance.Text := textbox.Text;
+        ButtonOK.Enabled := True;
     end
-    else
-        ButtonOK.Enabled := False;
+    else ButtonOK.Enabled := False;
 
 end;
 
 
 procedure UserKeyPress(Sender : TObject; var Key : Char); // programmatically, OnKeyPress fires before OnChange event and "catches" the key press
 begin
-    if (ButtonOK.Enabled) And (Ord(Key) = 13) then
+    if (ButtonOK.Enabled) and (Ord(Key) = 13) then
     begin
         Key := #0; // catch and discard key press to avoid beep
-        if GetPresetButtonEnable then
-            calculate(0);
+        if GetPresetButtonEnable then calculate(0);
     end;
 end;
 
@@ -1165,27 +1128,19 @@ end;
 procedure PresetButtonClicked(Sender : TObject);
 begin
     // ShowMessage('PresetButtonClicked');
-    If Sender = ButtonPreset1 then
-        EditDistance.Text := tPreset1.Text
-    Else If Sender = ButtonPreset2 then
-        EditDistance.Text := tPreset2.Text
-    Else If Sender = ButtonPreset3 then
-        EditDistance.Text := tPreset3.Text
-    Else If Sender = ButtonPreset4 then
-        EditDistance.Text := tPreset4.Text
-    Else If Sender = ButtonPreset5 then
-        EditDistance.Text := tPreset5.Text
-    Else If Sender = ButtonPreset6 then
-        EditDistance.Text := tPreset6.Text
-    Else If Sender = ButtonPreset7 then
-        EditDistance.Text := tPreset7.Text
-    Else If Sender = ButtonPreset8 then
-        EditDistance.Text := tPreset8.Text;
+    if Sender = ButtonPreset1 then EditDistance.Text      := tPreset1.Text
+    else if Sender = ButtonPreset2 then EditDistance.Text := tPreset2.Text
+    else if Sender = ButtonPreset3 then EditDistance.Text := tPreset3.Text
+    else if Sender = ButtonPreset4 then EditDistance.Text := tPreset4.Text
+    else if Sender = ButtonPreset5 then EditDistance.Text := tPreset5.Text
+    else if Sender = ButtonPreset6 then EditDistance.Text := tPreset6.Text
+    else if Sender = ButtonPreset7 then EditDistance.Text := tPreset7.Text
+    else if Sender = ButtonPreset8 then EditDistance.Text := tPreset8.Text;
     calculate(1);
 end;
 
 
-procedure TFormDistribute.RadioDirectionsClick(Sender: TObject);
+procedure TFormDistribute.RadioDirectionsClick(Sender : TObject);
 begin
     if (GetPresetButtonEnable and FormDistribute.Active) then EditDistance.SetFocus;
 end;
