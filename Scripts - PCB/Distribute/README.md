@@ -21,14 +21,19 @@ _Distribute Clearances by value_ will set the clearance of tracks to the user-sp
 ### Distribute Centers by value
 _Distribute Centers by value_ will set the centerlines of tracks to the user-specified pitch, without moving the first track.
 ### Which one is the first track?
-_First track_ depends on the direction the tracks are running. 
+For the _FWD_ Direction mode, _First track_ depends on the direction the tracks are running. 
 For horizontal tracks, the lowest track is first.
 For vertical tracks, the leftmost track is first.
 For tracks rotated anti-clockwise from vertical, the leftmost track is first.
 For tracks rotated clockwise from vertical, the rightmost track is first.
+### Direction of distribution
+_FWD_ behaves as described above, which is the same behavior as previous versions of the script.
+_CEN_ redistributes tracks from the center of extents. For example, a pair of tracks will move symmetrically. The center line is halfway between the outer pair of tracks.
+_REV_ will reverse the direction of distribution i.e. what would normally be the last track is instead the first track.
 ### Changing Units
 When one of the by-value options is active, clicking the "mil" label next to the input value will change it to "MM" and vice versa.
 ### Presets
 When one of the by-value options is active, 8 user preset values are available. Editing a preset value and pressing Enter, or pressing the corresponding button will run the distribute command with that value.
 ### Change log
-2022-11-02 by R. Rutledge : Added support for up to 8 user presets for by-value inputs; remembers last-used by-value input
+2022-11-02 by Ryan Rutledge : Added support for up to 8 user presets for by-value inputs; remembers last-used by-value input
+2022-11-06 by Ryan Rutledge : Remembers last-used distribute mode if valid; added support for distributing tracks by-value in different working directions
