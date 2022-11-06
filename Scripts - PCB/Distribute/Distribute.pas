@@ -380,7 +380,7 @@ begin
         MoveTrackToIntercept(i, i + 1, i + 2, TrimTrackIndex, TargetSlope, TargetIntercept, coef, False, LastIntercept);
 
         i := i + 3; // advance to next track in sorted list
-        inc(j);	// increment track step counter
+        inc(j); // increment track step counter
     end;
 end;
 
@@ -419,7 +419,7 @@ begin
         MoveTrackToIntercept(i, i + 1, i + 2, TrimTrackIndex, TargetSlope, TargetIntercept, coef, True, LastIntercept);
 
         i := i - 3; // jump back to the preceding track in the sorted list
-        inc(j);	// increment track step counter
+        inc(j); // increment track step counter
     end;
 end;
 
@@ -459,8 +459,8 @@ begin
         if RadioButtonCenters.Checked or RadioButtonCentersVal.Checked then SplitIntercept := startc - (stepc / 2)
         else
         begin
-        	Prim1          := SortedTracks.getObject(ListSplitIndex); // need to grab anchor track to compensate for its width
-        	SplitIntercept := startc - (stepc / 2) - Prim1.Width / (2 * coef);
+            Prim1          := SortedTracks.getObject(ListSplitIndex); // need to grab anchor track to compensate for its width
+            SplitIntercept := startc - (stepc / 2) - Prim1.Width / (2 * coef);
         end;
     end;
 
@@ -480,14 +480,14 @@ begin
         end
         else
         begin // calculate target intercepts
-            if RadioButtonCenters.Checked or RadioButtonCentersVal.Checked then TargetIntercept := startc + j * stepc // if using centers, use step size directly
+            if RadioButtonCenters.Checked or RadioButtonCentersVal.Checked then TargetIntercept := SplitIntercept + j * stepc // if using centers, use step size directly
             else TargetIntercept := LastIntercept + stepc + Prim1.Width / (2 * coef); // if using clearances, use previous track intercept plus step size plus half of this track's width
         end;
 
         MoveTrackToIntercept(i, i + 1, i + 2, TrimTrackIndex, TargetSlope, TargetIntercept, coef, False, LastIntercept);
 
         i := i + 3; // advance to next track in sorted list
-        inc(j);	// increment track step counter
+        inc(j); // increment track step counter
     end;
 
     // now start sliding tracks around (backward section)
@@ -506,14 +506,14 @@ begin
         end
         else
         begin // calculate target intercepts
-            if RadioButtonCenters.Checked or RadioButtonCentersVal.Checked then TargetIntercept := startc - j * stepc // if using centers, use step size directly
+            if RadioButtonCenters.Checked or RadioButtonCentersVal.Checked then TargetIntercept := SplitIntercept - j * stepc // if using centers, use step size directly
             else TargetIntercept := LastIntercept - stepc - Prim1.Width / (2 * coef); // if using clearances, use previous track intercept plus step size plus half of this track's width
         end;
 
         MoveTrackToIntercept(i, i + 1, i + 2, TrimTrackIndex, TargetSlope, TargetIntercept, coef, True, LastIntercept);
 
         i := i - 3; // jump back to the preceding track in the sorted list
-        inc(j);	// increment track step counter
+        inc(j); // increment track step counter
     end;
 end;
 
