@@ -586,7 +586,7 @@ end;
 
 
 // main procedure to distribute tracks
-procedure calculate(dummy : Integer = 0);
+procedure calculate(LaunchedFromGUI : Boolean);
 var
     i, j                                         : Integer;
     k1, k2                                       : Double;
@@ -811,36 +811,39 @@ begin
     // Stop undo
     PCBServer.PostProcess;
 
-    // build list of currect preset values
-    TempPresetList := TStringList.Create;
-    TempPresetList.Add(EditDistance.Text);
-    TempPresetList.Add(tPreset1.Text);
-    TempPresetList.Add(tPreset2.Text);
-    TempPresetList.Add(tPreset3.Text);
-    TempPresetList.Add(tPreset4.Text);
-    TempPresetList.Add(tPreset5.Text);
-    TempPresetList.Add(tPreset6.Text);
-    TempPresetList.Add(tPreset7.Text);
-    TempPresetList.Add(tPreset8.Text);
-    TempPresetList.Add(RadioDirections.ItemIndex);
-    TempPresetList.Add(RadioButtonClearance.Checked);
-    TempPresetList.Add(RadioButtonCenters.Checked);
-    TempPresetList.Add(RadioButtonClearanceVal.Checked);
-    TempPresetList.Add(RadioButtonCentersVal.Checked);
+    if LaunchedFromGUI then
+    begin
+	    // build list of currect preset values
+	    TempPresetList := TStringList.Create;
+	    TempPresetList.Add(EditDistance.Text);
+	    TempPresetList.Add(tPreset1.Text);
+	    TempPresetList.Add(tPreset2.Text);
+	    TempPresetList.Add(tPreset3.Text);
+	    TempPresetList.Add(tPreset4.Text);
+	    TempPresetList.Add(tPreset5.Text);
+	    TempPresetList.Add(tPreset6.Text);
+	    TempPresetList.Add(tPreset7.Text);
+	    TempPresetList.Add(tPreset8.Text);
+	    TempPresetList.Add(RadioDirections.ItemIndex);
+	    TempPresetList.Add(RadioButtonClearance.Checked);
+	    TempPresetList.Add(RadioButtonCenters.Checked);
+	    TempPresetList.Add(RadioButtonClearanceVal.Checked);
+	    TempPresetList.Add(RadioButtonCentersVal.Checked);
 
-    if TempPresetList.Equals(PresetList) then
-    begin
-        // presets match saved list so do nothing
-    end
-    else
-    begin
-        // save new list to MyDistributePresets.txt
-        TempPresetList.SaveToFile(PresetFilePath);
+	    if TempPresetList.Equals(PresetList) then
+	    begin
+	        // presets match saved list so do nothing
+	    end
+	    else
+	    begin
+	        // save new list to MyDistributePresets.txt
+	        TempPresetList.SaveToFile(PresetFilePath);
+	    end;
+
+	    // cleanup
+	    PresetList.Free;
+	    TempPresetList.Free;
     end;
-
-    // cleanup
-    PresetList.Free;
-    TempPresetList.Free;
 
     close;
 end;
@@ -981,7 +984,9 @@ begin
     InitialCheck(status);
     if status = 0 then
     begin
-        calculate;
+        RadioButtonCenters.Checked := True;
+        RadioButtonClearance.Checked := False;
+        calculate(False);
     end
     else exit;
 end;
@@ -995,7 +1000,8 @@ begin
     if status = 0 then
     begin
         RadioButtonClearance.Checked := True;
-        calculate;
+        RadioButtonCenters.Checked := False;
+        calculate(False);
     end
     else exit;
 end;
@@ -1008,7 +1014,6 @@ begin
     InitialCheck(status);
     if status = 0 then
     begin
-        PresetFilePath := ClientAPI_SpecialFolder_AltiumApplicationData + '\MyDistributePresets.txt';
         FormDistribute.ShowModal;
     end
     else exit;
@@ -1017,7 +1022,7 @@ end;
 
 procedure TFormDistribute.ButtonOKClick(Sender : TObject);
 begin
-    calculate;
+    calculate(True);
 end;
 
 
@@ -1030,6 +1035,7 @@ begin
         'REV: Will reverse the direction of distribution i.e. what would normally be the last track is instead the first track.';
 
     // read from MyDistributePresets.txt
+    PresetFilePath := ClientAPI_SpecialFolder_AltiumApplicationData + '\MyDistributePresets.txt';
     PresetList := TStringList.Create;
     if FileExists(PresetFilePath) then
     begin
