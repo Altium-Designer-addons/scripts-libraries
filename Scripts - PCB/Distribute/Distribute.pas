@@ -813,36 +813,36 @@ begin
 
     if LaunchedFromGUI then
     begin
-	    // build list of currect preset values
-	    TempPresetList := TStringList.Create;
-	    TempPresetList.Add(EditDistance.Text);
-	    TempPresetList.Add(tPreset1.Text);
-	    TempPresetList.Add(tPreset2.Text);
-	    TempPresetList.Add(tPreset3.Text);
-	    TempPresetList.Add(tPreset4.Text);
-	    TempPresetList.Add(tPreset5.Text);
-	    TempPresetList.Add(tPreset6.Text);
-	    TempPresetList.Add(tPreset7.Text);
-	    TempPresetList.Add(tPreset8.Text);
-	    TempPresetList.Add(RadioDirections.ItemIndex);
-	    TempPresetList.Add(RadioButtonClearance.Checked);
-	    TempPresetList.Add(RadioButtonCenters.Checked);
-	    TempPresetList.Add(RadioButtonClearanceVal.Checked);
-	    TempPresetList.Add(RadioButtonCentersVal.Checked);
+        // build list of currect preset values
+        TempPresetList := TStringList.Create;
+        TempPresetList.Add(EditDistance.Text);
+        TempPresetList.Add(tPreset1.Text);
+        TempPresetList.Add(tPreset2.Text);
+        TempPresetList.Add(tPreset3.Text);
+        TempPresetList.Add(tPreset4.Text);
+        TempPresetList.Add(tPreset5.Text);
+        TempPresetList.Add(tPreset6.Text);
+        TempPresetList.Add(tPreset7.Text);
+        TempPresetList.Add(tPreset8.Text);
+        TempPresetList.Add(RadioDirections.ItemIndex);
+        TempPresetList.Add(RadioButtonClearance.Checked);
+        TempPresetList.Add(RadioButtonCenters.Checked);
+        TempPresetList.Add(RadioButtonClearanceVal.Checked);
+        TempPresetList.Add(RadioButtonCentersVal.Checked);
 
-	    if TempPresetList.Equals(PresetList) then
-	    begin
-	        // presets match saved list so do nothing
-	    end
-	    else
-	    begin
-	        // save new list to MyDistributePresets.txt
-	        TempPresetList.SaveToFile(PresetFilePath);
-	    end;
+        if TempPresetList.Equals(PresetList) then
+        begin
+            // presets match saved list so do nothing
+        end
+        else
+        begin
+            // save new list to MyDistributePresets.txt
+            TempPresetList.SaveToFile(PresetFilePath);
+        end;
 
-	    // cleanup
-	    PresetList.Free;
-	    TempPresetList.Free;
+        // cleanup
+        PresetList.Free;
+        TempPresetList.Free;
     end;
 
     close;
@@ -1138,7 +1138,7 @@ begin
     if (ButtonOK.Enabled) and (Ord(Key) = 13) then
     begin
         Key := #0; // catch and discard key press to avoid beep
-        if GetPresetButtonEnable then calculate(0);
+        if GetPresetButtonEnable then calculate(True);
     end;
 end;
 
@@ -1154,7 +1154,7 @@ begin
     else if Sender = ButtonPreset6 then EditDistance.Text := tPreset6.Text
     else if Sender = ButtonPreset7 then EditDistance.Text := tPreset7.Text
     else if Sender = ButtonPreset8 then EditDistance.Text := tPreset8.Text;
-    calculate(1);
+    calculate(True);
 end;
 
 
