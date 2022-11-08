@@ -619,29 +619,6 @@ begin
     // Board.NewUndo;
     // Start undo
     PCBServer.PreProcess;
-    Prim1 := Board.SelectecObject[0];
-    SetupDataFromTrack(Prim1, IsVert1, x11, y11, x12, y12, k1, c1);
-
-    minc        := c1;
-    maxc        := c1;
-    coef        := cos(arctan(k1));          // y-intercept coefficient based on slope (i.e. how much intercept shifts for a perpendicular shift of the track)
-    cFromWidths := Prim1.Width / (2 * coef); // start cFromWidths with half of the first track's width
-
-    // calculate extents of intercept values and sum of track widths in intercept units
-    for i := 1 to Board.SelectecObjectCount - 1 do
-    begin
-        Prim1 := Board.SelectecObject[i];
-        SetupDataFromTrack(Prim1, IsVert2, x21, y21, x22, y22, k2, c2);
-
-        if (minc > c2) then minc := c2;
-        if (maxc < c2) then maxc := c2;
-
-        cFromWidths := cFromWidths + Prim1.Width / coef; // add subsequent track widths
-    end;
-
-    cFromWidths := cFromWidths - Prim1.Width / (2 * coef); // subtract half of last track's width
-
-    midc := (minc + maxc) div 2; // midline between the outer pair of tracks
 
     // we have to sort the tracks in order because they are random (moramo srediti trackove po redu jer su izavrani random)
     SortedTracks := TStringList.Create;
@@ -700,6 +677,31 @@ begin
         end;
 
     end;
+
+    // moved intercept stats here to operate on sorted data instead of original selection. doing before sorting could cause issues with distribute by clearance if first selected track is a different width.
+    Prim1 := SortedTracks.getObject(i);
+    SetupDataFromTrack(Prim1, IsVert1, x11, y11, x12, y12, k1, c1);
+
+    minc        := c1;
+    maxc        := c1;
+    coef        := cos(arctan(k1));          // y-intercept coefficient based on slope (i.e. how much intercept shifts for a perpendicular shift of the track)
+    cFromWidths := Prim1.Width / (2 * coef); // start cFromWidths with half of the first track's width
+
+    // calculate extents of intercept values and sum of track widths in intercept units
+    for i := 1 to SortedTracks.Count - 1 do
+    begin
+        Prim1 := SortedTracks.getObject(i);
+        SetupDataFromTrack(Prim1, IsVert2, x21, y21, x22, y22, k2, c2);
+
+        if (minc > c2) then minc := c2;
+        if (maxc < c2) then maxc := c2;
+
+        cFromWidths := cFromWidths + Prim1.Width / coef; // add subsequent track widths
+    end;
+
+    cFromWidths := cFromWidths - Prim1.Width / (2 * coef); // subtract half of last track's width
+
+    midc := (minc + maxc) div 2; // midline between the outer pair of tracks
 
     {
         // Test case if all is good until now
