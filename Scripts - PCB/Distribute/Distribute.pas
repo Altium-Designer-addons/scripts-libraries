@@ -679,7 +679,7 @@ begin
     end;
 
     // moved intercept stats here to operate on sorted data instead of original selection. doing before sorting could cause issues with distribute by clearance if first selected track is a different width.
-    Prim1 := SortedTracks.getObject(i);
+    Prim1 := SortedTracks.getObject(0);
     SetupDataFromTrack(Prim1, IsVert1, x11, y11, x12, y12, k1, c1);
 
     minc        := c1;
