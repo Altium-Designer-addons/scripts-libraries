@@ -1107,8 +1107,8 @@ begin
     begin
         RadioButtonClearance.Enabled    := False;
         RadioButtonCenters.Enabled      := False;
-        if not RadioButtonCentersVal.Checked then RadioButtonClearanceVal.Checked;
         EnableByValControls(True);
+        if not RadioButtonCentersVal.Checked then RadioButtonClearanceVal.Checked := True;
     end
     else if (RadioButtonClearanceVal.Checked or RadioButtonCentersVal.Checked) then
     begin
