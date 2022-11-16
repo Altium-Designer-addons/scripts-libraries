@@ -3,7 +3,7 @@ object FormDistribute: TFormDistribute
   Top = 0
   BorderIcons = [biSystemMenu]
   Caption = 'Distribute'
-  ClientHeight = 277
+  ClientHeight = 266
   ClientWidth = 354
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -17,19 +17,19 @@ object FormDistribute: TFormDistribute
   TextHeight = 13
   object Bevel1: TBevel
     Left = 8
-    Top = 89
+    Top = 65
     Width = 192
     Height = 136
   end
   object Bevel2: TBevel
     Left = 8
-    Top = 16
+    Top = 8
     Width = 192
-    Height = 72
+    Height = 56
   end
   object RadioDirections: TRadioGroup
     Left = 112
-    Top = 144
+    Top = 120
     Width = 56
     Height = 72
     Hint = 'Distribution direction. Choose one for more info.'
@@ -54,7 +54,7 @@ object FormDistribute: TFormDistribute
   end
   object RadioButtonClearance: TRadioButton
     Left = 16
-    Top = 32
+    Top = 16
     Width = 184
     Height = 17
     Caption = 'Distribute by Clearance (Alt+&Q)'
@@ -65,7 +65,7 @@ object FormDistribute: TFormDistribute
   end
   object RadioButtonCenters: TRadioButton
     Left = 16
-    Top = 56
+    Top = 40
     Width = 184
     Height = 17
     Caption = 'Distribute by Centerlines (Alt+&W)'
@@ -74,7 +74,7 @@ object FormDistribute: TFormDistribute
   end
   object RadioButtonClearanceVal: TRadioButton
     Left = 16
-    Top = 96
+    Top = 72
     Width = 184
     Height = 17
     Caption = 'Distribute Clearances by: (Alt+&E)'
@@ -83,7 +83,7 @@ object FormDistribute: TFormDistribute
   end
   object RadioButtonCentersVal: TRadioButton
     Left = 16
-    Top = 120
+    Top = 96
     Width = 184
     Height = 17
     Caption = 'Distribute Centers by: (Alt+&A)'
@@ -92,7 +92,7 @@ object FormDistribute: TFormDistribute
   end
   object EditDistance: TEdit
     Left = 24
-    Top = 149
+    Top = 125
     Width = 40
     Height = 21
     Enabled = False
@@ -102,7 +102,7 @@ object FormDistribute: TFormDistribute
   end
   object ButtonUnits: TButton
     Left = 72
-    Top = 149
+    Top = 125
     Width = 32
     Height = 20
     Caption = 'mil'
@@ -112,7 +112,7 @@ object FormDistribute: TFormDistribute
   end
   object ButtonOK: TButton
     Left = 16
-    Top = 241
+    Top = 233
     Width = 75
     Height = 25
     Caption = 'OK'
@@ -122,7 +122,7 @@ object FormDistribute: TFormDistribute
   end
   object ButtonCancel: TButton
     Left = 104
-    Top = 241
+    Top = 233
     Width = 75
     Height = 25
     Cancel = True
@@ -132,7 +132,7 @@ object FormDistribute: TFormDistribute
   end
   object ButtonPreset1: TButton
     Left = 280
-    Top = 17
+    Top = 9
     Width = 64
     Height = 25
     Caption = 'Preset &1'
@@ -142,7 +142,7 @@ object FormDistribute: TFormDistribute
   end
   object tPreset1: TEdit
     Left = 208
-    Top = 19
+    Top = 11
     Width = 64
     Height = 21
     Align = alCustom
@@ -156,7 +156,7 @@ object FormDistribute: TFormDistribute
   end
   object ButtonPreset2: TButton
     Left = 280
-    Top = 49
+    Top = 41
     Width = 64
     Height = 25
     Caption = 'Preset &2'
@@ -166,7 +166,7 @@ object FormDistribute: TFormDistribute
   end
   object tPreset2: TEdit
     Left = 208
-    Top = 51
+    Top = 43
     Width = 64
     Height = 21
     Align = alCustom
@@ -180,7 +180,7 @@ object FormDistribute: TFormDistribute
   end
   object ButtonPreset3: TButton
     Left = 280
-    Top = 81
+    Top = 73
     Width = 64
     Height = 25
     Caption = 'Preset &3'
@@ -190,7 +190,7 @@ object FormDistribute: TFormDistribute
   end
   object tPreset3: TEdit
     Left = 208
-    Top = 83
+    Top = 75
     Width = 64
     Height = 21
     Align = alCustom
@@ -204,7 +204,7 @@ object FormDistribute: TFormDistribute
   end
   object ButtonPreset4: TButton
     Left = 280
-    Top = 113
+    Top = 105
     Width = 64
     Height = 25
     Caption = 'Preset &4'
@@ -214,7 +214,7 @@ object FormDistribute: TFormDistribute
   end
   object tPreset4: TEdit
     Left = 208
-    Top = 115
+    Top = 107
     Width = 64
     Height = 21
     Align = alCustom
@@ -228,7 +228,7 @@ object FormDistribute: TFormDistribute
   end
   object ButtonPreset5: TButton
     Left = 280
-    Top = 145
+    Top = 137
     Width = 64
     Height = 25
     Caption = 'Preset &5'
@@ -238,7 +238,7 @@ object FormDistribute: TFormDistribute
   end
   object tPreset5: TEdit
     Left = 208
-    Top = 147
+    Top = 139
     Width = 64
     Height = 21
     Align = alCustom
@@ -252,7 +252,7 @@ object FormDistribute: TFormDistribute
   end
   object ButtonPreset6: TButton
     Left = 280
-    Top = 177
+    Top = 169
     Width = 64
     Height = 25
     Caption = 'Preset &6'
@@ -262,7 +262,7 @@ object FormDistribute: TFormDistribute
   end
   object tPreset6: TEdit
     Left = 208
-    Top = 179
+    Top = 171
     Width = 64
     Height = 21
     Align = alCustom
@@ -276,7 +276,7 @@ object FormDistribute: TFormDistribute
   end
   object ButtonPreset7: TButton
     Left = 280
-    Top = 209
+    Top = 201
     Width = 64
     Height = 25
     Caption = 'Preset &7'
@@ -286,7 +286,7 @@ object FormDistribute: TFormDistribute
   end
   object tPreset7: TEdit
     Left = 208
-    Top = 211
+    Top = 203
     Width = 64
     Height = 21
     Align = alCustom
@@ -300,7 +300,7 @@ object FormDistribute: TFormDistribute
   end
   object ButtonPreset8: TButton
     Left = 280
-    Top = 241
+    Top = 233
     Width = 64
     Height = 25
     Caption = 'Preset &8'
@@ -310,7 +310,7 @@ object FormDistribute: TFormDistribute
   end
   object tPreset8: TEdit
     Left = 208
-    Top = 243
+    Top = 235
     Width = 64
     Height = 21
     Align = alCustom
@@ -321,5 +321,14 @@ object FormDistribute: TFormDistribute
     TextHint = 'Enter value for fixed radius'
     OnChange = ValidateOnChange
     OnKeyPress = UserKeyPress
+  end
+  object CheckBoxTrimEnds: TCheckBox
+    Left = 16
+    Top = 208
+    Width = 184
+    Height = 17
+    Caption = '&Trim Unconnected Track Ends'
+    TabOrder = 25
+    OnClick = CheckBoxTrimEndsClick
   end
 end
