@@ -10,7 +10,7 @@ var
     TrimPerpendicular : Boolean; // test feature that trims dangling track ends
 
 const
-    NumPresets = 14; // no longer just for presets, also used to save previous state
+    NumPresets = 15; // no longer just for presets, also used to save previous state
 
 
 // critical function to get normalized line properties. k is slope, c is intercept
@@ -103,7 +103,7 @@ begin
 end;
 
 
-// function to create slope and intercept for virtual line perpendicular to a point
+// function to create slope and intercept for virtual line perpendicular to a point (k1,c1,IsPrim1Vert are for ordinate line; k2,c2,IsPrim2Vert are for perpendicular line; X,Y are ordinate line endpoint)
 function GetPerpendicularLine(k1 : Double, c1 : TCoord, IsPrim1Vert : Boolean, out k2 : Double, out c2 : TCoord, out IsPrim2Vert : Boolean, X : TCoord, Y : TCoord) : Boolean;
 begin
     Result := True;
@@ -245,11 +245,11 @@ begin
 
             Prim2.BeginModify;
             if (SortedTracks[ConnectedTrackOneIndex] = '1') then // connected track was connected by its first point
-            begin                                                // move connected track's first point to the intercept point
+            begin // move connected track's first point to the intercept point
                 Prim2.X1 := X;
                 Prim2.Y1 := Y;
             end
-            else
+            else // else connected track was connected by its second point
             begin // move connected track's second point to the intercept point
                 Prim2.X2 := X;
                 Prim2.Y2 := Y;
@@ -260,19 +260,28 @@ begin
         end;
     end
     else if TrimPerpendicular then
-    begin // there was no track connected to the first point ('0' padded)
+    begin // there was no track connected to the first point ('0' padded) and we are trimming
         if GetPerpendicularLine(TargetSlope, TargetIntercept, IsVert1, k2, c2, IsVert2, x01, y01) then
-        begin                                         // GetPerpendicularLine returns true if perpendicular line is either vertical or horizontal
-            if IsVert1 then Prim1.X1 := TargetIntercept // if IsVert1 is true then perpendicular line is horizontal (else X doesn't move anyway)
-            else Prim1.Y1            := TargetSlope * Prim1.X1 + TargetIntercept;
+        begin // GetPerpendicularLine returns true if perpendicular line is either vertical or horizontal
+            if IsVert1 then
+            begin // if ordinate line IsVert1 is true then perpendicular line is horizontal
+                Prim1.X1 := TargetIntercept; // set to TargetIntercept
+                Prim1.Y1 := y01; // trim Y coord
+            end
+            else // ordinate line is horizontal, perpendicular line is vertical
+            begin
+                Prim1.Y1 := TargetIntercept; // set to TargetIntercept
+                Prim1.X1 := x01; // trim X coord
+            end;
         end
-        else  // GetPerpendicularLine returns false if perpendicular line is neither vertical nor horizontal
+        else // GetPerpendicularLine returns false if perpendicular line is neither vertical nor horizontal
         begin // extend/trim Prim1 to intercept virtual perpendicular line
             if GetIntersection(TargetSlope, TargetIntercept, IsVert1, k2, c2, IsVert2, X, Y) then
             begin // tracks intercept, X & Y are the point where they do
                 // move this track's first point to the intercept point with the perpendicular line
                 Prim1.X1 := X;
                 Prim1.Y1 := Y;
+                Prim1.Y1 := TargetSlope * Prim1.X1 + TargetIntercept; // set final Y coord after approximate trim
             end;
         end;
     end
@@ -309,19 +318,28 @@ begin
         end;
     end
     else if TrimPerpendicular then
-    begin // there was no track connected to the first point ('0' padded)
+    begin // there was no track connected to the second point ('0' padded) and we are trimming
         if GetPerpendicularLine(TargetSlope, TargetIntercept, IsVert1, k2, c2, IsVert2, x02, y02) then
-        begin                                         // GetPerpendicularLine returns true if perpendicular line is either vertical or horizontal
-            if IsVert1 then Prim1.X2 := TargetIntercept // if IsVert1 is true then perpendicular line is horizontal (else X doesn't move anyway)
-            else Prim1.Y2            := TargetSlope * Prim1.X2 + TargetIntercept;
+        begin // GetPerpendicularLine returns true if perpendicular line is either vertical or horizontal
+            if IsVert1 then
+            begin // if ordinate line IsVert1 is true then perpendicular line is horizontal
+                Prim1.X2 := TargetIntercept; // set to TargetIntercept
+                Prim1.Y2 := y02; // trim Y coord
+            end
+            else // ordinate line is horizontal, perpendicular line is vertical
+            begin
+                Prim1.Y2 := TargetIntercept; // set to TargetIntercept
+                Prim1.X2 := x02; // trim X coord
+            end;
         end
-        else  // GetPerpendicularLine returns false if perpendicular line is neither vertical nor horizontal
+        else // GetPerpendicularLine returns false if perpendicular line is neither vertical nor horizontal
         begin // extend/trim Prim1 to intercept virtual perpendicular line
             if GetIntersection(TargetSlope, TargetIntercept, IsVert1, k2, c2, IsVert2, X, Y) then
             begin // tracks intercept, X & Y are the point where they do
                 // move this track's first point to the intercept point with the perpendicular line
                 Prim1.X2 := X;
                 Prim1.Y2 := Y;
+                Prim1.Y2 := TargetSlope * Prim1.X2 + TargetIntercept; // set final Y coord after approximate trim
             end;
         end;
     end
@@ -585,6 +603,79 @@ begin
 end;
 
 
+// function to populate a TStringList with preset values
+procedure BuildPresetList(var TempPresetList : TStringList);
+begin
+    TempPresetList.Clear;
+    TempPresetList.Add(EditDistance.Text);
+    TempPresetList.Add(tPreset1.Text);
+    TempPresetList.Add(tPreset2.Text);
+    TempPresetList.Add(tPreset3.Text);
+    TempPresetList.Add(tPreset4.Text);
+    TempPresetList.Add(tPreset5.Text);
+    TempPresetList.Add(tPreset6.Text);
+    TempPresetList.Add(tPreset7.Text);
+    TempPresetList.Add(tPreset8.Text);
+    TempPresetList.Add(RadioDirections.ItemIndex);
+    TempPresetList.Add(RadioButtonClearance.Checked);
+    TempPresetList.Add(RadioButtonCenters.Checked);
+    TempPresetList.Add(RadioButtonClearanceVal.Checked);
+    TempPresetList.Add(RadioButtonCentersVal.Checked);
+    TempPresetList.Add(CheckBoxTrimEnds.Checked);
+end;
+
+
+// function to load preset list from file
+procedure LoadPresetListFromFile(const dummy : Integer);
+begin
+    // default file name is MyDistributePresets.txt
+    PresetFilePath := ClientAPI_SpecialFolder_AltiumApplicationData + '\MyDistributePresets.txt';
+    PresetList     := TStringList.Create;
+    if FileExists(PresetFilePath) then
+    begin
+        // ShowMessage('Loading presets from ' + PresetFilePath);
+        PresetList.LoadFromFile(PresetFilePath); // load presets from file if it exists
+
+        case PresetList.Count of
+            14 : PresetList.Add(CheckBoxTrimEnds.Checked); // PresetList[14] (14-element PresetList implies v1.4)
+            NumPresets :
+                begin
+                    // do nothing
+                end
+            else  // if PresetList.Count < NumPresets then PresetList file exists but count is short, just regenerate preset file from defaults
+                begin
+                    // ShowMessage(PresetFilePath + ' exists but is not the correct length. Defaults will be used.');
+                    BuildPresetList(PresetList);
+                    PresetList.SaveToFile(PresetFilePath);
+                end;
+        end;
+
+        // set text boxes to match preset list (redundant if list was regenerated above)
+        tPreset1.Text                   := PresetList[1];
+        tPreset2.Text                   := PresetList[2];
+        tPreset3.Text                   := PresetList[3];
+        tPreset4.Text                   := PresetList[4];
+        tPreset5.Text                   := PresetList[5];
+        tPreset6.Text                   := PresetList[6];
+        tPreset7.Text                   := PresetList[7];
+        tPreset8.Text                   := PresetList[8];
+        RadioDirections.ItemIndex       := PresetList[9];
+        RadioButtonClearance.Checked    := PresetList[10];
+        RadioButtonCenters.Checked      := PresetList[11];
+        RadioButtonClearanceVal.Checked := PresetList[12];
+        RadioButtonCentersVal.Checked   := PresetList[13];
+        CheckBoxTrimEnds.Checked        := PresetList[14];
+        EditDistance.Text               := PresetList[0]; // Main input field needs to be set last because setting each preset updates it
+    end
+    else
+    begin // if preset file didn't exist at all, create from defaults
+        // ShowMessage(PresetFilePath + ' does not exist.');
+        BuildPresetList(PresetList);
+        PresetList.SaveToFile(PresetFilePath);
+    end;
+end;
+
+
 // main procedure to distribute tracks
 procedure calculate(LaunchedFromGUI : Boolean);
 var
@@ -612,10 +703,8 @@ begin
         exit;
     end;
 
-    TrimPerpendicular := False; // hard coded off until I figure out how to fix the rounding error (eg. 15.002 instead of 15)
-    // I suspect the track should be trimmed to *approximately* perpendicular, prioritizing the clearance over exact perpendicularity.
+    if not LaunchedFromGUI then TrimPerpendicular := False; // assume don't trim if GUI wasn't used
 
-    // seeks min and max c i.e. range of intercept values (trazi min i max C tj grnice sirenja   vodova)
     // Board.NewUndo;
     // Start undo
     PCBServer.PreProcess;
@@ -665,19 +754,20 @@ begin
         i := 0;
 
         // advance i to last positive intercept
-        while (SortedTracks[i][1] = '+') do Inc(i);
+        while (SortedTracks[i][1] = '+') do inc(i);
 
         j := 0;
 
         while (i < SortedTracks.Count) do
         begin // move negative intercepts to beginning of list (before positive intercepts)
             SortedTracks.Move(SortedTracks.Count - 1, j);
-            Inc(j);
-            Inc(i);
+            inc(j);
+            inc(i);
         end;
 
     end;
 
+    // seeks min and max c i.e. range of intercept values (trazi min i max C tj grnice sirenja   vodova)
     // moved intercept stats here to operate on sorted data instead of original selection. doing before sorting could cause issues with distribute by clearance if first selected track is a different width.
     Prim1 := SortedTracks.getObject(0);
     SetupDataFromTrack(Prim1, IsVert1, x11, y11, x12, y12, k1, c1);
@@ -817,21 +907,7 @@ begin
     begin
         // build list of currect preset values
         TempPresetList := TStringList.Create;
-        TempPresetList.Add(EditDistance.Text);
-        TempPresetList.Add(tPreset1.Text);
-        TempPresetList.Add(tPreset2.Text);
-        TempPresetList.Add(tPreset3.Text);
-        TempPresetList.Add(tPreset4.Text);
-        TempPresetList.Add(tPreset5.Text);
-        TempPresetList.Add(tPreset6.Text);
-        TempPresetList.Add(tPreset7.Text);
-        TempPresetList.Add(tPreset8.Text);
-        TempPresetList.Add(RadioDirections.ItemIndex);
-        TempPresetList.Add(RadioButtonClearance.Checked);
-        TempPresetList.Add(RadioButtonCenters.Checked);
-        TempPresetList.Add(RadioButtonClearanceVal.Checked);
-        TempPresetList.Add(RadioButtonCentersVal.Checked);
-
+        BuildPresetList(TempPresetList);
         if TempPresetList.Equals(PresetList) then
         begin
             // presets match saved list so do nothing
@@ -843,15 +919,16 @@ begin
         end;
 
         // cleanup
-        PresetList.Free;
         TempPresetList.Free;
+        PresetList.Free;
     end;
 
     close;
 end;
 
 
-function EnableByValControls(NewEnable : Boolean);
+// function to enable or disable controls related to by-value distribute mode
+procedure EnableByValControls(NewEnable : Boolean);
 begin
     ButtonPreset1.Enabled   := NewEnable;
     ButtonPreset2.Enabled   := NewEnable;
@@ -881,7 +958,7 @@ begin
 end;
 
 
-function GetPresetButtonEnable : Boolean;
+function GetPresetButtonEnable(const dummy : Integer) : Boolean;
 begin
     Result := ButtonPreset1.Enabled;
 end;
@@ -895,7 +972,7 @@ var
 begin
     Result := True;
 
-        // Test for number, dot or comma
+    // Test for number, dot or comma
     ChSet := SetUnion(MkSet(Ord('.'), Ord(',')), MkSetRange(Ord('0'), Ord('9')));
     for i := 1 to Length(Text) do
         if not InSet(Ord(Text[i]), ChSet) then Result := False;
@@ -904,7 +981,7 @@ begin
     dotCount := 0;
     ChSet := MkSet(Ord('.'), Ord(','));
     for i := 1 to Length(Text) do
-        if InSet(Ord(Text[i]), ChSet) then Inc(dotCount);
+        if InSet(Ord(Text[i]), ChSet) then inc(dotCount);
 
     if dotCount > 1 then Result := False;
 end;
@@ -949,6 +1026,7 @@ end;
 
 procedure TFormDistribute.ButtonCancelClick(Sender : TObject);
 begin
+    PresetList.Free; // created when GUI launches and normally freed when calculate() runs
     close;
 end;
 
@@ -986,8 +1064,8 @@ begin
     InitialCheck(status);
     if status = 0 then
     begin
-        RadioButtonCenters.Checked := True;
         RadioButtonClearance.Checked := False;
+        RadioButtonCenters.Checked   := True;
         calculate(False);
     end
     else exit;
@@ -1001,8 +1079,8 @@ begin
     InitialCheck(status);
     if status = 0 then
     begin
+        RadioButtonCenters.Checked   := False;
         RadioButtonClearance.Checked := True;
-        RadioButtonCenters.Checked := False;
         calculate(False);
     end
     else exit;
@@ -1036,77 +1114,13 @@ begin
         'CEN: Redistributes tracks from the center of extents. For example, a pair of tracks will move symmetrically.' + sLineBreak +
         'REV: Will reverse the direction of distribution i.e. what would normally be the last track is instead the first track.';
 
-    // read from MyDistributePresets.txt
-    PresetFilePath := ClientAPI_SpecialFolder_AltiumApplicationData + '\MyDistributePresets.txt';
-    PresetList := TStringList.Create;
-    if FileExists(PresetFilePath) then
-    begin
-        PresetList.LoadFromFile(PresetFilePath); // load presets from file if it exists
-
-        // if PresetList file exists but count is short, just regenerate preset file from defaults
-        if PresetList.Count < NumPresets then
-        begin
-            // ShowMessage(PresetFilePath + ' exists but is not the correct length. Defaults will be used.');
-            PresetList.Clear;
-            PresetList.Add(EditDistance.Text);               // PresetList[0]
-            PresetList.Add(tPreset1.Text);                   // PresetList[1]
-            PresetList.Add(tPreset2.Text);                   // PresetList[2]
-            PresetList.Add(tPreset3.Text);                   // PresetList[3]
-            PresetList.Add(tPreset4.Text);                   // PresetList[4]
-            PresetList.Add(tPreset5.Text);                   // PresetList[5]
-            PresetList.Add(tPreset6.Text);                   // PresetList[6]
-            PresetList.Add(tPreset7.Text);                   // PresetList[7]
-            PresetList.Add(tPreset8.Text);                   // PresetList[8]
-            PresetList.Add(RadioDirections.ItemIndex);       // PresetList[9]
-            PresetList.Add(RadioButtonClearance.Checked);    // PresetList[10]
-            PresetList.Add(RadioButtonCenters.Checked);      // PresetList[11]
-            PresetList.Add(RadioButtonClearanceVal.Checked); // PresetList[12]
-            PresetList.Add(RadioButtonCentersVal.Checked);   // PresetList[13]
-            PresetList.SaveToFile(PresetFilePath);
-        end;
-
-        // set text boxes to match preset list (redundant if list was regenerated above
-        // ShowMessage('Loading presets from ' + PresetFilePath);
-        tPreset1.Text                   := PresetList[1];
-        tPreset2.Text                   := PresetList[2];
-        tPreset3.Text                   := PresetList[3];
-        tPreset4.Text                   := PresetList[4];
-        tPreset5.Text                   := PresetList[5];
-        tPreset6.Text                   := PresetList[6];
-        tPreset7.Text                   := PresetList[7];
-        tPreset8.Text                   := PresetList[8];
-        RadioDirections.ItemIndex       := PresetList[9];
-        RadioButtonClearance.Checked    := PresetList[10];
-        RadioButtonCenters.Checked      := PresetList[11];
-        RadioButtonClearanceVal.Checked := PresetList[12];
-        RadioButtonCentersVal.Checked   := PresetList[13];
-        EditDistance.Text               := PresetList[0]; // Main input field needs to be set last because setting each preset updates it
-    end
-    else
-    begin // if preset file didn't exist at all, create from defaults
-        // ShowMessage(PresetFilePath + ' does not exist.');
-        PresetList.Clear;
-        PresetList.Add(EditDistance.Text);               // PresetList[0]
-        PresetList.Add(tPreset1.Text);                   // PresetList[1]
-        PresetList.Add(tPreset2.Text);                   // PresetList[2]
-        PresetList.Add(tPreset3.Text);                   // PresetList[3]
-        PresetList.Add(tPreset4.Text);                   // PresetList[4]
-        PresetList.Add(tPreset5.Text);                   // PresetList[5]
-        PresetList.Add(tPreset6.Text);                   // PresetList[6]
-        PresetList.Add(tPreset7.Text);                   // PresetList[7]
-        PresetList.Add(tPreset8.Text);                   // PresetList[8]
-        PresetList.Add(RadioDirections.ItemIndex);       // PresetList[9]
-        PresetList.Add(RadioButtonClearance.Checked);    // PresetList[10]
-        PresetList.Add(RadioButtonCenters.Checked);      // PresetList[11]
-        PresetList.Add(RadioButtonClearanceVal.Checked); // PresetList[12]
-        PresetList.Add(RadioButtonCentersVal.Checked);   // PresetList[13]
-        PresetList.SaveToFile(PresetFilePath);
-    end;
+    // read presets from file
+    LoadPresetListFromFile(0);
 
     if Board.SelectecObjectCount = 2 then
     begin
-        RadioButtonClearance.Enabled    := False;
-        RadioButtonCenters.Enabled      := False;
+        RadioButtonClearance.Enabled := False;
+        RadioButtonCenters.Enabled   := False;
         EnableByValControls(True);
         if not RadioButtonCentersVal.Checked then RadioButtonClearanceVal.Checked := True;
     end
@@ -1140,7 +1154,7 @@ begin
     if (ButtonOK.Enabled) and (Ord(Key) = 13) then
     begin
         Key := #0; // catch and discard key press to avoid beep
-        if GetPresetButtonEnable then calculate(True);
+        if GetPresetButtonEnable(0) then calculate(True);
     end;
 end;
 
@@ -1162,5 +1176,12 @@ end;
 
 procedure TFormDistribute.RadioDirectionsClick(Sender : TObject);
 begin
-    if (GetPresetButtonEnable and FormDistribute.Active) then EditDistance.SetFocus;
+    if (GetPresetButtonEnable(0) and FormDistribute.Active) then EditDistance.SetFocus;
+end;
+
+
+procedure TFormDistribute.CheckBoxTrimEndsClick(Sender : TObject);
+begin
+    TrimPerpendicular := CheckBoxTrimEnds.Checked;
+    if (GetPresetButtonEnable(0) and FormDistribute.Active) then EditDistance.SetFocus;
 end;
