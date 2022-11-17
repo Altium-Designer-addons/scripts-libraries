@@ -44,6 +44,10 @@ When one of the by-value options is active, 8 user preset values are available. 
 ### Trim Unconnected Track Ends
 If checked, any unconnected track ends will be trimmed to be perpendicular with the respective end of the _First Track_.
 
+##Known Issues
+### Rounding errors with tracks that aren't at 90/45 angles
+Sometimes, particularly when distributing tracks that are not routed at 90° or 45° angles, rounding errors can occur due to precision of double data type and Altium TCoord unit resolution. Errors up to 0.002mil have been observed.
+
 ## Change log
 2022-11-02 by Ryan Rutledge : Added support for up to 8 user presets for by-value inputs; remembers last-used by-value input
 
