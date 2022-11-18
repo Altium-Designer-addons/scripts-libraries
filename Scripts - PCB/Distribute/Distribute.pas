@@ -14,7 +14,7 @@ var
 
 const
     NumPresets = 15; // no longer just for presets, also used to save previous state
-    ScriptVersion = '1.43';
+    ScriptVersion = '1.44';
 
 
 // critical function to get normalized line properties. k is slope, c is intercept
@@ -59,7 +59,7 @@ begin
         k := (Y2 - Y1) / (X2 - X1); // calculate track slope
 
         if (Abs(k) > 20) then
-        begin // if slope k > 20, consider track as vertical
+        begin // if slope k > 20, consider track as vertical (this is necessary to prevent Y-intercept number overflow)
             X1 := Prim1.X1;
             X2 := Prim1.X2;
 
@@ -323,7 +323,11 @@ begin
             if IsVert1 then
             begin // if ordinate line IsVert1 is true then perpendicular line is horizontal
                 Prim1.X1 := TargetIntercept; // set to TargetIntercept
-                Prim1.Y1 := y01; // trim Y coord
+
+                // if vertical and actual Y coords don't match output of SetupDataFromTrack, then they were coerced and swapped
+                if Prim1.Y1 = y12 then Prim1.Y1 := y02 // use swapped end instead
+                else                   Prim1.Y1 := y01; // trim Y coord
+
             end
             else // ordinate line is horizontal, perpendicular line is vertical
             begin
@@ -381,7 +385,11 @@ begin
             if IsVert1 then
             begin // if ordinate line IsVert1 is true then perpendicular line is horizontal
                 Prim1.X2 := TargetIntercept; // set to TargetIntercept
-                Prim1.Y2 := y02; // trim Y coord
+
+                // if vertical and actual Y coords don't match output of SetupDataFromTrack, then they were coerced and swapped
+                if Prim1.Y1 = y12 then Prim1.Y2 := y01 // use swapped end instead
+                else                   Prim1.Y2 := y02; // trim Y coord
+
             end
             else // ordinate line is horizontal, perpendicular line is vertical
             begin
@@ -836,7 +844,10 @@ begin
 
     minc        := c1;
     maxc        := c1;
-    coef        := cos(arctan(k1));          // y-intercept coefficient based on slope (i.e. how much intercept shifts for a perpendicular shift of the track)
+
+    if IsVert1 then coef := 1.0 // if first track has been coerced to vertical, coef needs to be 1 for later width compensation
+    else coef        := cos(arctan(k1)); // y-intercept coefficient based on slope (i.e. how much intercept shifts for a perpendicular shift of the track)
+
     cFromWidths := Prim1.Width / (2 * coef); // start cFromWidths with half of the first track's width
 
     // calculate extents of intercept values and sum of track widths in intercept units
@@ -853,7 +864,7 @@ begin
 
     cFromWidths := cFromWidths - Prim1.Width / (2 * coef); // subtract half of last track's width
 
-    midc := (minc + maxc) div 2; // midline between the outer pair of tracks
+    midc := (Round(minc + maxc)) div 2; // midline between the outer pair of tracks
 
     {
         // Test case if all is good until now
