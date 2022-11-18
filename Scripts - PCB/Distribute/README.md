@@ -42,7 +42,7 @@ When one of the by-value options is active, clicking the "mil" label next to the
 ### Presets
 When one of the by-value options is active, 8 user preset values are available. Editing a preset value and pressing Enter, or pressing the corresponding button will run the distribute command with that value.
 ### Trim Unconnected Track Ends
-If checked, any unconnected track ends will be trimmed to be perpendicular with the respective end of the _First Track_. Note that this will lengthen _or_ shorten tracks you can use this to adjust only the _First Track_ to your desired cut line and the rest will adjust to match it.
+If checked, any unconnected track ends will be trimmed to be perpendicular with the respective end of the _First Track_. Note that since this will lengthen _or_ shorten tracks, you can use this to adjust only the _First Track_ to your desired cut line and the rest will adjust to match it.
 ### Debug Logging
 If script is launched using the _StartWithDebug_ procedure, it will save before-and-after data for each track that is distributed.\
 Debug file is saved in **`%appdata%\Altium\Altium Designer {installation ID}\DistributeScriptDebug.csv`**
