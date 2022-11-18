@@ -50,6 +50,8 @@ Debug file is saved in **`%appdata%\Altium\Altium Designer {installation ID}\Dis
 ## Known Issues
 ### Rounding errors with tracks that aren't at 90/45 angles
 Sometimes, particularly when distributing tracks that are not routed at 90° or 45° angles, rounding errors can occur due to precision of double data type and Altium TCoord unit resolution. Errors up to 0.002mil have been observed.
+### Tracks that are nearly, but not quite, vertical
+Tracks with a slope greater than 20 (90° > angle > ~87.137°) will be coerced to be perfectly vertical. This is a limitation of the Double number type. In short, angles that are too steep will have Y-intercept values that are too large to handle.
 
 ## Change log
 2022-11-02 by Ryan Rutledge : v1.3 - Added support for up to 8 user presets for by-value inputs; remembers last-used by-value input
@@ -61,3 +63,5 @@ Sometimes, particularly when distributing tracks that are not routed at 90° or 
 2022-11-17 by Ryan Rutledge : v1.42 - added version to form
 
 2022-11-17 by Ryan Rutledge : v1.43 - added debugging tools; fixed TargetSlope getting reset for each track instead of set once by _First Track_
+
+2022-11-18 by Ryan Rutledge : v1.44 - fixed bug where near-vertical tracks wouldn't trim properly if ends were normalized; fixed overflow error for steep angles; fixed invalid distribution if tracks are near vertical and are coerced to vertical
