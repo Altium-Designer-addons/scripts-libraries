@@ -49,8 +49,10 @@ If checked, any unconnected track ends will be trimmed to be perpendicular with 
 Sometimes, particularly when distributing tracks that are not routed at 90° or 45° angles, rounding errors can occur due to precision of double data type and Altium TCoord unit resolution. Errors up to 0.002mil have been observed.
 
 ## Change log
-2022-11-02 by Ryan Rutledge : Added support for up to 8 user presets for by-value inputs; remembers last-used by-value input
+2022-11-02 by Ryan Rutledge : v1.3 - Added support for up to 8 user presets for by-value inputs; remembers last-used by-value input
 
-2022-11-06 by Ryan Rutledge : Remembers last-used distribute mode if valid; added support for distributing tracks by-value in different working directions
+2022-11-06 by Ryan Rutledge : v1.4 - Remembers last-used distribute mode if valid; added support for distributing tracks by-value in different working directions
 
-2022-11-16 by Ryan Rutledge : Added ability to trim dangling track ends perpendicular to _First Track_
+2022-11-16 by Ryan Rutledge : v1.41 - Added ability to trim dangling track ends perpendicular to _First Track_
+
+2022-11-17 by Ryan Rutledge : v1.42 - added version to form
