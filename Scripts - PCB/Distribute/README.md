@@ -43,8 +43,11 @@ When one of the by-value options is active, clicking the "mil" label next to the
 When one of the by-value options is active, 8 user preset values are available. Editing a preset value and pressing Enter, or pressing the corresponding button will run the distribute command with that value.
 ### Trim Unconnected Track Ends
 If checked, any unconnected track ends will be trimmed to be perpendicular with the respective end of the _First Track_.
+### Debug Logging
+If script is launched using the _StartWithDebug_ procedure, it will save before-and-after data for each track that is distributed.\
+Debug file is saved in **`%appdata%\Altium\Altium Designer {installation ID}\DistributeScriptDebug.csv`**
 
-##Known Issues
+## Known Issues
 ### Rounding errors with tracks that aren't at 90/45 angles
 Sometimes, particularly when distributing tracks that are not routed at 90° or 45° angles, rounding errors can occur due to precision of double data type and Altium TCoord unit resolution. Errors up to 0.002mil have been observed.
 
