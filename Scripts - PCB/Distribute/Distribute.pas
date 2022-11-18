@@ -8,10 +8,13 @@ var
     PresetList        : TStringList;
     SortedTracks      : TStringList;
     TrimPerpendicular : Boolean; // test feature that trims dangling track ends
+    DebuggingEnabled  : Boolean; // debug feature will log before-and-after results of tracks modified by script
+    DebugFilePath     : string;
+    DebugList         : TStringList;
 
 const
     NumPresets = 15; // no longer just for presets, also used to save previous state
-    ScriptVersion = '1.42';
+    ScriptVersion = '1.43';
 
 
 // critical function to get normalized line properties. k is slope, c is intercept
@@ -101,6 +104,57 @@ begin
             IsVertical := False;
         end;
     end;
+end;
+
+
+// debugging function
+procedure AddToDebugListBefore(var Prim : IPCB_Track, TargetSlope : Double, TargetIntercept : TCoord);
+var
+    X1, Y1, X2, Y2  : TCoord;
+    k               : Double;
+    c               : TCoord;
+    IsVert          : Boolean;
+    TempDebugList   : TStringList;
+
+begin
+    TempDebugList := TStringList.Create;
+    SetupDataFromTrack(Prim, IsVert, X1, Y1, X2, Y2, k, c);
+    TempDebugList.Append(IntToStr(X1));
+    TempDebugList.Append(IntToStr(Y1));
+    TempDebugList.Append(IntToStr(X2));
+    TempDebugList.Append(IntToStr(Y2));
+    TempDebugList.Append(FloatToStr(k));
+    TempDebugList.Append(IntToStr(c));
+    TempDebugList.Append(FloatToStr(TargetSlope));
+    TempDebugList.Append(IntToStr(TargetIntercept));
+    DebugList.Append(TempDebugList.CommaText);
+    TempDebugList.Free;
+end;
+
+
+// debugging function
+procedure AddToDebugListAfter(var Prim : IPCB_Track, LastIntercept : TCoord);
+var
+    X1, Y1, X2, Y2  : TCoord;
+    k               : Double;
+    c               : TCoord;
+    IsVert          : Boolean;
+    TempDebugList   : TStringList;
+
+begin
+    TempDebugList := TStringList.Create;
+    TempDebugList.CommaText := DebugList[DebugList.Count - 1];
+    DebugList.Delete(DebugList.Count - 1);
+    SetupDataFromTrack(Prim, IsVert, X1, Y1, X2, Y2, k, c);
+    TempDebugList.Append(IntToStr(X1));
+    TempDebugList.Append(IntToStr(Y1));
+    TempDebugList.Append(IntToStr(X2));
+    TempDebugList.Append(IntToStr(Y2));
+    TempDebugList.Append(FloatToStr(k));
+    TempDebugList.Append(IntToStr(c));
+    TempDebugList.Append(IntToStr(LastIntercept));
+    DebugList.Append(TempDebugList.CommaText);
+    TempDebugList.Free;
 end;
 
 
@@ -232,6 +286,8 @@ begin
         SetupDataFromTrack(Prim0, IsVert0, x01, y01, x02, y02, k0, c0);
     end;
 
+    if DebuggingEnabled then AddToDebugListBefore(Prim1, TargetSlope, TargetIntercept);
+
     Prim1.BeginModify;
 
     Prim2 := SortedTracks.getObject(ConnectedTrackOneIndex); // track connected to first end of the moving track
@@ -362,6 +418,8 @@ begin
     if Reverse then LastIntercept := TargetIntercept - (Prim1.Width / (2 * coef)) // subtract half of current track width for next pass (intercept at moved track edge)
     else LastIntercept            := TargetIntercept + (Prim1.Width / (2 * coef)); // add half of current track width for next pass (intercept at moved track edge)
 
+    if DebuggingEnabled then AddToDebugListAfter(Prim1, LastIntercept);
+
 end;
 
 
@@ -369,7 +427,7 @@ function DistributeForward(startc : TCoord, coef : Double, stepc : TCoord);
 var
     i, j                           : Integer;
     TrimTrackIndex                 : Integer;
-    TargetSlope                    : Double;
+    TargetSlope, k                 : Double;
     TargetIntercept, LastIntercept : TCoord;
     IsVert1                        : Boolean;
     x11, x12, y11, y12             : TCoord;
@@ -384,10 +442,11 @@ begin
     begin
         Prim1          := SortedTracks.getObject(i);
         Prim1.Selected := True;
-        SetupDataFromTrack(Prim1, IsVert1, x11, y11, x12, y12, TargetSlope, TargetIntercept);
+        SetupDataFromTrack(Prim1, IsVert1, x11, y11, x12, y12, k, TargetIntercept);
 
         if i = TrimTrackIndex then
         begin
+            TargetSlope     := k;
             TargetIntercept := startc;
         end
         else
@@ -408,7 +467,7 @@ function DistributeBackward(startc : TCoord, coef : Double, stepc : TCoord);
 var
     i, j                           : Integer;
     TrimTrackIndex                 : Integer;
-    TargetSlope                    : Double;
+    TargetSlope, k                 : Double;
     TargetIntercept, LastIntercept : TCoord;
     IsVert1                        : Boolean;
     x11, x12, y11, y12             : TCoord;
@@ -423,10 +482,11 @@ begin
     begin
         Prim1          := SortedTracks.getObject(i);
         Prim1.Selected := True;
-        SetupDataFromTrack(Prim1, IsVert1, x11, y11, x12, y12, TargetSlope, TargetIntercept);
+        SetupDataFromTrack(Prim1, IsVert1, x11, y11, x12, y12, k, TargetIntercept);
 
         if i = TrimTrackIndex then
         begin
+            TargetSlope     := k;
             TargetIntercept := startc;
         end
         else
@@ -448,7 +508,7 @@ var
     i, j                           : Integer;
     TrimTrackIndex                 : Integer;
     ListSplitIndex                 : Integer;
-    TargetSlope                    : Double;
+    TargetSlope, k                 : Double;
     TargetIntercept, LastIntercept : TCoord;
     SplitIntercept                 : TCoord;
     IsVert1                        : Boolean;
@@ -491,10 +551,11 @@ begin
     begin
         Prim1          := SortedTracks.getObject(i);
         Prim1.Selected := True;
-        SetupDataFromTrack(Prim1, IsVert1, x11, y11, x12, y12, TargetSlope, TargetIntercept);
+        SetupDataFromTrack(Prim1, IsVert1, x11, y11, x12, y12, k, TargetIntercept);
 
         if i = TrimTrackIndex then
         begin
+            TargetSlope     := k;
             TargetIntercept := SplitIntercept;
         end
         else
@@ -517,7 +578,7 @@ begin
     begin
         Prim1          := SortedTracks.getObject(i);
         Prim1.Selected := True;
-        SetupDataFromTrack(Prim1, IsVert1, x11, y11, x12, y12, TargetSlope, TargetIntercept);
+        SetupDataFromTrack(Prim1, IsVert1, x11, y11, x12, y12, k, TargetIntercept);
 
         if i = TrimTrackIndex then
         begin
@@ -872,6 +933,14 @@ begin
     // there shouldn't be any tracks selected unless there were problems
     if Board.SelectecObjectCount <> 0 then exit;
 
+    // all is well and about to start distributing, check if debugging is enabled
+    if DebuggingEnabled then
+    begin
+        DebugFilePath := ClientAPI_SpecialFolder_AltiumApplicationData + '\DistributeScriptDebug.csv';
+        DebugList := TStringList.Create;
+        DebugList.Append('X1 before,Y1 before,X2 before,Y2 before,slope before,intercept before,TargetSlope,TargetIntercept,X1 after,Y1 after,X2 after,Y2 after,slope after,intercept after,LastIntercept');
+    end;
+
     if RadioButtonCenters.Checked then
     begin
         stepc := (maxc - minc) / ((SortedTracks.Count / 3) - 1); // intercept increment is intercept extents divided by number of tracks - 1
@@ -922,6 +991,13 @@ begin
         // cleanup
         TempPresetList.Free;
         PresetList.Free;
+    end;
+
+    if DebuggingEnabled then
+    begin
+        DebugList.SaveToFile(DebugFilePath);
+        DebugList.Free;
+        ShowMessage('Debugging output saved');
     end;
 
     close;
@@ -1065,6 +1141,7 @@ begin
     InitialCheck(status);
     if status = 0 then
     begin
+        DebuggingEnabled := False;
         RadioButtonClearance.Checked := False;
         RadioButtonCenters.Checked   := True;
         calculate(False);
@@ -1080,6 +1157,7 @@ begin
     InitialCheck(status);
     if status = 0 then
     begin
+        DebuggingEnabled := False;
         RadioButtonCenters.Checked   := False;
         RadioButtonClearance.Checked := True;
         calculate(False);
@@ -1103,6 +1181,21 @@ begin
     InitialCheck(status);
     if status = 0 then
     begin
+        DebuggingEnabled := False;
+        FormDistribute.ShowModal;
+    end
+    else exit;
+end;
+
+
+procedure StartWithDebug;
+var
+    status : Integer;
+begin
+    InitialCheck(status);
+    if status = 0 then
+    begin
+        DebuggingEnabled := True;
         FormDistribute.ShowModal;
     end
     else exit;
