@@ -56,3 +56,5 @@ Sometimes, particularly when distributing tracks that are not routed at 90° or 
 2022-11-16 by Ryan Rutledge : v1.41 - Added ability to trim dangling track ends perpendicular to _First Track_
 
 2022-11-17 by Ryan Rutledge : v1.42 - added version to form
+
+2022-11-17 by Ryan Rutledge : v1.43 - added debugging tools; fixed TargetSlope getting reset for each track instead of set once by _First Track_
