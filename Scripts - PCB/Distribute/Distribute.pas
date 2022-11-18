@@ -325,7 +325,7 @@ begin
                 Prim1.X1 := TargetIntercept; // set to TargetIntercept
 
                 // if vertical and actual Y coords don't match output of SetupDataFromTrack, then they were coerced and swapped
-                if Prim1.Y1 = y12 then Prim1.Y1 := y02; // use swapped end instead
+                if Prim1.Y1 = y12 then Prim1.Y1 := y02 // use swapped end instead
                 else                   Prim1.Y1 := y01; // trim Y coord
 
             end
