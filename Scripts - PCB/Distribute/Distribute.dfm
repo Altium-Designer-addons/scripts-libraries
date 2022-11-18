@@ -27,6 +27,13 @@ object FormDistribute: TFormDistribute
     Width = 192
     Height = 56
   end
+  object LabelVersion: TLabel
+    Left = 13
+    Top = 183
+    Width = 54
+    Height = 13
+    Caption = 'version X.X'
+  end
   object RadioDirections: TRadioGroup
     Left = 112
     Top = 120
