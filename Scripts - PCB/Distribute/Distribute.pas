@@ -11,6 +11,7 @@ var
 
 const
     NumPresets = 15; // no longer just for presets, also used to save previous state
+    ScriptVersion = '1.42';
 
 
 // critical function to get normalized line properties. k is slope, c is intercept
@@ -1108,6 +1109,9 @@ end;
 
 procedure TFormDistribute.FormDistributeShow(Sender : TObject);
 begin
+    // set version label
+    LabelVersion.Caption := 'v' + ScriptVersion;
+
     // Set direction control hint
     Application.HintHidePause := 11000; // extend hint show time
     RadioDirections.Hint      := 'FWD: The original direction that the distribute script spreads tracks.' + sLineBreak +
