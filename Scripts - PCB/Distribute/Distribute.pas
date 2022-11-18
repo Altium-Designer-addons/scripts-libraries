@@ -1088,6 +1088,14 @@ begin
 end;
 
 
+procedure About;
+begin
+    ShowMessage('This version is v' + ScriptVersion + sLineBreak +
+        'Updated versions may be found here:' + sLineBreak +
+        'https://github.com/Altium-Designer-addons/scripts-libraries');
+end;
+
+
 procedure Start;
 var
     status : Integer;
