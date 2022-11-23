@@ -41,6 +41,9 @@
 {..............................................................................}
 { Ver 2.6 Modified to Work with AD14
 { Randy Clemmons
+{
+{ v2.7 added board database internal layer names
+{ Ryan Rutledge
 {..............................................................................}
 
 
