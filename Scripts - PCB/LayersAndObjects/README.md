@@ -16,6 +16,11 @@ Script was updated by allowing user to modify objects view in Final, Draft and h
 
 Also, Script was modified to enable it to work when documents are switched, just like a panel works. So you can on-the-fly change between PCB documents, or other documents too (other documents will have empty panel, but problems should not appear) and panel will refresh.
 
+## How to install and use
+_Step 1_: [DOWNLOAD](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Scripts%20-%20PCB/LayersAndObjects) script
+
+_Step 2_: integrate the script into Altium Designer and execute it.\
+If you are a newcomer to Altium scripts, [please read the "how to" wiki page](https://github.com/Altium-Designer-addons/scripts-libraries/wiki/HowTo_execute_scripts).
 
 ## Changelog
 2011/12/14: Save position to ini file (Tony Chilco)\
