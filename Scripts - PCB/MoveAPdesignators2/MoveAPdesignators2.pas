@@ -175,8 +175,8 @@ begin
                             end;
                         eAutoPos_CenterLeft :
                             begin
-                                Designator.MoveToXY(Designator.Xlocation + DesignatorXmove, Designator.Ylocation);
-                                Designator.TTFInvertedTextJustify := eAutoPos_CenterLeft;
+                                Designator.MoveToXY(Designator.Xlocation - DesignatorXmove, Designator.Ylocation);
+                                Designator.TTFInvertedTextJustify := eAutoPos_CenterRight;
                             end;
                         eAutoPos_BottomLeft :
                             begin
@@ -200,8 +200,8 @@ begin
                             end;
                         eAutoPos_CenterRight :
                             begin
-                                Designator.MoveToXY(Designator.Xlocation - DesignatorXmove, Designator.Ylocation);
-                                Designator.TTFInvertedTextJustify := eAutoPos_CenterRight;
+                                Designator.MoveToXY(Designator.Xlocation + DesignatorXmove, Designator.Ylocation);
+                                Designator.TTFInvertedTextJustify := eAutoPos_CenterLeft;
                             end;
                         eAutoPos_BottomRight :
                             begin
