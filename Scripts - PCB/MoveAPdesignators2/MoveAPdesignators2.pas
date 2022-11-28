@@ -1,21 +1,21 @@
-{******************************************************************************}
-{* See README.md for release info
-{******************************************************************************}
+{ ****************************************************************************** }
+{ * See README.md for release info
+{ ****************************************************************************** }
 
-Var
+var
     Board                          : IPCB_Board;
     UnHideDesignators, AbortScript : Boolean;
-    PresetFilePath    : string;
-    PresetList        : TStringList;
+    PresetFilePath                 : string;
+    PresetList                     : TStringList;
 
 
 const
-    UsePresets = True;
-    NumPresets = 12; // not just for presets, also used to save previous state
+    UsePresets    = True;
+    NumPresets    = 12; // not just for presets, also used to save previous state
     ScriptVersion = '2.0';
 
 
-// function to populate a TStringList with preset values
+{ function to populate a TStringList with preset values }
 procedure BuildPresetList(var TempPresetList : TStringList);
 begin
     TempPresetList.Clear;
@@ -31,7 +31,7 @@ begin
     TempPresetList.Add(MMmilButton.Caption);
     TempPresetList.Add(SelectedCheckBox.Checked);
     TempPresetList.Add(UnHideDesignatorsCheckBox.Checked);
-end;
+end; { BuildPresetList }
 
 
 // function to load preset list from file
@@ -51,7 +51,7 @@ begin
                 begin
                     // do nothing
                 end
-            else  // if PresetList.Count < NumPresets then PresetList file exists but count is short, just regenerate preset file from defaults
+            else // if PresetList.Count < NumPresets then PresetList file exists but count is short, just regenerate preset file from defaults
                 begin
                     // ShowMessage(PresetFilePath + ' exists but is not the correct length. Defaults will be used.');
                     BuildPresetList(PresetList);
@@ -60,18 +60,18 @@ begin
         end;
 
         // set text boxes to match preset list (redundant if list was regenerated above)
-        tPreset1.Text                       := PresetList[1];
-        tPreset2.Text                       := PresetList[2];
-        tPreset3.Text                       := PresetList[3];
-        tPreset4.Text                       := PresetList[4];
-        tPreset5.Text                       := PresetList[5];
-        tPreset6.Text                       := PresetList[6];
-        tPreset7.Text                       := PresetList[7];
-        tPreset8.Text                       := PresetList[8];
-        MMmilButton.Caption                 := PresetList[9];
-        SelectedCheckBox.Checked            := PresetList[10];
-        UnHideDesignatorsCheckBox.Checked   := PresetList[11];
-        EditDistance.Text                  := PresetList[0]; // Main input field needs to be set last because setting each preset updates it
+        tPreset1.Text                     := PresetList[1];
+        tPreset2.Text                     := PresetList[2];
+        tPreset3.Text                     := PresetList[3];
+        tPreset4.Text                     := PresetList[4];
+        tPreset5.Text                     := PresetList[5];
+        tPreset6.Text                     := PresetList[6];
+        tPreset7.Text                     := PresetList[7];
+        tPreset8.Text                     := PresetList[8];
+        MMmilButton.Caption               := PresetList[9];
+        SelectedCheckBox.Checked          := PresetList[10];
+        UnHideDesignatorsCheckBox.Checked := PresetList[11];
+        EditDistance.Text                 := PresetList[0]; // Main input field needs to be set last because setting each preset updates it
     end
     else
     begin // if preset file didn't exist at all, create from defaults
@@ -79,17 +79,17 @@ begin
         BuildPresetList(PresetList);
         PresetList.SaveToFile(PresetFilePath);
     end;
-end;
+end; { LoadPresetListFromFile }
 
 
 // Main procedure
-Procedure TweakDesignators;
-Var
+procedure TweakDesignators;
+var
     Component               : IPCB_Component;
     ComponentIteratorHandle : IPCB_BoardIterator;
     Designator              : IPCB_Text;
     PCBSystemOptions        : IPCB_SystemOptions;
-    DRCSetting              : boolean;
+    DRCSetting              : Boolean;
     tc_AutoPos              : TTextAutoposition; // Current AP setting
     DesignatorXmove         : Integer;           // Distance to move
     TempPresetList          : TStringList;
@@ -98,29 +98,29 @@ begin
     // set version label
     LabelVersion.Caption := 'v' + ScriptVersion;
 
-     // Verify that the document is a PcbDoc
-     //if PCBServer.GetCurrentPCBBoard = Nil Then  Begin
-     //  Exit;
-     //End;
+    // Verify that the document is a PcbDoc
+    // if PCBServer.GetCurrentPCBBoard = Nil Then  Begin
+    // Exit;
+    // End;
 
-    // Checks if current document is a PCB kind if not, exit.
+    // Checks if current document is a PCB kind if not, Exit.
     Board := PCBServer.GetCurrentPCBBoard;
-    if Board = nil then exit;
+    if Board = Nil then Exit;
 
-     // Disables Online DRC during designator movement to improve speed
-     PCBSystemOptions := PCBServer.SystemOptions;
+    // Disables Online DRC during designator movement to improve speed
+    PCBSystemOptions := PCBServer.SystemOptions;
 
-     If PCBSystemOptions = Nil Then Exit;
+    if PCBSystemOptions = Nil then Exit;
 
-     DRCSetting := PCBSystemOptions.DoOnlineDRC;
-     PCBSystemOptions.DoOnlineDRC := false;
-     try
-        AbortScript:= False;
-        TweakDesForm.ShowModal;      // Show the settings dialogue (and resume script here after closed?)
-        If AbortScript Then
+    DRCSetting                   := PCBSystemOptions.DoOnlineDRC;
+    PCBSystemOptions.DoOnlineDRC := False;
+    try
+        AbortScript := False;
+        TweakDesForm.ShowModal; // Show the settings dialogue (and resume script here after closed?)
+        if AbortScript then
         begin
             PresetList.Free;
-        	Exit;
+            Exit;
         end;
 
         // Notify the pcbserver that we will make changes (Start undo)
@@ -130,28 +130,28 @@ begin
         ComponentIteratorHandle.AddFilter_IPCB_LayerSet(LayerSet.AllLayers);
         ComponentIteratorHandle.AddFilter_Method(eProcessAll);
 
-        IF TweakDesForm.UnHideDesignatorsCheckBox.Checked Then UnHideDesignators:= True
-        else UnHideDesignators:= False;
+        if TweakDesForm.UnHideDesignatorsCheckBox.Checked then UnHideDesignators := True
+        else UnHideDesignators := False;
 
         Component := ComponentIteratorHandle.FirstPCBObject;
 
-        If TweakDesForm.SelectedCheckbox.Checked Then  while (Component <> Nil) Do
-          If NOT Component.Selected Then Component := ComponentIteratorHandle.NextPCBObject
-          else break;    // Find the first selected comp if select only checked
+        if TweakDesForm.SelectedCheckBox.Checked then
+            while (Component <> Nil) do
+                if not Component.Selected then Component := ComponentIteratorHandle.NextPCBObject
+                else break; // Find the first selected comp if select only checked
 
         // Set the move distance to DB units converted from mils or mm
-        If TweakDesForm.MMmilButton.Caption = 'mm' then   DesignatorXmove := MMsToCoord(TweakDesForm.EditDistance.Text)
+        if TweakDesForm.MMmilButton.Caption = 'mm' then DesignatorXmove := MMsToCoord(TweakDesForm.EditDistance.Text)
         else DesignatorXmove := MilsToCoord(TweakDesForm.EditDistance.Text);
 
-        while (Component <> Nil) Do
+        while (Component <> Nil) do
         begin
             Component.BeginModify;
 
-             //Show hidden designators?
-             if UnHideDesignators = true then
-                Component.NameOn := true;
+            // Show hidden designators?
+            if UnHideDesignators = True then Component.NameOn := True;
 
-            tc_AutoPos:= Component.GetState_NameAutoPos; // Get current AP state
+            tc_AutoPos := Component.GetState_NameAutoPos; // Get current AP state
 
             // Set AP to manual
             Component.SetState_NameAutoPos(eAutoPos_Manual);
@@ -160,103 +160,103 @@ begin
             Designator := Component.Name;
 
             // notify that the pcb object is going to be modified
-            //PCBServer.SendMessageToRobots(Designator.I_ObjectAddress, c_Broadcast, PCBM_BeginModify, c_NoEventData);
+            // PCBServer.SendMessageToRobots(Designator.I_ObjectAddress, c_Broadcast, PCBM_BeginModify, c_NoEventData);
             Component.Name.BeginModify;
 
-            Case Designator.GetState_Mirror of
-                true:       // If designator is mirrored, we will assume that X-axis movement should be reversed
+            case Designator.GetState_Mirror of
+                True : // If designator is mirrored, we will assume that X-axis movement should be reversed
                     // Move designator depending on current AP setting
-                    Case tc_AutoPos of
-                      eAutoPos_Manual:;
-                      eAutoPos_TopLeft:
-                      begin
-                          Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation - DesignatorXmove);
-                          Designator.TTFInvertedTextJustify := eAutoPos_BottomRight;
-                      end;
-                      eAutoPos_CenterLeft:
-                      begin
-                          Designator.MoveToXY(Designator.Xlocation + DesignatorXmove, Designator.Ylocation);
-                          Designator.TTFInvertedTextJustify := eAutoPos_CenterLeft;
-                      end;
-                      eAutoPos_BottomLeft:
-                      begin
-                          Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation + DesignatorXmove);
-                          Designator.TTFInvertedTextJustify := eAutoPos_TopRight;
-                      end;
-                      eAutoPos_TopCenter:
-                      begin
-                          Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation - DesignatorXmove);
-                          Designator.TTFInvertedTextJustify := eAutoPos_BottomCenter;
-                      end;
-                      eAutoPos_BottomCenter:
-                      begin
-                          Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation + DesignatorXmove);
-                          Designator.TTFInvertedTextJustify := eAutoPos_TopCenter;
-                      end;
-                      eAutoPos_TopRight:
-                      begin
-                          Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation - DesignatorXmove);
-                          Designator.TTFInvertedTextJustify := eAutoPos_BottomLeft;
-                      end;
-                      eAutoPos_CenterRight:
-                      begin
-                          Designator.MoveToXY(Designator.Xlocation - DesignatorXmove, Designator.Ylocation);
-                          Designator.TTFInvertedTextJustify := eAutoPos_CenterRight;
-                      end;
-                      eAutoPos_BottomRight:
-                      begin
-                          Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation + DesignatorXmove);
-                          Designator.TTFInvertedTextJustify := eAutoPos_BottomLeft;
-                      end;
-                      eAutoPos_CenterCenter:Designator.TTFInvertedTextJustify := eAutoPos_CenterCenter;
-                    End; {case tc_AutoPos}
-                false:
+                    case tc_AutoPos of
+                        eAutoPos_Manual :;
+                        eAutoPos_TopLeft :
+                            begin
+                                Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation - DesignatorXmove);
+                                Designator.TTFInvertedTextJustify := eAutoPos_BottomRight;
+                            end;
+                        eAutoPos_CenterLeft :
+                            begin
+                                Designator.MoveToXY(Designator.Xlocation + DesignatorXmove, Designator.Ylocation);
+                                Designator.TTFInvertedTextJustify := eAutoPos_CenterLeft;
+                            end;
+                        eAutoPos_BottomLeft :
+                            begin
+                                Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation + DesignatorXmove);
+                                Designator.TTFInvertedTextJustify := eAutoPos_TopRight;
+                            end;
+                        eAutoPos_TopCenter :
+                            begin
+                                Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation - DesignatorXmove);
+                                Designator.TTFInvertedTextJustify := eAutoPos_BottomCenter;
+                            end;
+                        eAutoPos_BottomCenter :
+                            begin
+                                Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation + DesignatorXmove);
+                                Designator.TTFInvertedTextJustify := eAutoPos_TopCenter;
+                            end;
+                        eAutoPos_TopRight :
+                            begin
+                                Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation - DesignatorXmove);
+                                Designator.TTFInvertedTextJustify := eAutoPos_BottomLeft;
+                            end;
+                        eAutoPos_CenterRight :
+                            begin
+                                Designator.MoveToXY(Designator.Xlocation - DesignatorXmove, Designator.Ylocation);
+                                Designator.TTFInvertedTextJustify := eAutoPos_CenterRight;
+                            end;
+                        eAutoPos_BottomRight :
+                            begin
+                                Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation + DesignatorXmove);
+                                Designator.TTFInvertedTextJustify := eAutoPos_BottomLeft;
+                            end;
+                        eAutoPos_CenterCenter : Designator.TTFInvertedTextJustify := eAutoPos_CenterCenter;
+                    end; { case tc_AutoPos }
+                False :
                     // Move designator depending on current AP setting
-                    Case tc_AutoPos of
-                        eAutoPos_Manual:;
-                        eAutoPos_TopLeft:
-                        begin
-                            Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation - DesignatorXmove);
-                            Designator.TTFInvertedTextJustify := eAutoPos_BottomRight;
-                        end;
-                        eAutoPos_CenterLeft:
-                        begin
-                            Designator.MoveToXY(Designator.Xlocation + DesignatorXmove, Designator.Ylocation);
-                            Designator.TTFInvertedTextJustify := eAutoPos_CenterRight;
-                        end;
-                        eAutoPos_BottomLeft:
-                        begin
-                            Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation + DesignatorXmove);
-                            Designator.TTFInvertedTextJustify := eAutoPos_TopRight;
-                        end;
-                        eAutoPos_TopCenter:
-                        begin
-                            Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation - DesignatorXmove);
-                            Designator.TTFInvertedTextJustify := eAutoPos_BottomCenter;
-                        end;
-                        eAutoPos_BottomCenter:
-                        begin
-                            Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation + DesignatorXmove);
-                            Designator.TTFInvertedTextJustify := eAutoPos_TopCenter;
-                        end;
-                        eAutoPos_TopRight:
-                        begin
-                            Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation - DesignatorXmove);
-                            Designator.TTFInvertedTextJustify := eAutoPos_BottomLeft;
-                        end;
-                        eAutoPos_CenterRight:
-                        begin
-                            Designator.MoveToXY(Designator.Xlocation - DesignatorXmove, Designator.Ylocation);
-                            Designator.TTFInvertedTextJustify := eAutoPos_CenterLeft;
-                        end;
-                        eAutoPos_BottomRight:
-                        begin
-                            Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation + DesignatorXmove);
-                            Designator.TTFInvertedTextJustify := eAutoPos_TopLeft;
-                        end;
-                        eAutoPos_CenterCenter:Designator.TTFInvertedTextJustify := eAutoPos_CenterCenter;
-                    End; {case tc_AutoPos}
-            End; {case Designator.GetState_Mirror}
+                    case tc_AutoPos of
+                        eAutoPos_Manual :;
+                        eAutoPos_TopLeft :
+                            begin
+                                Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation - DesignatorXmove);
+                                Designator.TTFInvertedTextJustify := eAutoPos_BottomRight;
+                            end;
+                        eAutoPos_CenterLeft :
+                            begin
+                                Designator.MoveToXY(Designator.Xlocation + DesignatorXmove, Designator.Ylocation);
+                                Designator.TTFInvertedTextJustify := eAutoPos_CenterRight;
+                            end;
+                        eAutoPos_BottomLeft :
+                            begin
+                                Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation + DesignatorXmove);
+                                Designator.TTFInvertedTextJustify := eAutoPos_TopRight;
+                            end;
+                        eAutoPos_TopCenter :
+                            begin
+                                Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation - DesignatorXmove);
+                                Designator.TTFInvertedTextJustify := eAutoPos_BottomCenter;
+                            end;
+                        eAutoPos_BottomCenter :
+                            begin
+                                Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation + DesignatorXmove);
+                                Designator.TTFInvertedTextJustify := eAutoPos_TopCenter;
+                            end;
+                        eAutoPos_TopRight :
+                            begin
+                                Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation - DesignatorXmove);
+                                Designator.TTFInvertedTextJustify := eAutoPos_BottomLeft;
+                            end;
+                        eAutoPos_CenterRight :
+                            begin
+                                Designator.MoveToXY(Designator.Xlocation - DesignatorXmove, Designator.Ylocation);
+                                Designator.TTFInvertedTextJustify := eAutoPos_CenterLeft;
+                            end;
+                        eAutoPos_BottomRight :
+                            begin
+                                Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation + DesignatorXmove);
+                                Designator.TTFInvertedTextJustify := eAutoPos_TopLeft;
+                            end;
+                        eAutoPos_CenterCenter : Designator.TTFInvertedTextJustify := eAutoPos_CenterCenter;
+                    end; { case tc_AutoPos }
+            end; { case Designator.GetState_Mirror }
 
             // notify that the pcb object is modified
             // PCBServer.SendMessageToRobots(Designator.I_ObjectAddress, c_Broadcast, PCBM_EndModify , c_NoEventData);
@@ -266,19 +266,20 @@ begin
 
             Component.EndModify;
 
-          // Get the next component handle
+            // Get the next component handle
             Component := ComponentIteratorHandle.NextPCBObject;
-            If TweakDesForm.SelectedCheckbox.Checked Then  while (Component <> Nil) Do
-              If NOT Component.Selected Then Component := ComponentIteratorHandle.NextPCBObject
-              else break;  // Find the next selected comp if select only checked
+            if TweakDesForm.SelectedCheckBox.Checked then
+                while (Component <> Nil) do
+                    if not Component.Selected then Component := ComponentIteratorHandle.NextPCBObject
+                    else break; // Find the next selected comp if select only checked
 
 
-        End; {end while}
+        end; { end while }
 
         // Notify the pcbserver that all changes have been made (Stop undo)
         PCBServer.PostProcess;
 
-        //Refresh the screen (not needed with .GraphicallyInvalidate)
+        // Refresh the screen (not needed with .GraphicallyInvalidate)
         // Client.SendMessage('PCB:Zoom', 'Action=Redraw' , 255, Client.CurrentView);
 
         // Destroy the component handle
@@ -305,10 +306,10 @@ begin
         end;
 
     finally
-           // Restore DRC setting
-           PCBSystemOptions.DoOnlineDRC :=  DRCSetting;
+        // Restore DRC setting
+        PCBSystemOptions.DoOnlineDRC := DRCSetting;
     end;
-end;
+end; { TweakDesignators }
 
 
 function IsStringANum(Text : string) : Boolean;
@@ -326,12 +327,12 @@ begin
 
     // Test for more than one dot or comma
     dotCount := 0;
-    ChSet := MkSet(Ord('.'), Ord(','));
-    for i := 1 to Length(Text) do
+    ChSet    := MkSet(Ord('.'), Ord(','));
+    for i    := 1 to Length(Text) do
         if InSet(Ord(Text[i]), ChSet) then inc(dotCount);
 
     if dotCount > 1 then Result := False;
-end;
+end; { IsStringANum }
 
 
 procedure ValidateOnChange(Sender : TObject);
@@ -343,11 +344,11 @@ begin
     if IsStringANum(textbox.Text) then
     begin
         if Sender <> EditDistance then EditDistance.Text := textbox.Text;
-        ButtonOK.Enabled := True;
+        ButtonOK.Enabled                                 := True;
     end
     else ButtonOK.Enabled := False;
 
-end;
+end; { ValidateOnChange }
 
 
 procedure UserKeyPress(Sender : TObject; var Key : Char); // programmatically, OnKeyPress fires before OnChange event and "catches" the key press
@@ -357,7 +358,7 @@ begin
         Key := #0; // catch and discard key press to avoid beep
         if ButtonOK.Enabled then TweakDesForm.Close;
     end;
-end;
+end; { UserKeyPress }
 
 
 procedure PresetButtonClicked(Sender : TObject);
@@ -372,16 +373,16 @@ begin
     else if Sender = ButtonPreset7 then EditDistance.Text := tPreset7.Text
     else if Sender = ButtonPreset8 then EditDistance.Text := tPreset8.Text;
     TweakDesForm.Close;
-end;
+end; { PresetButtonClicked }
 
 
-procedure TTweakDesForm.ButtonOKClick(Sender: TObject);
+procedure TTweakDesForm.ButtonOKClick(Sender : TObject);
 begin
     TweakDesForm.Close;
-end;
+end; { TTweakDesForm.ButtonOKClick }
 
 
-procedure TTweakDesForm.MMmilButtonClick(Sender: TObject);
+procedure TTweakDesForm.MMmilButtonClick(Sender : TObject);
 var
     TempString : string;
 begin
@@ -391,16 +392,16 @@ begin
     if MMmilButton.Caption = 'mil' then
     begin
         MMmilButton.Caption := 'mm';
-        EditDistance.Text   := CoordToMMs(milsToCoord(StrToFloat(TempString)));
+        EditDistance.Text   := CoordToMMs(MilsToCoord(StrToFloat(TempString)));
     end
     else
     begin
         MMmilButton.Caption := 'mil';
-        EditDistance.Text   := CoordToMils(mmsToCoord(StrToFloat(TempString)));
+        EditDistance.Text   := CoordToMils(MMsToCoord(StrToFloat(TempString)));
     end;
     EditDistance.SetFocus;
     EditDistance.Update;
-end;
+end; { TTweakDesForm.MMmilButtonClick }
 
 
 procedure TTweakDesForm.EditDistanceChange(Sender : TObject);
@@ -416,26 +417,26 @@ begin
         ButtonOK.Enabled        := False;
         EditDistance.Font.Color := clRed;
     end;
-end;
+end; { TTweakDesForm.EditDistanceChange }
 
 
-procedure TTweakDesForm.ButtonCancelClick(Sender: TObject);
+procedure TTweakDesForm.ButtonCancelClick(Sender : TObject);
 begin
-    AbortScript:= True;
+    AbortScript := True;
     TweakDesForm.Close;
-end;
+end; { TTweakDesForm.ButtonCancelClick }
 
 
 procedure About;
 begin
-    ShowMessage('Move Auto-positioned Designators v' + ScriptVersion + sLineBreak +
-        'Updated versions may be found here:' + sLineBreak +
-        'https://github.com/Altium-Designer-addons/scripts-libraries');
-end;
+    ShowMessage('Move Auto-Positioned Designators v' + ScriptVersion + sLineBreak +
+            'Updated versions may be found here:' + sLineBreak +
+            'https://github.com/Altium-Designer-addons/scripts-libraries');
+end; { About }
 
-procedure TTweakDesForm.TweakDesFormShow(Sender: TObject);
+
+procedure TTweakDesForm.TweakDesFormShow(Sender : TObject);
 begin
-	// read presets from file
+    // read presets from file
     LoadPresetListFromFile(0);
-end;
-
+end; { TTweakDesForm.TweakDesFormShow }
