@@ -12,7 +12,7 @@ var
 const
     UsePresets    = True;
     NumPresets    = 12; // not just for presets, also used to save previous state
-    ScriptVersion = '2.01';
+    ScriptVersion = '2.02';
 
 
 { function to populate a TStringList with preset values }
@@ -93,18 +93,19 @@ begin
     mirror := Designator.GetState_Mirror;
     if rotation > 315 then rotation := 0;
 
+    // technically AutoPosition being enabled should coerce to 0,90,180, or 270
     case rotation of
         0..45 :
             begin
                 case tc_AutoPos of
-                    eAutoPos_TopLeft        : if mirror then Result := eAutoPos_TopRight else Result := eAutoPos_TopLeft;
+                    eAutoPos_TopLeft        : if mirror then Result := eAutoPos_BottomLeft else Result := eAutoPos_BottomRight;
                     eAutoPos_CenterLeft     : if mirror then Result := eAutoPos_CenterRight else Result := eAutoPos_CenterLeft;
-                    eAutoPos_BottomLeft     : if mirror then Result := eAutoPos_BottomRight else Result := eAutoPos_BottomLeft;
-                    eAutoPos_TopCenter      : Result := eAutoPos_TopCenter;
-                    eAutoPos_BottomCenter   : Result := eAutoPos_BottomCenter;
-                    eAutoPos_TopRight       : if mirror then Result := eAutoPos_TopLeft else Result := eAutoPos_TopRight;
+                    eAutoPos_BottomLeft     : if mirror then Result := eAutoPos_TopLeft else Result := eAutoPos_TopRight;
+                    eAutoPos_TopCenter      : Result := eAutoPos_BottomCenter;
+                    eAutoPos_BottomCenter   : Result := eAutoPos_TopCenter;
+                    eAutoPos_TopRight       : if mirror then Result := eAutoPos_BottomRight else Result := eAutoPos_BottomLeft;
                     eAutoPos_CenterRight    : if mirror then Result := eAutoPos_CenterLeft else Result := eAutoPos_CenterRight;
-                    eAutoPos_BottomRight    : if mirror then Result := eAutoPos_BottomLeft else Result := eAutoPos_BottomRight;
+                    eAutoPos_BottomRight    : if mirror then Result := eAutoPos_TopRight else Result := eAutoPos_TopLeft;
                     else                      Result := tc_AutoPos;
                 end; { case tc_AutoPos }
             end; { 0..45 }
@@ -114,8 +115,8 @@ begin
                     eAutoPos_TopLeft        : if mirror then Result := eAutoPos_TopLeft else Result := eAutoPos_TopRight;
                     eAutoPos_CenterLeft     : Result := eAutoPos_TopCenter;
                     eAutoPos_BottomLeft     : if mirror then Result := eAutoPos_TopRight else Result := eAutoPos_TopLeft;
-                    eAutoPos_TopCenter      : if mirror then Result := eAutoPos_CenterLeft else Result := eAutoPos_CenterRight;
-                    eAutoPos_BottomCenter   : if mirror then Result := eAutoPos_CenterRight else Result := eAutoPos_CenterLeft;
+                    eAutoPos_TopCenter      : if mirror then Result := eAutoPos_CenterRight else Result := eAutoPos_CenterLeft;
+                    eAutoPos_BottomCenter   : if mirror then Result := eAutoPos_CenterLeft else Result := eAutoPos_CenterRight;
                     eAutoPos_TopRight       : if mirror then Result := eAutoPos_BottomLeft else Result := eAutoPos_BottomRight;
                     eAutoPos_CenterRight    : Result := eAutoPos_BottomCenter;
                     eAutoPos_BottomRight    : if mirror then Result := eAutoPos_BottomRight else Result := eAutoPos_BottomLeft;
@@ -125,14 +126,14 @@ begin
         136..225 :
             begin
                 case tc_AutoPos of
-                    eAutoPos_TopLeft        : if mirror then Result := eAutoPos_BottomLeft else Result := eAutoPos_BottomRight;
+                    eAutoPos_TopLeft        : if mirror then Result := eAutoPos_TopRight else Result := eAutoPos_TopLeft;
                     eAutoPos_CenterLeft     : if mirror then Result := eAutoPos_CenterLeft else Result := eAutoPos_CenterRight;
-                    eAutoPos_BottomLeft     : if mirror then Result := eAutoPos_TopLeft else Result := eAutoPos_TopRight;
-                    eAutoPos_TopCenter      : Result := eAutoPos_BottomCenter;
-                    eAutoPos_BottomCenter   : Result := eAutoPos_TopCenter;
-                    eAutoPos_TopRight       : if mirror then Result := eAutoPos_BottomRight else Result := eAutoPos_BottomLeft;
+                    eAutoPos_BottomLeft     : if mirror then Result := eAutoPos_BottomRight else Result := eAutoPos_BottomLeft;
+                    eAutoPos_TopCenter      : Result := eAutoPos_TopCenter;
+                    eAutoPos_BottomCenter   : Result := eAutoPos_BottomCenter;
+                    eAutoPos_TopRight       : if mirror then Result := eAutoPos_TopLeft else Result := eAutoPos_TopRight;
                     eAutoPos_CenterRight    : if mirror then Result := eAutoPos_CenterRight else Result := eAutoPos_CenterLeft;
-                    eAutoPos_BottomRight    : if mirror then Result := eAutoPos_TopRight else Result := eAutoPos_TopLeft;
+                    eAutoPos_BottomRight    : if mirror then Result := eAutoPos_BottomLeft else Result := eAutoPos_BottomRight;
                     else                      Result := tc_AutoPos;
                 end; { case tc_AutoPos }
             end; { 136..225 }
@@ -142,8 +143,8 @@ begin
                     eAutoPos_TopLeft        : if mirror then Result := eAutoPos_BottomRight else Result := eAutoPos_BottomLeft;
                     eAutoPos_CenterLeft     : Result := eAutoPos_BottomCenter;
                     eAutoPos_BottomLeft     : if mirror then Result := eAutoPos_BottomLeft else Result := eAutoPos_BottomRight;
-                    eAutoPos_TopCenter      : if mirror then Result := eAutoPos_CenterRight else Result := eAutoPos_CenterLeft;
-                    eAutoPos_BottomCenter   : if mirror then Result := eAutoPos_CenterLeft else Result := eAutoPos_CenterRight;
+                    eAutoPos_TopCenter      : if mirror then Result := eAutoPos_CenterLeft else Result := eAutoPos_CenterRight;
+                    eAutoPos_BottomCenter   : if mirror then Result := eAutoPos_CenterRight else Result := eAutoPos_CenterLeft;
                     eAutoPos_TopRight       : if mirror then Result := eAutoPos_TopRight else Result := eAutoPos_TopLeft;
                     eAutoPos_CenterRight    : Result := eAutoPos_TopCenter;
                     eAutoPos_BottomRight    : if mirror then Result := eAutoPos_TopLeft else Result := eAutoPos_TopRight;
@@ -167,6 +168,7 @@ var
     tc_AutoPos              : TTextAutoposition; // Current AP setting
     DesignatorXmove         : Integer;           // Distance to move
     TempPresetList          : TStringList;
+    RotatedAutoPos          : Boolean;
 
 begin
     // set version label
@@ -233,10 +235,17 @@ begin
             // Get the designator handle
             Designator := Component.Name;
 
+            // Autoposition works differently for rotated text
+            if ( Round(Designator.GetState_Rotation) = 90 ) or ( Round(Designator.GetState_Rotation) = 270 ) then RotatedAutoPos := True else RotatedAutoPos := False;
+
             // notify that the pcb object is going to be modified
             // PCBServer.SendMessageToRobots(Designator.I_ObjectAddress, c_Broadcast, PCBM_BeginModify, c_NoEventData);
             Component.Name.BeginModify;
 
+            // Set text justification according to autoposition setting
+            Designator.TTFInvertedTextJustify := TransformAutoPos(Designator, tc_AutoPos);
+
+            // Move designators, accounting for rotation and autoposition settings
             case Designator.GetState_Mirror of
                 True : // If designator is mirrored, we will assume that X-axis movement should be reversed
                     // Move designator depending on current AP setting
@@ -244,45 +253,41 @@ begin
                         eAutoPos_Manual :;
                         eAutoPos_TopLeft :
                             begin
-                                Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation - DesignatorXmove);
-                                Designator.TTFInvertedTextJustify := TransformAutoPos(Designator, eAutoPos_BottomLeft);
+                                if RotatedAutoPos then Designator.MoveToXY(Designator.Xlocation - DesignatorXmove, Designator.Ylocation)
+                                    else Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation - DesignatorXmove);
                             end;
                         eAutoPos_CenterLeft :
                             begin
                                 Designator.MoveToXY(Designator.Xlocation - DesignatorXmove, Designator.Ylocation);
-                                Designator.TTFInvertedTextJustify := TransformAutoPos(Designator, eAutoPos_CenterLeft);
                             end;
                         eAutoPos_BottomLeft :
                             begin
-                                Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation + DesignatorXmove);
-                                Designator.TTFInvertedTextJustify := TransformAutoPos(Designator, eAutoPos_TopLeft);
+                                if RotatedAutoPos then Designator.MoveToXY(Designator.Xlocation - DesignatorXmove, Designator.Ylocation)
+                                    else Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation + DesignatorXmove);
                             end;
                         eAutoPos_TopCenter :
                             begin
                                 Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation - DesignatorXmove);
-                                Designator.TTFInvertedTextJustify := TransformAutoPos(Designator, eAutoPos_BottomCenter);
                             end;
                         eAutoPos_BottomCenter :
                             begin
                                 Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation + DesignatorXmove);
-                                Designator.TTFInvertedTextJustify := TransformAutoPos(Designator, eAutoPos_TopCenter);
                             end;
                         eAutoPos_TopRight :
                             begin
-                                Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation - DesignatorXmove);
-                                Designator.TTFInvertedTextJustify := TransformAutoPos(Designator, eAutoPos_BottomRight);
+                                if RotatedAutoPos then Designator.MoveToXY(Designator.Xlocation + DesignatorXmove, Designator.Ylocation)
+                                    else Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation - DesignatorXmove);
                             end;
                         eAutoPos_CenterRight :
                             begin
                                 Designator.MoveToXY(Designator.Xlocation + DesignatorXmove, Designator.Ylocation);
-                                Designator.TTFInvertedTextJustify := TransformAutoPos(Designator, eAutoPos_CenterRight);
                             end;
                         eAutoPos_BottomRight :
                             begin
-                                Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation + DesignatorXmove);
-                                Designator.TTFInvertedTextJustify := TransformAutoPos(Designator, eAutoPos_TopRight);
+                                if RotatedAutoPos then Designator.MoveToXY(Designator.Xlocation + DesignatorXmove, Designator.Ylocation)
+                                    else Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation + DesignatorXmove);
                             end;
-                        eAutoPos_CenterCenter : Designator.TTFInvertedTextJustify := TransformAutoPos(Designator, eAutoPos_CenterCenter);
+                        eAutoPos_CenterCenter :;
                     end; { case tc_AutoPos }
                 False :
                     // Move designator depending on current AP setting
@@ -290,45 +295,41 @@ begin
                         eAutoPos_Manual :;
                         eAutoPos_TopLeft :
                             begin
-                                Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation - DesignatorXmove);
-                                Designator.TTFInvertedTextJustify := TransformAutoPos(Designator, eAutoPos_BottomRight);
+                                if RotatedAutoPos then Designator.MoveToXY(Designator.Xlocation - DesignatorXmove, Designator.Ylocation)
+                                    else Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation - DesignatorXmove);
                             end;
                         eAutoPos_CenterLeft :
                             begin
-                                Designator.MoveToXY(Designator.Xlocation + DesignatorXmove, Designator.Ylocation);
-                                Designator.TTFInvertedTextJustify := TransformAutoPos(Designator, eAutoPos_CenterRight);
+                                Designator.MoveToXY(Designator.Xlocation - DesignatorXmove, Designator.Ylocation);
                             end;
                         eAutoPos_BottomLeft :
                             begin
-                                Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation + DesignatorXmove);
-                                Designator.TTFInvertedTextJustify := TransformAutoPos(Designator, eAutoPos_TopRight);
+                                if RotatedAutoPos then Designator.MoveToXY(Designator.Xlocation - DesignatorXmove, Designator.Ylocation)
+                                    else Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation + DesignatorXmove);
                             end;
                         eAutoPos_TopCenter :
                             begin
                                 Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation - DesignatorXmove);
-                                Designator.TTFInvertedTextJustify := TransformAutoPos(Designator, eAutoPos_BottomCenter);
                             end;
                         eAutoPos_BottomCenter :
                             begin
                                 Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation + DesignatorXmove);
-                                Designator.TTFInvertedTextJustify := TransformAutoPos(Designator, eAutoPos_TopCenter);
                             end;
                         eAutoPos_TopRight :
                             begin
-                                Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation - DesignatorXmove);
-                                Designator.TTFInvertedTextJustify := TransformAutoPos(Designator, eAutoPos_BottomLeft);
+                                if RotatedAutoPos then Designator.MoveToXY(Designator.Xlocation + DesignatorXmove, Designator.Ylocation)
+                                    else Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation - DesignatorXmove);
                             end;
                         eAutoPos_CenterRight :
                             begin
-                                Designator.MoveToXY(Designator.Xlocation - DesignatorXmove, Designator.Ylocation);
-                                Designator.TTFInvertedTextJustify := TransformAutoPos(Designator, eAutoPos_CenterLeft);
+                                Designator.MoveToXY(Designator.Xlocation + DesignatorXmove, Designator.Ylocation);
                             end;
                         eAutoPos_BottomRight :
                             begin
-                                Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation + DesignatorXmove);
-                                Designator.TTFInvertedTextJustify := TransformAutoPos(Designator, eAutoPos_TopLeft);
+                                if RotatedAutoPos then Designator.MoveToXY(Designator.Xlocation + DesignatorXmove, Designator.Ylocation)
+                                    else Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation + DesignatorXmove);
                             end;
-                        eAutoPos_CenterCenter : Designator.TTFInvertedTextJustify := TransformAutoPos(Designator, eAutoPos_CenterCenter);
+                        eAutoPos_CenterCenter :;
                     end; { case tc_AutoPos }
             end; { case Designator.GetState_Mirror }
 
