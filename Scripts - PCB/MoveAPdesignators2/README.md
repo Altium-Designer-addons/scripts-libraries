@@ -15,10 +15,12 @@ _Step 1_: [DOWNLOAD](https://minhaskamal.github.io/DownGit/#/home?url=https://gi
 _Step 2_: integrate the script into Altium Designer and execute it.\
 If you are a newcomer to Altium scripts, [please read the "how to" wiki page](https://github.com/Altium-Designer-addons/scripts-libraries/wiki/HowTo_execute_scripts).
 
+## Known Issues
+- Text justification doesn't work as expected for certain combinations of text rotation and autoposition, because autoposition behaves differently for 90/270 rotations with the corner alignments.
+
 # Changelog
 2022-11-28 - Ver 2.0 : Initial release based on MoveAPdesignators scrip Ver 1.2; uses new string justification settings and fixed bug with designator not actually moving coords; added presets and restore last used values\
 2022-11-28 - Ver 2.01 : fixed justification for rotated strings (approximated to nearest 90° rotation)
-
 
 ## Credits
   - Credit to Mattias Ericson & Tony Chilco for the MoveAPdesignators script I started from
