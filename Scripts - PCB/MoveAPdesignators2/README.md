@@ -21,7 +21,8 @@ If you are a newcomer to Altium scripts, [please read the "how to" wiki page](ht
 # Changelog
 2022-11-28 - Ver 2.0 : Initial release based on MoveAPdesignators scrip Ver 1.2; uses new string justification settings and fixed bug with designator not actually moving coords; added presets and restore last used values\
 2022-11-28 - Ver 2.01 : fixed justification for rotated strings (approximated to nearest 90° rotation)\
-2022-11-28 - Ver 2.02 : *actually* fixed justification for rotated strings (I think)
+2022-11-28 - Ver 2.02 : *actually* fixed justification for rotated strings (I think)\
+2022-11-28 - Ver 2.03 : ***actually*** *actually* fixed justification and movement for rotated strings (my test PcbDoc was glitched where bottom side designators were mirrored in place or something)
 
 ## Credits
   - Credit to Mattias Ericson & Tony Chilco for the MoveAPdesignators script I started from
