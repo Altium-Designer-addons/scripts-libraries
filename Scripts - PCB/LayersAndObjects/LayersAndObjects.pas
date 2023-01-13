@@ -41,6 +41,9 @@
 {..............................................................................}
 { Ver 2.6 Modified to Work with AD14
 { Randy Clemmons
+{
+{ v2.7 added board database internal layer names
+{ Ryan Rutledge
 {..............................................................................}
 
 
@@ -56,6 +59,9 @@ var
 
    S, VersionStr : String;
    MajorADVersion : Integer;
+
+const
+   ScriptVersion = '2.7';
 
 
 // Altium Ver Code - Mattias Ericson
@@ -456,21 +462,22 @@ begin
          GetCB := Int2CBCopper(i);
          GetCB.Visible := True;
          GetCB.Enabled := True;
-         GetCB.Caption := LayerObj.Name;
+         GetCB.Caption := LayerObj.Name + ' (' + cLayerStrings[LayerObj.LayerID] + ')';
+         GetCB.Checked := LayerObj.IsDisplayed[Board];
+         
          if (Board.CurrentLayer = LayerObj.LayerID) then
          begin
             if (CurrentLayerCB.Caption <> GetCB.Caption) then
             begin
                SetBoldedCB(nil);
                CurrentLayerCB := GetCB;
-               GetCB.Width := Image1.Canvas.TextWidth(LayerObj.Name) + 16;
+               GetCB.Width := Image1.Canvas.TextWidth(GetCB.Caption) + 16;
                CurrentLayerCB.Font.Style := MkSet(fsBold);
             end;
             FoundCurrentLayer := True;
          end
          else
-            GetCB.Width := FormLayersPanel.Canvas.TextWidth(LayerObj.Name) + 16;
-         GetCB.Checked := LayerObj.IsDisplayed[Board];
+            GetCB.Width := FormLayersPanel.Canvas.TextWidth(GetCB.Caption) + 16;
 
          Shape := Int2ShapeCopper(i);
          Shape.Visible := True;
@@ -559,22 +566,23 @@ begin
             GetCB.Visible := True;
             if MechLayer.LinkToSheet = False then
                GetCB.Enabled := True;
+               
+            GetCB.Caption := MechLayer.Name + ' (' + cLayerStrings[MechLayer.LayerID] + ')';
+            GetCB.Checked := MechLayer.IsDisplayed[Board];
+            
             if (Board.CurrentLayer = MechLayer.LayerID) then
             begin
                if (CurrentLayerCB.Name <> GetCB.Name) then
                begin
                   SetBoldedCB(nil);
                   CurrentLayerCB := GetCB;
-                  GetCB.Width := Image1.Canvas.TextWidth(MechLayer.Name) + 16;
+                  GetCB.Width := Image1.Canvas.TextWidth(GetCB.Caption) + 16;
                   CurrentLayerCB.Font.Style := MkSet(fsBold);
                end;
                FoundCurrentLayer := True;
             end
             else
-               GetCB.Width := FormLayersPanel.Canvas.TextWidth(MechLayer.Name) + 16;
-            GetCb.Caption := MechLayer.Name;
-            GetCB.Checked := MechLayer.IsDisplayed[Board];
-
+               GetCB.Width := FormLayersPanel.Canvas.TextWidth(GetCB.Caption) + 16;
 
             Shape := Int2ShapeMech(j);
             Shape.Visible := True;
@@ -809,6 +817,9 @@ end;
 
 procedure TFormLayersPanel.FormLayersPanelShow(Sender: TObject);
 begin
+   // set version label
+   LabelVersion.Caption := 'v' + ScriptVersion;
+        
    RefreshPanel('');
 end;
 
@@ -3648,4 +3659,12 @@ begin
 
    PanelRefreshControl := False;
    FormLayersPanel.Activate;
+end;
+
+
+procedure About;
+begin
+    ShowMessage('LayersAndObjects Script v' + ScriptVersion + sLineBreak +
+        'Updated versions may be found here:' + sLineBreak +
+        'https://github.com/Altium-Designer-addons/scripts-libraries');
 end;

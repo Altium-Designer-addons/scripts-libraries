@@ -16,11 +16,19 @@ Script was updated by allowing user to modify objects view in Final, Draft and h
 
 Also, Script was modified to enable it to work when documents are switched, just like a panel works. So you can on-the-fly change between PCB documents, or other documents too (other documents will have empty panel, but problems should not appear) and panel will refresh.
 
+Finally, Script UI will now show board database internal layer names (MidLayer2, Mechanical13, etc)
+
+## How to install and use
+_Step 1_: [DOWNLOAD](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Scripts%20-%20PCB/LayersAndObjects) script
+
+_Step 2_: integrate the script into Altium Designer and execute it.\
+If you are a newcomer to Altium scripts, [please read the "how to" wiki page](https://github.com/Altium-Designer-addons/scripts-libraries/wiki/HowTo_execute_scripts).
 
 ## Changelog
 2011/12/14: Save position to ini file (Tony Chilco)\
 2011/12/14: Tab object resize with main dialogue (Tony Chilco)\
-Ver 2.6: Modified to Work with AD14 (Randy Clemmons)
+Ver 2.6: Modified to Work with AD14 (Randy Clemmons)\
+2022/11/23: v2.7 - added internal database layer names to dialogue; added version to UI (Ryan Rutledge)
 
 
 ## Credits
@@ -28,4 +36,5 @@ Created by: Petar Perisin
 
 Improved by:\
 Tony Chilco\
-Randy Clemmons
+Randy Clemmons\
+Ryan Rutledge

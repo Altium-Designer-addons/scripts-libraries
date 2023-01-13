@@ -20,6 +20,13 @@ object FormLayersPanel: TFormLayersPanel
   OnShow = FormLayersPanelShow
   PixelsPerInch = 96
   TextHeight = 13
+  object LabelVersion: TLabel
+    Left = 4
+    Top = 1
+    Width = 54
+    Height = 13
+    Caption = 'version X.X'
+  end
   object GroupBoxCopper: TGroupBox
     Left = 16
     Top = 16
