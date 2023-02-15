@@ -48,7 +48,10 @@ object TweakDesForm: TTweakDesForm
     Top = 30
     Width = 64
     Height = 21
+    Hint = 'Negative values move away'
     Alignment = taCenter
+    ParentShowHint = False
+    ShowHint = True
     TabOrder = 2
     Text = '0.5'
     OnChange = EditDistanceChange
