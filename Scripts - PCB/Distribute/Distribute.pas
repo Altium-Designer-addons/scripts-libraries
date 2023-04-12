@@ -569,6 +569,25 @@ begin
 end;
 
 
+// Gets width-aware edge intercept
+function GetEdgeIntercept(const ThisTrackIndex : Integer, const coef : Double, const Reverse : Boolean, out LastIntercept : TCoord);
+var
+    k1                      : Double;   // k1 is throwaway
+    c1                      : TCoord;
+    IsVert1                 : Boolean;  // isVert1 is throwaway
+    x11, x12, y11, y12      : TCoord;   // throwaway
+    Prim1                   : IPCB_Primitive;
+
+begin
+    Prim1 := SortedTracks.getObject(ThisTrackIndex);
+    SetupDataFromTrack(Prim1, IsVert1, x11, y11, x12, y12, k1, c1);
+
+    if Reverse then LastIntercept := c1 - (Prim1.Width / (2 * coef)) // subtract half of current track width for next pass (intercept at moved track edge)
+    else LastIntercept            := c1 + (Prim1.Width / (2 * coef)); // add half of current track width for next pass (intercept at moved track edge)
+
+end;
+
+
 function DistributeForward(startc : TCoord, coef : Double, stepc : TCoord);
 var
     i, j                           : Integer;
@@ -729,14 +748,15 @@ begin
         if i = TrimTrackIndex then
         begin
             TargetIntercept := SplitIntercept;
+            GetEdgeIntercept(i, coef, True, LastIntercept);
         end
         else
         begin // calculate target intercepts
             if RadioButtonCenters.Checked or RadioButtonCentersVal.Checked then TargetIntercept := SplitIntercept - j * stepc // if using centers, use step size directly
             else TargetIntercept := LastIntercept - stepc - Prim1.Width / (2 * coef); // if using clearances, use previous track intercept plus step size plus half of this track's width
-        end;
 
-        MoveTrackToIntercept(i, i + 1, i + 2, TrimTrackIndex, TargetSlope, TargetIntercept, coef, True, LastIntercept);
+            MoveTrackToIntercept(i, i + 1, i + 2, TrimTrackIndex, TargetSlope, TargetIntercept, coef, True, LastIntercept);
+        end;
 
         i := i - 3; // jump back to the preceding track in the sorted list
         inc(j); // increment track step counter
