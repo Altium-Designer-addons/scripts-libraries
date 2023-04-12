@@ -67,4 +67,4 @@ Tracks with a slope greater than 20 (90° > angle > ~87.137°) will be coerced t
 
 2022-11-18 by Ryan Rutledge : v1.44 - fixed bug where near-vertical tracks wouldn't trim properly if ends were normalized; fixed overflow error for steep angles; fixed invalid distribution if tracks are near vertical and are coerced to vertical
 
-2023-04-11 by Ryan Rutledge : v1.45 - added ability for _CEN_ distribution direction to center track(s) between vias if exactly 2 vias are selected (takes priority over track-derived centerline)
+2023-04-11 by Ryan Rutledge : v1.45 - added ability for _CEN_ distribution direction to center track(s) between vias if exactly 2 vias are selected (takes priority over track-derived centerline); fixed redundant move in _CEN_ distribute that could cause coerced middle track to be set to zero length
