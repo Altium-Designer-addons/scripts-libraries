@@ -1,6 +1,6 @@
-// Created by:  Matija Markovic, Petar Perisin
-// Edited by:   Ryan Rutledge
-// For documentation see README.md
+{ Created by:  Matija Markovic, Petar Perisin }
+{ Edited by:   Ryan Rutledge }
+{ For documentation see README.md }
 
 var
     Board             : IPCB_Board;
@@ -17,10 +17,10 @@ var
 
 const
     NumPresets = 15; // no longer just for presets, also used to save previous state
-    ScriptVersion = '1.45';
+    ScriptVersion = '1.46';
 
 
-// critical function to get normalized line properties. k is slope, c is intercept
+{ critical function to get normalized line properties. k is slope, c is intercept. }
 procedure SetupDataFromTrack(var Prim1 : IPCB_Track, out IsVertical : Boolean, out X1 : TCoord, out Y1 : TCoord, out X2 : TCoord : out Y2 : TCoord, out k : Double, out c : TCoord);
 var
     a, b : Integer;
@@ -110,7 +110,7 @@ begin
 end;
 
 
-// Checks if PrimVia and PrimTrack are on the same layer and provides via coordinates, size, and projected line parallel to provided track, and returns True if successful.
+{ Checks if PrimVia and PrimTrack are on the same layer and provides via coordinates, size, and projected line parallel to provided track, and returns True if successful. }
 procedure SetupDataFromVia(var PrimVia : IPCB_Via, var PrimTrack : IPCB_Track, out k : Double, out c : TCoord, out IsIntVert : Boolean, out X : TCoord, out Y : TCoord, out size : TCoord);
 var
     ViaLayer                : TLayer;
@@ -144,7 +144,7 @@ begin
 end;
 
 
-// debugging function
+{ debugging function }
 procedure AddToDebugListBefore(var Prim : IPCB_Track, TargetSlope : Double, TargetIntercept : TCoord);
 var
     X1, Y1, X2, Y2  : TCoord;
@@ -174,7 +174,7 @@ begin
 end;
 
 
-// debugging function
+{ debugging function }
 procedure AddToDebugListAfter(var Prim : IPCB_Track, LastIntercept : TCoord);
 var
     X1, Y1, X2, Y2  : TCoord;
@@ -205,7 +205,7 @@ begin
 end;
 
 
-// debugging function
+{ debugging function }
 procedure AddToDebugListFirstVia(var Prim1 : IPCB_Via, var Prim2 : IPCB_Track);
 var
     X1, Y1          : TCoord;
@@ -233,7 +233,7 @@ begin
 end;
 
 
-// debugging function
+{ debugging function }
 procedure AddToDebugListSecondVia(var Prim1 : IPCB_Via, var Prim2 : IPCB_Track, const viaminc : TCoord, const viamaxc : TCoord, const midc : TCoord);
 var
     X1, Y1, X2, Y2  : TCoord;
@@ -271,7 +271,7 @@ begin
 end;
 
 
-// function to create slope and intercept for virtual line perpendicular to a point (k1,c1,IsPrim1Vert are for ordinate line; k2,c2,IsPrim2Vert are for perpendicular line; X,Y are a point that the perpendicular line passes through)
+{ function to create slope and intercept for virtual line perpendicular to a point (k1,c1,IsPrim1Vert are for ordinate line; k2,c2,IsPrim2Vert are for perpendicular line; X,Y are a point that the perpendicular line passes through)}
 function GetPerpendicularLine(k1 : Double, c1 : TCoord, IsPrim1Vert : Boolean, out k2 : Double, out c2 : TCoord, out IsPrim2Vert : Boolean, X : TCoord, Y : TCoord) : Boolean;
 begin
     Result := True;
@@ -296,7 +296,7 @@ begin
 end;
 
 
-// function to create slope and intercept for virtual line parallel to an ordinate line and passing through a point (k1,c1,IsPrim1Vert are for ordinate line)
+{function to create slope and intercept for virtual line parallel to an ordinate line and passing through a point (k1,c1,IsPrim1Vert are for ordinate line)}
 function GetParallelLine(k1 : Double; c1 : TCoord; IsPrim1Vert : Boolean; out k2 : Double; out c2 : TCoord; out IsPrim2Vert : Boolean; const X : TCoord; const Y : TCoord) : Boolean;
 begin
     Result := True;
@@ -322,7 +322,7 @@ begin
 end;
 
 
-// function to test if two tracks have an intercept point (tracks are not parallel)
+{ function to test if two tracks have an intercept point (tracks are not parallel) }
 function GetIntersection(k1 : Double, c1 : TCoord, IsPrim1Vert : Boolean, k2 : Double, c2 : TCoord, IsPrim2Vert : Boolean, out X : TCoord, out Y : TCoord) : Boolean;
 begin
     Result := True;
@@ -352,14 +352,14 @@ begin
 end;
 
 
-// Function that calculates point to point distance
+{ calculates point to point distance }
 function PointToPointDistance(X1, Y1, X2, Y2) : Double;
 begin
     Result := sqrt(sqr(X2 - X1) + sqr(Y2 - Y1));
 end;
 
 
-// function to check if there is another track connected to the given endpoint of this track, and which of its ends is connected
+{ checks if there is another track connected to the given endpoint of this track, and which of its ends is connected }
 function GetAnotherTrackInPoint(Prim1 : IPCB_Track, X : TCoord, Y : TCoord, out OnFirstPoint : Boolean) : IPCB_Primitive;
 var
     SIter : IPCB_SpatialIterator;
@@ -401,7 +401,7 @@ begin
 end;
 
 
-// bundles up track move functionality that is common among all modes
+{ bundles up track move functionality that is common among all modes }
 function MoveTrackToIntercept(ThisTrackIndex : Integer, ConnectedTrackOneIndex : Integer, ConnectedTrackTwoIndex : Integer, TrimTrackIndex : Integer, TargetSlope : Double,
     TargetIntercept : TCoord, coef : Double, Reverse : Boolean, out LastIntercept : TCoord);
 var
@@ -569,7 +569,7 @@ begin
 end;
 
 
-// Gets width-aware edge intercept
+{ Gets width-aware edge intercept }
 function GetEdgeIntercept(const ThisTrackIndex : Integer, const coef : Double, const Reverse : Boolean, out LastIntercept : TCoord);
 var
     k1                      : Double;   // k1 is throwaway
@@ -763,7 +763,7 @@ begin
     end;
 end;
 
-
+{ InitialCheck procedure }
 procedure InitialCheck(var status : Integer);
 var
     i                  : Integer;
@@ -856,7 +856,7 @@ begin
 end;
 
 
-// function to populate a TStringList with preset values
+{ function to populate a TStringList with preset values }
 procedure BuildPresetList(var TempPresetList : TStringList);
 begin
     TempPresetList.Clear;
@@ -878,7 +878,7 @@ begin
 end;
 
 
-// function to load preset list from file
+{ function to load preset list from file }
 procedure LoadPresetListFromFile(const dummy : Integer);
 begin
     try
@@ -1020,7 +1020,7 @@ begin
 end;
 
 
-// Function to compile sorted list of vias. Note that via count checks are assumed to have been done by InitialCheck procedure
+{ Function to compile sorted list of vias. Note that via count checks are assumed to have been done by InitialCheck procedure }
 function CompileSortedVias(const dummy : Integer) : Boolean;
 var
     i                           : Integer;
@@ -1069,7 +1069,57 @@ begin
 end;
 
 
-// main procedure to distribute tracks
+{ Function to make sure vias exist on same layer as all tracks }
+function ViasExistOnTrackLayer(const dummy : Integer) : Boolean;
+var
+    i                           : Integer;
+    TempString                  : string;
+    TrackLayer                  : TLayer;
+    PrimTrack                   : IPCB_Primitive;
+    PrimVia                     : IPCB_Primitive;
+    IsIntVert                   : Boolean;
+    TracksOnOneLayer            : Boolean;
+    X, Y                        : TCoord;
+    size                        : TCoord;
+    c1                          : TCoord;
+    k1                          : Double;
+
+begin
+    Result := False;
+    TracksOnOneLayer := True;
+
+    i := 0;
+    while i < SortedTracks.Count do
+    begin
+        PrimTrack :=  SortedTracks.getObject(i);
+
+        if i = 0 then
+        begin
+            TrackLayer := PrimTrack.Layer;
+        end;
+
+        if (PrimTrack.Layer <> TrackLayer) then
+        begin
+            TracksOnOneLayer := False;
+            Showmessage('Tracks must all be on same layer to use via centering. Falling back to track center.');
+            exit;
+        end;
+
+        i := i + 3; // advance to next track in sorted list
+    end;
+
+    if (TracksOnOneLayer) and (SortedVias.getObject(0).IntersectLayer(TrackLayer)) and (SortedVias.getObject(1).IntersectLayer(TrackLayer)) then
+    begin
+        Result := True;
+    end
+    else
+    begin
+        Showmessage('One or both of the selected vias do not exist on the tracks'' layer.');
+    end;
+end;
+
+
+{ main procedure to distribute tracks }
 procedure calculate(LaunchedFromGUI : Boolean);
 var
     i, j                                                    : Integer;
@@ -1147,7 +1197,7 @@ begin
         // KEY BEHAVIOR: in "CEN/VIA" distribute direction mode, via midpoint will take priority. Note that two stacked vias can be used to force a trajectory.
         // compile list of sorted vias (MUST come after list of sorted tracks) and calculate midpoint if successful
         // calculate midpoint accounting for via size so that differently-sized vias don't bias the result
-        if CompileSortedVias(0) then
+        if CompileSortedVias(0) and ViasExistOnTrackLayer(0) then
         begin
             Prim2 := SortedTracks.getObject(0);         // get first track from the SortedTracks list
 
@@ -1271,7 +1321,7 @@ begin
             if (ButtonUnits.Caption = 'mm') then stepc := mmsToCoord(StrToFloat(TempString)) / (coef)
             else stepc                                 := milsToCoord(StrToFloat(TempString)) / (coef);
 
-            // CALL FUNCTION to actually move the tracks
+            { CALL FUNCTION to actually move the tracks }
             case RadioDirections.ItemIndex of
                 0 : DistributeForward(minc, coef, stepc);
                 1 : DistributeFromCenter(midc, coef, stepc);
@@ -1326,7 +1376,7 @@ begin
 end;
 
 
-// function to enable or disable controls related to by-value distribute mode
+{ function to enable or disable controls related to by-value distribute mode }
 procedure EnableByValControls(NewEnable : Boolean);
 begin
     ButtonPreset1.Enabled   := NewEnable;
