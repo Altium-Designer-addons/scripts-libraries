@@ -1361,8 +1361,12 @@ begin
         // cleanup
         SortedTracks.Free;
         SortedVias.Free;
-        TempPresetList.Free;
-        PresetList.Free;
+
+        if LaunchedFromGUI then 
+        begin
+            TempPresetList.Free;
+            PresetList.Free;
+        end;
 
         if DebuggingEnabled then
         begin
