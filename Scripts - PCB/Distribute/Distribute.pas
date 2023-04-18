@@ -17,7 +17,7 @@ var
 
 const
     NumPresets = 15; // no longer just for presets, also used to save previous state
-    ScriptVersion = '1.46';
+    ScriptVersion = '1.47';
 
 
 { critical function to get normalized line properties. k is slope, c is intercept. }
