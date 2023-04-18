@@ -71,4 +71,4 @@ Tracks with a slope greater than 20 (90° > angle > ~87.137°) will be coerced t
 
 2023-04-12 by Ryan Rutledge : v1.46 - made via centering check that tracks are all on the same layer and that both vias exist on that layer.
 
-2023-04-17 by Ryan Rutlege : v1.47 - fixed FastDistribute... functions throwing error when trying to free up TStringList that are only created when running from GUI.
+2023-04-17 by Ryan Rutledge : v1.47 - fixed FastDistribute... functions throwing error when trying to free up TStringList that are only created when running from GUI.
