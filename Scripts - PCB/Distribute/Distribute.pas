@@ -17,7 +17,7 @@ var
 
 const
     NumPresets = 15; // no longer just for presets, also used to save previous state
-    ScriptVersion = '1.47';
+    ScriptVersion = '1.48';
 
 
 { critical function to get normalized line properties. k is slope, c is intercept. }
@@ -168,7 +168,7 @@ begin
         DebugList.Append(TempDebugList.CommaText);
 
     finally
-        TempDebugList.Free;
+        if Assigned(TempDebugList) then TempDebugList.Free;
 
     end;
 end;
@@ -199,7 +199,7 @@ begin
         DebugList.Append(TempDebugList.CommaText);
 
     finally
-        TempDebugList.Free;
+        if Assigned(TempDebugList) then TempDebugList.Free;
 
     end;
 end;
@@ -227,7 +227,7 @@ begin
         ViaDebugList.Append(TempDebugList.CommaText);
 
     finally
-        TempDebugList.Free;
+        if Assigned(TempDebugList) then TempDebugList.Free;
 
     end;
 end;
@@ -265,7 +265,7 @@ begin
         ViaDebugList.Append(TempDebugList.CommaText);
 
     finally
-        TempDebugList.Free;
+        if Assigned(TempDebugList) then TempDebugList.Free;
 
     end;
 end;
@@ -930,7 +930,7 @@ begin
 
     except
         begin
-            PresetList.Free;
+            if Assigned(PresetList) then PresetList.Free;
         end;
     end;
 end;
@@ -1359,20 +1359,12 @@ begin
         PCBServer.PostProcess;
 
         // cleanup
-        SortedTracks.Free;
-        SortedVias.Free;
-
-        if LaunchedFromGUI then 
-        begin
-            TempPresetList.Free;
-            PresetList.Free;
-        end;
-
-        if DebuggingEnabled then
-        begin
-            DebugList.Free;
-            ViaDebugList.Free;
-        end;
+        if Assigned(SortedTracks) then SortedTracks.Free;
+        if Assigned(SortedVias) then SortedVias.Free;
+        if Assigned(TempPresetList) then TempPresetList.Free;
+        if Assigned(PresetList) then PresetList.Free;
+        if Assigned(DebugList) then DebugList.Free;
+        if Assigned(ViaDebugList) then ViaDebugList.Free;
 
         close;
 
@@ -1479,7 +1471,7 @@ end;
 
 procedure TFormDistribute.ButtonCancelClick(Sender : TObject);
 begin
-    PresetList.Free; // created when GUI launches and normally freed when calculate() runs
+    if Assigned(PresetList) then PresetList.Free; // created when GUI launches and normally freed when calculate() runs
     close;
 end;
 
