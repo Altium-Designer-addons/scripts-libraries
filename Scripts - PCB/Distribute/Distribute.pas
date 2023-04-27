@@ -17,7 +17,7 @@ var
 
 const
     NumPresets = 15; // no longer just for presets, also used to save previous state
-    ScriptVersion = '1.48';
+    ScriptVersion = '1.49';
 
 
 { critical function to get normalized line properties. k is slope, c is intercept. }
@@ -65,6 +65,7 @@ begin
         begin // if slope k > 20, consider track as vertical (this is necessary to prevent Y-intercept number overflow)
             X1 := Prim1.X1;
             X2 := Prim1.X2;
+            k := 0;
 
             // determine which X coordinate rounds best to coords?
             repeat
@@ -818,7 +819,22 @@ begin
     // make sure there are enough objects selected to operate upon
     if ((ViaCount = 2) and (Board.SelectecObjectCount < 3)) or ((ViaCount <> 2) and (Board.SelectecObjectCount < 2)) then
     begin
-        Showmessage('Select at least 2 tracks or a pair of vias and a track that belong to nets');
+        if DebuggingEnabled and (ViaCount <> 2) then
+        begin
+            Showmessage('Select at least 2 tracks or ONE pair of vias and a track that all belong to nets.' + sLineBreak + sLineBreak +
+                        '-- Debugging Info --' + sLineBreak +
+                        'ViaCount: ' + IntToStr(ViaCount) + sLineBreak +
+                        'Selected Track Count: ' + IntToStr(Board.SelectecObjectCount));
+        end
+        else if DebuggingEnabled then
+        begin
+            Showmessage('Select at least 2 tracks or ONE pair of vias and a track that all belong to nets.' + sLineBreak + sLineBreak +
+                        '-- Debugging Info --' + sLineBreak +
+                        'ViaCount: ' + IntToStr(ViaCount) + sLineBreak +
+                        'Selected Object Count: ' + IntToStr(Board.SelectecObjectCount));
+        end
+        else Showmessage('Select at least 2 tracks or ONE pair of vias and a track that all belong to nets.');
+
         status := 1;
         exit;
     end;
@@ -846,7 +862,18 @@ begin
 
             if ((IsVert1 <> IsVert2) or (Abs(k1 - k2) > 0.01)) then
             begin
-                Showmessage('Selected tracks have to be parallel.');
+                if DebuggingEnabled then
+                begin
+                    Showmessage('Selected tracks have to be parallel.' + sLineBreak + sLineBreak +
+                                '-- Debugging Info --' + sLineBreak +
+                                'IsVert1: ' + BoolToStr(IsVert1, True) + sLineBreak +
+                                'IsVert2: ' + BoolToStr(IsVert2, True) + sLineBreak +
+                                'k1: ' + FloatToStr(k1) + sLineBreak +
+                                'k2: ' + FloatToStr(k2) + sLineBreak +
+                                'Abs(k1 - k2): ' + FloatToStr(Abs(k1 - k2)));
+                end
+                else Showmessage('Selected tracks have to be parallel.');
+
                 status := 1;
                 exit;
             end;
@@ -1546,10 +1573,10 @@ procedure Start;
 var
     status : Integer;
 begin
+    DebuggingEnabled := False;
     InitialCheck(status);
     if status = 0 then
     begin
-        DebuggingEnabled := False;
         FormDistribute.ShowModal;
     end
     else exit;
@@ -1560,10 +1587,10 @@ procedure StartWithDebug;
 var
     status : Integer;
 begin
+    DebuggingEnabled := True;
     InitialCheck(status);
     if status = 0 then
     begin
-        DebuggingEnabled := True;
         FormDistribute.ShowModal;
     end
     else exit;
