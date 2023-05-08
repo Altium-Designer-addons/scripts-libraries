@@ -12,7 +12,7 @@ var
 const
     UsePresets    = True;
     NumPresets    = 12; // not just for presets, also used to save previous state
-    ScriptVersion = '2.03';
+    ScriptVersion = '2.04';
 
 
 { function to populate a TStringList with preset values }
@@ -98,56 +98,56 @@ begin
         0..45 :
             begin
                 case tc_AutoPos of
-                    eAutoPos_TopLeft        : if mirror then Result := eAutoPos_BottomRight else Result := eAutoPos_BottomLeft;
-                    eAutoPos_CenterLeft     : if mirror then Result := eAutoPos_CenterLeft else Result := eAutoPos_CenterRight;
-                    eAutoPos_BottomLeft     : if mirror then Result := eAutoPos_TopRight else Result := eAutoPos_TopLeft;
+                    eAutoPos_TopLeft        : Result := eAutoPos_BottomLeft;
+                    eAutoPos_CenterLeft     : Result := eAutoPos_CenterRight;
+                    eAutoPos_BottomLeft     : Result := eAutoPos_TopLeft;
                     eAutoPos_TopCenter      : Result := eAutoPos_BottomCenter;
                     eAutoPos_BottomCenter   : Result := eAutoPos_TopCenter;
-                    eAutoPos_TopRight       : if mirror then Result := eAutoPos_BottomLeft else Result := eAutoPos_BottomRight;
-                    eAutoPos_CenterRight    : if mirror then Result := eAutoPos_CenterRight else Result := eAutoPos_CenterLeft;
-                    eAutoPos_BottomRight    : if mirror then Result := eAutoPos_TopLeft else Result := eAutoPos_TopRight;
+                    eAutoPos_TopRight       : Result := eAutoPos_BottomRight;
+                    eAutoPos_CenterRight    : Result := eAutoPos_CenterLeft;
+                    eAutoPos_BottomRight    : Result := eAutoPos_TopRight;
                     else                      Result := tc_AutoPos;
                 end; { case tc_AutoPos }
             end; { 0..45 }
         46..135 :
             begin
                 case tc_AutoPos of
-                    eAutoPos_TopLeft        : if mirror then Result := eAutoPos_BottomLeft else Result := eAutoPos_BottomRight;
-                    eAutoPos_CenterLeft     : Result := eAutoPos_BottomCenter;
-                    eAutoPos_BottomLeft     : if mirror then Result := eAutoPos_BottomRight else Result := eAutoPos_BottomLeft;
+                    eAutoPos_TopLeft        : if mirror then Result := eAutoPos_TopLeft else Result := eAutoPos_BottomRight;
+                    eAutoPos_CenterLeft     : if mirror then Result := eAutoPos_TopCenter else Result := eAutoPos_BottomCenter;
+                    eAutoPos_BottomLeft     : if mirror then Result := eAutoPos_TopRight else Result := eAutoPos_BottomLeft;
                     eAutoPos_TopCenter      : if mirror then Result := eAutoPos_CenterRight else Result := eAutoPos_CenterLeft;
                     eAutoPos_BottomCenter   : if mirror then Result := eAutoPos_CenterLeft else Result := eAutoPos_CenterRight;
-                    eAutoPos_TopRight       : if mirror then Result := eAutoPos_TopLeft else Result := eAutoPos_TopRight;
-                    eAutoPos_CenterRight    : Result := eAutoPos_TopCenter;
-                    eAutoPos_BottomRight    : if mirror then Result := eAutoPos_TopRight else Result := eAutoPos_TopLeft;
+                    eAutoPos_TopRight       : if mirror then Result := eAutoPos_BottomLeft else Result := eAutoPos_TopRight;
+                    eAutoPos_CenterRight    : Result := eAutoPos_BottomCenter;
+                    eAutoPos_BottomRight    : if mirror then Result := eAutoPos_BottomRight else Result := eAutoPos_TopLeft;
                     else                      Result := tc_AutoPos;
                 end; { case tc_AutoPos }
             end; { 46..135 }
         136..225 :
             begin
                 case tc_AutoPos of
-                    eAutoPos_TopLeft        : if mirror then Result := eAutoPos_TopLeft else Result := eAutoPos_TopRight;
-                    eAutoPos_CenterLeft     : if mirror then Result := eAutoPos_CenterRight else Result := eAutoPos_CenterLeft;
-                    eAutoPos_BottomLeft     : if mirror then Result := eAutoPos_BottomLeft else Result := eAutoPos_BottomRight;
+                    eAutoPos_TopLeft        : Result := eAutoPos_TopRight;
+                    eAutoPos_CenterLeft     : Result := eAutoPos_CenterLeft;
+                    eAutoPos_BottomLeft     : Result := eAutoPos_BottomRight;
                     eAutoPos_TopCenter      : Result := eAutoPos_TopCenter;
                     eAutoPos_BottomCenter   : Result := eAutoPos_BottomCenter;
-                    eAutoPos_TopRight       : if mirror then Result := eAutoPos_TopRight else Result := eAutoPos_TopLeft;
-                    eAutoPos_CenterRight    : if mirror then Result := eAutoPos_CenterLeft else Result := eAutoPos_CenterRight;
-                    eAutoPos_BottomRight    : if mirror then Result := eAutoPos_BottomRight else Result := eAutoPos_BottomLeft;
+                    eAutoPos_TopRight       : Result := eAutoPos_TopLeft;
+                    eAutoPos_CenterRight    : Result := eAutoPos_CenterRight;
+                    eAutoPos_BottomRight    : Result := eAutoPos_BottomLeft;
                     else                      Result := tc_AutoPos;
                 end; { case tc_AutoPos }
             end; { 136..225 }
         226..315 :
             begin
                 case tc_AutoPos of
-                    eAutoPos_TopLeft        : if mirror then Result := eAutoPos_TopRight else Result := eAutoPos_TopLeft;
-                    eAutoPos_CenterLeft     : Result := eAutoPos_TopCenter;
-                    eAutoPos_BottomLeft     : if mirror then Result := eAutoPos_TopLeft else Result := eAutoPos_TopRight;
+                    eAutoPos_TopLeft        : if mirror then Result := eAutoPos_BottomRight else Result := eAutoPos_TopLeft;
+                    eAutoPos_CenterLeft     : Result := eAutoPos_BottomCenter;
+                    eAutoPos_BottomLeft     : if mirror then Result := eAutoPos_BottomLeft else Result := eAutoPos_TopRight;
                     eAutoPos_TopCenter      : if mirror then Result := eAutoPos_CenterLeft else Result := eAutoPos_CenterRight;
                     eAutoPos_BottomCenter   : if mirror then Result := eAutoPos_CenterRight else Result := eAutoPos_CenterLeft;
-                    eAutoPos_TopRight       : if mirror then Result := eAutoPos_BottomRight else Result := eAutoPos_BottomLeft;
-                    eAutoPos_CenterRight    : Result := eAutoPos_BottomCenter;
-                    eAutoPos_BottomRight    : if mirror then Result := eAutoPos_BottomLeft else Result := eAutoPos_BottomRight;
+                    eAutoPos_TopRight       : if mirror then Result := eAutoPos_TopRight else Result := eAutoPos_BottomLeft;
+                    eAutoPos_CenterRight    : if mirror then Result := eAutoPos_TopCenter else Result := eAutoPos_BottomCenter;
+                    eAutoPos_BottomRight    : if mirror then Result := eAutoPos_TopLeft else Result := eAutoPos_BottomRight;
                     else                      Result := tc_AutoPos;
                 end; { case tc_AutoPos }
             end; { 226..315 }
@@ -253,16 +253,16 @@ begin
                         eAutoPos_Manual :;
                         eAutoPos_TopLeft :
                             begin
-                                if RotatedAutoPos then Designator.MoveToXY(Designator.Xlocation + DesignatorXmove, Designator.Ylocation)
+                                if RotatedAutoPos then Designator.MoveToXY(Designator.Xlocation - DesignatorXmove, Designator.Ylocation)
                                     else Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation - DesignatorXmove);
                             end;
                         eAutoPos_CenterLeft :
                             begin
-                                Designator.MoveToXY(Designator.Xlocation + DesignatorXmove, Designator.Ylocation);
+                                Designator.MoveToXY(Designator.Xlocation - DesignatorXmove, Designator.Ylocation);
                             end;
                         eAutoPos_BottomLeft :
                             begin
-                                if RotatedAutoPos then Designator.MoveToXY(Designator.Xlocation + DesignatorXmove, Designator.Ylocation)
+                                if RotatedAutoPos then Designator.MoveToXY(Designator.Xlocation - DesignatorXmove, Designator.Ylocation)
                                     else Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation + DesignatorXmove);
                             end;
                         eAutoPos_TopCenter :
@@ -275,16 +275,16 @@ begin
                             end;
                         eAutoPos_TopRight :
                             begin
-                                if RotatedAutoPos then Designator.MoveToXY(Designator.Xlocation - DesignatorXmove, Designator.Ylocation)
+                                if RotatedAutoPos then Designator.MoveToXY(Designator.Xlocation + DesignatorXmove, Designator.Ylocation)
                                     else Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation - DesignatorXmove);
                             end;
                         eAutoPos_CenterRight :
                             begin
-                                Designator.MoveToXY(Designator.Xlocation - DesignatorXmove, Designator.Ylocation);
+                                Designator.MoveToXY(Designator.Xlocation + DesignatorXmove, Designator.Ylocation);
                             end;
                         eAutoPos_BottomRight :
                             begin
-                                if RotatedAutoPos then Designator.MoveToXY(Designator.Xlocation - DesignatorXmove, Designator.Ylocation)
+                                if RotatedAutoPos then Designator.MoveToXY(Designator.Xlocation + DesignatorXmove, Designator.Ylocation)
                                     else Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation + DesignatorXmove);
                             end;
                         eAutoPos_CenterCenter :;
@@ -397,14 +397,19 @@ var
 begin
     Result := True;
 
-    // Test for number, dot or comma
-    ChSet := SetUnion(MkSet(Ord('.'), Ord(',')), MkSetRange(Ord('0'), Ord('9')));
+    // Test for number, hyphen, dot, or comma
+    ChSet := SetUnion(MkSet(Ord('-'), Ord('.'), Ord(',')), MkSetRange(Ord('0'), Ord('9')));
     for i := 1 to Length(Text) do
         if not InSet(Ord(Text[i]), ChSet) then Result := False;
 
-    // Test for more than one dot or comma
+    // test if there is a hyphen that isn't leading
+    ChSet := MkSet(Ord('-'));
+    for i := 2 to Length(Text) do
+        if InSet(Ord(Text[i]), ChSet) then Result := False;
+
+    // Test for more than one hyphen, dot, or comma
     dotCount := 0;
-    ChSet    := MkSet(Ord('.'), Ord(','));
+    ChSet    := MkSet(Ord('-'), Ord('.'), Ord(','));
     for i    := 1 to Length(Text) do
         if InSet(Ord(Text[i]), ChSet) then inc(dotCount);
 
