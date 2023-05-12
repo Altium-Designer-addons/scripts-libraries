@@ -76,3 +76,5 @@ Tracks with a slope greater than 20 (90° > angle > ~87.137°) will be coerced t
 2023-04-21 by Ryan Rutledge : v1.48 - fixed TStringList.Free calls throwing errors if the script did not complete (I think).
 
 2023-04-26 by Ryan Rutledge : v1.49 - fixed bug where SetupDataFromTrack would not set "k" for nearly-vertical lines, causing InitialCheck to report lines not parallel; added more detailed debugging messages to InitialCheck.
+
+2023-05-12 by Ryan Rutledge : v1.50 - added function prototypes at top with *forward* for future refactor; added location of settings file to *About* info; fixed undefined function error due to function order
