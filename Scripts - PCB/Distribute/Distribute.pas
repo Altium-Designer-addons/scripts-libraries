@@ -17,7 +17,56 @@ var
 
 const
     NumPresets = 15; // no longer just for presets, also used to save previous state
-    ScriptVersion = '1.49';
+    ScriptVersion = '1.50';
+    PresetFileName = 'MyDistributePresets.txt';
+
+
+function CompileSortedVias(const dummy : Integer) : Boolean; forward;
+function DistributeBackward(startc : TCoord, coef : Double, stepc : TCoord); forward;
+function DistributeForward(startc : TCoord, coef : Double, stepc : TCoord); forward;
+function DistributeFromCenter(startc : TCoord, coef : Double, stepc : TCoord); forward;
+function GetAnotherTrackInPoint(Prim1 : IPCB_Track, X : TCoord, Y : TCoord, out OnFirstPoint : Boolean) : IPCB_Primitive; forward;
+function GetEdgeIntercept(const ThisTrackIndex : Integer, const coef : Double, const Reverse : Boolean, out LastIntercept : TCoord); forward;
+function GetIntersection(k1 : Double, c1 : TCoord, IsPrim1Vert : Boolean, k2 : Double, c2 : TCoord, IsPrim2Vert : Boolean, out X : TCoord, out Y : TCoord) : Boolean; forward;
+function GetParallelLine(k1 : Double, c1 : TCoord, IsPrim1Vert : Boolean, out k2 : Double, out c2 : TCoord, out IsPrim2Vert : Boolean, const X : TCoord, const Y : TCoord) : Boolean; forward;
+function GetPerpendicularLine(k1 : Double, c1 : TCoord, IsPrim1Vert : Boolean, out k2 : Double, out c2 : TCoord, out IsPrim2Vert : Boolean, X : TCoord, Y : TCoord) : Boolean; forward;
+function GetPresetButtonEnable(const dummy : Integer) : Boolean; forward;
+function IsStringANum(Text : string) : Boolean; forward;
+function MoveTrackToIntercept(ThisTrackIndex : Integer, ConnectedTrackOneIndex : Integer, ConnectedTrackTwoIndex : Integer, TrimTrackIndex : Integer, TargetSlope : Double, TargetIntercept : TCoord, coef : Double, Reverse : Boolean, out LastIntercept : TCoord); forward;
+function PointToPointDistance(X1, Y1, X2, Y2) : Double; forward;
+function ViasExistOnTrackLayer(const dummy : Integer) : Boolean; forward;
+procedure About; forward;
+procedure AddToDebugListAfter(var Prim : IPCB_Track, LastIntercept : TCoord); forward;
+procedure AddToDebugListBefore(var Prim : IPCB_Track, TargetSlope : Double, TargetIntercept : TCoord); forward;
+procedure AddToDebugListFirstVia(var Prim1 : IPCB_Via, var Prim2 : IPCB_Track); forward;
+procedure AddToDebugListSecondVia(var Prim1 : IPCB_Via, var Prim2 : IPCB_Track, const viaminc : TCoord, const viamaxc : TCoord, const midc : TCoord); forward;
+procedure BuildPresetList(var TempPresetList : TStringList); forward;
+procedure calculate(LaunchedFromGUI : Boolean); forward;
+procedure CompileSortedTracks(const dummy : Integer); forward;
+procedure EnableByValControls(NewEnable : Boolean); forward;
+procedure FastDistributeByCenterline; forward;
+procedure FastDistributeByClearance; forward;
+procedure InitialCheck(var status : Integer); forward;
+procedure LoadPresetListFromFile(const dummy : Integer); forward;
+procedure PadAndSort(var list : TStringList); forward;
+procedure PresetButtonClicked(Sender : TObject); forward;
+procedure SetupDataFromTrack(var Prim1 : IPCB_Track, out IsVertical : Boolean, out X1 : TCoord, out Y1 : TCoord, out X2 : TCoord : out Y2 : TCoord, out k : Double, out c : TCoord); forward;
+procedure SetupDataFromVia(var PrimVia : IPCB_Via, var PrimTrack : IPCB_Track, out k : Double, out c : TCoord, out IsIntVert : Boolean, out X : TCoord, out Y : TCoord, out size : TCoord); forward;
+procedure Start; forward;
+procedure StartWithDebug; forward;
+procedure TFormDistribute.ButtonCancelClick(Sender : TObject); forward;
+procedure TFormDistribute.ButtonOKClick(Sender : TObject); forward;
+procedure TFormDistribute.ButtonUnitsClick(Sender : TObject); forward;
+procedure TFormDistribute.CheckBoxTrimEndsClick(Sender : TObject); forward;
+procedure TFormDistribute.EditDistanceChange(Sender : TObject); forward;
+procedure TFormDistribute.FormDistributeShow(Sender : TObject); forward;
+procedure TFormDistribute.RadioButtonCentersClick(Sender : TObject); forward;
+procedure TFormDistribute.RadioButtonCentersValClick(Sender : TObject); forward;
+procedure TFormDistribute.RadioButtonClearanceClick(Sender : TObject); forward;
+procedure TFormDistribute.RadioButtonClearanceValClick(Sender : TObject); forward;
+procedure TFormDistribute.RadioDirectionsClick(Sender : TObject); forward;
+procedure UserKeyPress(Sender : TObject, var Key : Char); forward;
+procedure ValidateOnChange(Sender : TObject); forward;
 
 
 { critical function to get normalized line properties. k is slope, c is intercept. }
@@ -298,7 +347,7 @@ end;
 
 
 {function to create slope and intercept for virtual line parallel to an ordinate line and passing through a point (k1,c1,IsPrim1Vert are for ordinate line)}
-function GetParallelLine(k1 : Double; c1 : TCoord; IsPrim1Vert : Boolean; out k2 : Double; out c2 : TCoord; out IsPrim2Vert : Boolean; const X : TCoord; const Y : TCoord) : Boolean;
+function GetParallelLine(k1 : Double, c1 : TCoord, IsPrim1Vert : Boolean, out k2 : Double, out c2 : TCoord, out IsPrim2Vert : Boolean, const X : TCoord, const Y : TCoord) : Boolean;
 begin
     Result := True;
 
@@ -910,7 +959,7 @@ procedure LoadPresetListFromFile(const dummy : Integer);
 begin
     try
         // default file name is MyDistributePresets.txt
-        PresetFilePath := ClientAPI_SpecialFolder_AltiumApplicationData + '\MyDistributePresets.txt';
+        PresetFilePath := ClientAPI_SpecialFolder_AltiumApplicationData + '\' + PresetFileName;
         PresetList     := TStringList.Create;
         if FileExists(PresetFilePath) then
         begin
@@ -1562,10 +1611,16 @@ end;
 
 
 procedure About;
+var
+    MsgText : string;
 begin
-    ShowMessage('This version is v' + ScriptVersion + sLineBreak +
+    MsgText := 'This version is v' + ScriptVersion + sLineBreak +
         'Updated versions may be found here:' + sLineBreak +
-        'https://github.com/Altium-Designer-addons/scripts-libraries');
+        'https://github.com/Altium-Designer-addons/scripts-libraries' + sLineBreak + sLineBreak +
+        'Settings save location:' + sLineBreak +
+        ClientAPI_SpecialFolder_AltiumApplicationData + '\' + PresetFileName;
+
+    ShowMessage(MsgText);
 end;
 
 
@@ -1649,8 +1704,8 @@ begin
 
 end;
 
-
-procedure UserKeyPress(Sender : TObject; var Key : Char); // programmatically, OnKeyPress fires before OnChange event and "catches" the key press
+// programmatically, OnKeyPress fires before OnChange event and "catches" the key press
+procedure UserKeyPress(Sender : TObject, var Key : Char);
 begin
     if (ButtonOK.Enabled) and (Ord(Key) = 13) then
     begin
