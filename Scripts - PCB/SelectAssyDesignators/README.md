@@ -34,3 +34,5 @@ There might be some value in adding a function to check that all components *hav
 2023-05-17 by Ryan Rutledge : v0.1 - Initial version of script. Provides basic selection manipulation for PCB components and associated .Designator special strings
 
 2023-05-18 by Ryan Rutledge : v0.2 - added _About_ command
+
+2023-05-18 by Ryan Rutledge : v0.3 - fix to refresh properties panel after command is executed
