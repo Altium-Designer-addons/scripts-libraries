@@ -31,4 +31,6 @@ There might be some value in adding a function to check that all components *hav
 * **Tip:** Select components then run _SelectDesignators_ followed by _SelectComponents_ to reduce your selection to only components with the special string.
 
 ## Change log
-2023-05-17 by Ryan Rutledge : v0.1 - Initial version of script. Provides basic selection manipulation for PCB components and associated .Designator special strings.
+2023-05-17 by Ryan Rutledge : v0.1 - Initial version of script. Provides basic selection manipulation for PCB components and associated .Designator special strings
+
+2023-05-18 by Ryan Rutledge : v0.2 - added _About_ command

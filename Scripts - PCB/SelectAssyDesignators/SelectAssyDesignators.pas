@@ -6,7 +6,8 @@ var
 
 const
     DebuggingEnabled = False;
-    ScriptVersion = '0.1';
+    ScriptVersion = '0.2';
+    ScriptTitle = 'SelectAssyDesignators';
 
 
 procedure BothInitialCheck(var status : Integer); forward;
@@ -17,6 +18,19 @@ function GetDesignator(var Comp : IPCB_Component) : IPCB_Primitive; forward;
 procedure SelectBoth; forward;
 procedure SelectComponents; forward;
 procedure SelectDesignators; forward;
+
+
+{ About information }
+procedure About;
+var
+    MsgText : string;
+begin
+    MsgText := '"' + ScriptTitle + '" script version ' + ScriptVersion + sLineBreak + sLineBreak +
+        'Updated versions may be found here:' + sLineBreak +
+        'https://github.com/Altium-Designer-addons/scripts-libraries';
+
+    ShowMessage(MsgText);
+end;
 
 
 { Initial checks when a mix of components and .Designator strings are ostensibly selected }
