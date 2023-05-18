@@ -6,7 +6,7 @@ var
 
 const
     DebuggingEnabled = False;
-    ScriptVersion = '0.2';
+    ScriptVersion = '0.3';
     ScriptTitle = 'SelectAssyDesignators';
 
 
@@ -264,6 +264,8 @@ begin
         end;
     end;
 
+    Client.SendMessage('PCB:Zoom', 'Action=Redraw' , 255, Client.CurrentView);
+
 end;
 
 
@@ -294,6 +296,8 @@ begin
         else i := i + 1; // advance iterator if current object remains selected
     end;
 
+    Client.SendMessage('PCB:Zoom', 'Action=Redraw' , 255, Client.CurrentView);
+
 end;
 
 
@@ -323,5 +327,7 @@ begin
         if (Prim1.ObjectId <> eTextObject) then Prim1.SetState_Selected(False)
         else i := i + 1; // advance iterator if current object remains selected
     end;
+
+    Client.SendMessage('PCB:Zoom', 'Action=Redraw' , 255, Client.CurrentView);
 
 end;
