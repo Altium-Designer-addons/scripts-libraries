@@ -6,15 +6,18 @@ var
 
 const
     DebuggingEnabled = False;
-    ScriptVersion = '0.3';
+    ScriptVersion = '1.0';
     ScriptTitle = 'SelectAssyDesignators';
 
 
+procedure AdjustDesignatorPositions(const Normalize : Boolean); forward;
 procedure BothInitialCheck(var status : Integer); forward;
 procedure CompInitialCheck(var status : Integer); forward;
 procedure DesignatorInitialCheck(var status : Integer); forward;
 function GetComponent(var Text : IPCB_Primitive) : IPCB_Component; forward;
 function GetDesignator(var Comp : IPCB_Component) : IPCB_Primitive; forward;
+procedure ResetDesignatorPositions; forward;
+procedure ResetDesignatorPositionsNorm; forward;
 procedure SelectBoth; forward;
 procedure SelectComponents; forward;
 procedure SelectDesignators; forward;
@@ -30,6 +33,84 @@ begin
         'https://github.com/Altium-Designer-addons/scripts-libraries';
 
     ShowMessage(MsgText);
+end;
+
+
+{ Main function to select both components and assembly designators for selected objects, then reset .Designator positions }
+procedure AdjustDesignatorPositions(const Normalize : Boolean);
+var
+    i           : Integer;
+    status      : Integer;
+    Comp        : IPCB_Component;
+    Text        : IPCB_Text;
+    XOffset, YOffset    : TCoord;
+begin
+    SelectBoth;
+
+    SelectDesignators;
+
+    if Board.SelectecObjectCount > 0 then Board.NewUndo else exit;
+
+    // Notify the pcbserver that we will make changes (Start undo)
+    PCBServer.PreProcess;
+    try
+        // at this point we have a selection of text objects
+        // For each Text object selected:
+        for i := 0 to Board.SelectecObjectCount - 1 do
+        begin
+            // use GetComponent to get the owner component followed by its XY position and rotation
+            Text := Board.SelectecObject[i];
+            Comp := GetComponent(Text);
+
+            if Comp = nil then continue;  // skip if component not found
+
+            Text.BeginModify;
+            try
+                // set Text object's justification to center
+                Text.TTFInvertedTextJustify := eAutoPos_CenterCenter;
+
+                // IPCB_Text MoveToXY method doesn't account for justification settings, so need to calculate offsets (based on 0 rotation)
+                if Text.UseTTFonts then XOffset := Text.TTFTextWidth div 2 else XOffset := Text.TTFTextWidth div 2 - Text.Width;
+                if Text.UseTTFonts then YOffset := Text.TTFTextHeight div 2 else YOffset := Text.TTFTextHeight div 2 - Text.Width;
+
+                Text.Rotation := 0; // set text rotation to 0 to fit calculated offsets rather than trying to calculate all the permutations based on rotation
+
+                // Needed to "refresh" Text rotation before calling MoveToXY method (Text.GraphicallyInvalidate didn't work)
+                Text.EndModify;
+                Text.BeginModify;
+
+                // move text to component's position using `Text.MoveToXY()` then rotate to match component
+                case Text.GetState_Mirror of
+                    True :
+                        begin
+                            Text.MoveToXY(Comp.x + XOffset, Comp.y - YOffset);
+                            if Normalize and (Comp.Rotation >= 90) and (Comp.Rotation < 270) then
+                                Text.Rotation := (Comp.Rotation + 180) mod 360
+                            else
+                                Text.Rotation := Comp.Rotation;
+                        end;
+                    False :
+                        begin
+                            Text.MoveToXY(Comp.x - XOffset, Comp.y - YOffset);
+                            if Normalize and (Comp.Rotation > 90) and (Comp.Rotation <= 270) then
+                                Text.Rotation := (Comp.Rotation + 180) mod 360
+                            else
+                                Text.Rotation := Comp.Rotation;
+                        end;
+                end;
+            finally
+                Text.EndModify;
+            end;
+
+            Text.GraphicallyInvalidate;
+        end;
+    finally
+        // Notify the pcbserver that all changes have been made (Stop undo)
+        PCBServer.PostProcess;
+    end;
+
+    Client.SendMessage('PCB:Zoom', 'Action=Redraw' , 255, Client.CurrentView);
+
 end;
 
 
@@ -234,6 +315,20 @@ begin
 
     Comp.GroupIterator_Destroy(TextIterator);
 
+end;
+
+
+{ wrapper call to AdjustDesignatorPositions that will exactly match component rotation }
+procedure ResetDesignatorPositions;
+begin
+    AdjustDesignatorPositions(False);
+end;
+
+
+{ wrapper call to AdjustDesignatorPositions that will match component rotation but normalized to be right-reading }
+procedure ResetDesignatorPositionsNorm;
+begin
+    AdjustDesignatorPositions(True);
 end;
 
 
