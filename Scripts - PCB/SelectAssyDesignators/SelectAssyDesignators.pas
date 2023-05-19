@@ -53,59 +53,61 @@ begin
 
     // Notify the pcbserver that we will make changes (Start undo)
     PCBServer.PreProcess;
+    try
+        // at this point we have a selection of text objects
+        // For each Text object selected:
+        for i := 0 to Board.SelectecObjectCount - 1 do
+        begin
+            // use GetComponent to get the owner component followed by its XY position and rotation
+            Text := Board.SelectecObject[i];
+            Comp := GetComponent(Text);
 
-    // at this point we have a selection of text objects
-    // For each Text object selected:
-    for i := 0 to Board.SelectecObjectCount - 1 do
-    begin
-        // use GetComponent to get the owner component followed by its XY position and rotation
-        Text := Board.SelectecObject[i];
-        Comp := GetComponent(Text);
+            if Comp = nil then continue;  // skip if component not found
 
-        if Comp = nil then continue;  // skip if component not found
+            Text.BeginModify;
+            try
+                // set Text object's justification to center
+                Text.TTFInvertedTextJustify := eAutoPos_CenterCenter;
 
-        Text.BeginModify;
+                // IPCB_Text MoveToXY method doesn't account for justification settings, so need to calculate offsets (based on 0 rotation)
+                if Text.UseTTFonts then XOffset := Text.TTFTextWidth div 2 else XOffset := Text.TTFTextWidth div 2 - Text.Width;
+                if Text.UseTTFonts then YOffset := Text.TTFTextHeight div 2 else YOffset := Text.TTFTextHeight div 2 - Text.Width;
 
-        // set Text object's justification to center
-        Text.TTFInvertedTextJustify := eAutoPos_CenterCenter;
+                Text.Rotation := 0; // set text rotation to 0 to fit calculated offsets rather than trying to calculate all the permutations based on rotation
 
-        // IPCB_Text MoveToXY method doesn't account for justification settings, so need to calculate offsets (based on 0 rotation)
-        if Text.UseTTFonts then XOffset := Text.TTFTextWidth div 2 else XOffset := Text.TTFTextWidth div 2 - Text.Width;
-        if Text.UseTTFonts then YOffset := Text.TTFTextHeight div 2 else YOffset := Text.TTFTextHeight div 2 - Text.Width;
+                // Needed to "refresh" Text rotation before calling MoveToXY method (Text.GraphicallyInvalidate didn't work)
+                Text.EndModify;
+                Text.BeginModify;
 
-        Text.Rotation := 0; // set text rotation to 0 to fit calculated offsets rather than trying to calculate all the permutations based on rotation
-
-        // Needed to "refresh" Text rotation before calling MoveToXY method (Text.GraphicallyInvalidate didn't work)
-        Text.EndModify;
-        Text.BeginModify;
-
-        // move text to component's position using `Text.MoveToXY()` then rotate to match component
-        case Text.GetState_Mirror of
-            True :
-                begin
-                    Text.MoveToXY(Comp.x + XOffset, Comp.y - YOffset);
-                    if Normalize and (Comp.Rotation >= 90) and (Comp.Rotation < 270) then
-                        Text.Rotation := (Comp.Rotation + 180) mod 360
-                    else
-                        Text.Rotation := Comp.Rotation;
+                // move text to component's position using `Text.MoveToXY()` then rotate to match component
+                case Text.GetState_Mirror of
+                    True :
+                        begin
+                            Text.MoveToXY(Comp.x + XOffset, Comp.y - YOffset);
+                            if Normalize and (Comp.Rotation >= 90) and (Comp.Rotation < 270) then
+                                Text.Rotation := (Comp.Rotation + 180) mod 360
+                            else
+                                Text.Rotation := Comp.Rotation;
+                        end;
+                    False :
+                        begin
+                            Text.MoveToXY(Comp.x - XOffset, Comp.y - YOffset);
+                            if Normalize and (Comp.Rotation > 90) and (Comp.Rotation <= 270) then
+                                Text.Rotation := (Comp.Rotation + 180) mod 360
+                            else
+                                Text.Rotation := Comp.Rotation;
+                        end;
                 end;
-            False :
-                begin
-                    Text.MoveToXY(Comp.x - XOffset, Comp.y - YOffset);
-                    if Normalize and (Comp.Rotation > 90) and (Comp.Rotation <= 270) then
-                        Text.Rotation := (Comp.Rotation + 180) mod 360
-                    else
-                        Text.Rotation := Comp.Rotation;
-                end;
+            finally
+                Text.EndModify;
+            end;
+
+            Text.GraphicallyInvalidate;
         end;
-
-        Text.EndModify;
-
-        Text.GraphicallyInvalidate;
+    finally
+        // Notify the pcbserver that all changes have been made (Stop undo)
+        PCBServer.PostProcess;
     end;
-
-    // Notify the pcbserver that all changes have been made (Stop undo)
-    PCBServer.PostProcess;
 
     Client.SendMessage('PCB:Zoom', 'Action=Redraw' , 255, Client.CurrentView);
 
