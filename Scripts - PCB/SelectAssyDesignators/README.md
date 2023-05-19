@@ -17,6 +17,10 @@ Select one or more .Designator special strings belonging to components then run 
 ### Select Both
 Select one or more components and/or .Designator special strings then run the _SelectBoth_ script procedure to select all components and .Designator special strings associated with your selection.\
 * **Tip:** other objects are ignored/deselected in each case, so you can use _SelectBoth_ followed by one of the other procedures to go from a mixed selection to selecting only one type.
+### Reset Designator Positions
+Select one or more components and/or .Designator special strings then run _ResetDesignatorPositions_ to reset all .Designator special strings associated with the selected items to center on their parent components and exactly match their rotation value.
+### Reset Designator Positions (Normalized)
+Select one or more components and/or .Designator special strings then run _ResetDesignatorPositionsNorm_ to reset all .Designator special strings associated with the selected items to center on their parent components and align to their rotation value but normalized to be right-reading.
 
 ## Features
 
@@ -36,3 +40,5 @@ There might be some value in adding a function to check that all components *hav
 2023-05-18 by Ryan Rutledge : v0.2 - added _About_ command
 
 2023-05-18 by Ryan Rutledge : v0.3 - fix to refresh properties panel after command is executed
+
+2023-05-18 by Ryan Rutledge : v1.0 - added commands to reset .Designator special strings to center on component and match alignment (with or without rotation normalization)
