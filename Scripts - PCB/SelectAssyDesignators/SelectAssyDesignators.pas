@@ -6,18 +6,25 @@ var
 
 const
     DebuggingEnabled = False;
-    ScriptVersion = '1.0';
+    ScriptVersion = '1.1';
     ScriptTitle = 'SelectAssyDesignators';
+    MinDesignatorSize = 100000; // minimum designator size for resizing in Altium coordinate units (100000 = 10 mils)
 
 
-procedure AdjustDesignatorPositions(const Normalize : Boolean); forward;
+procedure AdjustDesignatorPositions(const Normalize : Boolean = False, const Ortho : Boolean = False, const Resize : Boolean = False); forward;
 procedure BothInitialCheck(var status : Integer); forward;
 procedure CompInitialCheck(var status : Integer); forward;
 procedure DesignatorInitialCheck(var status : Integer); forward;
+procedure DesignatorOrthoResize; forward;
+procedure DesignatorResize; forward;
+procedure GetBoundingBox(const Comp : IPCB_Component; out box_width : TCoord; out box_height : TCoord); forward;
 function GetComponent(var Text : IPCB_Primitive) : IPCB_Component; forward;
 function GetDesignator(var Comp : IPCB_Component) : IPCB_Primitive; forward;
 procedure ResetDesignatorPositions; forward;
 procedure ResetDesignatorPositionsNorm; forward;
+procedure ResetDesignatorPositionsNormOrtho; forward;
+procedure ResetDesignatorPositionsOrtho; forward;
+procedure ResizeText(var Text : IPCB_Text, const width : TCoord, const height : TCoord); forward;
 procedure SelectBoth; forward;
 procedure SelectComponents; forward;
 procedure SelectDesignators; forward;
@@ -37,13 +44,15 @@ end;
 
 
 { Main function to select both components and assembly designators for selected objects, then reset .Designator positions }
-procedure AdjustDesignatorPositions(const Normalize : Boolean);
+procedure AdjustDesignatorPositions(const Normalize : Boolean = False, const Ortho : Boolean = False, const Resize : Boolean = False);
 var
     i           : Integer;
     status      : Integer;
     Comp        : IPCB_Component;
     Text        : IPCB_Text;
-    XOffset, YOffset    : TCoord;
+    XOffset, YOffset        : TCoord;
+    box_width, box_height   : TCoord;
+    target_rotation         : Integer;
 begin
     SelectBoth;
 
@@ -66,6 +75,19 @@ begin
 
             Text.BeginModify;
             try
+                // resize text to fit desired width
+                if Resize then
+                begin
+                    GetBoundingBox(Comp, box_width, box_height);
+                    //ShowMessage('box_width: ' + IntToStr(box_width) + sLineBreak +
+                                //'box_height: ' + IntToStr(box_height));
+                    if Ortho then ResizeText(Text, box_height, box_width) else ResizeText(Text, box_width, box_height);
+                end;
+
+                // Needed to "refresh" Text rotation before calling MoveToXY method (Text.GraphicallyInvalidate didn't work)
+                Text.EndModify;
+                Text.BeginModify;
+
                 // set Text object's justification to center
                 Text.TTFInvertedTextJustify := eAutoPos_CenterCenter;
 
@@ -83,19 +105,21 @@ begin
                 case Text.GetState_Mirror of
                     True :
                         begin
+                            if Ortho then target_rotation := (Comp.Rotation + 270) mod 360 else target_rotation := (Comp.Rotation + 180) mod 360; // mirrored text should be rotated to match layer flip behavior
                             Text.MoveToXY(Comp.x + XOffset, Comp.y - YOffset);
-                            if Normalize and (Comp.Rotation >= 90) and (Comp.Rotation < 270) then
-                                Text.Rotation := (Comp.Rotation + 180) mod 360
+                            if Normalize and (target_rotation >= 90) and (target_rotation < 270) then
+                                Text.Rotation := (target_rotation + 180) mod 360
                             else
-                                Text.Rotation := Comp.Rotation;
+                                Text.Rotation := target_rotation;
                         end;
                     False :
                         begin
+                            if Ortho then target_rotation := (Comp.Rotation + 270) mod 360 else target_rotation := Comp.Rotation;
                             Text.MoveToXY(Comp.x - XOffset, Comp.y - YOffset);
-                            if Normalize and (Comp.Rotation > 90) and (Comp.Rotation <= 270) then
-                                Text.Rotation := (Comp.Rotation + 180) mod 360
+                            if Normalize and (target_rotation > 90) and (target_rotation <= 270) then
+                                Text.Rotation := (target_rotation + 180) mod 360
                             else
-                                Text.Rotation := Comp.Rotation;
+                                Text.Rotation := target_rotation;
                         end;
                 end;
             finally
@@ -276,6 +300,70 @@ begin
 end;
 
 
+{ wrapper call to AdjustDesignatorPositions that will resize text and orient it orthogonal to component rotation}
+procedure DesignatorOrthoResize;
+begin
+    AdjustDesignatorPositions(False, True, True);
+end;
+
+
+{ wrapper call to AdjustDesignatorPositions that will exactly match component rotation and resize text }
+procedure DesignatorResize;
+begin
+    AdjustDesignatorPositions(False, False, True);
+end;
+
+
+{ Function to calculate the bounding box dimensions of a component's pads }
+procedure GetBoundingBox(const Comp : IPCB_Component; out box_width : TCoord; out box_height : TCoord);
+var
+    Pad         : IPCB_Pad;
+    PadBoundary : TCoordRect;
+    PadIterator : IPCB_GroupIterator;
+    minX, minY  : TCoord;
+    maxX, maxY  : TCoord;
+    rotation    : Integer;
+begin
+    // Initialize bounding box coordinates
+    minX := 2147483647;
+    minY := 2147483647;
+    maxX := -2147483647;
+    maxY := -2147483647;
+
+
+    rotation := Comp.Rotation;  // save original component rotation
+    Comp.Rotation := 0;         // rotate component to zero to calculate bounding box
+
+    // Create iterator for pads only
+    PadIterator := Comp.GroupIterator_Create;
+    try
+        PadIterator.AddFilter_ObjectSet(MkSet(ePadObject));
+
+        Pad := PadIterator.FirstPCBObject;
+        while (Pad <> nil) do
+        begin
+            PadBoundary := Pad.BoundingRectangleOnLayer(Comp.Layer);
+            if PadBoundary.Left < minX then minX := PadBoundary.Left;
+            if PadBoundary.Bottom < minY then minY := PadBoundary.Bottom;
+            if PadBoundary.Right > maxX then maxX := PadBoundary.Right;
+            if PadBoundary.Top > maxY then maxY := PadBoundary.Top;
+
+            Pad := PadIterator.NextPCBObject;
+        end;
+    finally
+        Comp.GroupIterator_Destroy(PadIterator);
+    end;
+
+    // Calculate the bounding box dimensions
+    box_width  := maxX - minX;
+    box_height := maxY - minY;
+
+    // return to original rotation
+    Comp.Rotation := rotation;
+
+end;
+
+
 { Return the parent component of a text string }
 function GetComponent(var Text : IPCB_Primitive) : IPCB_Component;
 begin
@@ -329,6 +417,49 @@ end;
 procedure ResetDesignatorPositionsNorm;
 begin
     AdjustDesignatorPositions(True);
+end;
+
+
+{ wrapper call to AdjustDesignatorPositions that will orient .Designator string orthogonal to component but normalized to be right-reading }
+procedure ResetDesignatorPositionsNormOrtho;
+begin
+    AdjustDesignatorPositions(True, True);
+end;
+
+
+{ wrapper call to AdjustDesignatorPositions that will orient .Designator string orthogonal to component }
+procedure ResetDesignatorPositionsOrtho;
+begin
+    AdjustDesignatorPositions(False, True);
+end;
+
+
+{ procedure to scale text to approximately fit within the selected width and height }
+procedure ResizeText(var Text : IPCB_Text, const width : TCoord, const height : TCoord);
+var
+    width_ratio     : double;
+    TTF_ratio       : double;
+    planned_height  : TCoord;
+    TTF_min_height  : TCoord;
+begin
+    if Text.UseTTFonts then
+    begin
+        width_ratio := width / Text.TTFTextWidth;
+        TTF_ratio := Text.TTFTextHeight / Text.Size;
+        planned_height := Round((Text.Size * width_ratio) / 10000) * 10000;
+        if (planned_height * TTF_ratio) > height then planned_height := ((height / TTF_ratio) div 10000) * 10000;
+        TTF_min_height := Round(((MinDesignatorSize * 1.1) / TTF_ratio) div 1000) * 1000;   // round to 0.1mil instead for TTF, and adjust to approximately match stroke font height
+        Text.Size := Max(TTF_min_height, planned_height);  // enforce a minimum height
+    end
+    else
+    begin
+        width_ratio := width / (Text.TTFTextWidth - Text.Width);
+        planned_height := Round(Text.Size * width_ratio / 10000) * 10000;
+        if planned_height > height then planned_height := ((height * 0.9) div 10000) * 10000;    // scale down assuming stroke width is a tenth of character height
+        Text.Size := Max(MinDesignatorSize, planned_height);  // enforce a minimum height
+        Text.Width := Text.Size div 10;  // set stroke width to a tenth of the character height
+    end;
+
 end;
 
 
