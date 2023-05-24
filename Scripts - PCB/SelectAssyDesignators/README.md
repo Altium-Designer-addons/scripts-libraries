@@ -57,3 +57,5 @@ There might be some value in adding a function to check that all components *hav
 2023-05-18 by Ryan Rutledge : v1.0 - added commands to reset .Designator special strings to center on component and match alignment (with or without rotation normalization)
 
 2023-05-22 by Ryan Rutledge : v1.1 - added commands for orthogonal rotation and resizing .Designator special strings to fit component pads' bounding box
+
+2023-05-23 by Ryan Rutledge : v1.2 - added IPCB_Text inspection function for debugging
