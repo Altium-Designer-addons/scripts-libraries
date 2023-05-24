@@ -6,7 +6,7 @@ var
 
 const
     DebuggingEnabled = False;
-    ScriptVersion = '1.1';
+    ScriptVersion = '1.2';
     ScriptTitle = 'SelectAssyDesignators';
     MinDesignatorSize = 100000; // minimum designator size for resizing in Altium coordinate units (100000 = 10 mils)
 
@@ -20,6 +20,7 @@ procedure DesignatorResize; forward;
 procedure GetBoundingBox(const Comp : IPCB_Component; out box_width : TCoord; out box_height : TCoord); forward;
 function GetComponent(var Text : IPCB_Primitive) : IPCB_Component; forward;
 function GetDesignator(var Comp : IPCB_Component) : IPCB_Primitive; forward;
+procedure Inspect_IPCB_Text(var Text : IPCB_Text, const MyLabel : string = ''); forward;
 procedure ResetDesignatorPositions; forward;
 procedure ResetDesignatorPositionsNorm; forward;
 procedure ResetDesignatorPositionsNormOrtho; forward;
@@ -75,6 +76,8 @@ begin
 
             Text.BeginModify;
             try
+                if DebuggingEnabled and i < 3 then Inspect_IPCB_Text(Text, 'BEFORE');
+
                 // resize text to fit desired width
                 if Resize then
                 begin
@@ -82,13 +85,14 @@ begin
                     //ShowMessage('box_width: ' + IntToStr(box_width) + sLineBreak +
                                 //'box_height: ' + IntToStr(box_height));
                     if Ortho then ResizeText(Text, box_height, box_width) else ResizeText(Text, box_width, box_height);
+
+                    // Needed to "refresh" Text size before calculating boundaries (Text.GraphicallyInvalidate didn't work)
+                    Text.EndModify;
+                    Text.BeginModify;
+
                 end;
 
-                // Needed to "refresh" Text rotation before calling MoveToXY method (Text.GraphicallyInvalidate didn't work)
-                Text.EndModify;
-                Text.BeginModify;
-
-                // set Text object's justification to center
+                // set Text object's justification to center. WARNING: this will not work properly unless justification settings for the text have been manually updated (to anything), triggering and update to the object's properties
                 Text.TTFInvertedTextJustify := eAutoPos_CenterCenter;
 
                 // IPCB_Text MoveToXY method doesn't account for justification settings, so need to calculate offsets (based on 0 rotation)
@@ -122,6 +126,8 @@ begin
                                 Text.Rotation := target_rotation;
                         end;
                 end;
+                if DebuggingEnabled and i < 3 then Inspect_IPCB_Text(Text, 'AFTER');
+
             finally
                 Text.EndModify;
             end;
@@ -403,6 +409,42 @@ begin
 
     Comp.GroupIterator_Destroy(TextIterator);
 
+end;
+
+
+{ IPCB_Text inspector for debugging }
+procedure Inspect_IPCB_Text(var Text : IPCB_Text, const MyLabel : string = '');
+begin
+    ShowMessage('DEBUGGING: ' + MyLabel + sLineBreak +
+                '------------------------------' + sLineBreak +
+                'AllowGlobalEdit: ' + BoolToStr(Text.AllowGlobalEdit) + sLineBreak +
+                'Descriptor: ' + Text.Descriptor + sLineBreak +
+                'Detail: ' + Text.Detail + sLineBreak +
+                'EnableDraw: ' + BoolToStr(Text.EnableDraw) + sLineBreak +
+                'FontID: ' + IntToStr(Text.FontID) + sLineBreak +
+                'Handle: ' + Text.Handle + sLineBreak +
+                'Identifier: ' + Text.Identifier + sLineBreak +
+                'IsSaveable: ' + BoolToStr(Text.IsSaveable(eAdvPCBFormat_Binary_V6)) + sLineBreak +
+                'MiscFlag1: ' + BoolToStr(Text.MiscFlag1) + sLineBreak +
+                'MiscFlag2: ' + BoolToStr(Text.MiscFlag2) + sLineBreak +
+                'MiscFlag3: ' + BoolToStr(Text.MiscFlag3) + sLineBreak +
+                'MultiLine: ' + BoolToStr(Text.Multiline) + sLineBreak +
+                'MultilineTextAutoPosition: ' + IntToStr(Text.MultilineTextAutoPosition) + sLineBreak +
+                'MultilineTextHeight: ' + IntToStr(Text.MultilineTextHeight) + sLineBreak +
+                'MultilineTextResizeEnabled: ' + BoolToStr(Text.MultilineTextResizeEnabled) + sLineBreak +
+                'MultilineTextWidth: ' + IntToStr(Text.MultilineTextWidth) + sLineBreak +
+                'ObjectId: ' + IntToStr(Text.ObjectId) + sLineBreak +
+                'ObjectIDString: ' + Text.ObjectIDString + sLineBreak +
+                'PadCacheRobotFlag: ' + BoolToStr(Text.PadCacheRobotFlag) + sLineBreak +
+                'Text.Text: ' + Text.Text +sLineBreak +
+                'Text.TextKind: ' + IntToStr(Text.TextKind) + sLineBreak +
+                'TTFInvertedTextJustify: ' + IntToStr(Text.TTFInvertedTextJustify) + sLineBreak +
+                'UseTTFonts: ' + BoolToStr(Text.UseTTFonts) + sLineBreak +
+                'Used: ' + BoolToStr(Text.Used) + sLineBreak +
+                'UserRouted: ' + BoolToStr(Text.UserRouted) + sLineBreak +
+                'ViewableObjectID: ' + IntToStr(Text.ViewableObjectID) + sLineBreak +
+                'WordWrap: ' + BoolToStr(Text.WordWrap) + sLineBreak
+                );
 end;
 
 
