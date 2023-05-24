@@ -38,6 +38,9 @@ Have a GUI that remembers last-used settings
 The script should only do *useful* work when selecting components and/or .Designator special strings associated with components. Other object types can be in the selection, however, but they will be deselected if any valid objects were selected.
 
 ## Known Issues
+### Position reset does not work properly if text justification has never been set through the editor
+This may be a bug relating to the underlying string changes that allow justification to be set for single-line strings.\
+**Workaround**: select all the .Designator strings you plan to reset (or just the ones that aren't behaving properly), then change any one of their horizontal or vertical justification *using the Properties Panel*. After that the script will be able to manipulate their justification and correctly center them.
 ### Not happy with the name
 I'm open to suggestions. While I'm using these for assembly documentation, I'm not sure calling them "Assembly Designators" is the best way to refer to them, but I can't think of anything better or more concise at the moment.
 ### Silently ignores components without a .Designator special string
