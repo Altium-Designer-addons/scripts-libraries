@@ -6,7 +6,7 @@ var
 
 const
     DebuggingEnabled = False;
-    ScriptVersion = '1.2';
+    ScriptVersion = '1.3';
     ScriptTitle = 'SelectAssyDesignators';
     MinDesignatorSize = 100000; // minimum designator size for resizing in Altium coordinate units (100000 = 10 mils)
 
@@ -76,7 +76,10 @@ begin
 
             Text.BeginModify;
             try
-                if DebuggingEnabled and i < 3 then Inspect_IPCB_Text(Text, 'BEFORE');
+                if DebuggingEnabled then
+                begin
+                	if i < 3 then Inspect_IPCB_Text(Text, 'BEFORE');
+                end;
 
                 // resize text to fit desired width
                 if Resize then
@@ -126,7 +129,10 @@ begin
                                 Text.Rotation := target_rotation;
                         end;
                 end;
-                if DebuggingEnabled and i < 3 then Inspect_IPCB_Text(Text, 'AFTER');
+                if DebuggingEnabled then
+                begin
+                	if i < 3 then Inspect_IPCB_Text(Text, 'AFTER');
+                end;
 
             finally
                 Text.EndModify;
