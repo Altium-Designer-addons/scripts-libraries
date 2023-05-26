@@ -11,18 +11,20 @@ If you are a newcomer to Altium scripts, [please read the "how to" wiki page](ht
 
 ## Usage guide
 ### Select Assembly Designators
-Make a .PcbDoc active and run the _RepourPolygonsAndBenchmark_ script procedure.
+Make a .PcbDoc active and run the _Start_ script procedure.
 
 ## Features
-### Stores results in PolygonBenchmarkResults project parameter (does not save project though)
-Place a ".PolygonBenchmarkResults" string on the PcbDoc to show the results on a layer
+* ### Can save results to file and string in .PcbDoc
+Results will be saved to a file named "*PcbDoc Name*_repourtimes.txt"\
+Place a string on the PcbDoc containing "PolygonBenchmark" to show the results on a layer.\
+**NOTE:** if confirmed, script will replace the contents of the first string it finds that contains "PolygonBenchmark".
 
-### Reports polygon repour time of each polygon, and total repour time
+* ### Reports polygon repour time of each polygon, and total repour time
 
-### Repours polygons in their proper order
+* ### Repours polygons in their proper order
 
 ## Known Issues
-### Serializes pour order. No multi-threading here.
+* ### Serializes pour order. No multi-threading here.
 
 ## Change log
 2023-05-26 by Ryan Rutledge : v0.3 - initial release
