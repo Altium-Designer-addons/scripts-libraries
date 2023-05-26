@@ -1,4 +1,4 @@
-﻿[Design]
+[Design]
 Version=1.0
 
 [Document1]
@@ -17,7 +17,3 @@ ClassGenNCAutoScope=None
 DItemRevisionGUID=
 GenerateClassCluster=0
 DocumentUniqueId=
-
-[Parameter1]
-Name=PolygonBenchmarkResults
-Value=Run PolygonBenchmark script
