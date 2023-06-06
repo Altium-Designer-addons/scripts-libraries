@@ -17,41 +17,41 @@ var
 
 const
     NumPresets = 15; // no longer just for presets, also used to save previous state
-    ScriptVersion = '1.52';
+    ScriptVersion = '1.53';
     ScriptTitle = 'Distribute';
     PresetFileName = 'MyDistributePresets.txt';
 
 
 procedure About; forward;
-procedure AddToDebugListAfter(var Prim : IPCB_Track, LastIntercept : TCoord); forward;
-procedure AddToDebugListBefore(var Prim : IPCB_Track, TargetSlope : Double, TargetIntercept : TCoord); forward;
-procedure AddToDebugListFirstVia(var Prim1 : IPCB_Via, var Prim2 : IPCB_Track); forward;
-procedure AddToDebugListSecondVia(var Prim1 : IPCB_Via, var Prim2 : IPCB_Track, const viaminc : TCoord, const viamaxc : TCoord, const midc : TCoord); forward;
+procedure AddToDebugListAfter(var Prim : IPCB_Track; LastIntercept : TCoord); forward;
+procedure AddToDebugListBefore(var Prim : IPCB_Track; TargetSlope : Double; TargetIntercept : TCoord); forward;
+procedure AddToDebugListFirstVia(var Prim1 : IPCB_Via; var Prim2 : IPCB_Track); forward;
+procedure AddToDebugListSecondVia(var Prim1 : IPCB_Via; var Prim2 : IPCB_Track; const viaminc, const viamaxc, const midc : TCoord); forward;
 procedure BuildPresetList(var TempPresetList : TStringList); forward;
 procedure calculate(LaunchedFromGUI : Boolean); forward;
 procedure CompileSortedTracks(const dummy : Integer); forward;
 function CompileSortedVias(const dummy : Integer) : Boolean; forward;
-function DistributeBackward(startc : TCoord, coef : Double, stepc : TCoord); forward;
-function DistributeForward(startc : TCoord, coef : Double, stepc : TCoord); forward;
-function DistributeFromCenter(startc : TCoord, coef : Double, stepc : TCoord); forward;
+function DistributeBackward(startc : TCoord; coef : Double; stepc : TCoord); forward;
+function DistributeForward(startc : TCoord; coef : Double; stepc : TCoord); forward;
+function DistributeFromCenter(startc : TCoord; coef : Double; stepc : TCoord); forward;
 procedure EnableByValControls(NewEnable : Boolean); forward;
 procedure FastDistributeByCenterline; forward;
 procedure FastDistributeByClearance; forward;
-function GetAnotherTrackInPoint(Prim1 : IPCB_Track, X : TCoord, Y : TCoord, out OnFirstPoint : Boolean) : IPCB_Primitive; forward;
-function GetEdgeIntercept(const ThisTrackIndex : Integer, const coef : Double, const Reverse : Boolean, out LastIntercept : TCoord); forward;
-function GetIntersection(k1 : Double, c1 : TCoord, IsPrim1Vert : Boolean, k2 : Double, c2 : TCoord, IsPrim2Vert : Boolean, out X : TCoord, out Y : TCoord) : Boolean; forward;
-function GetParallelLine(k1 : Double, c1 : TCoord, IsPrim1Vert : Boolean, out k2 : Double, out c2 : TCoord, out IsPrim2Vert : Boolean, const X : TCoord, const Y : TCoord) : Boolean; forward;
-function GetPerpendicularLine(k1 : Double, c1 : TCoord, IsPrim1Vert : Boolean, out k2 : Double, out c2 : TCoord, out IsPrim2Vert : Boolean, X : TCoord, Y : TCoord) : Boolean; forward;
+function GetAnotherTrackInPoint(Prim1 : IPCB_Track; X, Y : TCoord; out OnFirstPoint : Boolean) : IPCB_Primitive; forward;
+function GetEdgeIntercept(const ThisTrackIndex : Integer; const coef : Double; const Reverse : Boolean; out LastIntercept : TCoord); forward;
+function GetIntersection(k1 : Double; c1 : TCoord; IsPrim1Vert : Boolean; k2 : Double; c2 : TCoord; IsPrim2Vert : Boolean; out X, out Y : TCoord) : Boolean; forward;
+function GetParallelLine(k1 : Double; c1 : TCoord; IsPrim1Vert : Boolean; out k2 : Double; out c2 : TCoord; out IsPrim2Vert : Boolean; const X, const Y : TCoord) : Boolean; forward;
+function GetPerpendicularLine(k1 : Double; c1 : TCoord; IsPrim1Vert : Boolean; out k2 : Double; out c2 : TCoord; out IsPrim2Vert : Boolean; X, Y : TCoord) : Boolean; forward;
 function GetPresetButtonEnable(const dummy : Integer) : Boolean; forward;
 function InitialCheck(var status : Integer) : Integer; forward;
 function IsStringANum(Text : string) : Boolean; forward;
 procedure LoadPresetListFromFile(const dummy : Integer); forward;
-function MoveTrackToIntercept(ThisTrackIndex : Integer, ConnectedTrackOneIndex : Integer, ConnectedTrackTwoIndex : Integer, TrimTrackIndex : Integer, TargetSlope : Double, TargetIntercept : TCoord, coef : Double, Reverse : Boolean, out LastIntercept : TCoord); forward;
+function MoveTrackToIntercept(ThisTrackIndex, ConnectedTrackOneIndex, ConnectedTrackTwoIndex, TrimTrackIndex : Integer; TargetSlope : Double; TargetIntercept : TCoord; coef : Double; Reverse : Boolean; out LastIntercept : TCoord); forward;
 procedure PadAndSort(var list : TStringList); forward;
 function PointToPointDistance(X1, Y1, X2, Y2) : Double; forward;
 procedure PresetButtonClicked(Sender : TObject); forward;
-procedure SetupDataFromTrack(var Prim1 : IPCB_Track, out IsVertical : Boolean, out X1 : TCoord, out Y1 : TCoord, out X2 : TCoord : out Y2 : TCoord, out k : Double, out c : TCoord); forward;
-procedure SetupDataFromVia(var PrimVia : IPCB_Via, var PrimTrack : IPCB_Track, out k : Double, out c : TCoord, out IsIntVert : Boolean, out X : TCoord, out Y : TCoord, out size : TCoord); forward;
+procedure SetupDataFromTrack(var Prim1 : IPCB_Track; out IsVertical : Boolean; out X1, out Y1, out X2, out Y2 : TCoord; out k : Double; out c : TCoord); forward;
+procedure SetupDataFromVia(var PrimVia : IPCB_Via; var PrimTrack : IPCB_Track; out k : Double; out c : TCoord; out IsIntVert : Boolean; out X, out Y, out size : TCoord); forward;
 procedure Start; forward;
 procedure StartWithDebug; forward;
 procedure TFormDistribute.ButtonCancelClick(Sender : TObject); forward;
@@ -65,7 +65,7 @@ procedure TFormDistribute.RadioButtonCentersValClick(Sender : TObject); forward;
 procedure TFormDistribute.RadioButtonClearanceClick(Sender : TObject); forward;
 procedure TFormDistribute.RadioButtonClearanceValClick(Sender : TObject); forward;
 procedure TFormDistribute.RadioDirectionsClick(Sender : TObject); forward;
-procedure UserKeyPress(Sender : TObject, var Key : Char); forward;
+procedure UserKeyPress(Sender : TObject; var Key : Char); forward;
 procedure ValidateOnChange(Sender : TObject); forward;
 function ViasExistOnTrackLayer(const dummy : Integer) : Boolean; forward;
 
@@ -88,7 +88,7 @@ end;
 
 {......................................................................................................................}
 { debugging function }
-procedure AddToDebugListAfter(var Prim : IPCB_Track, LastIntercept : TCoord);
+procedure AddToDebugListAfter(var Prim : IPCB_Track; LastIntercept : TCoord);
 var
     X1, Y1, X2, Y2  : TCoord;
     k               : Double;
@@ -116,7 +116,7 @@ end;
 
 {......................................................................................................................}
 { debugging function }
-procedure AddToDebugListBefore(var Prim : IPCB_Track, TargetSlope : Double, TargetIntercept : TCoord);
+procedure AddToDebugListBefore(var Prim : IPCB_Track; TargetSlope : Double; TargetIntercept : TCoord);
 var
     X1, Y1, X2, Y2  : TCoord;
     k               : Double;
@@ -143,7 +143,7 @@ end;
 
 {......................................................................................................................}
 { debugging function }
-procedure AddToDebugListFirstVia(var Prim1 : IPCB_Via, var Prim2 : IPCB_Track);
+procedure AddToDebugListFirstVia(var Prim1 : IPCB_Via; var Prim2 : IPCB_Track);
 var
     X1, Y1          : TCoord;
     k               : Double;
@@ -168,7 +168,7 @@ end;
 
 {......................................................................................................................}
 { debugging function }
-procedure AddToDebugListSecondVia(var Prim1 : IPCB_Via, var Prim2 : IPCB_Track, const viaminc : TCoord, const viamaxc : TCoord, const midc : TCoord);
+procedure AddToDebugListSecondVia(var Prim1 : IPCB_Via; var Prim2 : IPCB_Track; const viaminc, const viamaxc, const midc : TCoord);
 var
     X1, Y1, X2, Y2  : TCoord;
     k               : Double;
@@ -564,7 +564,7 @@ end;
 
 
 {......................................................................................................................}
-function DistributeBackward(startc : TCoord, coef : Double, stepc : TCoord);
+function DistributeBackward(startc : TCoord; coef : Double; stepc : TCoord);
 var
     i, j                           : Integer;
     TrimTrackIndex                 : Integer;
@@ -606,7 +606,7 @@ end;
 
 
 {......................................................................................................................}
-function DistributeForward(startc : TCoord, coef : Double, stepc : TCoord);
+function DistributeForward(startc : TCoord; coef : Double; stepc : TCoord);
 var
     i, j                           : Integer;
     TrimTrackIndex                 : Integer;
@@ -648,7 +648,7 @@ end;
 
 
 {......................................................................................................................}
-function DistributeFromCenter(startc : TCoord, coef : Double, stepc : TCoord);
+function DistributeFromCenter(startc : TCoord; coef : Double; stepc : TCoord);
 var
     i, j                           : Integer;
     TrimTrackIndex                 : Integer;
@@ -829,7 +829,7 @@ end;
 
 {......................................................................................................................}
 { checks if there is another track connected to the given endpoint of this track, and which of its ends is connected }
-function GetAnotherTrackInPoint(Prim1 : IPCB_Track, X : TCoord, Y : TCoord, out OnFirstPoint : Boolean) : IPCB_Primitive;
+function GetAnotherTrackInPoint(Prim1 : IPCB_Track; X, Y : TCoord; out OnFirstPoint : Boolean) : IPCB_Primitive;
 var
     SIter : IPCB_SpatialIterator;
     Prim2 : IPCB_Track;
@@ -873,7 +873,7 @@ end;
 
 {......................................................................................................................}
 { Gets width-aware edge intercept }
-function GetEdgeIntercept(const ThisTrackIndex : Integer, const coef : Double, const Reverse : Boolean, out LastIntercept : TCoord);
+function GetEdgeIntercept(const ThisTrackIndex : Integer; const coef : Double; const Reverse : Boolean; out LastIntercept : TCoord);
 var
     k1                      : Double;   // k1 is throwaway
     c1                      : TCoord;
@@ -894,7 +894,7 @@ end;
 
 {......................................................................................................................}
 { function to test if two tracks have an intercept point (tracks are not parallel) }
-function GetIntersection(k1 : Double, c1 : TCoord, IsPrim1Vert : Boolean, k2 : Double, c2 : TCoord, IsPrim2Vert : Boolean, out X : TCoord, out Y : TCoord) : Boolean;
+function GetIntersection(k1 : Double; c1 : TCoord; IsPrim1Vert : Boolean; k2 : Double; c2 : TCoord; IsPrim2Vert : Boolean; out X, out Y : TCoord) : Boolean;
 begin
     Result := True;
     if (IsPrim1Vert and IsPrim2Vert) or ((not IsPrim1Vert) and (not IsPrim2Vert) and (Abs(k1 - k2) < 0.01)) then
@@ -926,7 +926,7 @@ end;
 
 {......................................................................................................................}
 {function to create slope and intercept for virtual line parallel to an ordinate line and passing through a point (k1,c1,IsPrim1Vert are for ordinate line)}
-function GetParallelLine(k1 : Double, c1 : TCoord, IsPrim1Vert : Boolean, out k2 : Double, out c2 : TCoord, out IsPrim2Vert : Boolean, const X : TCoord, const Y : TCoord) : Boolean;
+function GetParallelLine(k1 : Double; c1 : TCoord; IsPrim1Vert : Boolean; out k2 : Double; out c2 : TCoord; out IsPrim2Vert : Boolean; const X, const Y : TCoord) : Boolean;
 begin
     Result := True;
 
@@ -954,7 +954,7 @@ end;
 
 {......................................................................................................................}
 { function to create slope and intercept for virtual line perpendicular to a point (k1,c1,IsPrim1Vert are for ordinate line; k2,c2,IsPrim2Vert are for perpendicular line; X,Y are a point that the perpendicular line passes through)}
-function GetPerpendicularLine(k1 : Double, c1 : TCoord, IsPrim1Vert : Boolean, out k2 : Double, out c2 : TCoord, out IsPrim2Vert : Boolean, X : TCoord, Y : TCoord) : Boolean;
+function GetPerpendicularLine(k1 : Double; c1 : TCoord; IsPrim1Vert : Boolean; out k2 : Double; out c2 : TCoord; out IsPrim2Vert : Boolean; X, Y : TCoord) : Boolean;
 begin
     Result := True;
     if IsPrim1Vert then
@@ -1191,8 +1191,8 @@ end;
 
 {......................................................................................................................}
 { bundles up track move functionality that is common among all modes }
-function MoveTrackToIntercept(ThisTrackIndex : Integer, ConnectedTrackOneIndex : Integer, ConnectedTrackTwoIndex : Integer, TrimTrackIndex : Integer, TargetSlope : Double,
-    TargetIntercept : TCoord, coef : Double, Reverse : Boolean, out LastIntercept : TCoord);
+function MoveTrackToIntercept(ThisTrackIndex, ConnectedTrackOneIndex, ConnectedTrackTwoIndex, TrimTrackIndex : Integer; TargetSlope : Double;
+    TargetIntercept : TCoord; coef : Double; Reverse : Boolean; out LastIntercept : TCoord);
 var
     k0, k1, k2                : Double;  // k0 is throwaway
     c0, c1, c2                : TCoord;  // c0, c1 are throwaway
@@ -1437,7 +1437,7 @@ end;
 
 {......................................................................................................................}
 { critical function to get normalized line properties. k is slope, c is intercept. }
-procedure SetupDataFromTrack(var Prim1 : IPCB_Track, out IsVertical : Boolean, out X1 : TCoord, out Y1 : TCoord, out X2 : TCoord : out Y2 : TCoord, out k : Double, out c : TCoord);
+procedure SetupDataFromTrack(var Prim1 : IPCB_Track; out IsVertical : Boolean; out X1, out Y1, out X2, out Y2 : TCoord; out k : Double; out c : TCoord);
 var
     a, b : Integer;
 begin
@@ -1520,7 +1520,7 @@ begin
         end
         else // else if track has slope <= 20, calculate intercept point
         begin
-            c          := Y1 - k * X1; //
+            c          := Y1 - k * X1;
             IsVertical := False;
         end;
     end;
@@ -1530,7 +1530,7 @@ end;
 
 {......................................................................................................................}
 { Checks if PrimVia and PrimTrack are on the same layer and provides via coordinates, size, and projected line parallel to provided track, and returns True if successful. }
-procedure SetupDataFromVia(var PrimVia : IPCB_Via, var PrimTrack : IPCB_Track, out k : Double, out c : TCoord, out IsIntVert : Boolean, out X : TCoord, out Y : TCoord, out size : TCoord);
+procedure SetupDataFromVia(var PrimVia : IPCB_Via; var PrimTrack : IPCB_Track; out k : Double; out c : TCoord; out IsIntVert : Boolean; out X, out Y, out size : TCoord);
 var
     ViaLayer                : TLayer;
     TrackLayer              : TLayer;
@@ -1739,7 +1739,7 @@ end;
 
 {......................................................................................................................}
 // programmatically, OnKeyPress fires before OnChange event and "catches" the key press
-procedure UserKeyPress(Sender : TObject, var Key : Char);
+procedure UserKeyPress(Sender : TObject; var Key : Char);
 begin
     if (ButtonOK.Enabled) and (Ord(Key) = 13) then
     begin
