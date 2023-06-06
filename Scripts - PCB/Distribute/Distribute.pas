@@ -17,7 +17,7 @@ var
 
 const
     NumPresets = 15; // no longer just for presets, also used to save previous state
-    ScriptVersion = '1.51';
+    ScriptVersion = '1.52';
     ScriptTitle = 'Distribute';
     PresetFileName = 'MyDistributePresets.txt';
 
@@ -43,7 +43,7 @@ function GetIntersection(k1 : Double, c1 : TCoord, IsPrim1Vert : Boolean, k2 : D
 function GetParallelLine(k1 : Double, c1 : TCoord, IsPrim1Vert : Boolean, out k2 : Double, out c2 : TCoord, out IsPrim2Vert : Boolean, const X : TCoord, const Y : TCoord) : Boolean; forward;
 function GetPerpendicularLine(k1 : Double, c1 : TCoord, IsPrim1Vert : Boolean, out k2 : Double, out c2 : TCoord, out IsPrim2Vert : Boolean, X : TCoord, Y : TCoord) : Boolean; forward;
 function GetPresetButtonEnable(const dummy : Integer) : Boolean; forward;
-procedure InitialCheck(var status : Integer); forward;
+function InitialCheck(var status : Integer) : Integer; forward;
 function IsStringANum(Text : string) : Boolean; forward;
 procedure LoadPresetListFromFile(const dummy : Integer); forward;
 function MoveTrackToIntercept(ThisTrackIndex : Integer, ConnectedTrackOneIndex : Integer, ConnectedTrackTwoIndex : Integer, TrimTrackIndex : Integer, TargetSlope : Double, TargetIntercept : TCoord, coef : Double, Reverse : Boolean, out LastIntercept : TCoord); forward;
@@ -799,15 +799,28 @@ end;
 {......................................................................................................................}
 procedure FastDistributeByClearance;
 var
-    status : Integer;
+    status   : Integer;
+    ViaCount : Integer;
 begin
-    InitialCheck(status);
+    ViaCount := InitialCheck(status);
     if status = 0 then
     begin
-        DebuggingEnabled := False;
-        RadioButtonCenters.Checked   := False;
-        RadioButtonClearance.Checked := True;
-        calculate(False);
+        if (ViaCount = 2) and (Board.SelectecObjectCount = 3) then
+        begin
+            // two vias and one track selected, do track centering instead
+            DebuggingEnabled := False;
+            RadioButtonCenters.Checked      := False;
+            RadioButtonClearance.Checked    := False;
+            RadioDirections.ItemIndex       := 1;
+            calculate(False);
+        end
+        else
+        begin
+            DebuggingEnabled := False;
+            RadioButtonCenters.Checked   := False;
+            RadioButtonClearance.Checked := True;
+            calculate(False);
+        end;
     end
     else exit;
 end;
@@ -975,8 +988,8 @@ end;
 
 
 {......................................................................................................................}
-{ InitialCheck procedure }
-procedure InitialCheck(var status : Integer);
+{ InitialCheck function performs initial validation checks on selected objects. Now returns ViaCount for use in logic. }
+function InitialCheck(var status : Integer) : Integer;
 var
     i                  : Integer;
     Prim1              : IPCB_Primitive;
@@ -988,6 +1001,7 @@ var
     ViaCount           : Integer;
 begin
     status := 0; // clear result status
+    Result := 0;
 
     // Checks if current document is a PCB kind if not, exit.
     Board := PCBServer.GetCurrentPCBBoard;
@@ -1023,7 +1037,7 @@ begin
             Prim1 := Board.SelectecObject[i];
             if (((Prim1.ObjectId <> eTrackObject) and (Prim1.ObjectId <> eViaObject)) or (not Prim1.InNet)) then Prim1.SetState_Selected(False)
             else i := i + 1; // advance iterator if current object remains selected
-        end;C
+        end;
     end;
 
 
@@ -1091,6 +1105,7 @@ begin
         end;
         i := i + 1;
     end;
+    Result := ViaCount;
 end;
 {......................................................................................................................}
 
