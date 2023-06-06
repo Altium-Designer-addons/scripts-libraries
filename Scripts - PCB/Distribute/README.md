@@ -14,6 +14,8 @@ _Eligible objects_: Select two or more parallel tracks.\
 _Invoke script_ and choose relevant operation from GUI.
 ### Distribute by Clearance
 _Distribute by Clearance_ will make the clearance distance between all tracks equal, without moving the outer 2 tracks. Requires 3 or more parallel tracks.
+### Fast Distribute by Clearance
+_FastDistributeByClearance_ script procedure can be invoked without GUI to quickly distribute tracks by clearance or to center a single track between two vias.
 ### Distribute by Centerlines
 _Distribute by Centerlines_ will make pitch of all tracks equal, without moving the outer 2 tracks. If tracks are different widths, they will necessarily have different gaps. Requires 3 or more parallel tracks.
 ### Distribute Clearances by value
@@ -80,3 +82,5 @@ Tracks with a slope greater than 20 (90° > angle > ~87.137°) will be coerced t
 2023-05-12 by Ryan Rutledge : v1.50 - added function prototypes at top with *forward* for future refactor; added location of settings file to *About* info; fixed undefined function error due to function order
 
 2023-05-25 by Ryan Rutledge : v1.51 - changed List objects to use CreateObject() for implicit garbage collection; changed dialog styles to Altium themed; reorganized functions alphabetically
+
+2023-06-06 by Ryan Rutledge : v1.52 - updated *FastDistributeByClearance* to add support for via centering of single track; fixed typo breaking via centering feature
