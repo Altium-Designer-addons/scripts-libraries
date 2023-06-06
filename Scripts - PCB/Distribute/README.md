@@ -83,4 +83,4 @@ Tracks with a slope greater than 20 (90° > angle > ~87.137°) will be coerced t
 
 2023-05-25 by Ryan Rutledge : v1.51 - changed List objects to use CreateObject() for implicit garbage collection; changed dialog styles to Altium themed; reorganized functions alphabetically
 
-2023-06-06 by Ryan Rutledge : v1.52 - updated *FastDistributeByClearance* to add support for via centering of single track
+2023-06-06 by Ryan Rutledge : v1.52 - updated *FastDistributeByClearance* to add support for via centering of single track; fixed typo breaking via centering feature
