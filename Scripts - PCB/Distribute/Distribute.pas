@@ -26,32 +26,32 @@ procedure About; forward;
 procedure AddToDebugListAfter(var Prim : IPCB_Track; LastIntercept : TCoord); forward;
 procedure AddToDebugListBefore(var Prim : IPCB_Track; TargetSlope : Double; TargetIntercept : TCoord); forward;
 procedure AddToDebugListFirstVia(var Prim1 : IPCB_Via; var Prim2 : IPCB_Track); forward;
-procedure AddToDebugListSecondVia(var Prim1 : IPCB_Via; var Prim2 : IPCB_Track; const viaminc, const viamaxc, const midc : TCoord); forward;
+procedure AddToDebugListSecondVia(var Prim1 : IPCB_Via; var Prim2 : IPCB_Track; const viaminc, viamaxc, midc : TCoord); forward;
 procedure BuildPresetList(var TempPresetList : TStringList); forward;
 procedure calculate(LaunchedFromGUI : Boolean); forward;
 procedure CompileSortedTracks(const dummy : Integer); forward;
 function CompileSortedVias(const dummy : Integer) : Boolean; forward;
-function DistributeBackward(startc : TCoord; coef : Double; stepc : TCoord); forward;
-function DistributeForward(startc : TCoord; coef : Double; stepc : TCoord); forward;
-function DistributeFromCenter(startc : TCoord; coef : Double; stepc : TCoord); forward;
+function DistributeBackward(startc, stepc : TCoord; coef : Double); forward;
+function DistributeForward(startc, stepc : TCoord; coef : Double); forward;
+function DistributeFromCenter(startc, stepc : TCoord; coef : Double); forward;
 procedure EnableByValControls(NewEnable : Boolean); forward;
 procedure FastDistributeByCenterline; forward;
 procedure FastDistributeByClearance; forward;
 function GetAnotherTrackInPoint(Prim1 : IPCB_Track; X, Y : TCoord; out OnFirstPoint : Boolean) : IPCB_Primitive; forward;
-function GetEdgeIntercept(const ThisTrackIndex : Integer; const coef : Double; const Reverse : Boolean; out LastIntercept : TCoord); forward;
-function GetIntersection(k1 : Double; c1 : TCoord; IsPrim1Vert : Boolean; k2 : Double; c2 : TCoord; IsPrim2Vert : Boolean; out X, out Y : TCoord) : Boolean; forward;
-function GetParallelLine(k1 : Double; c1 : TCoord; IsPrim1Vert : Boolean; out k2 : Double; out c2 : TCoord; out IsPrim2Vert : Boolean; const X, const Y : TCoord) : Boolean; forward;
-function GetPerpendicularLine(k1 : Double; c1 : TCoord; IsPrim1Vert : Boolean; out k2 : Double; out c2 : TCoord; out IsPrim2Vert : Boolean; X, Y : TCoord) : Boolean; forward;
+function GetEdgeIntercept(const ThisTrackIndex : Integer; const coef : Double; out LastIntercept : TCoord; const Reverse : Boolean); forward;
+function GetIntersection(k1 : Double; c1 : TCoord; IsPrim1Vert : Boolean; k2 : Double; c2 : TCoord; IsPrim2Vert : Boolean; out X, Y : TCoord) : Boolean; forward;
+function GetParallelLine(k1 : Double; c1 : TCoord; IsPrim1Vert : Boolean; out k2 : Double; out c2 : TCoord; out IsPrim2Vert : Boolean; const X, Y : TCoord) : Boolean; forward;
+function GetPerpendicularLine(k1 : Double; c1 : TCoord; IsPrim1Vert : Boolean; out k2 : Double; out c2 : TCoord; out IsPrim2Vert : Boolean; const X, Y : TCoord) : Boolean; forward;
 function GetPresetButtonEnable(const dummy : Integer) : Boolean; forward;
 function InitialCheck(var status : Integer) : Integer; forward;
 function IsStringANum(Text : string) : Boolean; forward;
 procedure LoadPresetListFromFile(const dummy : Integer); forward;
-function MoveTrackToIntercept(ThisTrackIndex, ConnectedTrackOneIndex, ConnectedTrackTwoIndex, TrimTrackIndex : Integer; TargetSlope : Double; TargetIntercept : TCoord; coef : Double; Reverse : Boolean; out LastIntercept : TCoord); forward;
+function MoveTrackToIntercept(ThisTrackIndex, ConnectedTrackOneIndex, ConnectedTrackTwoIndex, TrimTrackIndex : Integer; coef, TargetSlope : Double; TargetIntercept, out LastIntercept : TCoord; Reverse : Boolean); forward;
 procedure PadAndSort(var list : TStringList); forward;
-function PointToPointDistance(X1, Y1, X2, Y2) : Double; forward;
+function PointToPointDistance(X1, Y1, X2, Y2 : TCoord) : Double; forward;
 procedure PresetButtonClicked(Sender : TObject); forward;
-procedure SetupDataFromTrack(var Prim1 : IPCB_Track; out IsVertical : Boolean; out X1, out Y1, out X2, out Y2 : TCoord; out k : Double; out c : TCoord); forward;
-procedure SetupDataFromVia(var PrimVia : IPCB_Via; var PrimTrack : IPCB_Track; out k : Double; out c : TCoord; out IsIntVert : Boolean; out X, out Y, out size : TCoord); forward;
+procedure SetupDataFromTrack(var Prim1 : IPCB_Track; out IsVertical : Boolean; out k : Double; out c, X1, Y1, X2, Y2 : TCoord); forward;
+procedure SetupDataFromVia(var PrimVia : IPCB_Via; var PrimTrack : IPCB_Track; out IsIntVert : Boolean; out k : Double; out c, X, Y, size : TCoord); forward;
 procedure Start; forward;
 procedure StartWithDebug; forward;
 procedure TFormDistribute.ButtonCancelClick(Sender : TObject); forward;
@@ -100,7 +100,7 @@ begin
     TempDebugList := CreateObject(TStringList);
     TempDebugList.CommaText := DebugList[DebugList.Count - 1];
     DebugList.Delete(DebugList.Count - 1);
-    SetupDataFromTrack(Prim, IsVert, X1, Y1, X2, Y2, k, c);
+    SetupDataFromTrack(Prim, IsVert, k, c, X1, Y1, X2, Y2);
     TempDebugList.Append(IntToStr(X1));
     TempDebugList.Append(IntToStr(Y1));
     TempDebugList.Append(IntToStr(X2));
@@ -126,7 +126,7 @@ var
 
 begin
     TempDebugList := CreateObject(TStringList);
-    SetupDataFromTrack(Prim, IsVert, X1, Y1, X2, Y2, k, c);
+    SetupDataFromTrack(Prim, IsVert, k, c, X1, Y1, X2, Y2);
     TempDebugList.Append(IntToStr(X1));
     TempDebugList.Append(IntToStr(Y1));
     TempDebugList.Append(IntToStr(X2));
@@ -154,7 +154,7 @@ var
 
 begin
     TempDebugList := CreateObject(TStringList);
-    SetupDataFromVia(Prim1, Prim2, k, c, IsVert, X1, Y1, ViaSize);
+    SetupDataFromVia(Prim1, Prim2, IsVert, k, c, X1, Y1, ViaSize);
     TempDebugList.Append(IntToStr(X1));
     TempDebugList.Append(IntToStr(Y1));
     TempDebugList.Append(IntToStr(ViaSize));
@@ -168,7 +168,7 @@ end;
 
 {......................................................................................................................}
 { debugging function }
-procedure AddToDebugListSecondVia(var Prim1 : IPCB_Via; var Prim2 : IPCB_Track; const viaminc, const viamaxc, const midc : TCoord);
+procedure AddToDebugListSecondVia(var Prim1 : IPCB_Via; var Prim2 : IPCB_Track; const viaminc, viamaxc, midc : TCoord);
 var
     X1, Y1, X2, Y2  : TCoord;
     k               : Double;
@@ -183,13 +183,13 @@ begin
     TempDebugList := CreateObject(TStringList);
     TempDebugList.CommaText := ViaDebugList[ViaDebugList.Count - 1];
     ViaDebugList.Delete(ViaDebugList.Count - 1);
-    SetupDataFromVia(Prim1, Prim2, k, c, IsVert, X1, Y1, ViaSize);
+    SetupDataFromVia(Prim1, Prim2, IsVert, k, c, X1, Y1, ViaSize);
     TempDebugList.Append(IntToStr(X1));
     TempDebugList.Append(IntToStr(Y1));
     TempDebugList.Append(IntToStr(ViaSize));
     TempDebugList.Append(FloatToStr(k));
     TempDebugList.Append(IntToStr(c));
-    SetupDataFromTrack(Prim2, IsVert, X1, Y1, X2, Y2, trackslope, trackintercept);
+    SetupDataFromTrack(Prim2, IsVert, trackslope, trackintercept, X1, Y1, X2, Y2);
     TempDebugList.Append(FloatToStr(trackslope));
     TempDebugList.Append(IntToStr(trackintercept));
     TempDebugList.Append(IntToStr(viaminc));
@@ -268,7 +268,7 @@ begin
         // seeks min and max c i.e. range of intercept values (trazi min i max C tj grnice sirenja   vodova)
         // moved intercept stats here to operate on sorted data instead of original selection. doing before sorting could cause issues with distribute by clearance if first selected track is a different width.
         Prim1 := SortedTracks.getObject(0);
-        SetupDataFromTrack(Prim1, IsVert1, x11, y11, x12, y12, k1, c1);
+        SetupDataFromTrack(Prim1, IsVert1, k1, c1, x11, y11, x12, y12);
 
         minc        := c1;
         maxc        := c1;
@@ -282,7 +282,7 @@ begin
         for i := 1 to SortedTracks.Count - 1 do
         begin
             Prim1 := SortedTracks.getObject(i);
-            SetupDataFromTrack(Prim1, IsVert2, x21, y21, x22, y22, k2, c2);
+            SetupDataFromTrack(Prim1, IsVert2, k2, c2, x21, y21, x22, y22);
 
             if (minc > c2) then minc := c2;
             if (maxc < c2) then maxc := c2;
@@ -309,13 +309,13 @@ begin
             Prim2 := SortedTracks.getObject(0);         // get first track from the SortedTracks list
 
             Prim1 := SortedVias.getObject(0);           // get first via from the SortedVias list
-            SetupDataFromVia(Prim1, Prim2, k1, c1, IsVert1, x11, y11, viasize);
+            SetupDataFromVia(Prim1, Prim2, IsVert1, k1, c1, x11, y11, viasize);
             viaminc := c1 + viasize / (2 * coef);          // add via pad radius
 
             if DebuggingEnabled then AddToDebugListFirstVia(Prim1, Prim2);
 
             Prim1 := SortedVias.getObject(1);           // get second via from the SortedVias list
-            SetupDataFromVia(Prim1, Prim2, k1, c1, IsVert1, x11, y11, viasize);
+            SetupDataFromVia(Prim1, Prim2, IsVert1, k1, c1, x11, y11, viasize);
             viamaxc := c1 - viasize / (2 * coef);          // subtract via pad radius
 
             midc := (Round(viaminc + viamaxc)) div 2;   // midline between the vias, accounting for their size
@@ -345,7 +345,7 @@ begin
         while i < SortedTracks.Count do
         begin
             Prim1 := SortedTracks.getObject(i);
-            SetupDataFromTrack(Prim1, IsVert1, x11, y11, x12, y12, k1, c1);
+            SetupDataFromTrack(Prim1, IsVert1, k1, c1, x11, y11, x12, y12);
 
             // look for a track (call it track 1a) that is connected to this track's first point and insert it after this track in the list (provjera za prvu tocku i umece 1a liniju ispod 1 linije tracka)
             Prim2 := GetAnotherTrackInPoint(Prim1, Prim1.X1, Prim1.Y1, IsFirstPoint);
@@ -353,7 +353,7 @@ begin
             if (Prim2 = nil) then SortedTracks.Insert(i + 1, '0') // no connected track so insert placeholder
             else
             begin // there is a connected track, validate it
-                SetupDataFromTrack(Prim2, IsVert2, x21, y21, x22, y22, k2, c2);
+                SetupDataFromTrack(Prim2, IsVert2, k2, c2, x21, y21, x22, y22);
                 // test whether there are any problems on the track e.g. two segments are parallel (test da li ima nekih problema na tracku npr paralelna dve u nastavku)
                 // i.e. there must be a single contiguous track segment (tj mora biti jedan jedini track)
                 if ((IsVert1 = IsVert2) and (Abs(k1 - k2) < 0.01)) then
@@ -378,7 +378,7 @@ begin
             if (Prim2 = nil) then SortedTracks.Insert(i + 2, '0') // no connected track so insert placeholder
             else
             begin // there is a connected track, validate it
-                SetupDataFromTrack(Prim2, IsVert2, x21, y21, x22, y22, k2, c2);
+                SetupDataFromTrack(Prim2, IsVert2, k2, c2, x21, y21, x22, y22);
 
                 if ((IsVert1 = IsVert2) and (Abs(k1 - k2) < 0.01)) then
                 begin // connected segment is parallel
@@ -412,12 +412,12 @@ begin
         if RadioButtonCenters.Checked then
         begin
             stepc := (maxc - minc) / ((SortedTracks.Count / 3) - 1); // intercept increment is intercept extents divided by number of tracks - 1
-            DistributeForward(minc, coef, stepc);
+            DistributeForward(minc, stepc, coef);
         end
         else if RadioButtonClearance.Checked then
         begin
             stepc := (maxc - minc - cFromWidths) / ((SortedTracks.Count / 3) - 1); // intercept increment is same as above but subtracting sum of track widths from intercept extents
-            DistributeForward(minc, coef, stepc);
+            DistributeForward(minc, stepc, coef);
         end
         else
         begin // distributing using input value rather than between intercept extents
@@ -430,10 +430,10 @@ begin
 
             { CALL FUNCTION to actually move the tracks }
             case RadioDirections.ItemIndex of
-                0 : DistributeForward(minc, coef, stepc);
-                1 : DistributeFromCenter(midc, coef, stepc);
-                2 : DistributeBackward(maxc, coef, stepc);
-                else DistributeForward(minc, coef, stepc);
+                0 : DistributeForward(minc, stepc, coef);
+                1 : DistributeFromCenter(midc, stepc, coef);
+                2 : DistributeBackward(maxc, stepc, coef);
+                else DistributeForward(minc, stepc, coef);
             end;
         end;
 
@@ -495,7 +495,7 @@ begin
         Prim1 := Board.SelectecObject[i];
         if Prim1.ObjectId = eTrackObject then
         begin
-            SetupDataFromTrack(Prim1, IsVert2, x21, y21, x22, y22, k2, c2);
+            SetupDataFromTrack(Prim1, IsVert2, k2, c2, x21, y21, x22, y22);
 
             TempString := IntToStr(c2);
 
@@ -542,7 +542,7 @@ begin
         PrimVia := Board.SelectecObject[i];
         if PrimVia.ObjectId = eViaObject then
         begin
-            SetupDataFromVia(PrimVia, PrimTrack, k1, c1, IsIntVert, X, Y, size);
+            SetupDataFromVia(PrimVia, PrimTrack, IsIntVert, k1, c1, X, Y, size);
 
             TempString := IntToStr(c1);
 
@@ -564,7 +564,7 @@ end;
 
 
 {......................................................................................................................}
-function DistributeBackward(startc : TCoord; coef : Double; stepc : TCoord);
+function DistributeBackward(startc, stepc : TCoord; coef : Double);
 var
     i, j                           : Integer;
     TrimTrackIndex                 : Integer;
@@ -583,7 +583,7 @@ begin
     begin
         Prim1          := SortedTracks.getObject(i);
         Prim1.Selected := True;
-        SetupDataFromTrack(Prim1, IsVert1, x11, y11, x12, y12, k, TargetIntercept);
+        SetupDataFromTrack(Prim1, IsVert1, k, TargetIntercept, x11, y11, x12, y12);
 
         if i = TrimTrackIndex then
         begin
@@ -596,7 +596,7 @@ begin
             else TargetIntercept := LastIntercept - stepc - Prim1.Width / (2 * coef); // if using clearances, use previous track intercept plus step size plus half of this track's width
         end;
 
-        MoveTrackToIntercept(i, i + 1, i + 2, TrimTrackIndex, TargetSlope, TargetIntercept, coef, True, LastIntercept);
+        MoveTrackToIntercept(i, i + 1, i + 2, TrimTrackIndex, coef, TargetSlope, TargetIntercept, LastIntercept, True);
 
         i := i - 3; // jump back to the preceding track in the sorted list
         inc(j); // increment track step counter
@@ -606,7 +606,7 @@ end;
 
 
 {......................................................................................................................}
-function DistributeForward(startc : TCoord; coef : Double; stepc : TCoord);
+function DistributeForward(startc, stepc : TCoord; coef : Double);
 var
     i, j                           : Integer;
     TrimTrackIndex                 : Integer;
@@ -625,7 +625,7 @@ begin
     begin
         Prim1          := SortedTracks.getObject(i);
         Prim1.Selected := True;
-        SetupDataFromTrack(Prim1, IsVert1, x11, y11, x12, y12, k, TargetIntercept);
+        SetupDataFromTrack(Prim1, IsVert1, k, TargetIntercept, x11, y11, x12, y12);
 
         if i = TrimTrackIndex then
         begin
@@ -638,7 +638,7 @@ begin
             else TargetIntercept := LastIntercept + stepc + Prim1.Width / (2 * coef); // if using clearances, use previous track intercept plus step size plus half of this track's width
         end;
 
-        MoveTrackToIntercept(i, i + 1, i + 2, TrimTrackIndex, TargetSlope, TargetIntercept, coef, False, LastIntercept);
+        MoveTrackToIntercept(i, i + 1, i + 2, TrimTrackIndex, coef, TargetSlope, TargetIntercept, LastIntercept, False);
 
         i := i + 3; // advance to next track in sorted list
         inc(j); // increment track step counter
@@ -648,7 +648,7 @@ end;
 
 
 {......................................................................................................................}
-function DistributeFromCenter(startc : TCoord; coef : Double; stepc : TCoord);
+function DistributeFromCenter(startc, stepc : TCoord; coef : Double);
 var
     i, j                           : Integer;
     TrimTrackIndex                 : Integer;
@@ -696,7 +696,7 @@ begin
     begin
         Prim1          := SortedTracks.getObject(i);
         Prim1.Selected := True;
-        SetupDataFromTrack(Prim1, IsVert1, x11, y11, x12, y12, k, TargetIntercept);
+        SetupDataFromTrack(Prim1, IsVert1, k, TargetIntercept, x11, y11, x12, y12);
 
         if i = TrimTrackIndex then
         begin
@@ -709,7 +709,7 @@ begin
             else TargetIntercept := LastIntercept + stepc + Prim1.Width / (2 * coef); // if using clearances, use previous track intercept plus step size plus half of this track's width
         end;
 
-        MoveTrackToIntercept(i, i + 1, i + 2, TrimTrackIndex, TargetSlope, TargetIntercept, coef, False, LastIntercept);
+        MoveTrackToIntercept(i, i + 1, i + 2, TrimTrackIndex, coef, TargetSlope, TargetIntercept, LastIntercept, False);
 
         i := i + 3; // advance to next track in sorted list
         inc(j); // increment track step counter
@@ -723,19 +723,19 @@ begin
     begin
         Prim1          := SortedTracks.getObject(i);
         Prim1.Selected := True;
-        SetupDataFromTrack(Prim1, IsVert1, x11, y11, x12, y12, k, TargetIntercept);
+        SetupDataFromTrack(Prim1, IsVert1, k, TargetIntercept, x11, y11, x12, y12);
 
         if i = TrimTrackIndex then
         begin
             TargetIntercept := SplitIntercept;
-            GetEdgeIntercept(i, coef, True, LastIntercept);
+            GetEdgeIntercept(i, coef, LastIntercept, True);
         end
         else
         begin // calculate target intercepts
             if RadioButtonCenters.Checked or RadioButtonCentersVal.Checked then TargetIntercept := SplitIntercept - j * stepc // if using centers, use step size directly
             else TargetIntercept := LastIntercept - stepc - Prim1.Width / (2 * coef); // if using clearances, use previous track intercept plus step size plus half of this track's width
 
-            MoveTrackToIntercept(i, i + 1, i + 2, TrimTrackIndex, TargetSlope, TargetIntercept, coef, True, LastIntercept);
+            MoveTrackToIntercept(i, i + 1, i + 2, TrimTrackIndex, coef, TargetSlope, TargetIntercept, LastIntercept, True);
         end;
 
         i := i - 3; // jump back to the preceding track in the sorted list
@@ -873,7 +873,7 @@ end;
 
 {......................................................................................................................}
 { Gets width-aware edge intercept }
-function GetEdgeIntercept(const ThisTrackIndex : Integer; const coef : Double; const Reverse : Boolean; out LastIntercept : TCoord);
+function GetEdgeIntercept(const ThisTrackIndex : Integer; const coef : Double; out LastIntercept : TCoord; const Reverse : Boolean);
 var
     k1                      : Double;   // k1 is throwaway
     c1                      : TCoord;
@@ -883,7 +883,7 @@ var
 
 begin
     Prim1 := SortedTracks.getObject(ThisTrackIndex);
-    SetupDataFromTrack(Prim1, IsVert1, x11, y11, x12, y12, k1, c1);
+    SetupDataFromTrack(Prim1, IsVert1, k1, c1, x11, y11, x12, y12);
 
     if Reverse then LastIntercept := c1 - (Prim1.Width / (2 * coef)) // subtract half of current track width for next pass (intercept at moved track edge)
     else LastIntercept            := c1 + (Prim1.Width / (2 * coef)); // add half of current track width for next pass (intercept at moved track edge)
@@ -894,7 +894,7 @@ end;
 
 {......................................................................................................................}
 { function to test if two tracks have an intercept point (tracks are not parallel) }
-function GetIntersection(k1 : Double; c1 : TCoord; IsPrim1Vert : Boolean; k2 : Double; c2 : TCoord; IsPrim2Vert : Boolean; out X, out Y : TCoord) : Boolean;
+function GetIntersection(k1 : Double; c1 : TCoord; IsPrim1Vert : Boolean; k2 : Double; c2 : TCoord; IsPrim2Vert : Boolean; out X, Y : TCoord) : Boolean;
 begin
     Result := True;
     if (IsPrim1Vert and IsPrim2Vert) or ((not IsPrim1Vert) and (not IsPrim2Vert) and (Abs(k1 - k2) < 0.01)) then
@@ -926,7 +926,7 @@ end;
 
 {......................................................................................................................}
 {function to create slope and intercept for virtual line parallel to an ordinate line and passing through a point (k1,c1,IsPrim1Vert are for ordinate line)}
-function GetParallelLine(k1 : Double; c1 : TCoord; IsPrim1Vert : Boolean; out k2 : Double; out c2 : TCoord; out IsPrim2Vert : Boolean; const X, const Y : TCoord) : Boolean;
+function GetParallelLine(k1 : Double; c1 : TCoord; IsPrim1Vert : Boolean; out k2 : Double; out c2 : TCoord; out IsPrim2Vert : Boolean; const X, Y : TCoord) : Boolean;
 begin
     Result := True;
 
@@ -954,7 +954,7 @@ end;
 
 {......................................................................................................................}
 { function to create slope and intercept for virtual line perpendicular to a point (k1,c1,IsPrim1Vert are for ordinate line; k2,c2,IsPrim2Vert are for perpendicular line; X,Y are a point that the perpendicular line passes through)}
-function GetPerpendicularLine(k1 : Double; c1 : TCoord; IsPrim1Vert : Boolean; out k2 : Double; out c2 : TCoord; out IsPrim2Vert : Boolean; X, Y : TCoord) : Boolean;
+function GetPerpendicularLine(k1 : Double; c1 : TCoord; IsPrim1Vert : Boolean; out k2 : Double; out c2 : TCoord; out IsPrim2Vert : Boolean; const X, Y : TCoord) : Boolean;
 begin
     Result := True;
     if IsPrim1Vert then
@@ -1074,7 +1074,7 @@ begin
 
     // Set up the initial track data
     Prim1 := Board.SelectecObject[i];
-    SetupDataFromTrack(Prim1, IsVert1, x11, y11, x12, y12, k1, c1);
+    SetupDataFromTrack(Prim1, IsVert1, k1, c1, x11, y11, x12, y12);
 
     // Check that all selected tracks are parallel with the first one, skipping vias
     i := i + 1;
@@ -1083,7 +1083,7 @@ begin
         Prim1 := Board.SelectecObject[i];
         if Prim1.ObjectId = eTrackObject then
         begin
-            SetupDataFromTrack(Prim1, IsVert2, x21, y21, x22, y22, k2, c2);
+            SetupDataFromTrack(Prim1, IsVert2, k2, c2, x21, y21, x22, y22);
 
             if ((IsVert1 <> IsVert2) or (Abs(k1 - k2) > 0.01)) then
             begin
@@ -1191,8 +1191,7 @@ end;
 
 {......................................................................................................................}
 { bundles up track move functionality that is common among all modes }
-function MoveTrackToIntercept(ThisTrackIndex, ConnectedTrackOneIndex, ConnectedTrackTwoIndex, TrimTrackIndex : Integer; TargetSlope : Double;
-    TargetIntercept : TCoord; coef : Double; Reverse : Boolean; out LastIntercept : TCoord);
+function MoveTrackToIntercept(ThisTrackIndex, ConnectedTrackOneIndex, ConnectedTrackTwoIndex, TrimTrackIndex : Integer; coef, TargetSlope : Double; TargetIntercept, out LastIntercept : TCoord; Reverse : Boolean);
 var
     k0, k1, k2                : Double;  // k0 is throwaway
     c0, c1, c2                : TCoord;  // c0, c1 are throwaway
@@ -1205,12 +1204,12 @@ var
 
 begin
     Prim1 := SortedTracks.getObject(ThisTrackIndex);
-    SetupDataFromTrack(Prim1, IsVert1, x11, y11, x12, y12, k1, c1);
+    SetupDataFromTrack(Prim1, IsVert1, k1, c1, x11, y11, x12, y12);
 
     if TrimPerpendicular then
     begin
         Prim0 := SortedTracks.getObject(TrimTrackIndex);
-        SetupDataFromTrack(Prim0, IsVert0, x01, y01, x02, y02, k0, c0);
+        SetupDataFromTrack(Prim0, IsVert0, k0, c0, x01, y01, x02, y02);
     end;
 
     if DebuggingEnabled then AddToDebugListBefore(Prim1, TargetSlope, TargetIntercept);
@@ -1220,7 +1219,7 @@ begin
     Prim2 := SortedTracks.getObject(ConnectedTrackOneIndex); // track connected to first end of the moving track
     if (SortedTracks[ConnectedTrackOneIndex] <> '0') then
     begin // if there *is* a connected track on this end
-        SetupDataFromTrack(Prim2, IsVert2, x21, y21, x22, y22, k2, c2);
+        SetupDataFromTrack(Prim2, IsVert2, k2, c2, x21, y21, x22, y22);
         if GetIntersection(TargetSlope, TargetIntercept, IsVert1, k2, c2, IsVert2, X, Y) then
         begin // tracks intercept, X & Y are the point where they do
             // move this track's first point to the intercept point
@@ -1282,7 +1281,7 @@ begin
     Prim2 := SortedTracks.getObject(ConnectedTrackTwoIndex); // track connected to second end of the moving track
     if (SortedTracks[ConnectedTrackTwoIndex] <> '0') then
     begin
-        SetupDataFromTrack(Prim2, IsVert2, x21, y21, x22, y22, k2, c2);
+        SetupDataFromTrack(Prim2, IsVert2, k2, c2, x21, y21, x22, y22);
 
         if GetIntersection(TargetSlope, TargetIntercept, IsVert1, k2, c2, IsVert2, X, Y) then
         begin
@@ -1411,7 +1410,7 @@ end;
 
 {......................................................................................................................}
 { calculates point to point distance }
-function PointToPointDistance(X1, Y1, X2, Y2) : Double;
+function PointToPointDistance(X1, Y1, X2, Y2 : TCoord) : Double;
 begin
     Result := sqrt(sqr(X2 - X1) + sqr(Y2 - Y1));
 end;
@@ -1437,7 +1436,7 @@ end;
 
 {......................................................................................................................}
 { critical function to get normalized line properties. k is slope, c is intercept. }
-procedure SetupDataFromTrack(var Prim1 : IPCB_Track; out IsVertical : Boolean; out X1, out Y1, out X2, out Y2 : TCoord; out k : Double; out c : TCoord);
+procedure SetupDataFromTrack(var Prim1 : IPCB_Track; out IsVertical : Boolean; out k : Double; out c, X1, Y1, X2, Y2 : TCoord);
 var
     a, b : Integer;
 begin
@@ -1530,7 +1529,7 @@ end;
 
 {......................................................................................................................}
 { Checks if PrimVia and PrimTrack are on the same layer and provides via coordinates, size, and projected line parallel to provided track, and returns True if successful. }
-procedure SetupDataFromVia(var PrimVia : IPCB_Via; var PrimTrack : IPCB_Track; out k : Double; out c : TCoord; out IsIntVert : Boolean; out X, out Y, out size : TCoord);
+procedure SetupDataFromVia(var PrimVia : IPCB_Via; var PrimTrack : IPCB_Track; out IsIntVert : Boolean; out k : Double; out c, X, Y, size : TCoord);
 var
     ViaLayer                : TLayer;
     TrackLayer              : TLayer;
@@ -1555,7 +1554,7 @@ begin
     end;
 
         // Get the parameters of the track (only actually using 'k1', 'c1')
-        SetupDataFromTrack(PrimTrack, IsVert1, x11, y11, x12, y12, k1, c1);
+        SetupDataFromTrack(PrimTrack, IsVert1, k1, c1, x11, y11, x12, y12);
 
         // Get the parameters of the parallel line
         GetParallelLine(k1, c1, IsVert1, k, c, IsIntVert, X, Y);
