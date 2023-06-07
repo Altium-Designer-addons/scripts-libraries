@@ -6,7 +6,7 @@ var
 
 const
     DebuggingEnabled = False;
-    ScriptVersion = '1.4';
+    ScriptVersion = '1.5';
     ScriptTitle = 'SelectAssyDesignators';
     MinDesignatorSize = 100000; // minimum designator size for resizing in Altium coordinate units (100000 = 10 mils)
 
@@ -50,7 +50,7 @@ var
     i           : Integer;
     status      : Integer;
     Comp        : IPCB_Component;
-    Text        : IPCB_Text;
+    Text        : IPCB_Text3;
     XOffset, YOffset        : TCoord;
     box_width, box_height   : TCoord;
     target_rotation         : Integer;
@@ -89,32 +89,21 @@ begin
                                 //'box_height: ' + IntToStr(box_height), 'Bounding Box Info');
                     if Ortho then ResizeText(Text, box_height, box_width) else ResizeText(Text, box_width, box_height);
 
-                    // Needed to "refresh" Text size before calculating boundaries (Text.GraphicallyInvalidate didn't work)
-                    Text.EndModify;
-                    Text.BeginModify;
-
                 end;
 
                 // set Text object's justification to center.
                 Text.AdvanceSnapping := True;   // necessary for autoposition to work correctly (thanks, Brett Miller!)
                 Text.TTFInvertedTextJustify := eAutoPos_CenterCenter;
 
-                // IPCB_Text MoveToXY method doesn't account for justification settings, so need to calculate offsets (based on 0 rotation)
-                if Text.UseTTFonts then XOffset := Text.TTFTextWidth div 2 else XOffset := Text.TTFTextWidth div 2 - Text.Width;
-                if Text.UseTTFonts then YOffset := Text.TTFTextHeight div 2 else YOffset := Text.TTFTextHeight div 2 - Text.Width;
+                // move text to component's position using `Text.SnapPointX` and `Text.SnapPointY` (goodbye Text.MoveToXY()!)
+                Text.SnapPointX := Comp.x;
+                Text.SnapPointY := Comp.y;
 
-                Text.Rotation := 0; // set text rotation to 0 to fit calculated offsets rather than trying to calculate all the permutations based on rotation
-
-                // Needed to "refresh" Text rotation before calling MoveToXY method (Text.GraphicallyInvalidate didn't work)
-                Text.EndModify;
-                Text.BeginModify;
-
-                // move text to component's position using `Text.MoveToXY()` then rotate to match component
+                // rotate text to match component
                 case Text.GetState_Mirror of
                     True :
                         begin
                             if Ortho then target_rotation := (Comp.Rotation + 270) mod 360 else target_rotation := (Comp.Rotation + 180) mod 360; // mirrored text should be rotated to match layer flip behavior
-                            Text.MoveToXY(Comp.x + XOffset, Comp.y - YOffset);
                             if Normalize and (target_rotation >= 90) and (target_rotation < 270) then
                                 Text.Rotation := (target_rotation + 180) mod 360
                             else
@@ -123,7 +112,6 @@ begin
                     False :
                         begin
                             if Ortho then target_rotation := (Comp.Rotation + 270) mod 360 else target_rotation := Comp.Rotation;
-                            Text.MoveToXY(Comp.x - XOffset, Comp.y - YOffset);
                             if Normalize and (target_rotation > 90) and (target_rotation <= 270) then
                                 Text.Rotation := (target_rotation + 180) mod 360
                             else
@@ -420,10 +408,11 @@ end;
 
 
 { IPCB_Text inspector for debugging }
-procedure Inspect_IPCB_Text(var Text : IPCB_Text, const MyLabel : string = '');
+procedure Inspect_IPCB_Text(var Text : IPCB_Text3, const MyLabel : string = '');
 begin
     ShowInfo('DEBUGGING: ' + MyLabel + sLineBreak +
                 '------------------------------' + sLineBreak +
+                Format('%s : %s', ['AdvanceSnapping',  BoolToStr(Text.AdvanceSnapping, True)]) + sLineBreak +
                 Format('%s : %s', ['AllowGlobalEdit',  BoolToStr(Text.AllowGlobalEdit, True)]) + sLineBreak +
                 Format('%s : %s', ['Descriptor',  Text.Descriptor]) + sLineBreak +
                 Format('%s : %s', ['Detail',  Text.Detail]) + sLineBreak +
@@ -443,8 +432,10 @@ begin
                 Format('%s : %s', ['ObjectId',  IntToStr(Text.ObjectId)]) + sLineBreak +
                 Format('%s : %s', ['ObjectIDString',  Text.ObjectIDString]) + sLineBreak +
                 Format('%s : %s', ['PadCacheRobotFlag',  BoolToStr(Text.PadCacheRobotFlag, True)]) + sLineBreak +
-                Format('%s : %s', ['Text.Text',  Text.Text]) + sLineBreak +
-                Format('%s : %s', ['Text.TextKind',  IntToStr(Text.TextKind)]) + sLineBreak +
+                Format('%s : %s', ['SnapPointX',  IntToStr(Text.SnapPointX)]) + sLineBreak +
+                Format('%s : %s', ['SnapPointY',  IntToStr(Text.SnapPointY)]) + sLineBreak +
+                Format('%s : %s', ['Text',  Text.Text]) + sLineBreak +
+                Format('%s : %s', ['TextKind',  IntToStr(Text.TextKind)]) + sLineBreak +
                 Format('%s : %s', ['TTFInvertedTextJustify',  IntToStr(Text.TTFInvertedTextJustify)]) + sLineBreak +
                 Format('%s : %s', ['UseTTFonts',  BoolToStr(Text.UseTTFonts, True)]) + sLineBreak +
                 Format('%s : %s', ['Used',  BoolToStr(Text.Used, True)]) + sLineBreak +
