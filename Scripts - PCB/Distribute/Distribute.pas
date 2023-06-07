@@ -39,9 +39,9 @@ procedure FastDistributeByCenterline; forward;
 procedure FastDistributeByClearance; forward;
 function GetAnotherTrackInPoint(Prim1 : IPCB_Track; X, Y : TCoord; out OnFirstPoint : Boolean) : IPCB_Primitive; forward;
 function GetEdgeIntercept(const ThisTrackIndex : Integer; const coef : Double; out LastIntercept : TCoord; const Reverse : Boolean); forward;
-function GetIntersection(k1 : Double; c1 : TCoord; IsPrim1Vert : Boolean; k2 : Double; c2 : TCoord; IsPrim2Vert : Boolean; out X, Y : TCoord) : Boolean; forward;
-function GetParallelLine(k1 : Double; c1 : TCoord; IsPrim1Vert : Boolean; out k2 : Double; out c2 : TCoord; out IsPrim2Vert : Boolean; const X, Y : TCoord) : Boolean; forward;
-function GetPerpendicularLine(k1 : Double; c1 : TCoord; IsPrim1Vert : Boolean; out k2 : Double; out c2 : TCoord; out IsPrim2Vert : Boolean; const X, Y : TCoord) : Boolean; forward;
+function      GetIntersection(k1 : Double; c1 : TCoord; IsPrim1Vert : Boolean;     k2 : Double;     c2 : TCoord;     IsPrim2Vert : Boolean; out X, Y : TCoord) : Boolean; forward;
+function      GetParallelLine(k1 : Double; c1 : TCoord; IsPrim1Vert : Boolean; out k2 : Double; out c2 : TCoord; out IsPrim2Vert : Boolean;     X, Y : TCoord) : Boolean; forward;
+function GetPerpendicularLine(k1 : Double; c1 : TCoord; IsPrim1Vert : Boolean; out k2 : Double; out c2 : TCoord; out IsPrim2Vert : Boolean;     X, Y : TCoord) : Boolean; forward;
 function GetPresetButtonEnable(const dummy : Integer) : Boolean; forward;
 function InitialCheck(var status : Integer) : Integer; forward;
 function IsStringANum(Text : string) : Boolean; forward;
@@ -926,7 +926,7 @@ end;
 
 {......................................................................................................................}
 {function to create slope and intercept for virtual line parallel to an ordinate line and passing through a point (k1,c1,IsPrim1Vert are for ordinate line)}
-function GetParallelLine(k1 : Double; c1 : TCoord; IsPrim1Vert : Boolean; out k2 : Double; out c2 : TCoord; out IsPrim2Vert : Boolean; const X, Y : TCoord) : Boolean;
+function GetParallelLine(k1 : Double; c1 : TCoord; IsPrim1Vert : Boolean; out k2 : Double; out c2 : TCoord; out IsPrim2Vert : Boolean; X, Y : TCoord) : Boolean;
 begin
     Result := True;
 
@@ -954,7 +954,7 @@ end;
 
 {......................................................................................................................}
 { function to create slope and intercept for virtual line perpendicular to a point (k1,c1,IsPrim1Vert are for ordinate line; k2,c2,IsPrim2Vert are for perpendicular line; X,Y are a point that the perpendicular line passes through)}
-function GetPerpendicularLine(k1 : Double; c1 : TCoord; IsPrim1Vert : Boolean; out k2 : Double; out c2 : TCoord; out IsPrim2Vert : Boolean; const X, Y : TCoord) : Boolean;
+function GetPerpendicularLine(k1 : Double; c1 : TCoord; IsPrim1Vert : Boolean; out k2 : Double; out c2 : TCoord; out IsPrim2Vert : Boolean; X, Y : TCoord) : Boolean;
 begin
     Result := True;
     if IsPrim1Vert then
