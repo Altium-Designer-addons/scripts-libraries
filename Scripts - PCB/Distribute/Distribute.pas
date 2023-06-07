@@ -1544,20 +1544,18 @@ begin
     // Check if PrimVia and PrimTrack exist
     if (PrimVia = nil) or (PrimTrack = nil) then exit;
 
-    // Check if PrimVia intersects the same layer as PrimTrack
-    if PrimVia.IntersectLayer(PrimTrack.Layer) then
-    begin
-        // Set the via coordinates and size
-        X := PrimVia.X;
-        Y := PrimVia.Y;
-        size := Max(PrimVia.StackSizeOnLayer(PrimTrack.Layer), PrimVia.HoleSize); // size should be assumed to be at least HoleSize
-    end;
+    // Set the via coordinates and size
+    X := PrimVia.X;
+    Y := PrimVia.Y;
 
-        // Get the parameters of the track (only actually using 'k1', 'c1')
-        SetupDataFromTrack(PrimTrack, IsVert1, k1, c1, x11, y11, x12, y12);
+    // If PrimVia intersects the same layer as PrimTrack, use pad size on layer, otherwise use hole size
+    if PrimVia.IntersectLayer(PrimTrack.Layer) then size := Max(PrimVia.StackSizeOnLayer(PrimTrack.Layer), PrimVia.HoleSize) else size := PrimVia.HoleSize;
 
-        // Get the parameters of the parallel line
-        GetParallelLine(k1, c1, IsVert1, k, c, IsIntVert, X, Y);
+    // Get the parameters of the track (only actually using 'k1', 'c1')
+    SetupDataFromTrack(PrimTrack, IsVert1, k1, c1, x11, y11, x12, y12);
+
+    // Get the parameters of a parallel line that intersects the via
+    GetParallelLine(k1, c1, IsVert1, k, c, IsIntVert, X, Y);
 
 end;
 {......................................................................................................................}
@@ -1813,7 +1811,7 @@ begin
     end
     else
     begin
-        ShowError('One or both of the selected vias do not exist on the tracks'' layer.');
+        Result := ConfirmNoYes('One or both of the selected vias do not exist on the tracks'' layer.' + sLineBreak + sLineBreak + 'Do you want to use projected drills for centering?');
     end;
 end;
 {......................................................................................................................}
