@@ -38,9 +38,6 @@ Have a GUI that remembers last-used settings
 The script should only do *useful* work when selecting components and/or .Designator special strings associated with components. Other object types can be in the selection, however, but they will be deselected if any valid objects were selected.
 
 ## Known Issues
-### Position reset does not work properly if text justification has never been set through the editor
-This may be a bug relating to the underlying string changes that allow justification to be set for single-line strings.\
-**Workaround**: select all the .Designator strings you plan to reset (or just the ones that aren't behaving properly), then change any one of their horizontal or vertical justification *using the Properties Panel*. After that the script will be able to manipulate their justification and correctly center them.
 ### Not happy with the name
 I'm open to suggestions. While I'm using these for assembly documentation, I'm not sure calling them "Assembly Designators" is the best way to refer to them, but I can't think of anything better or more concise at the moment.
 ### Silently ignores components without a .Designator special string
@@ -61,3 +58,5 @@ There might be some value in adding a function to check that all components *hav
 2023-05-23 by Ryan Rutledge : v1.2 - added IPCB_Text inspection function for debugging
 
 2023-05-24 by Ryan Rutledge : v1.3 - fixed bug with debugging flag set to false caused by Delphi short-circuit logic
+
+2023-06-07 by Ryan Rutledge : v1.4 - fixed bug with justification not being applied to text that hadn't had it manually changed before (thanks, Brett Miller!); updated message box styles
