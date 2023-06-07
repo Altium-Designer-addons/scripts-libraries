@@ -6,7 +6,7 @@ var
 
 const
     DebuggingEnabled = False;
-    ScriptVersion = '1.3';
+    ScriptVersion = '1.4';
     ScriptTitle = 'SelectAssyDesignators';
     MinDesignatorSize = 100000; // minimum designator size for resizing in Altium coordinate units (100000 = 10 mils)
 
@@ -40,7 +40,7 @@ begin
         'Updated versions may be found here:' + sLineBreak +
         'https://github.com/Altium-Designer-addons/scripts-libraries';
 
-    ShowMessage(MsgText);
+    ShowInfo(MsgText, 'About');
 end;
 
 
@@ -85,8 +85,8 @@ begin
                 if Resize then
                 begin
                     GetBoundingBox(Comp, box_width, box_height);
-                    //ShowMessage('box_width: ' + IntToStr(box_width) + sLineBreak +
-                                //'box_height: ' + IntToStr(box_height));
+                    //ShowInfo('box_width: ' + IntToStr(box_width) + sLineBreak +
+                                //'box_height: ' + IntToStr(box_height), 'Bounding Box Info');
                     if Ortho then ResizeText(Text, box_height, box_width) else ResizeText(Text, box_width, box_height);
 
                     // Needed to "refresh" Text size before calculating boundaries (Text.GraphicallyInvalidate didn't work)
@@ -95,7 +95,8 @@ begin
 
                 end;
 
-                // set Text object's justification to center. WARNING: this will not work properly unless justification settings for the text have been manually updated (to anything), triggering and update to the object's properties
+                // set Text object's justification to center.
+                Text.AdvanceSnapping := True;   // necessary for autoposition to work correctly (thanks, Brett Miller!)
                 Text.TTFInvertedTextJustify := eAutoPos_CenterCenter;
 
                 // IPCB_Text MoveToXY method doesn't account for justification settings, so need to calculate offsets (based on 0 rotation)
@@ -179,14 +180,14 @@ begin
     begin
         if DebuggingEnabled then
         begin
-            Showmessage('Select at least 1 component or designator special string.' + sLineBreak +
+            ShowError('Select at least 1 component or designator special string.' + sLineBreak +
                         '(designator string is ".Designator")' + sLineBreak + sLineBreak +
                         '-- Debugging Info --' + sLineBreak +
                         'ComponentCount: ' + IntToStr(ComponentCount) + sLineBreak +
                         'DesignatorCount: ' + IntToStr(DesignatorCount) + sLineBreak +
                         'Selected Object Count: ' + IntToStr(Board.SelectecObjectCount));
         end
-        else Showmessage('Select at least 1 component or designator special string.');
+        else ShowError('Select at least 1 component or designator special string.');
 
         status := 1;
         exit;
@@ -233,12 +234,12 @@ begin
     begin
         if DebuggingEnabled then
         begin
-            Showmessage('Select at least 1 component.' + sLineBreak + sLineBreak +
+            ShowError('Select at least 1 component.' + sLineBreak + sLineBreak +
                         '-- Debugging Info --' + sLineBreak +
                         'ComponentCount: ' + IntToStr(ComponentCount) + sLineBreak +
                         'Selected Object Count: ' + IntToStr(Board.SelectecObjectCount));
         end
-        else Showmessage('Select at least 1 component.');
+        else ShowError('Select at least 1 component.');
 
         status := 1;
         exit;
@@ -285,13 +286,13 @@ begin
     begin
         if DebuggingEnabled then
         begin
-            Showmessage('Select at least 1 designator special string.' + sLineBreak +
+            ShowError('Select at least 1 designator special string.' + sLineBreak +
                         '(designator string is ".Designator")' + sLineBreak + sLineBreak +
                         '-- Debugging Info --' + sLineBreak +
                         'DesignatorCount: ' + IntToStr(DesignatorCount) + sLineBreak +
                         'Selected Object Count: ' + IntToStr(Board.SelectecObjectCount));
         end
-        else Showmessage('Select at least 1 assembly designator' + sLineBreak + '(string contains ".Designator")');
+        else ShowError('Select at least 1 assembly designator' + sLineBreak + '(string contains ".Designator")');
 
         status := 1;
         exit;
@@ -421,36 +422,36 @@ end;
 { IPCB_Text inspector for debugging }
 procedure Inspect_IPCB_Text(var Text : IPCB_Text, const MyLabel : string = '');
 begin
-    ShowMessage('DEBUGGING: ' + MyLabel + sLineBreak +
+    ShowInfo('DEBUGGING: ' + MyLabel + sLineBreak +
                 '------------------------------' + sLineBreak +
-                'AllowGlobalEdit: ' + BoolToStr(Text.AllowGlobalEdit) + sLineBreak +
-                'Descriptor: ' + Text.Descriptor + sLineBreak +
-                'Detail: ' + Text.Detail + sLineBreak +
-                'EnableDraw: ' + BoolToStr(Text.EnableDraw) + sLineBreak +
-                'FontID: ' + IntToStr(Text.FontID) + sLineBreak +
-                'Handle: ' + Text.Handle + sLineBreak +
-                'Identifier: ' + Text.Identifier + sLineBreak +
-                'IsSaveable: ' + BoolToStr(Text.IsSaveable(eAdvPCBFormat_Binary_V6)) + sLineBreak +
-                'MiscFlag1: ' + BoolToStr(Text.MiscFlag1) + sLineBreak +
-                'MiscFlag2: ' + BoolToStr(Text.MiscFlag2) + sLineBreak +
-                'MiscFlag3: ' + BoolToStr(Text.MiscFlag3) + sLineBreak +
-                'MultiLine: ' + BoolToStr(Text.Multiline) + sLineBreak +
-                'MultilineTextAutoPosition: ' + IntToStr(Text.MultilineTextAutoPosition) + sLineBreak +
-                'MultilineTextHeight: ' + IntToStr(Text.MultilineTextHeight) + sLineBreak +
-                'MultilineTextResizeEnabled: ' + BoolToStr(Text.MultilineTextResizeEnabled) + sLineBreak +
-                'MultilineTextWidth: ' + IntToStr(Text.MultilineTextWidth) + sLineBreak +
-                'ObjectId: ' + IntToStr(Text.ObjectId) + sLineBreak +
-                'ObjectIDString: ' + Text.ObjectIDString + sLineBreak +
-                'PadCacheRobotFlag: ' + BoolToStr(Text.PadCacheRobotFlag) + sLineBreak +
-                'Text.Text: ' + Text.Text +sLineBreak +
-                'Text.TextKind: ' + IntToStr(Text.TextKind) + sLineBreak +
-                'TTFInvertedTextJustify: ' + IntToStr(Text.TTFInvertedTextJustify) + sLineBreak +
-                'UseTTFonts: ' + BoolToStr(Text.UseTTFonts) + sLineBreak +
-                'Used: ' + BoolToStr(Text.Used) + sLineBreak +
-                'UserRouted: ' + BoolToStr(Text.UserRouted) + sLineBreak +
-                'ViewableObjectID: ' + IntToStr(Text.ViewableObjectID) + sLineBreak +
-                'WordWrap: ' + BoolToStr(Text.WordWrap) + sLineBreak
-                );
+                Format('%s : %s', ['AllowGlobalEdit',  BoolToStr(Text.AllowGlobalEdit, True)]) + sLineBreak +
+                Format('%s : %s', ['Descriptor',  Text.Descriptor]) + sLineBreak +
+                Format('%s : %s', ['Detail',  Text.Detail]) + sLineBreak +
+                Format('%s : %s', ['EnableDraw',  BoolToStr(Text.EnableDraw, True)]) + sLineBreak +
+                Format('%s : %s', ['FontID',  IntToStr(Text.FontID)]) + sLineBreak +
+                Format('%s : %s', ['Handle',  Text.Handle]) + sLineBreak +
+                Format('%s : %s', ['Identifier',  Text.Identifier]) + sLineBreak +
+                Format('%s : %s', ['IsSaveable',  BoolToStr(Text.IsSaveable(eAdvPCBFormat_Binary_V6), True)]) + sLineBreak +
+                Format('%s : %s', ['MiscFlag1',  BoolToStr(Text.MiscFlag1, True)]) + sLineBreak +
+                Format('%s : %s', ['MiscFlag2',  BoolToStr(Text.MiscFlag2, True)]) + sLineBreak +
+                Format('%s : %s', ['MiscFlag3',  BoolToStr(Text.MiscFlag3, True)]) + sLineBreak +
+                Format('%s : %s', ['MultiLine',  BoolToStr(Text.Multiline, True)]) + sLineBreak +
+                Format('%s : %s', ['MultilineTextAutoPosition',  IntToStr(Text.MultilineTextAutoPosition)]) + sLineBreak +
+                Format('%s : %s', ['MultilineTextHeight',  IntToStr(Text.MultilineTextHeight)]) + sLineBreak +
+                Format('%s : %s', ['MultilineTextResizeEnabled',  BoolToStr(Text.MultilineTextResizeEnabled, True)]) + sLineBreak +
+                Format('%s : %s', ['MultilineTextWidth',  IntToStr(Text.MultilineTextWidth)]) + sLineBreak +
+                Format('%s : %s', ['ObjectId',  IntToStr(Text.ObjectId)]) + sLineBreak +
+                Format('%s : %s', ['ObjectIDString',  Text.ObjectIDString]) + sLineBreak +
+                Format('%s : %s', ['PadCacheRobotFlag',  BoolToStr(Text.PadCacheRobotFlag, True)]) + sLineBreak +
+                Format('%s : %s', ['Text.Text',  Text.Text]) + sLineBreak +
+                Format('%s : %s', ['Text.TextKind',  IntToStr(Text.TextKind)]) + sLineBreak +
+                Format('%s : %s', ['TTFInvertedTextJustify',  IntToStr(Text.TTFInvertedTextJustify)]) + sLineBreak +
+                Format('%s : %s', ['UseTTFonts',  BoolToStr(Text.UseTTFonts, True)]) + sLineBreak +
+                Format('%s : %s', ['Used',  BoolToStr(Text.Used, True)]) + sLineBreak +
+                Format('%s : %s', ['UserRouted',  BoolToStr(Text.UserRouted, True)]) + sLineBreak +
+                Format('%s : %s', ['ViewableObjectID',  IntToStr(Text.ViewableObjectID)]) + sLineBreak +
+                Format('%s : %s', ['WordWrap',  BoolToStr(Text.WordWrap, True)]) + sLineBreak
+                , 'IPCB_Text Info (partial)');
 end;
 
 
