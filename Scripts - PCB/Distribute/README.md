@@ -85,4 +85,4 @@ Tracks with a slope greater than 20 (90° > angle > ~87.137°) will be coerced t
 
 2023-06-06 by Ryan Rutledge : v1.52 - updated *FastDistributeByClearance* to add support for via centering of single track; fixed typo breaking via centering feature
 
-2023-06-06 by Ryan Rutledge : v1.53 - fixed typo in *SetupDataFromTrack* declaration (didn't seem to be functionally broken though); reformatted declarations to use more concise and proper Delphi syntax - non-functional change because DelphiScript is untyped, but it's more "correct" now. There is room to rearrange variables to be even more consolidated but it's extensive and prone to human error.
+2023-06-06 by Ryan Rutledge : v1.53 - fixed typo in *SetupDataFromTrack* declaration (didn't seem to be functionally broken though); reformatted function signatures to use more concise and proper Delphi syntax - non-functional change because DelphiScript is untyped, but it's more "correct" now.
