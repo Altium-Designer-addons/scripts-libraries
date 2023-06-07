@@ -60,3 +60,5 @@ There might be some value in adding a function to check that all components *hav
 2023-05-24 by Ryan Rutledge : v1.3 - fixed bug with debugging flag set to false caused by Delphi short-circuit logic
 
 2023-06-07 by Ryan Rutledge : v1.4 - fixed bug with justification not being applied to text that hadn't had it manually changed before (thanks, Brett Miller!); updated message box styles
+
+2023-06-07 by Ryan Rutledge : v1.5 - streamlined script to use SnapPointX, SnapPointY properties directly to position text, rather than calculating offsets and using MoveByXY
