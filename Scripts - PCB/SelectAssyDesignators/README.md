@@ -64,4 +64,4 @@ There might be some value in adding a function to check that all components *hav
 
 2023-06-07 by Ryan Rutledge : v1.5 - streamlined script to use SnapPointX, SnapPointY properties directly to position text, rather than calculating offsets and using MoveByXY
 
-2023-06-09 by Ryan Rutledge : v1.6 - added error message if one of the reset operations is attempted without both Text and Component selection filters enabled
+2023-06-09 by Ryan Rutledge : v1.6 - added error message if the _SelectBoth_ procedure is attempted without both Components and Texts enabled in the selection filter
