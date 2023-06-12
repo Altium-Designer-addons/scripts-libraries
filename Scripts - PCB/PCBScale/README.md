@@ -9,7 +9,8 @@ This script can be used to scale selected PCB Objects.
 
 ## Changelog
 v1.0 - Initial Release\
-v1.1 by Ryan Rutledge - some formatting cleanup; fixed text scaling issue with AD19+
+v1.1 by Ryan Rutledge - some formatting cleanup; fixed text scaling issue with AD19+\
+v2.1 by Ryan Rutledge - merged in V2 posted on Altium forums; changed anchor selection style and added more options; streamlined some operations to refocus on scale input
 
 
 ## Credits
