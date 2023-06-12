@@ -8,9 +8,10 @@
 {                                                                              }
 {           Changelog:                                                         }
 {           - v1.0 - Initial Release                                           }
-{                                                                              }
+{           - v1.1 - updated for text objects in AD19+, some format cleanup    }
 {                                                                              }
 { Created by:    Petar Perisin                                                 }
+{ Updated by:    Ryan Rutledge                                                 }
 {..............................................................................}
 
 {..............................................................................}
@@ -18,6 +19,8 @@ var
     X, Y            : TCoord;
     Ratio           : Float;
     Board           : IPCB_Board;
+    IsAtLeastAD19   : Boolean;
+
 
 function IsStringANum(Text : string) : Boolean;
 var
@@ -39,6 +42,60 @@ begin
         if InSet(Ord(Text[i]), ChSet) then inc(dotCount);
 
     if dotCount > 1 then Result := False;
+end;
+
+
+{ IPCB_Text inspector for debugging }
+procedure Inspect_IPCB_Text(var Text : IPCB_Text3, const MyLabel : string = '');
+var
+    actualTextBr    : TCoordRect;
+    sBrText         : String;
+begin
+    if Text = nil then
+    begin
+        ShowError('Text object is nil');
+        exit;
+    end;
+
+    actualTextBr := Text.GetActualTextBr;
+    sBrText := Format('GetActualTextBr[x1,y1;x2,y2]: [%d,%d;%d,%d]', [ actualTextBr.x1, actualTextBr.y1, actualTextBr.x2, actualTextBr.y2 ]);
+
+    ShowInfo('DEBUGGING: ' + MyLabel + sLineBreak +
+                '------------------------------' + sLineBreak +
+                Format('%s : %s', ['AdvanceSnapping',  BoolToStr(Text.AdvanceSnapping, True)]) + sLineBreak +
+                Format('%s : %s', ['AllowGlobalEdit',  BoolToStr(Text.AllowGlobalEdit, True)]) + sLineBreak +
+                Format('%s : %s', ['Descriptor',  Text.Descriptor]) + sLineBreak +
+                Format('%s : %s', ['Detail',  Text.Detail]) + sLineBreak +
+                Format('%s : %s', ['EnableDraw',  BoolToStr(Text.EnableDraw, True)]) + sLineBreak +
+                Format('%s : %s', ['FontID',  IntToStr(Text.FontID)]) + sLineBreak +
+                Format('%s : %s', ['Handle',  Text.Handle]) + sLineBreak +
+                Format('%s : %s', ['Identifier',  Text.Identifier]) + sLineBreak +
+                Format('%s : %s', ['IsSaveable',  BoolToStr(Text.IsSaveable(eAdvPCBFormat_Binary_V6), True)]) + sLineBreak +
+                Format('%s : %s', ['MiscFlag1',  BoolToStr(Text.MiscFlag1, True)]) + sLineBreak +
+                Format('%s : %s', ['MiscFlag2',  BoolToStr(Text.MiscFlag2, True)]) + sLineBreak +
+                Format('%s : %s', ['MiscFlag3',  BoolToStr(Text.MiscFlag3, True)]) + sLineBreak +
+                Format('%s : %s', ['MultiLine',  BoolToStr(Text.Multiline, True)]) + sLineBreak +
+                Format('%s : %s', ['MultilineTextAutoPosition',  IntToStr(Text.MultilineTextAutoPosition)]) + sLineBreak +
+                Format('%s : %s', ['MultilineTextHeight',  IntToStr(Text.MultilineTextHeight)]) + sLineBreak +
+                Format('%s : %s', ['MultilineTextResizeEnabled',  BoolToStr(Text.MultilineTextResizeEnabled, True)]) + sLineBreak +
+                Format('%s : %s', ['MultilineTextWidth',  IntToStr(Text.MultilineTextWidth)]) + sLineBreak +
+                Format('%s : %s', ['ObjectId',  IntToStr(Text.ObjectId)]) + sLineBreak +
+                Format('%s : %s', ['ObjectIDString',  Text.ObjectIDString]) + sLineBreak +
+                Format('%s : %s', ['PadCacheRobotFlag',  BoolToStr(Text.PadCacheRobotFlag, True)]) + sLineBreak +
+                Format('%s : %s', ['SnapPointX',  IntToStr(Text.SnapPointX)]) + sLineBreak +
+                Format('%s : %s', ['SnapPointY',  IntToStr(Text.SnapPointY)]) + sLineBreak +
+                Format('%s : %s', ['StringXPosition',  IntToStr(Text.StringXPosition)]) + sLineBreak +
+                Format('%s : %s', ['StringYPosition',  IntToStr(Text.StringYPosition)]) + sLineBreak +
+                sBrText + sLineBreak +
+                Format('%s : %s', ['Text',  Text.Text]) + sLineBreak +
+                Format('%s : %s', ['TextKind',  IntToStr(Text.TextKind)]) + sLineBreak +
+                Format('%s : %s', ['TTFInvertedTextJustify',  IntToStr(Text.TTFInvertedTextJustify)]) + sLineBreak +
+                Format('%s : %s', ['UseTTFonts',  BoolToStr(Text.UseTTFonts, True)]) + sLineBreak +
+                Format('%s : %s', ['Used',  BoolToStr(Text.Used, True)]) + sLineBreak +
+                Format('%s : %s', ['UserRouted',  BoolToStr(Text.UserRouted, True)]) + sLineBreak +
+                Format('%s : %s', ['ViewableObjectID',  IntToStr(Text.ViewableObjectID)]) + sLineBreak +
+                Format('%s : %s', ['WordWrap',  BoolToStr(Text.WordWrap, True)]) + sLineBreak
+                , 'IPCB_Text Info (partial)');
 end;
 
 
@@ -203,8 +260,16 @@ end;
 // Done
 Procedure ScaleText(Prim : IPCB_Text);
 begin
-    Prim.XLocation := X + Int(Ratio * (Prim.XLocation - X));
-    Prim.YLocation := Y + Int(Ratio * (Prim.YLocation - Y));
+    //Inspect_IPCB_Text(Prim);
+    if IsAtLeastAD19 then
+    begin
+        Prim.SnapPointX := X + Int(Ratio * (Prim.SnapPointX - X));
+        Prim.SnapPointY := Y + Int(Ratio * (Prim.SnapPointY - Y));
+    end
+    else begin
+        Prim.XLocation := X + Int(Ratio * (Prim.XLocation - X));
+        Prim.YLocation := Y + Int(Ratio * (Prim.YLocation - Y));
+    end;
 
     Prim.Size      := Int(Prim.Size  * Ratio);
     Prim.Width     := Int(Prim.Width * Ratio);
@@ -499,5 +564,7 @@ begin
         exit;
     end;
 
+    if (GetBuildNumberPart(Client.GetProductVersion, 0) >= 19) then IsAtLeastAD19 := True else IsAtLeastAD19 := False;
     FormPCBScale.ShowModal;
 end;
+
