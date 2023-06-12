@@ -150,15 +150,15 @@ object FormPCBscale: TFormPCBscale
   object GroupBoxAnchor: TGroupBox
     Left = 152
     Top = 8
-    Width = 96
-    Height = 96
+    Width = 93
+    Height = 88
     Caption = 'Anchor Location'
     TabOrder = 1
     OnClick = GroupBoxAnchorClick
     object RBTopLeft: TRadioButton
       Tag = 1
-      Left = 8
-      Top = 24
+      Left = 16
+      Top = 16
       Width = 16
       Height = 16
       TabOrder = 0
@@ -166,8 +166,8 @@ object FormPCBscale: TFormPCBscale
     end
     object RBCenterLeft: TRadioButton
       Tag = 2
-      Left = 8
-      Top = 48
+      Left = 16
+      Top = 40
       Width = 16
       Height = 16
       TabOrder = 1
@@ -175,8 +175,8 @@ object FormPCBscale: TFormPCBscale
     end
     object RBBottomLeft: TRadioButton
       Tag = 3
-      Left = 8
-      Top = 72
+      Left = 16
+      Top = 64
       Width = 16
       Height = 16
       Checked = True
@@ -186,8 +186,8 @@ object FormPCBscale: TFormPCBscale
     end
     object RBTopCenter: TRadioButton
       Tag = 4
-      Left = 32
-      Top = 24
+      Left = 40
+      Top = 16
       Width = 16
       Height = 16
       TabOrder = 3
@@ -195,8 +195,8 @@ object FormPCBscale: TFormPCBscale
     end
     object RBCenter: TRadioButton
       Tag = 5
-      Left = 32
-      Top = 48
+      Left = 40
+      Top = 40
       Width = 16
       Height = 16
       TabOrder = 4
@@ -204,8 +204,8 @@ object FormPCBscale: TFormPCBscale
     end
     object RBBottomCenter: TRadioButton
       Tag = 6
-      Left = 32
-      Top = 72
+      Left = 40
+      Top = 64
       Width = 16
       Height = 16
       TabOrder = 5
@@ -213,8 +213,8 @@ object FormPCBscale: TFormPCBscale
     end
     object RBTopRight: TRadioButton
       Tag = 7
-      Left = 56
-      Top = 24
+      Left = 64
+      Top = 16
       Width = 16
       Height = 16
       TabOrder = 6
@@ -222,8 +222,8 @@ object FormPCBscale: TFormPCBscale
     end
     object RBCenterRight: TRadioButton
       Tag = 8
-      Left = 56
-      Top = 48
+      Left = 64
+      Top = 40
       Width = 16
       Height = 16
       TabOrder = 7
@@ -231,8 +231,8 @@ object FormPCBscale: TFormPCBscale
     end
     object RBBottomRight: TRadioButton
       Tag = 9
-      Left = 56
-      Top = 72
+      Left = 64
+      Top = 64
       Width = 16
       Height = 16
       TabOrder = 8
