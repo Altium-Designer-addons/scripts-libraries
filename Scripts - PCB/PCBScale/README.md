@@ -9,6 +9,7 @@ This script can be used to scale selected PCB Objects.
 
 ## Changelog
 v1.0 - Initial Release
+v1.1 by Ryan Rutledge - some formatting cleanup; fixed text scaling issue with AD19+
 
 
 ## Credits
