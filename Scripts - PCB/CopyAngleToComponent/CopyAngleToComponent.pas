@@ -4,10 +4,11 @@
 {------------------------------------------------------------------------------}
 {  updated 2023-06-12 by Ryan Rutledge - some translation and UX tweaking      }
 {      - don't show angles as negative numbers                                 }
+{      - added support for arc midpoint angles                                 }
 {==============================================================================}
 
 const
-    ScriptVersion = '1.1';
+    ScriptVersion = '1.2';
     ScriptTitle = 'CopyAngleToComponent';
 
 
@@ -26,9 +27,11 @@ end;
 Procedure CopyAngleToComponent;
 var
     Board                          : IPCB_Board; // document board object
+    Prim                           : IPCB_Primitive;
+    Arc                            : IPCB_Arc;
     Track                          : IPCB_Track; // track object
     Component                      : IPCB_Component; // component object
-    Angle                          : Double;  // Angle of selected segment
+    Angle, HalfAngle               : Double;  // Angle of selected segment
     Length                         : Double;  // Length of selected segment
     BoardUnits                     : String;    // Current unit string mm/mils
 
@@ -38,33 +41,57 @@ Begin
     Try
         If Not Assigned(Board) Then  // check of active document
             Begin
-                ShowMessage('The Current Document is not a PCB Document.');
+                ShowError('The Current Document is not a PCB Document.');
                 Exit;
             End;
 
-        Track := Board.GetObjectAtCursor(MkSet(eTrackObject), AllLayers, 'Select a Track object:');
-        If Not Assigned(Track) Then
+        Prim := Board.GetObjectAtCursor(MkSet(eTrackObject, eArcObject), AllLayers, 'Select a Track or Arc object:');
+        If Not Assigned(Prim) Then
             Begin
-                ShowMessage('No track was selected.');
+                ShowWarning('No track or arc was selected.');
                 Exit;
             End;
 
-        Track.Selected := True;          // The selected segment is used as a first two
-        Angle := (ArcTan( (Track.Y2-Track.Y1)/(Track.X2-Track.X1))/(Pi)*180);
-        Angle := Angle - 360.0 * Floor(Angle / 360.0);
+        case Prim.ObjectId of
+            eTrackObject:
+            begin
+                Track := Prim;
+                Track.Selected := True;
 
-        Length := Power(( Power(Abs((Track.X2-Track.X1)),2) +
-                       Power(Abs((Track.Y2-Track.Y1)),2) ), 1/2 ) / 10000;
+                if Track.X1 = Track.X2 then Angle := 90
+                else if Track.Y1 = Track.Y2 then Angle := 0
+                else
+                begin
+                    Angle := ArcTan((Track.Y2-Track.Y1)/(Track.X2-Track.X1))/(Pi)*180;
+                    if Track.X2 < Track.X1 then Angle := Angle + 180;
+                end;
 
-        if ( (Board.DisplayUnit) = 0) then BoardUnits := 'mm'
-                                   else BoardUnits := 'mils';
+                Angle := Angle - 360.0 * Floor(Angle / 360.0);
 
-        ShowInfo(Format('Track is %.3f%s long, angle is %.3f°', [ Length, BoardUnits, Angle ]));
+                Length := Power(( Power(Abs((Track.X2-Track.X1)),2) + Power(Abs((Track.Y2-Track.Y1)),2) ), 1/2 );
+
+                ShowInfo(Format('Track is %s long, angle is %.3f°', [ CoordUnitToString(Length, Board.DisplayUnit xor 1), Angle ]));
+
+            end;
+            eArcObject:
+            begin
+                Arc := Prim;
+                Arc.Selected := True;
+
+                if Arc.EndAngle >= Arc.StartAngle then HalfAngle := (Arc.StartAngle + Arc.EndAngle) / 2 else HalfAngle := (Arc.StartAngle + Arc.EndAngle + 360) / 2;
+
+                Angle := HalfAngle + 90;
+                Angle := Angle - 360.0 * Floor(Angle / 360.0);
+
+                ShowInfo(Format('Angle tangent to arc midpoint is %.3f°', [ Angle ]));
+
+            end;
+        end;
 
         Component := Board.GetObjectAtCursor(MkSet(eComponentObject), AllLayers, Format('Select a component to rotate to %.3f°:', [ Angle ]));
         If Not Assigned(Component) Then
             Begin
-                ShowMessage('No component was selected.');
+                ShowInfo('No component was selected.');
                 Exit;
             End;
 
