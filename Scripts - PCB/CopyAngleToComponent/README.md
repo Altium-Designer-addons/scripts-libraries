@@ -20,4 +20,5 @@ Created by: unknown
 v1.0 - Initial Release\
 2023-06-12 by Ryan Rutledge : v1.1 - some translation and UX tweaking; don't show angles as negative numbers\
 2023-06-12 by Ryan Rutledge : v1.2 - added support for arcs (output angle is tangent to arc midpoint)\
-2023-06-12 by Ryan Rutledge : v1.3 - added silent option with _CopyAngleToComponentSilent_ procedure; made script repeat
+2023-06-12 by Ryan Rutledge : v1.3 - added silent option with _CopyAngleToComponentSilent_ procedure; made script repeat\
+2023-06-12 by Ryan Rutledge : v1.4 - fixed type error with horizontal and vertical tracks
