@@ -1,7 +1,7 @@
 { see README.md for documentation }
 
 const
-    ScriptVersion = '1.3';
+    ScriptVersion = '1.4';
     ScriptTitle = 'CopyAngleToComponent';
 
 
@@ -66,7 +66,7 @@ begin
 
                     Length := Power(( Power(Abs((Track.X2-Track.X1)),2) + Power(Abs((Track.Y2-Track.Y1)),2) ), 1/2 );
 
-                    if Verbose then ShowInfo(Format('Track is %s long, angle is %.3f°', [ CoordUnitToString(Length, Board.DisplayUnit xor 1), Angle ]));
+                    if Verbose then ShowInfo(Format('Track is %s long, angle is %.3f°', [ CoordUnitToString(Length, Board.DisplayUnit xor 1), Angle * 1.0 ]));
 
                 end;
                 eArcObject:
@@ -79,12 +79,12 @@ begin
                     Angle := HalfAngle + 90;
                     Angle := Angle - 360.0 * Floor(Angle / 360.0);
 
-                    if Verbose then ShowInfo(Format('Angle tangent to arc midpoint is %.3f°', [ Angle ]));
+                    if Verbose then ShowInfo(Format('Angle tangent to arc midpoint is %.3f°', [ Angle * 1.0 ]));
 
                 end;
             end;
 
-            Component := Board.GetObjectAtCursor(MkSet(eComponentObject), AllLayers, Format('Select a component to rotate to %.3f°:', [ Angle ]));
+            Component := Board.GetObjectAtCursor(MkSet(eComponentObject), AllLayers, Format('Select a component to rotate to %.3f°:', [ Angle * 1.0 ]));
             if not Assigned(Component) then
             begin
                 if Verbose then ShowInfo('No component was selected.');
