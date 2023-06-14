@@ -45,6 +45,8 @@ Notes:
  22/08/2022 1.44 Export: Board-LayerColor() colours are stale/wrong*1, use PCB SystemOption. Add 'Board Shape' const.
                  Import: Altium rearranges layer names when creating a pair; Force our layer names
  23/08/2022 1.45 try simplify process flow for import. Add LayerID to export & best guess for PairKinds.
+ 01/03/2023 1.46 add missing/new layerkinds
+ 14/06/2023 1.50 need to remove layerkind existing in board before can assign it to new layer.
 
 
   TMechanicalLayerToKindItem
@@ -52,6 +54,12 @@ Notes:
 //UnPairCurrentMechLayer()
 Process : RunScriptText
 Text=Var B;C;I;P;M; begin B:=PCBServer.GetCurrentPCBBoard;P:=B.MechanicalPairs;C:=B.CurrentLayer;for I:=1 To 1024 do begin M:=LayerUtils.MechanicalLayer(I);if P.PairDefined(C, M) then begin P.RemovePair(C, M);ShowInfo('UnPaired Mech Layers :' + Layer2String(C) + ' & ' + Layer2String(M));break;end; end;B.ViewManager_UpdateLayerTabs;end;
+Board.LayerColor(ML1) TV6_layer only, Read only
+
+
+PCB:ExportMechLayers  FileName=
+|MECHPAIR0L1=MECHANICAL5|MECHPAIR0L2=MECHANICAL6|
+
 ..................................................................................}
 
 const
@@ -64,6 +72,8 @@ const
     ctTop             = 'Top';    // text used denote mech layer kind pairs.
     ctBottom          = 'Bottom';
     cNumPairKinds     = 12;        // number of layerpair kinds (inc. "Not Set")
+    cExportMLFilename = 'export-layerstack.stackup';
+    cExportFNSuffix   = '-EML';
 
 var
     PCBSysOpts        : IPCB_SystemOptions;
@@ -80,6 +90,7 @@ var
     VerMajor          : WideString;
     MaxMechLayers     : integer;
     FileName      : String;
+    FilePath      : String;
     INIFile       : TIniFile;
     Flag          : Integer;
     LegacyMLS     : boolean;
@@ -90,8 +101,10 @@ function LayerStrToPairKind(LPKS : WideString) : TMechanicalLayerPairKind;  forw
 function LayerKindToStr(LK : TMechanicalLayerKind) : WideString;            forward;
 function LayerStrToKind(LKS : WideString) : TMechanicalLayerKind;           forward;
 function FindAllMechPairLayers(LayerStack : IPCB_LayerStack, MLPS : IPCB_MechanicalLayerPairs) : TStringList; forward;
-function FindUsedPairKinds(MLPS : IPCB_MechanicalLayerPairs) : TStringList;                 forward;
+function FindUsedPairKinds(MLPS : IPCB_MechanicalLayerPairs) : TStringList;                forward;
+function FindUsedLayerKinds(LayerStack : IPCB_LayerStack) : TStringList;                   forward;
 function GuessLayerPairKind(MLayerKind : TMechanicalLayerKind) : TMechanicalLayerPairKind; forward;
+Procedure ConvertMechLayerKindToLegacy_Wrapped(dummy : integer);                           forward;
 {.........................................................................................................}
 
 Procedure UnPairCurrentMechLayer;
@@ -160,8 +173,10 @@ begin
     SaveDialog        := TSaveDialog.Create(Application);
     SaveDialog.Title  := 'Save Mech Layer Names to *.ini file';
     SaveDialog.Filter := 'INI file (*.ini)|*.ini';
-    FileName := ExtractFilePath(Board.FileName);
-    SaveDialog.FileName := ChangeFileExt(FileName, '');
+    FilePath := ExtractFilePath(Board.FileName);
+    FileName := ExtractFileName(Board.FileName);
+    FileName := ExtractFileNameFromPath(FileName) + cExportFNSuffix + ExtractFileExt(FileName);
+    SaveDialog.FileName := FilePath + ChangeFileExt( FileName, '.ini');
 
 // UI prompt for file & set extension
     Flag := SaveDialog.Execute;
@@ -180,6 +195,8 @@ begin
     IniFile := TIniFile.Create(FileName);
 
     BeginHourGlass(crHourGlass);
+                                              // FileName                                   //Prompt=false
+//    Client.SendMessage('PCB:ExportMechLayers', 'FileName' + FilePath + cExportMLFilename + '|DisableDialog=True' , 255, Client.CurrentView);
 
     LayerStack       := Board.LayerStack_V7;
     MechLayerPairs   := Board.MechanicalPairs;
@@ -199,7 +216,6 @@ begin
                 MLayerKind := MechLayer.Kind;
             MLayerKindStr := LayerKindToStr(MLayerKind);
 
-// Board.LayerColor[ML1] are wrong or stale.
             sColour := ColorToString( PCBSysOpts.LayerColors(ML1) );
 
             IniFile.WriteString('MechLayer' + IntToStr(i), 'Name',    Board.LayerName(ML1) );       // MechLayer.Name);
@@ -261,6 +277,9 @@ var
     ML1, ML2           : integer;
     i, j               : Integer;
 
+    slUsedLPairKinds   : TStringList;
+    slUsedLayerKinds   : TStringList;
+
 begin
     Board := PCBServer.GetCurrentPCBBoard;
     if Board = nil then exit;
@@ -291,6 +310,11 @@ begin
     BeginHourGlass(crHourGlass);
     LayerStack     := Board.LayerStack_V7;
     MechLayerPairs := Board.MechanicalPairs;
+
+    slUsedLPairKinds  := FindUsedPairKinds(MechLayerPairs);
+    slUsedLayerKinds  := FindUsedLayerKinds(LayerStack);
+    slUsedLPairKinds.Count;
+    slUsedLayerKinds.Count;
 
 // remove any existing pairs connected to all layers listed in inifile.
 // set all new layer names
@@ -343,7 +367,23 @@ begin
             MechLayer.IsDisplayed[Board]       := IniFile.ReadBool   ('MechLayer' + IntToStr(i), 'Show',      True);
             LColour                            := IniFile.ReadString ('MechLayer' + IntToStr(i), 'Color',     NoColour);
             if LColour <> NoColour then
+            begin
                 PCBSysOpts.LayerColors(ML1) := StringToColor( LColour);
+//                if Board.LayerColor(ML1) <> StringToColor(LColour) then
+//                    showmessage('mismatch');
+            end;
+
+// check if layerkind is used by other layer & remove.
+            j := slUsedLayerKinds.IndexOfName(MLayerKindStr);
+            if j > -1 then
+            begin
+                ML2 := slUsedLayerKinds.ValueFromIndex(j);
+                if ML2 <> ML1 then
+                begin
+                     MechLayer2 := LayerStack.LayerObject_V7(ML2);
+                     MechLayer2.Kind := NoMechLayerKind;
+                end;
+            end;
 
             MLayerKind     := LayerStrToKind(MLayerKindStr);
             MLayerPairKind := LayerStrToPairKind(MLayerPairKindStr);
@@ -413,6 +453,13 @@ begin
 end;
 
 Procedure ConvertMechLayerKindToLegacy;
+begin
+    ConvertMechLayerKindToLegacy_Wrapped(1);
+    Board.ViewManager_UpdateLayerTabs;
+    ShowInfo('Converted Mechanical Layer Kinds To Legacy ..');
+end;
+
+Procedure ConvertMechLayerKindToLegacy_Wrapped(dummy : integer);
 var
     MechLayer  : IPCB_MechanicalLayer;
     ML1        : integer;
@@ -455,9 +502,6 @@ begin
 
         MechLayer.Kind := NoMechLayerKind;       //  'Not Set'
     end;
-
-    Board.ViewManager_UpdateLayerTabs;
-    ShowInfo('Converted Mechanical Layer Kinds To Legacy ..');
 end;
 
 {------------------------------------------------------------------------------------}
@@ -476,6 +520,11 @@ begin
     9               : Result := 'Gold Plating';
     10              : Result := 'Value';
     11              : Result := '3D Body';
+
+// Via IPC-4761
+    15              : Result := 'Tenting';
+    16              : Result := 'Covering';
+    17              : Result := 'Plugging';
     else              Result := 'Unknown'
     end;
 end;
@@ -485,7 +534,7 @@ var
     I : integer;
 begin
     Result := -1;
-    for I := 0 to 12 do
+    for I := 0 to 18 do
     begin
          if LayerPairKindToStr(I) = LPKS then
          begin
@@ -529,6 +578,15 @@ begin
     28              : Result := 'Route Tool Path';   // single
     29              : Result := 'Sheet';             // single
     30              : Result := 'Board Shape';
+// Via IPC-4761
+    37              : Result := 'Tenting Top';
+    38              : Result := 'Tenting Bottom';
+    39              : Result := 'Covering Top';
+    40              : Result := 'Covering Bottom';
+    41              : Result := 'Plugging Top';
+    42              : Result := 'Plugging Bottom';
+    43              : Result := 'Filling';
+    44              : Result := 'Capping';
     else              Result := 'Unknown'
     end;
 end;
@@ -538,7 +596,7 @@ var
     I : integer;
 begin
     Result := -1;
-    for I := 0 to 31 do
+    for I := 0 to 45 do
     begin
          if LayerKindToStr(I) = LKS then
          begin
@@ -590,6 +648,28 @@ begin
     end;
 end;
 
+function FindUsedLayerKinds(LayerStack : IPCB_LayerStack) : TStringList;
+var
+    MechLayer   : IPCB_MechanicalLayer;
+    ML1         : integer;
+    i           : integer;
+begin
+    Result := TStringList.Create;
+    Result.NameValueSeparator := '=';
+
+    if LegacyMLS then exit;
+
+    for i := 1 To MaxMechLayers do
+    begin
+        ML1 := LayerUtils.MechanicalLayer(i);
+        MechLayer := LayerStack.LayerObject_V7[ML1];
+
+        MLayerKind := MechLayer.Kind;
+        if MLayerKind <> NoMechLayerKind then
+            Result.Add(LayerKindToStr(MLayerKind) + '=' + IntToStr(ML1) );
+    end;
+end;
+
 function FindUsedPairKinds(MLPS : IPCB_MechanicalLayerPairs) : TStringList;
 var
     i        : integer;
@@ -621,10 +701,10 @@ begin
         begin
             Result := I;
             break;
-        end;    
+        end;
     end;
 end;
-                   
+
 // unused fn
 function GetMechLayerPairKind(LKS : WideString) : TMechanicalLayerPairKind;
 // RootKind : basename of layer kind (Assembly Top, Coating, Courtyard etc)
@@ -651,3 +731,4 @@ begin
          end;
     end;
 end;
+
