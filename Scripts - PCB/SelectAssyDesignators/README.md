@@ -10,24 +10,25 @@ _Step 2_: integrate the script into Altium Designer and execute it.\
 If you are a newcomer to Altium scripts, [please read the "how to" wiki page](https://github.com/Altium-Designer-addons/scripts-libraries/wiki/HowTo_execute_scripts).
 
 ## Usage guide
-### Select Assembly Designators
+### **ENABLE BOTH COMPONENTS AND TEXTS IN SELECTION FILTER**
+### to Select Assembly Designators
 Select one or more components then run the _SelectDesignators_ script procedure to switch your selection to the first .Designator special string in each component.
-### Select Components
+### to Select Components
 Select one or more .Designator special strings belonging to components then run the _SelectComponents_ script procedure to switch your selection to the components to which they belong.
-### Select Both
+### to Select Both
 Select one or more components and/or .Designator special strings then run the _SelectBoth_ script procedure to select all components and .Designator special strings associated with your selection.\
 * **Tip:** other objects are ignored/deselected in each case, so you can use _SelectBoth_ followed by one of the other procedures to go from a mixed selection to selecting only one type.
-### Reset Designator Positions
+### to Reset Designator Positions
 Select one or more components and/or .Designator special strings then run _ResetDesignatorPositions_ to reset all .Designator special strings associated with the selected items to center on their parent components and exactly match their rotation value.
-### Reset Designator Positions (Normalized)
+### to Reset Designator Positions (Normalized)
 Select one or more components and/or .Designator special strings then run _ResetDesignatorPositionsNorm_ to reset all .Designator special strings associated with the selected items to center on their parent components and align to their rotation value but normalized to be right-reading.
-### Reset Designator Positions (Normalized and orthogonally oriented)
+### to Reset Designator Positions (Normalized and orthogonally oriented)
 Select one or more components and/or .Designator special strings then run _ResetDesignatorPositionsNormOrtho_ to reset all .Designator special strings associated with the selected items to center on their parent components and align to their rotation value (rotated 90 deg. CW) but normalized to be right-reading.
-### Reset Designator Positions (Orthogonally oriented)
+### to Reset Designator Positions (Orthogonally oriented)
 Select one or more components and/or .Designator special strings then run _ResetDesignatorPositionsOrtho_ to reset all .Designator special strings associated with the selected items to center on their parent components and align to their rotation value (rotated 90 deg. CW).
-### Resize Designators
+### to Resize Designators
 Select one or more components and/or .Designator special strings then run _DesignatorResize_ to resize all .Designator special strings associated with the selected items (based on the current value) to to fit within the boundary of the component pads, then reset their positions.
-### Resize Designators (Orthogonally oriented)
+### to Resize Designators (Orthogonally oriented)
 Select one or more components and/or .Designator special strings then run _DesignatorOrthoResize_ to resize all .Designator special strings associated with the selected items (based on the current value) to to fit within the boundary of the component pads (rotated 90 deg. CW), then reset their positions.
 ### FUTURE PLANS
 Have a GUI that remembers last-used settings
@@ -62,3 +63,5 @@ There might be some value in adding a function to check that all components *hav
 2023-06-07 by Ryan Rutledge : v1.4 - fixed bug with justification not being applied to text that hadn't had it manually changed before (thanks, Brett Miller!); updated message box styles
 
 2023-06-07 by Ryan Rutledge : v1.5 - streamlined script to use SnapPointX, SnapPointY properties directly to position text, rather than calculating offsets and using MoveByXY
+
+2023-06-09 by Ryan Rutledge : v1.6 - added error message if the _SelectBoth_ procedure is attempted without both Components and Texts enabled in the selection filter

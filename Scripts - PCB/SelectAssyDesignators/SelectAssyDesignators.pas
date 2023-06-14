@@ -6,7 +6,7 @@ var
 
 const
     DebuggingEnabled = False;
-    ScriptVersion = '1.5';
+    ScriptVersion = '1.6';
     ScriptTitle = 'SelectAssyDesignators';
     MinDesignatorSize = 100000; // minimum designator size for resizing in Altium coordinate units (100000 = 10 mils)
 
@@ -506,28 +506,54 @@ end;
 { Main function to select both components and assembly designators for selected objects }
 procedure SelectBoth;
 var
-    i       : Integer;
-    status  : Integer;
-    Comp    : IPCB_Component;
-    Text    : IPCB_Text;
-    Prim1   : IPCB_Primitive;
+    i           : Integer;
+    CompCount   : Integer;
+    TextCount   : Integer;
+    errText     : String;
+    status      : Integer;
+    Comp        : IPCB_Component;
+    Text        : IPCB_Text;
+    Prim1       : IPCB_Primitive;
 begin
     BothInitialCheck(status);
     if status <> 0 then exit;
+
+    CompCount := 0;
+    TextCount := 0;
 
     for i := 0 to Board.SelectecObjectCount - 1 do
     begin
         Prim1 := Board.SelectecObject[i];
         if Prim1.ObjectId = eTextObject then
         begin
+            TextCount := TextCount + 1;
             Comp := GetComponent(Prim1);
-            if Comp <> nil then Comp.SetState_Selected(True);
+            if Comp <> nil then
+            begin
+                Comp.SetState_Selected(True);
+                if Comp.GetState_Selected = True then CompCount := CompCount + 1;
+            end;
         end
         else if Prim1.ObjectId = eComponentObject then
         begin
+            CompCount := CompCount + 1;
             Text := GetDesignator(Prim1);
-            if Text <> nil then Text.SetState_Selected(True);
+            if Text <> nil then
+            begin
+                Text.SetState_Selected(True);
+                if Text.GetState_Selected = True then TextCount := TextCount + 1;
+            end;
         end;
+    end;
+
+    if not ((CompCount > 0) and (TextCount > 0)) then
+    begin
+        errText := 'No Components and/or Text objects selected. Script will not work properly.' +
+                sLineBreak + sLineBreak +
+                Format('CompCount: %d; TextCount: %d', [ CompCount, TextCount ]) +
+                sLineBreak + sLineBreak +
+                'Make sure both "Components" and "Texts" are enabled in selection filter';
+        ShowError(errText);
     end;
 
     Client.SendMessage('PCB:Zoom', 'Action=Redraw' , 255, Client.CurrentView);
