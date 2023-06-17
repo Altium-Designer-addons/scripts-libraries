@@ -86,3 +86,5 @@ Tracks with a slope greater than 20 (90° > angle > ~87.137°) will be coerced t
 2023-06-06 by Ryan Rutledge : v1.52 - updated *FastDistributeByClearance* to add support for via centering of single track; fixed typo breaking via centering feature
 
 2023-06-07 by Ryan Rutledge : v1.53 - fixed typo in *SetupDataFromTrack* declaration (didn't seem to be functionally broken though); reformatted function signatures to use more concise and proper Delphi syntax - non-functional change because DelphiScript is untyped, but it's more "correct" now; allow centering between projected drills of vias that don't exist on track layer with user confirmation
+
+2023-06-17 by Ryan Rutledge : v1.54 - after running between-via centering, vias are not deselected; added support for evenly distributing between vias with specific via clearance
