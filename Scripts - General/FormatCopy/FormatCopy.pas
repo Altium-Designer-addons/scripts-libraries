@@ -48,7 +48,7 @@ Usage Notes:
 26/12/2020 v0.88 PCB: remove 2 useless lines in Dimensions. Change MessageDlg to mtCustom. Does it beep?
 24/06/2022 v0.89 PCB: add pad & via template link copying.
 24/06/2022 v0.90 PCB: copy over primitive keepout restrictions.
-
+17/06/2023 v0.91 PCB: missed the simple padstack radius corners, refactor pad & via to layer iterators.
 
 tbd: <shift> modifier key was intended to prevent font size change but FontManager is borked in AD19.
      special SchLib filters disabled.
@@ -686,7 +686,9 @@ var
     ViaTPlate : IPCB_ViaTemplate;
     PadTPlate : IPCB_PadTemplate;
     Pad       : IPCB_Pad;
+    Via       : IPCB_Via;
     KORS      : TKeepoutRestrictionsSet;
+    Iterator  : IPCB_LayerIterator;
 //    Flag     : Integer;
 
 begin
@@ -736,25 +738,27 @@ begin
                 DestinPrim.BotShape     := Pad.BotShape;
             end;
 
-            if Pad.Mode <> ePadMode_Simple then
+            Iterator := Pad.DefinitionLayerIterator;
+            Iterator.AddFilter_ElectricalLayers;
+            Iterator.SetBeforeFirst;
+            while (Iterator.Next) do
             begin
-                for Layer := eTopLayer to eBottomLayer Do
-                begin
-                    DestinPrim.StackShapeOnLayer(Layer)     := Pad.StackShapeOnLayer(Layer);
-                    if Pad.ShapeOnLayer(Layer) = eRectangular then                            // read only property TShape
-                        DestinPrim.CornerRadiusOnLayer      := Pad.CornerRadiusOnLayer;
+                Layer := Iterator.Layer;
+//                if DestinPrim.StackShapeOnLayer(Layer) = eNoShape then continue;
 
-                    if Pad.ShapeOnLayer(Layer) = eRoundedRectangular then  //TShape
-                    begin
-                        DestinPrim.CRPercentageOnLayer      := Pad.CRPercentageOnLayer;
-                        DestinPrim.StackCRPctOnLayer(Layer) := Pad.StackCRPctOnLayer(Layer);  //IPCB_Pad2 interface
-                    end;
-                    if  Pad.Mode = ePadMode_ExternalStack then
-                    begin
-                        DestinPrim.XStackSizeOnLayer(Layer) := Pad.XStackSizeOnLayer(Layer);
-                        DestinPrim.YStackSizeOnLayer(Layer) := Pad.YStackSizeOnLayer(Layer);
-                    end;
+                DestinPrim.SetState_StackShapeOnLayer(Layer, Pad.StackShapeOnLayer(Layer) );
+                if  Pad.Mode = ePadMode_ExternalStack then
+                begin
+                    DestinPrim.XStackSizeOnLayer(Layer) := Pad.XStackSizeOnLayer(Layer);
+                    DestinPrim.YStackSizeOnLayer(Layer) := Pad.YStackSizeOnLayer(Layer);
                 end;
+
+                if Pad.StackShapeOnLayer(Layer) = eRoundedRectangular then  //TShape
+                begin
+//                    DestinPrim.CRPercentageOnLayer      := Pad.CRPercentageOnLayer;
+                    DestinPrim.Setstate_StackCRPctOnLayer(Layer, Pad.StackCRPctOnLayer(Layer) );
+                end;
+
                 // DestinPrim.XPadOffset(Layer)           := Pad.XPadOffset(Layer);  This property is not implemented.
                 // DestinPrim.YPadOffset(Layer)           := Pad.YPadOffset(Layer);  This property is not implemented.
             end;
@@ -786,31 +790,41 @@ begin
     // Vias
     eViaObject :
         begin
+            Via := SourcePrim;
             ViaTPlate : = DestinPrim.TemplateLink;
-            SourcePrim.TemplateLink.CopyTo(ViaTPlate);
+            Via.TemplateLink.CopyTo(ViaTPlate);
 
-            DestinPrim.Mode                 := SourcePrim.Mode;
-            DestinPrim.HoleSize             := SourcePrim.HoleSize;
-            DestinPrim.Size                 := SourcePrim.Size;
+            DestinPrim.Mode              := Via.Mode;
+            DestinPrim.HoleSize          := Via.HoleSize;
+            DestinPrim.Size              := Via.Size;
 
             if boolLoc = mrYes then
             begin
-                if DestinPrim.HighLayer > SourcePrim.HighLayer then
+                if DestinPrim.HighLayer > Via.HighLayer then
                 begin
-                    DestinPrim.HighLayer        := SourcePrim.HighLayer;
-                    DestinPrim.LowLayer         := SourcePrim.LowLayer;
+                    DestinPrim.HighLayer := Via.HighLayer;
+                    DestinPrim.LowLayer  := Via.LowLayer;
                 end else
                 begin
-                    DestinPrim.LowLayer         := SourcePrim.LowLayer;
-                    DestinPrim.HighLayer        := SourcePrim.HighLayer;
+                    DestinPrim.LowLayer  := Via.LowLayer;
+                    DestinPrim.HighLayer := Via.HighLayer;
                 end;
             end;
-            for Layer := SourcePrim.LowLayer to SourcePrim.HighLayer Do
+
+            Iterator := Via.DefinitionLayerIterator;
+            Iterator.AddFilter_ElectricalLayers;
+            Iterator.SetBeforeFirst;
+            while (Iterator.Next) do
             begin
-                DestinPrim.StackSizeOnLayer(Layer)      := SourcePrim.StackSizeOnLayer(Layer);
-                DestinPrim.SizeOnLayer(Layer)           := SourcePrim.SizeOnLayer(Layer);
+                Layer := Iterator.Layer;
+                if DestinPrim.IntersectLayer(Layer) then
+                begin
+                    DestinPrim.SetState_StackShapeOnLayer(Layer, Via.StackShapeOnLayer(Layer) );
+                    DestinPrim.SizeOnLayer(Layer) := Via.SizeOnLayer(Layer);
+                    DestinPrim.Setstate_StackSizeOnLayer(Layer, Via.StackSizeOnLayer(Layer) );
+                end;
             end;
-            SPadCache := SourcePrim.GetState_Cache;
+            SPadCache := Via.GetState_Cache;
             DPadCache := DestinPrim.GetState_Cache;
             // SPadcache.ReliefAirGap
             // SPadcache.PowerPlaneReliefExpansion
@@ -824,11 +838,11 @@ begin
 
             // SPadcache.PasteMaskExpansion
             // SPadCache.PasteMaskExpansionValid
+//            DestinPrim.PadCacheRobotFlag;
             DestinPrim.SetState_Cache       := DPadCache;
-            DestinPrim.PadCacheRobotFlag;
-            DestinPrim.IsTenting_Top        := SourcePrim.IsTenting_Top;
-            DestinPrim.IsTenting_Bottom     := SourcePrim.IsTenting_Bottom;
-            DestinPrim.IsTenting            := SourcePrim.IsTenting;
+            DestinPrim.IsTenting_Top        := Via.IsTenting_Top;
+            DestinPrim.IsTenting_Bottom     := Via.IsTenting_Bottom;
+            DestinPrim.IsTenting            := Via.IsTenting;
             DestinPrim.GraphicallyInvalidate;
         end;
 
@@ -1126,3 +1140,4 @@ begin
    if DocKind = cDocKind_Pcb then
        FormatCopyPCB(Doc);
 end;
+
