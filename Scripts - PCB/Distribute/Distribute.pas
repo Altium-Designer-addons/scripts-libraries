@@ -1192,7 +1192,7 @@ begin
     PresetList     := CreateObject(TStringList);
     if FileExists(PresetFilePath) then
     begin
-        // ShowInfo('Loading presets from ' + PresetFilePath);
+        if DebuggingEnabled then ShowInfo('Loading presets from ' + PresetFilePath);
         PresetList.LoadFromFile(PresetFilePath); // load presets from file if it exists
 
         case PresetList.Count of
@@ -1203,9 +1203,13 @@ begin
                     PresetList.Add(ButtonUnits.Caption);    // PresetList[16] (added in v1.54)
                     PresetList.Add(ButtonViaUnits.Caption); // PresetList[17] (added in v1.54)
                 end;
+            NumPresets :
+                begin
+                    // do nothing
+                end;
             else  // if PresetList.Count < NumPresets then PresetList file exists but count is short, just regenerate preset file from defaults
                 begin
-                    // ShowInfo(PresetFilePath + ' exists but is not the correct length. Defaults will be used.');
+                    if DebuggingEnabled then ShowInfo(PresetFilePath + ' exists but is not the correct length. Defaults will be used.');
                     BuildPresetList(PresetList);
                     //PresetList.SaveToFile(PresetFilePath); // don't immediately save over existing file - user might cancel dialog
                 end;
@@ -1233,7 +1237,7 @@ begin
     end
     else
     begin // if preset file didn't exist at all, create from defaults
-        // ShowInfo(PresetFilePath + ' does not exist.');
+        if DebuggingEnabled then ShowInfo(PresetFilePath + ' does not exist. Creating from defaults.');
         BuildPresetList(PresetList);
         PresetList.SaveToFile(PresetFilePath);
     end;
@@ -1473,7 +1477,7 @@ end;
 {......................................................................................................................}
 procedure PresetButtonClicked(Sender : TObject);
 begin
-    // ShowInfo('PresetButtonClicked');
+    if DebuggingEnabled then ShowInfo(Sender.Name + ' PresetButtonClicked');
     if Sender = ButtonPreset1 then EditDistance.Text      := tPreset1.Text
     else if Sender = ButtonPreset2 then EditDistance.Text := tPreset2.Text
     else if Sender = ButtonPreset3 then EditDistance.Text := tPreset3.Text
@@ -1884,7 +1888,7 @@ var
     textbox : TEdit;
 begin
     textbox := Sender;
-    // ShowInfo(textbox.Text);
+    // if DebuggingEnabled then ShowInfo(textbox.Text);
     if IsStringANum(textbox.Text) then
     begin
         if Sender <> EditDistance then EditDistance.Text := textbox.Text;
