@@ -17,6 +17,22 @@ const
     ScriptVersion   = '2.05';
 
 
+procedure About; forward;
+procedure BuildPresetList(var TempPresetList : TStringList); forward;
+function IsStringANum(Text : string) : Boolean; forward;
+procedure LoadPresetListFromFile(const dummy : Integer); forward;
+procedure PresetButtonClicked(Sender : TObject); forward;
+function TransformAutoPos(Designator : IPCB_Text, tc_AutoPos : TTextAutoposition) : TTextAutoposition; forward;
+procedure TweakDesignators; forward;
+procedure UserKeyPress(Sender : TObject; var Key : Char); forward;
+procedure ValidateOnChange(Sender : TObject); forward;
+procedure TTweakDesForm.ButtonCancelClick(Sender : TObject); forward;
+procedure TTweakDesForm.ButtonOKClick(Sender : TObject); forward;
+procedure TTweakDesForm.EditDistanceChange(Sender : TObject); forward;
+procedure TTweakDesForm.MMmilButtonClick(Sender : TObject); forward;
+procedure TTweakDesForm.TweakDesFormShow(Sender : TObject); forward;
+
+
 procedure About;
 var
     MsgText : string;
@@ -447,8 +463,8 @@ begin
 
 end; { ValidateOnChange }
 
-
-procedure UserKeyPress(Sender : TObject; var Key : Char); // programmatically, OnKeyPress fires before OnChange event and "catches" the key press
+{ programmatically, OnKeyPress fires before OnChange event and "catches" the key press }
+procedure UserKeyPress(Sender : TObject; var Key : Char);
 begin
     if (ButtonOK.Enabled) and (Ord(Key) = 13) then
     begin
