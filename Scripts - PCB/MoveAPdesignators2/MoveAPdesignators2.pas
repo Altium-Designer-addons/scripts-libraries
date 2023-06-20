@@ -70,7 +70,7 @@ end; { BuildPresetList }
 procedure LoadPresetListFromFile(const dummy : Integer);
 begin
     PresetFilePath := ClientAPI_SpecialFolder_AltiumApplicationData + '\' PresetFileName;
-    PresetList     := TStringList.Create;
+    PresetList     := CreateObject(TStringList);
     if FileExists(PresetFilePath) then
     begin
         // ShowMessage('Loading presets from ' + PresetFilePath);
@@ -224,11 +224,7 @@ begin
     try
         AbortScript := False;
         TweakDesForm.ShowModal; // Show the settings dialogue (and resume script here after closed?)
-        if AbortScript then
-        begin
-            PresetList.Free;
-            Exit;
-        end;
+        if AbortScript then Exit;
 
         // Notify the pcbserver that we will make changes (Start undo)
         PCBServer.PreProcess;
@@ -396,7 +392,7 @@ begin
         if UsePresets then
         begin
             // build list of currect preset values
-            TempPresetList := TStringList.Create;
+            TempPresetList := CreateObject(TStringList);
             BuildPresetList(TempPresetList);
             if TempPresetList.Equals(PresetList) then
             begin
@@ -407,10 +403,6 @@ begin
                 // save new list to MyMoveDesignatorsPresets.txt
                 TempPresetList.SaveToFile(PresetFilePath);
             end;
-
-            // cleanup
-            TempPresetList.Free;
-            PresetList.Free;
         end;
 
     finally
