@@ -69,6 +69,7 @@ tbd: <shift> modifier key was intended to prevent font size change but FontManag
 
 const
     cNeverAsk = false;    // set true for no layer prompt (default copy layer yes)
+    cAlwaysAsk = false;   // set true to always present layer prompt after source selection
     cESC      =-1;
     cAltKey   = 1;
     cShiftKey = 2;
@@ -177,6 +178,8 @@ begin
                 if Board.LayerIsDisplayed(Prim.Layer) then
 //        need to exclude board region
                 if not (Prim.ViewableObjectID = eViewableObject_BoardRegion) then   // Prim.Layer = eMultiLayer) and (Prim.ObjectID = eRegionObject))
+//        exclude primitives in components
+                if not Prim.InComponent then
                 if Result <> eNoObject then
                 begin
 //        prioritise small & sub objects & on current layer.
@@ -462,7 +465,7 @@ DestinObjId := SchDestinPrim.ObjectId;
             SchDestinPrim.MasterEntryLocation            := SchSourcePrim.MasterEntryLocation;
             SchDestinPrim.HarnessConnectorType.IsHidden  := SchSourcePrim.HarnessConnectorType.IsHidden;
         end;
- 
+
     eArc,             // ISch_GraphicalObject/ISch_Arc/ISch_EllipticalArc
     eEllipticalArc :  // ISch_GraphicalObject/ISch_Arc/ISch_EllipticalArc
         begin
@@ -705,7 +708,7 @@ begin
         if (not SourcePrim.InComponent) and (not DestinPrim.InComponent) then
         begin
             Pad := SourcePrim;
-            PadTPlate : = DestinPrim.TemplateLink;
+            PadTPlate := DestinPrim.TemplateLink;
             Pad.TemplateLink.CopyTo(PadTPlate);
 
             DestinPrim.Mode             := Pad.Mode;   //simple local or full stack
@@ -1032,6 +1035,7 @@ var
     BoardIterator : IPCB_BoardIterator;
     bFirstTime    : boolean;
     bNeverAsk     : boolean;
+    bAlwaysAsk    : boolean;
     bTempAsk      : boolean;
 
 begin
@@ -1054,6 +1058,7 @@ begin
     KeySet     := MkSet();
     bFirstTime := true;
     bNeverAsk  := cNeverAsk;
+    bAlwaysAsk := cAlwaysAsk;
 
     repeat
         // process if source & destination are selected
@@ -1089,7 +1094,7 @@ begin
         begin
             DestinPrim := Nil;
             repeat
-               SourcePrim := nGetObjectAtCursor(Board, ASetOfObjects, Nil, 'Choose Source Primitive  ');
+               SourcePrim := nGetObjectAtCursor(Board, ASetOfObjects, Nil, 'Choose Source Primitive not in component ');
             until Assigned(SourcePrim) or (SourcePrim = cEsc);
 
             if Assigned(SourcePrim) and (SourcePrim <> cESC)then
@@ -1100,7 +1105,7 @@ begin
                    bTempAsk  := false;
                    bFirstTime := true;
                 end;
-                if (not bTempAsk) and bFirstTime then
+                if bAlwaysAsk or ((not bTempAsk) and bFirstTime) then
                 begin
                     // supporting pad format copy without full layer handling is problematic.
                     // if SourcePrim.ObjectId = ePadObject then
@@ -1113,7 +1118,7 @@ begin
                     else
                         Prompt := SourcePrim.ObjectIdString + '. Copy layer ' + Board.LayerName(SourcePrim.Layer) + ' info ?  ';
 
-                    boolLoc := MessageDlg(Prompt, mtCustom, mbYesNoCancel, 0);
+                    boolLoc := ConfirmNoYesCancel(Prompt);
                     if boolLoc = mrCancel then SourcePrim := Nil;
                     bFirstTime := false;
                 end;
@@ -1140,4 +1145,3 @@ begin
    if DocKind = cDocKind_Pcb then
        FormatCopyPCB(Doc);
 end;
-
