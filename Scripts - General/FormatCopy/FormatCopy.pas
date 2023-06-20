@@ -88,7 +88,7 @@ var
 
 function Version(const dummy : boolean) : TStringList;
 begin
-    Result := TStringList.Create;
+    Result := CreateObject(TStringList);
     Result.Delimiter := '.';
     Result.Duplicates := dupAccept;
     Result.DelimitedText := Client.GetProductVersion;
