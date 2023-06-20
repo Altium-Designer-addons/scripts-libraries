@@ -44,11 +44,15 @@ Usage Notes:
 17/10/2019 v0.84 SCH: Refactor out more nested Inset MkSet around line 600 in just in case.
 18/02/2020 v0.85 PCB: Improve Pad & Via expansion rule & value copying
 07/05/2020 v0.86 SCH: Graphically.Invalidate after each copy; trigger bounding box resize for components; fix bug in Comp desc.
-07/05/2020 v0.87 SCH: simplied pick ranking/weighting.
-
+07/05/2020 v0.87 SCH: simplified pick ranking/weighting.
+26/12/2020 v0.88 PCB: remove 2 useless lines in Dimensions. Change MessageDlg to mtCustom. Does it beep?
+24/06/2022 v0.89 PCB: add pad & via template link copying.
+24/06/2022 v0.90 PCB: copy over primitive keepout restrictions.
+17/06/2023 v0.91 PCB: missed the simple padstack radius corners, refactor pad & via to layer iterators.
 
 tbd: <shift> modifier key was intended to prevent font size change but FontManager is borked in AD19.
      special SchLib filters disabled.
+     implement ranking/weighting for PCB obj pick.
 }
 { Current API enumerations:  (in sad need of work)
   AllLayer = [MinLayer..eConnectLayer] , Set of TLayer
@@ -65,6 +69,7 @@ tbd: <shift> modifier key was intended to prevent font size change but FontManag
 
 const
     cNeverAsk = false;    // set true for no layer prompt (default copy layer yes)
+    cAlwaysAsk = false;   // set true to always present layer prompt after source selection
     cESC      =-1;
     cAltKey   = 1;
     cShiftKey = 2;
@@ -83,7 +88,7 @@ var
 
 function Version(const dummy : boolean) : TStringList;
 begin
-    Result := TStringList.Create;
+    Result := CreateObject(TStringList);
     Result.Delimiter := '.';
     Result.Duplicates := dupAccept;
     Result.DelimitedText := Client.GetProductVersion;
@@ -103,6 +108,7 @@ var
 //    Area      : double;
     LayerSet      : TLayerSet;
     TV6_LayerSet  : TLayerSet;
+    PCB_LayerSet  : IPCB_LayerSet;
     RealAllLayers : boolean;
     CLayer        : TLayer;
     SPLayer       : TLayer;
@@ -120,7 +126,9 @@ begin
     begin
 //   read modifier keys just as/after the "pick" mouse click
         if ShiftKeyDown   then KeySet := MkSet(cShiftKey);
-        if AltKeyDown     then KeySet := SetUnion(KeySet, MkSet(cAltKey));
+
+// ALT not possible with ChooseLocation
+//        if AltKeyDown     then KeySet := SetUnion(KeySet, MkSet(cAltKey));
         if ControlKeyDown then KeySet := SetUnion(KeySet, MkSet(cCntlKey));
 //   layer can be changed during ChooseLocation fn UI!
         CLayer := Board.CurrentLayer;               // returns 0 for any unsupported layers.
@@ -149,9 +157,11 @@ begin
 // try a bit harder, above call does not handle above emech16
         if Result = eNoObject then
         begin
+            PCB_LayerSet := LayerSetUtils.EmptySet;
+            PCB_LayerSet.IncludeAllLayers;
             Iterator := Board.BoardIterator_Create;
             Iterator.SetState_FilterAll;
-            Iterator.AddFilter_AllLayers;
+            Iterator.AddFilter_IPCB_LayerSet(PCB_LayerSet);
             Iterator.AddFilter_ObjectSet(ObjectSet);
 //            Iterator.AddFilter_Area (x - 100, y + 100, x + 100, y - 100);   // 1 Coord == 10Kmils   published method does not work board iterator
 
@@ -168,6 +178,8 @@ begin
                 if Board.LayerIsDisplayed(Prim.Layer) then
 //        need to exclude board region
                 if not (Prim.ViewableObjectID = eViewableObject_BoardRegion) then   // Prim.Layer = eMultiLayer) and (Prim.ObjectID = eRegionObject))
+//        exclude primitives in components
+                if not Prim.InComponent then
                 if Result <> eNoObject then
                 begin
 //        prioritise small & sub objects & on current layer.
@@ -453,7 +465,7 @@ DestinObjId := SchDestinPrim.ObjectId;
             SchDestinPrim.MasterEntryLocation            := SchSourcePrim.MasterEntryLocation;
             SchDestinPrim.HarnessConnectorType.IsHidden  := SchSourcePrim.HarnessConnectorType.IsHidden;
         end;
- 
+
     eArc,             // ISch_GraphicalObject/ISch_Arc/ISch_EllipticalArc
     eEllipticalArc :  // ISch_GraphicalObject/ISch_Arc/ISch_EllipticalArc
         begin
@@ -512,6 +524,7 @@ var
    SchSourcePrim   : ISch_Object;
    SchDestinPrim   : ISch_Object;
    SchTempPrim     : ISch_Object;
+   PrimID          : TObjectId;
    HitTest         : ISch_HitTest;
    HitTestMode     : THitTestMode;
    TempSet         : TObjectset;
@@ -521,12 +534,16 @@ var
    bRepeat         : boolean;
    iWeight         : integer;
    iBestWeight     : integer;
+   bCycleSPrim     : boolean;
 
 begin
     // Get the focused (loaded & open)document; Server must already be running
     SchDoc := SchServer.GetCurrentSchDocument;
     if SchDoc = nil then exit;
 
+//    ResetParameters;
+//    AddStringParameter('Action', 'AllOpenDocuments');
+//    RunProcess('Sch:DeSelect');
     Client.SendMessage('SCH:DeSelect', 'Action=AllOpenDocuments', 255, Client.CurrentView);
 
     Location := TLocation;
@@ -627,7 +644,12 @@ begin
 
             HitTestMode := eHitTest_AllObjects;                     // eHitTest_OnlyAccessible
             HitTest := SchDoc.CreateHitTest(HitTestMode,Location);
-
+{            if ShiftKeyDown then
+            begin
+//             cursor := HitTestResultToCursor(eHitTest_NoAction);   // eHitTest_CopyPaste : THitTestResult
+                    SchDoc.PopupMenuHitTest := HitTest;          // last UI obj selected ??
+            end;
+}
             if HitTest <> Nil then
             begin
                 iBestWeight := 0;
@@ -663,7 +685,13 @@ var
     Layer     : TLayer;
     SPadCache : TPadCache;
     DPadCache : TPadCache;
+    PVTLink   : IPCB_PadViaTemplateLink;
+    ViaTPlate : IPCB_ViaTemplate;
+    PadTPlate : IPCB_PadTemplate;
     Pad       : IPCB_Pad;
+    Via       : IPCB_Via;
+    KORS      : TKeepoutRestrictionsSet;
+    Iterator  : IPCB_LayerIterator;
 //    Flag     : Integer;
 
 begin
@@ -680,7 +708,9 @@ begin
         if (not SourcePrim.InComponent) and (not DestinPrim.InComponent) then
         begin
             Pad := SourcePrim;
-            //if boolLoc = mrYes then
+            PadTPlate := DestinPrim.TemplateLink;
+            Pad.TemplateLink.CopyTo(PadTPlate);
+
             DestinPrim.Mode             := Pad.Mode;   //simple local or full stack
             // all single layer pads must have holesize set (zero) before changing from multilayer
             if DestinPrim.Layer = eMultiLayer then
@@ -711,25 +741,27 @@ begin
                 DestinPrim.BotShape     := Pad.BotShape;
             end;
 
-            if Pad.Mode <> ePadMode_Simple then
+            Iterator := Pad.DefinitionLayerIterator;
+            Iterator.AddFilter_ElectricalLayers;
+            Iterator.SetBeforeFirst;
+            while (Iterator.Next) do
             begin
-                for Layer := eTopLayer to eBottomLayer Do
-                begin
-                    DestinPrim.StackShapeOnLayer(Layer)     := Pad.StackShapeOnLayer(Layer);
-                    if Pad.ShapeOnLayer(Layer) = eRectangular then                            // read only property TShape
-                        DestinPrim.CornerRadiusOnLayer      := Pad.CornerRadiusOnLayer;
+                Layer := Iterator.Layer;
+//                if DestinPrim.StackShapeOnLayer(Layer) = eNoShape then continue;
 
-                    if Pad.ShapeOnLayer(Layer) = eRoundedRectangular then  //TShape
-                    begin
-                        DestinPrim.CRPercentageOnLayer      := Pad.CRPercentageOnLayer;
-                        DestinPrim.StackCRPctOnLayer(Layer) := Pad.StackCRPctOnLayer(Layer);  //IPCB_Pad2 interface
-                    end;
-                    if  Pad.Mode = ePadMode_ExternalStack then
-                    begin
-                        DestinPrim.XStackSizeOnLayer(Layer) := Pad.XStackSizeOnLayer(Layer);
-                        DestinPrim.YStackSizeOnLayer(Layer) := Pad.YStackSizeOnLayer(Layer);
-                    end;
+                DestinPrim.SetState_StackShapeOnLayer(Layer, Pad.StackShapeOnLayer(Layer) );
+                if  Pad.Mode = ePadMode_ExternalStack then
+                begin
+                    DestinPrim.XStackSizeOnLayer(Layer) := Pad.XStackSizeOnLayer(Layer);
+                    DestinPrim.YStackSizeOnLayer(Layer) := Pad.YStackSizeOnLayer(Layer);
                 end;
+
+                if Pad.StackShapeOnLayer(Layer) = eRoundedRectangular then  //TShape
+                begin
+//                    DestinPrim.CRPercentageOnLayer      := Pad.CRPercentageOnLayer;
+                    DestinPrim.Setstate_StackCRPctOnLayer(Layer, Pad.StackCRPctOnLayer(Layer) );
+                end;
+
                 // DestinPrim.XPadOffset(Layer)           := Pad.XPadOffset(Layer);  This property is not implemented.
                 // DestinPrim.YPadOffset(Layer)           := Pad.YPadOffset(Layer);  This property is not implemented.
             end;
@@ -753,35 +785,49 @@ begin
             DestinPrim.IsTenting            := Pad.IsTenting;
             DestinPrim.IsTenting_Top        := Pad.IsTenting_Top;
             DestinPrim.IsTenting_Bottom     := Pad.IsTenting_Bottom;
-
+            Destinprim.UpdateCache;
+            DestinPrim.ReValidateSizeShape;
             DestinPrim.GraphicallyInvalidate;
         end;
 
     // Vias
     eViaObject :
         begin
-            DestinPrim.Mode                 := SourcePrim.Mode;
-            DestinPrim.HoleSize             := SourcePrim.HoleSize;
-            DestinPrim.Size                 := SourcePrim.Size;
+            Via := SourcePrim;
+            ViaTPlate : = DestinPrim.TemplateLink;
+            Via.TemplateLink.CopyTo(ViaTPlate);
+
+            DestinPrim.Mode              := Via.Mode;
+            DestinPrim.HoleSize          := Via.HoleSize;
+            DestinPrim.Size              := Via.Size;
 
             if boolLoc = mrYes then
             begin
-                if DestinPrim.HighLayer > SourcePrim.HighLayer then
+                if DestinPrim.HighLayer > Via.HighLayer then
                 begin
-                    DestinPrim.HighLayer        := SourcePrim.HighLayer;
-                    DestinPrim.LowLayer         := SourcePrim.LowLayer;
+                    DestinPrim.HighLayer := Via.HighLayer;
+                    DestinPrim.LowLayer  := Via.LowLayer;
                 end else
                 begin
-                    DestinPrim.LowLayer         := SourcePrim.LowLayer;
-                    DestinPrim.HighLayer        := SourcePrim.HighLayer;
+                    DestinPrim.LowLayer  := Via.LowLayer;
+                    DestinPrim.HighLayer := Via.HighLayer;
                 end;
             end;
-            for Layer := SourcePrim.LowLayer to SourcePrim.HighLayer Do
+
+            Iterator := Via.DefinitionLayerIterator;
+            Iterator.AddFilter_ElectricalLayers;
+            Iterator.SetBeforeFirst;
+            while (Iterator.Next) do
             begin
-                DestinPrim.StackSizeOnLayer(Layer)      := SourcePrim.StackSizeOnLayer(Layer);
-                DestinPrim.SizeOnLayer(Layer)           := SourcePrim.SizeOnLayer(Layer);
+                Layer := Iterator.Layer;
+                if DestinPrim.IntersectLayer(Layer) then
+                begin
+                    DestinPrim.SetState_StackShapeOnLayer(Layer, Via.StackShapeOnLayer(Layer) );
+                    DestinPrim.SizeOnLayer(Layer) := Via.SizeOnLayer(Layer);
+                    DestinPrim.Setstate_StackSizeOnLayer(Layer, Via.StackSizeOnLayer(Layer) );
+                end;
             end;
-            SPadCache := SourcePrim.GetState_Cache;
+            SPadCache := Via.GetState_Cache;
             DPadCache := DestinPrim.GetState_Cache;
             // SPadcache.ReliefAirGap
             // SPadcache.PowerPlaneReliefExpansion
@@ -795,11 +841,11 @@ begin
 
             // SPadcache.PasteMaskExpansion
             // SPadCache.PasteMaskExpansionValid
+//            DestinPrim.PadCacheRobotFlag;
             DestinPrim.SetState_Cache       := DPadCache;
-            DestinPrim.PadCacheRobotFlag;
-            DestinPrim.IsTenting_Top        := SourcePrim.IsTenting_Top;
-            DestinPrim.IsTenting_Bottom     := SourcePrim.IsTenting_Bottom;
-            DestinPrim.IsTenting            := SourcePrim.IsTenting;
+            DestinPrim.IsTenting_Top        := Via.IsTenting_Top;
+            DestinPrim.IsTenting_Bottom     := Via.IsTenting_Bottom;
+            DestinPrim.IsTenting            := Via.IsTenting;
             DestinPrim.GraphicallyInvalidate;
         end;
 
@@ -893,7 +939,7 @@ begin
             DestinPrim.SetState_Kind (SourcePrim.Kind);
         //    DestinPrim.IsSimpleRegion       := SourcePrim.IsSimpleRegion;
             DestinPrim.IsKeepout            := SourcePrim.IsKeepout;
-            DestinPrim.InNet                := SourcePrim.InNet;    
+            DestinPrim.InNet                := SourcePrim.InNet;
             //DestinPrim.Net                  := SourcePrim.Net;
             DestinPrim.GraphicallyInvalidate;
         end;
@@ -901,9 +947,6 @@ begin
     // Dimensions
     eDimensionObject :
         Begin
-            DestinPrim.PrimitiveLock;
-            DestinPrim.AllowGlobalEdit;
-
             DestinPrim.ArrowLength         := SourcePrim.ArrowLength;
             DestinPrim.ArrowLineWidth      := SourcePrim.ArrowLineWidth;
             DestinPrim.ArrowSize           := SourcePrim.ArrowSize;
@@ -974,6 +1017,13 @@ begin
         end;
     end; //case
 
+// handle primitives with KeepOut property.
+    if SourcePrim.IsKeepout then
+    begin
+        KORS := SourcePrim.GetState_KeepoutRestrictions;
+        DestinPrim.SetState_KeepoutRestrictions(KORS);
+    end;
+
     DestinPrim.EndModify;
 end;
 
@@ -985,6 +1035,7 @@ var
     BoardIterator : IPCB_BoardIterator;
     bFirstTime    : boolean;
     bNeverAsk     : boolean;
+    bAlwaysAsk    : boolean;
     bTempAsk      : boolean;
 
 begin
@@ -1007,6 +1058,7 @@ begin
     KeySet     := MkSet();
     bFirstTime := true;
     bNeverAsk  := cNeverAsk;
+    bAlwaysAsk := cAlwaysAsk;
 
     repeat
         // process if source & destination are selected
@@ -1042,7 +1094,7 @@ begin
         begin
             DestinPrim := Nil;
             repeat
-               SourcePrim := nGetObjectAtCursor(Board, ASetOfObjects, Nil, 'Choose Source Primitive  ');
+               SourcePrim := nGetObjectAtCursor(Board, ASetOfObjects, Nil, 'Choose Source Primitive not in component ');
             until Assigned(SourcePrim) or (SourcePrim = cEsc);
 
             if Assigned(SourcePrim) and (SourcePrim <> cESC)then
@@ -1053,7 +1105,7 @@ begin
                    bTempAsk  := false;
                    bFirstTime := true;
                 end;
-                if (not bTempAsk) and bFirstTime then
+                if bAlwaysAsk or ((not bTempAsk) and bFirstTime) then
                 begin
                     // supporting pad format copy without full layer handling is problematic.
                     // if SourcePrim.ObjectId = ePadObject then
@@ -1066,7 +1118,7 @@ begin
                     else
                         Prompt := SourcePrim.ObjectIdString + '. Copy layer ' + Board.LayerName(SourcePrim.Layer) + ' info ?  ';
 
-                    boolLoc := MessageDlg(Prompt, mtConfirmation, mbYesNoCancel, 0);
+                    boolLoc := ConfirmNoYesCancel(Prompt);
                     if boolLoc = mrCancel then SourcePrim := Nil;
                     bFirstTime := false;
                 end;
@@ -1093,4 +1145,3 @@ begin
    if DocKind = cDocKind_Pcb then
        FormatCopyPCB(Doc);
 end;
-
