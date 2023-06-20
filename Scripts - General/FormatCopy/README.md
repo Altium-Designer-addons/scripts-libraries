@@ -1,3 +1,5 @@
+# [Download](https://altium-designer-addons.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Scripts+-+General/FormatCopy)
+
 # FormatCopy
 *From FormatPaintBrush.pas*
 
