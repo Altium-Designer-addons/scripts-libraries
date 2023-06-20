@@ -10,9 +10,25 @@ var
 
 
 const
-    UsePresets    = True;
-    NumPresets    = 12; // not just for presets, also used to save previous state
-    ScriptVersion = '2.04';
+    UsePresets      = True;
+    NumPresets      = 12; // not just for presets, also used to save previous state
+    PresetFileName  = 'MoveAPdesignators2Settings.txt' // default file name is MyMoveDesignatorsPresets.txt
+    ScriptTitle     = 'MoveAPdesignators2';
+    ScriptVersion   = '2.05';
+
+
+procedure About;
+var
+    MsgText : string;
+begin
+    MsgText := '"' + ScriptTitle + '" script version ' + ScriptVersion + sLineBreak + sLineBreak +
+        'Updated versions may be found here:' + sLineBreak +
+        'https://github.com/Altium-Designer-addons/scripts-libraries' + sLineBreak + sLineBreak +
+        'Settings save location:' + sLineBreak +
+        ClientAPI_SpecialFolder_AltiumApplicationData + '\' + PresetFileName;
+
+    ShowInfo(MsgText, 'About');
+end; { About }
 
 
 { function to populate a TStringList with preset values }
@@ -34,11 +50,10 @@ begin
 end; { BuildPresetList }
 
 
-// function to load preset list from file
+{ function to load preset list from file }
 procedure LoadPresetListFromFile(const dummy : Integer);
 begin
-    // default file name is MyMoveDesignatorsPresets.txt
-    PresetFilePath := ClientAPI_SpecialFolder_AltiumApplicationData + '\MyMoveDesignatorsPresets.txt';
+    PresetFilePath := ClientAPI_SpecialFolder_AltiumApplicationData + '\' PresetFileName;
     PresetList     := TStringList.Create;
     if FileExists(PresetFilePath) then
     begin
@@ -157,7 +172,7 @@ begin
 end; { TransformAutopos }
 
 
-// Main procedure
+{ Main procedure }
 procedure TweakDesignators;
 var
     Component               : IPCB_Component;
@@ -507,14 +522,6 @@ begin
     AbortScript := True;
     TweakDesForm.Close;
 end; { TTweakDesForm.ButtonCancelClick }
-
-
-procedure About;
-begin
-    ShowMessage('Move Auto-Positioned Designators v' + ScriptVersion + sLineBreak +
-            'Updated versions may be found here:' + sLineBreak +
-            'https://github.com/Altium-Designer-addons/scripts-libraries');
-end; { About }
 
 
 procedure TTweakDesForm.TweakDesFormShow(Sender : TObject);
