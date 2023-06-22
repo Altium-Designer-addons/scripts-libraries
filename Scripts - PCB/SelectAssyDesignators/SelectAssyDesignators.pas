@@ -2,11 +2,11 @@
 { For documentation see README.md }
 
 var
-    Board             : IPCB_Board;
+    Board : IPCB_Board;
 
 const
     DebuggingEnabled = False;
-    ScriptVersion = '1.6';
+    ScriptVersion = '1.7';
     ScriptTitle = 'SelectAssyDesignators';
     MinDesignatorSize = 100000; // minimum designator size for resizing in Altium coordinate units (100000 = 10 mils)
 
@@ -26,6 +26,7 @@ procedure ResetDesignatorPositionsNorm; forward;
 procedure ResetDesignatorPositionsNormOrtho; forward;
 procedure ResetDesignatorPositionsOrtho; forward;
 procedure ResizeText(var Text : IPCB_Text, const width : TCoord, const height : TCoord); forward;
+function RotateTextToAngle(var Text : IPCB_Text; const Angle : Double; const Normalize : Boolean = False; const Ortho : Boolean = False) : Double; forward;
 procedure SelectBoth; forward;
 procedure SelectComponents; forward;
 procedure SelectDesignators; forward;
@@ -91,8 +92,10 @@ begin
 
                 end;
 
-                // set Text object's justification to center.
+                // need to turn on AdvanceSnapping (requires AD19+ but I'm not going to bother supporting old versions)
                 Text.AdvanceSnapping := True;   // necessary for autoposition to work correctly (thanks, Brett Miller!)
+
+                // set Text object's justification to center.
                 Text.TTFInvertedTextJustify := eAutoPos_CenterCenter;
 
                 // move text to component's position using `Text.SnapPointX` and `Text.SnapPointY` (goodbye Text.MoveToXY()!)
@@ -100,24 +103,8 @@ begin
                 Text.SnapPointY := Comp.y;
 
                 // rotate text to match component
-                case Text.GetState_Mirror of
-                    True :
-                        begin
-                            if Ortho then target_rotation := (Comp.Rotation + 270) mod 360 else target_rotation := (Comp.Rotation + 180) mod 360; // mirrored text should be rotated to match layer flip behavior
-                            if Normalize and (target_rotation >= 90) and (target_rotation < 270) then
-                                Text.Rotation := (target_rotation + 180) mod 360
-                            else
-                                Text.Rotation := target_rotation;
-                        end;
-                    False :
-                        begin
-                            if Ortho then target_rotation := (Comp.Rotation + 270) mod 360 else target_rotation := Comp.Rotation;
-                            if Normalize and (target_rotation > 90) and (target_rotation <= 270) then
-                                Text.Rotation := (target_rotation + 180) mod 360
-                            else
-                                Text.Rotation := target_rotation;
-                        end;
-                end;
+                RotateTextToAngle(Text, Comp.Rotation, Normalize, Ortho);
+
                 if DebuggingEnabled then
                 begin
                 	if i < 3 then Inspect_IPCB_Text(Text, 'AFTER');
@@ -136,6 +123,38 @@ begin
 
     Client.SendMessage('PCB:Zoom', 'Action=Redraw' , 255, Client.CurrentView);
 
+end;
+
+
+{ rotates IPCB_Text object to specific angle, optionally normalizing it to be right-reading, optionally rotating 90° CW }
+function RotateTextToAngle(var Text : IPCB_Text; const Angle : Double; const Normalize : Boolean = False; const Ortho : Boolean = False) : Double;
+begin
+    if Ortho then Angle := Angle + 270;
+
+    // coerce angle to 0 ~ 360
+    Angle := (Angle mod 360 + 360) mod 360; // technically an integer operation. TODO: make proper floating point mod throughout
+
+    // rotate text to match Angle, based on how mirrored text reads from the flipside of the board
+    case Text.GetState_Mirror of
+        True :
+            begin
+                // mirrored text should be rotated to match layer flip behavior of text vs components
+                if not Ortho then Angle := (Angle + 180) mod 360;
+                if Normalize and (Angle >= 90) and (Angle < 270) then
+                    Text.Rotation := (Angle + 180) mod 360
+                else
+                    Text.Rotation := Angle;
+            end;
+        False :
+            begin
+                if Normalize and (Angle > 90) and (Angle <= 270) then
+                    Text.Rotation := (Angle + 180) mod 360
+                else
+                    Text.Rotation := Angle;
+            end;
+    end;
+
+    Result := Text.Rotation;
 end;
 
 
@@ -409,10 +428,16 @@ end;
 
 { IPCB_Text inspector for debugging }
 procedure Inspect_IPCB_Text(var Text : IPCB_Text3, const MyLabel : string = '');
+var
+    AD19DebugStr : String;
 begin
+    AD19DebugStr := Format('%s : %s', ['AdvanceSnapping',  BoolToStr(Text.AdvanceSnapping, True)]) + sLineBreak +
+            Format('%s : %s', ['SnapPointX',  IntToStr(Text.SnapPointX)]) + sLineBreak +
+            Format('%s : %s', ['SnapPointY',  IntToStr(Text.SnapPointY)]);
+
     ShowInfo('DEBUGGING: ' + MyLabel + sLineBreak +
                 '------------------------------' + sLineBreak +
-                Format('%s : %s', ['AdvanceSnapping',  BoolToStr(Text.AdvanceSnapping, True)]) + sLineBreak +
+                AD19DebugStr + sLineBreak +
                 Format('%s : %s', ['AllowGlobalEdit',  BoolToStr(Text.AllowGlobalEdit, True)]) + sLineBreak +
                 Format('%s : %s', ['Descriptor',  Text.Descriptor]) + sLineBreak +
                 Format('%s : %s', ['Detail',  Text.Detail]) + sLineBreak +
@@ -432,8 +457,6 @@ begin
                 Format('%s : %s', ['ObjectId',  IntToStr(Text.ObjectId)]) + sLineBreak +
                 Format('%s : %s', ['ObjectIDString',  Text.ObjectIDString]) + sLineBreak +
                 Format('%s : %s', ['PadCacheRobotFlag',  BoolToStr(Text.PadCacheRobotFlag, True)]) + sLineBreak +
-                Format('%s : %s', ['SnapPointX',  IntToStr(Text.SnapPointX)]) + sLineBreak +
-                Format('%s : %s', ['SnapPointY',  IntToStr(Text.SnapPointY)]) + sLineBreak +
                 Format('%s : %s', ['Text',  Text.Text]) + sLineBreak +
                 Format('%s : %s', ['TextKind',  IntToStr(Text.TextKind)]) + sLineBreak +
                 Format('%s : %s', ['TTFInvertedTextJustify',  IntToStr(Text.TTFInvertedTextJustify)]) + sLineBreak +
