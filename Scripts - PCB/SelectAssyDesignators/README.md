@@ -65,3 +65,5 @@ There might be some value in adding a function to check that all components *hav
 2023-06-07 by Ryan Rutledge : v1.5 - streamlined script to use SnapPointX, SnapPointY properties directly to position text, rather than calculating offsets and using MoveByXY
 
 2023-06-09 by Ryan Rutledge : v1.6 - added error message if the _SelectBoth_ procedure is attempted without both Components and Texts enabled in the selection filter
+
+2023-06-21 by Ryan Rutledge : v1.7 - refactored rotation into its own function to make the code more maintainable and to steal the function for other scripts; added AdvanceSnapping AD version checking
