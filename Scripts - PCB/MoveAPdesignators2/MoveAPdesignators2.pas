@@ -7,12 +7,103 @@ var
     UnHideDesignators, AbortScript : Boolean;
     PresetFilePath                 : string;
     PresetList                     : TStringList;
+    IsAtLeastAD19                  : Boolean;
 
 
 const
-    UsePresets    = True;
-    NumPresets    = 12; // not just for presets, also used to save previous state
-    ScriptVersion = '2.04';
+    UsePresets      = True;
+    NumPresets      = 12; // not just for presets, also used to save previous state
+    PresetFileName  = 'MoveAPdesignators2Settings.txt' // default file name is MyMoveDesignatorsPresets.txt
+    ScriptTitle     = 'MoveAPdesignators2';
+    ScriptVersion   = '2.05';
+
+
+procedure About; forward;
+procedure BothInitialCheck(var status : Integer); forward;
+procedure BuildPresetList(var TempPresetList : TStringList); forward;
+function IsStringANum(Text : string) : Boolean; forward;
+procedure LoadPresetListFromFile(const dummy : Integer); forward;
+procedure PresetButtonClicked(Sender : TObject); forward;
+function SelectCompAndDesignators(dummy : Boolean = False) : Boolean; forward;
+function TransformAutoPos(Designator : IPCB_Text, tc_AutoPos : TTextAutoposition) : TTextAutoposition; forward;
+procedure TweakDesignators; forward;
+procedure UserKeyPress(Sender : TObject; var Key : Char); forward;
+procedure ValidateOnChange(Sender : TObject); forward;
+procedure TTweakDesForm.ButtonCancelClick(Sender : TObject); forward;
+procedure TTweakDesForm.ButtonOKClick(Sender : TObject); forward;
+procedure TTweakDesForm.EditDistanceChange(Sender : TObject); forward;
+procedure TTweakDesForm.MMmilButtonClick(Sender : TObject); forward;
+procedure TTweakDesForm.TweakDesFormShow(Sender : TObject); forward;
+
+
+procedure About;
+var
+    MsgText : string;
+begin
+    MsgText := '"' + ScriptTitle + '" script version ' + ScriptVersion + sLineBreak + sLineBreak +
+        'Updated versions may be found here:' + sLineBreak +
+        'https://github.com/Altium-Designer-addons/scripts-libraries' + sLineBreak + sLineBreak +
+        'Settings save location:' + sLineBreak +
+        ClientAPI_SpecialFolder_AltiumApplicationData + '\' + PresetFileName;
+
+    ShowInfo(MsgText, 'About');
+end; { About }
+
+
+{ Initial checks when a mix of components and Designators are ostensibly selected }
+procedure BothInitialCheck(var status : Integer);
+var
+    i                   : Integer;
+    Prim1               : IPCB_Primitive;
+    ComponentCount      : Integer;
+    DesignatorCount     : Integer;
+begin
+    status := 0; // clear result status
+
+    // Checks if current document is a PCB kind if not, exit.
+    Board := PCBServer.GetCurrentPCBBoard;
+    if Board = nil then exit;
+
+    ComponentCount := 0;
+    DesignatorCount := 0;
+
+    // Count components and Designators without deselecting them
+    for i := 0 to Board.SelectecObjectCount - 1 do
+    begin
+        Prim1 := Board.SelectecObject[i];
+        if (Prim1.ObjectId = eComponentObject) then ComponentCount := ComponentCount + 1;
+        if ((Prim1.ObjectId = eTextObject) and (Prim1.IsDesignator)) then DesignatorCount := DesignatorCount + 1;
+    end;
+
+    if ((ComponentCount < 1) and (DesignatorCount < 1)) then
+    begin
+        if DebuggingEnabled then
+        begin
+            ShowError('Select at least 1 component or designator.' + sLineBreak + sLineBreak +
+                        '-- Debugging Info --' + sLineBreak +
+                        'ComponentCount: ' + IntToStr(ComponentCount) + sLineBreak +
+                        'DesignatorCount: ' + IntToStr(DesignatorCount) + sLineBreak +
+                        'Selected Object Count: ' + IntToStr(Board.SelectecObjectCount));
+        end
+        else ShowError('Select at least 1 component or designator special string.');
+
+        status := 1;
+        exit;
+    end;
+
+    if ((ComponentCount + DesignatorCount) <> Board.SelectecObjectCount) then
+    begin
+        // deselect anything that isn't a component or Designator string
+        i := 0;
+        while i < Board.SelectecObjectCount do
+        begin
+            Prim1 := Board.SelectecObject[i];
+            if not ((Prim1.ObjectId = eComponentObject) or ((Prim1.ObjectId = eTextObject) and (Prim1.IsDesignator))) then Prim1.SetState_Selected(False)
+            else i := i + 1; // advance iterator if current object remains selected
+        end;
+    end;
+
+end;
 
 
 { function to populate a TStringList with preset values }
@@ -34,12 +125,11 @@ begin
 end; { BuildPresetList }
 
 
-// function to load preset list from file
+{ function to load preset list from file }
 procedure LoadPresetListFromFile(const dummy : Integer);
 begin
-    // default file name is MyMoveDesignatorsPresets.txt
-    PresetFilePath := ClientAPI_SpecialFolder_AltiumApplicationData + '\MyMoveDesignatorsPresets.txt';
-    PresetList     := TStringList.Create;
+    PresetFilePath := ClientAPI_SpecialFolder_AltiumApplicationData + '\' + PresetFileName;
+    PresetList     := CreateObject(TStringList);
     if FileExists(PresetFilePath) then
     begin
         // ShowMessage('Loading presets from ' + PresetFilePath);
@@ -80,6 +170,58 @@ begin
         PresetList.SaveToFile(PresetFilePath);
     end;
 end; { LoadPresetListFromFile }
+
+
+{ function to select both components and designators for selected objects }
+function SelectCompAndDesignators(dummy : Boolean = False) : Boolean;
+var
+    i           : Integer;
+    CompCount   : Integer;
+    TextCount   : Integer;
+    errText     : String;
+    status      : Integer;
+    Comp        : IPCB_Component;
+    Text        : IPCB_Text;
+    Prim1       : IPCB_Primitive;
+begin
+    Result := True;
+
+    BothInitialCheck(status);
+    if status <> 0 then exit;
+
+    CompCount := 0;
+    TextCount := 0;
+
+    for i := 0 to Board.SelectecObjectCount - 1 do
+    begin
+        Prim1 := Board.SelectecObject[i];
+        if (Prim1.ObjectId = eTextObject) and Prim1.IsDesignator then
+        begin
+            TextCount := TextCount + 1;
+            Comp := Prim1.Component;
+            if Comp <> nil then
+            begin
+                Comp.SetState_Selected(True);
+                if Comp.GetState_Selected = True then CompCount := CompCount + 1;
+            end;
+        end
+        else if Prim1.ObjectId = eComponentObject then
+        begin
+            CompCount := CompCount + 1;
+            Text := Prim1.Name;
+            if Text <> nil then
+            begin
+                Text.SetState_Selected(True);
+                if Text.GetState_Selected = True then TextCount := TextCount + 1;
+            end;
+        end;
+    end;
+
+    if not (CompCount > 0) then Result := False;
+
+    Client.SendMessage('PCB:Zoom', 'Action=Redraw' , 255, Client.CurrentView);
+
+end;
 
 
 { function to transform TTextAutoposition based on rotation }
@@ -157,7 +299,7 @@ begin
 end; { TransformAutopos }
 
 
-// Main procedure
+{ Main procedure }
 procedure TweakDesignators;
 var
     Component               : IPCB_Component;
@@ -169,19 +311,20 @@ var
     DesignatorXmove         : Integer;           // Distance to move
     TempPresetList          : TStringList;
     RotatedAutoPos          : Boolean;
+    status, i               : Integer;
 
 begin
     // set version label
     LabelVersion.Caption := 'v' + ScriptVersion;
 
-    // Verify that the document is a PcbDoc
-    // if PCBServer.GetCurrentPCBBoard = Nil Then  Begin
-    // Exit;
-    // End;
+    // set AD build flag
+    if (GetBuildNumberPart(Client.GetProductVersion, 0) >= 19) then IsAtLeastAD19 := True else IsAtLeastAD19 := False;
 
-    // Checks if current document is a PCB kind if not, Exit.
-    Board := PCBServer.GetCurrentPCBBoard;
-    if Board = Nil then Exit;
+    if not SelectCompAndDesignators then
+    begin
+        ShowError('No components selected');
+        Exit;
+    end;
 
     // Disables Online DRC during designator movement to improve speed
     PCBSystemOptions := PCBServer.SystemOptions;
@@ -193,11 +336,7 @@ begin
     try
         AbortScript := False;
         TweakDesForm.ShowModal; // Show the settings dialogue (and resume script here after closed?)
-        if AbortScript then
-        begin
-            PresetList.Free;
-            Exit;
-        end;
+        if AbortScript then Exit;
 
         // Notify the pcbserver that we will make changes (Start undo)
         PCBServer.PreProcess;
@@ -241,6 +380,9 @@ begin
             // notify that the pcb object is going to be modified
             // PCBServer.SendMessageToRobots(Designator.I_ObjectAddress, c_Broadcast, PCBM_BeginModify, c_NoEventData);
             Component.Name.BeginModify;
+
+            // if AD19+, need to turn on AdvanceSnapping
+            if IsAtLeastAD19 then Designator.AdvanceSnapping := True;
 
             // Set text justification according to autoposition setting
             Designator.TTFInvertedTextJustify := TransformAutoPos(Designator, tc_AutoPos);
@@ -365,7 +507,7 @@ begin
         if UsePresets then
         begin
             // build list of currect preset values
-            TempPresetList := TStringList.Create;
+            TempPresetList := CreateObject(TStringList);
             BuildPresetList(TempPresetList);
             if TempPresetList.Equals(PresetList) then
             begin
@@ -376,11 +518,17 @@ begin
                 // save new list to MyMoveDesignatorsPresets.txt
                 TempPresetList.SaveToFile(PresetFilePath);
             end;
-
-            // cleanup
-            TempPresetList.Free;
-            PresetList.Free;
         end;
+
+        // deselect designators
+        for i := Board.SelectecObjectCount - 1 downto 0 do
+        begin
+            Designator := Board.SelectecObject[i];
+            if (Designator.ObjectId <> eComponentObject) then Designator.SetState_Selected(False)
+        end;
+
+        Client.SendMessage('PCB:Zoom', 'Action=Redraw' , 255, Client.CurrentView);
+
 
     finally
         // Restore DRC setting
@@ -432,8 +580,8 @@ begin
 
 end; { ValidateOnChange }
 
-
-procedure UserKeyPress(Sender : TObject; var Key : Char); // programmatically, OnKeyPress fires before OnChange event and "catches" the key press
+{ programmatically, OnKeyPress fires before OnChange event and "catches" the key press }
+procedure UserKeyPress(Sender : TObject; var Key : Char);
 begin
     if (ButtonOK.Enabled) and (Ord(Key) = 13) then
     begin
@@ -507,14 +655,6 @@ begin
     AbortScript := True;
     TweakDesForm.Close;
 end; { TTweakDesForm.ButtonCancelClick }
-
-
-procedure About;
-begin
-    ShowMessage('Move Auto-Positioned Designators v' + ScriptVersion + sLineBreak +
-            'Updated versions may be found here:' + sLineBreak +
-            'https://github.com/Altium-Designer-addons/scripts-libraries');
-end; { About }
 
 
 procedure TTweakDesForm.TweakDesFormShow(Sender : TObject);
