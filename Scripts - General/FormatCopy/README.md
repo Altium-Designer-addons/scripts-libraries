@@ -52,6 +52,10 @@ Modified   : B. Miller
 18/02/2020 v0.85 PCB: Improve Pad & Via expansion rule & value copying\
 07/05/2020 v0.86 SCH: Graphically.Invalidate after each copy; trigger bounding box resize for components; fix bug in Comp desc.\
 07/05/2020 v0.87 SCH: simplied pick ranking/weighting.
+26/12/2020 v0.88 PCB: remove 2 useless lines in Dimensions. Change MessageDlg to mtCustom. Does it beep?
+24/06/2022 v0.89 PCB: add pad & via template link copying.
+24/06/2022 v0.90 PCB: copy over primitive keepout restrictions.
+17/06/2023 v0.91 PCB: missed the simple padstack radius corners, refactor pad & via to layer iterators.
 ```
 
 tbd: `SHIFT` modifier key was intended to prevent font size change but FontManager is borked in AD19.
