@@ -12,10 +12,8 @@
 // - Add Mechanical Layer options to GUI
 // - Use Courtyard layer tracks
 
-uses
-  Winapi, ShellApi, Win32.NTDef, Windows, Messages, SysUtils, Classes,
-  Graphics,
-  Controls, Forms, Dialogs, System, System.Diagnostics;
+uses  // do `uses` actually do anything in Altium's DelphiScript?
+  Winapi, ShellApi, Win32.NTDef, Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs, System, System.Diagnostics;
 
 const
   NEWLINECODE = #13#10;
@@ -38,7 +36,7 @@ var
   TryAlteredRotation: Integer;
   RotationStrategy: Integer;
 
-  // May want different Bounding Rectangles depending on the object
+// May want different Bounding Rectangles depending on the object
 function Get_Obj_Rect(Obj: IPCB_ObjectClass): TCoordRect;
 var
   Rect: TCoordRect;
@@ -70,8 +68,7 @@ begin
   Rect := Get_Obj_Rect(Obj);
   BoardRect := Get_Obj_Rect(Board);
 
-  if (Rect.Left < BoardRect.Left) or (Rect.Right > BoardRect.Right) or
-    (Rect.Bottom < BoardRect.Bottom) or (Rect.Top > BoardRect.Top) then
+  if (Rect.Left < BoardRect.Left) or (Rect.Right > BoardRect.Right) or (Rect.Bottom < BoardRect.Bottom) or (Rect.Top > BoardRect.Top) then
   begin
     result := True;
     Exit; // return
@@ -129,8 +126,7 @@ var
 begin
   // Stroke Width & Text Height
   Rect := Get_Obj_Rect(Slk.Component);
-  area := CoordToMils(Rect.Right - Rect.Left) *
-    CoordToMils(Rect.Top - Rect.Bottom);
+  area := CoordToMils(Rect.Right - Rect.Left) * CoordToMils(Rect.Top - Rect.Bottom);
 
   size := Int((82 * area) / (16700 + area));
   if size < Min_Size then
@@ -140,8 +136,7 @@ begin
 end;
 
 // Checks if 2 objects are overlapping on the PCB
-function Is_Overlapping(Obj1: IPCB_ObjectClass; Obj2: IPCB_ObjectClass)
-  : Boolean;
+function Is_Overlapping(Obj1: IPCB_ObjectClass; Obj2: IPCB_ObjectClass) : Boolean;
 const
   SLKPAD = 40000; // Allowed Overlap = 4 mil
   PADPAD = 10000; // Margin beyond pad = 1 mil
@@ -184,11 +179,9 @@ begin
   // Neg/Pos padding margins
   Delta1 := 0;
   Delta2 := 0;
-  if (Obj1.ObjectId = eTextObject) and (Obj2.ObjectId = eTextObject) and Obj1.IsDesignator
-  then
+  if (Obj1.ObjectId = eTextObject) and (Obj2.ObjectId = eTextObject) and Obj1.IsDesignator then
     Delta1 := -SLKPAD;
-  if (Obj1.ObjectId = eTextObject) and (Obj2.ObjectId = eTextObject) and Obj2.IsDesignator
-  then
+  if (Obj1.ObjectId = eTextObject) and (Obj2.ObjectId = eTextObject) and Obj2.IsDesignator then
     Delta2 := -SLKPAD;
   if (Obj1.ObjectId = ePadObject) then
     Delta1 := PADPAD;
@@ -224,8 +217,7 @@ begin
     TopBot := eBottomLayer;
 
   result := MkSet(SlkLayer); // Default layer set
-  if (ObjID = eComponentObject) or (ObjID = ePadObject) or (ObjID = eViaObject)
-  then
+  if (ObjID = eComponentObject) or (ObjID = ePadObject) or (ObjID = eViaObject) then
   begin
     result := MkSet(TopBot, eMultiLayer);
   end
@@ -307,8 +299,7 @@ begin
       Obj := Obj.Component;
 
       // Allow under are user defined reference designators that can be ignored
-      if (Obj = nil) or (Allow_Under(Obj, AllowUnderList)) or
-        (Obj.Name.Layer <> Slk.Layer) then
+      if (Obj = nil) or (Allow_Under(Obj, AllowUnderList)) or (Obj.Name.Layer <> Slk.Layer) then
       begin
         Obj := Iterator.NextPCBObject;
         Continue;
@@ -523,8 +514,7 @@ begin
     begin
       dx := d * flipx;
     end
-    else if (autoPos = eAutoPos_TopRight) or (autoPos = eAutoPos_BottomRight)
-    then
+    else if (autoPos = eAutoPos_TopRight) or (autoPos = eAutoPos_BottomRight) then
     begin
       dx := -d * flipx;
     end;
@@ -929,20 +919,18 @@ var
   R: Integer; // Component Rotation
 begin
   Case RotationStrategy of
-    0:
+    0:  // 'Component Rotation'
       begin
-        if (Silk.Component.Rotation = 0) or (Silk.Component.Rotation = 180) or
-          (Silk.Component.Rotation = 360) then
+        if (Silk.Component.Rotation = 0) or (Silk.Component.Rotation = 180) or (Silk.Component.Rotation = 360) then
           Silk.Rotation := MirrorBottomRotation(Silk, 0)
-        else if (Silk.Component.Rotation = 90) or (Silk.Component.Rotation = 270)
-        then
+        else if (Silk.Component.Rotation = 90) or (Silk.Component.Rotation = 270) then
           Silk.Rotation := MirrorBottomRotation(Silk, 90);
       end;
-    1:
+    1:  // 'Horizontal Rotation'
       begin
         Silk.Rotation := MirrorBottomRotation(Silk, 0);
       end;
-    2:
+    2:  // 'Along Side'
       begin
         Case NameAutoPosition of
           eAutoPos_CenterRight:
@@ -963,55 +951,44 @@ begin
             Silk.Rotation := MirrorBottomRotation(Silk, 0);
         end;
       end;
-    3:
+    3:  // 'Along Axel'
       begin
-        if (Silk.Component.BoundingRectangle.Right -
-          Silk.Component.BoundingRectangle.Left) >
-          (Silk.Component.BoundingRectangle.Top -
-          Silk.Component.BoundingRectangle.Bottom) then
+        if (Silk.Component.BoundingRectangle.Right - Silk.Component.BoundingRectangle.Left) > (Silk.Component.BoundingRectangle.Top - Silk.Component.BoundingRectangle.Bottom) then
           Silk.Rotation := MirrorBottomRotation(Silk, 0)
         else
           Silk.Rotation := MirrorBottomRotation(Silk, 90);
       end;
-    4:
+    4:  // 'Along Pins'
       begin
         if (SilkscreenHor = 1) then
         begin
-          if (Silk.Component.Rotation = 0) or (Silk.Component.Rotation = 180) or
-            (Silk.Component.Rotation = 360) then
+          if (Silk.Component.Rotation = 0) or (Silk.Component.Rotation = 180) or (Silk.Component.Rotation = 360) then
             Silk.Rotation := MirrorBottomRotation(Silk, 0)
-          else if (Silk.Component.Rotation = 90) or
-            (Silk.Component.Rotation = 270) then
+          else if (Silk.Component.Rotation = 90) or (Silk.Component.Rotation = 270) then
             Silk.Rotation := MirrorBottomRotation(Silk, 90);
         end
         else
         begin
-          if (Silk.Component.Rotation = 0) or (Silk.Component.Rotation = 180) or
-            (Silk.Component.Rotation = 360) then
+          if (Silk.Component.Rotation = 0) or (Silk.Component.Rotation = 180) or (Silk.Component.Rotation = 360) then
             Silk.Rotation := MirrorBottomRotation(Silk, 90)
-          else if (Silk.Component.Rotation = 90) or
-            (Silk.Component.Rotation = 270) then
+          else if (Silk.Component.Rotation = 90) or (Silk.Component.Rotation = 270) then
             Silk.Rotation := MirrorBottomRotation(Silk, 0);
         end;
       end;
-    5:
+    5:  // 'KLC Style')
       begin
         if (SilkscreenHor = 1) then
         begin
-          if (Silk.Component.Rotation = 0) or (Silk.Component.Rotation = 180) or
-            (Silk.Component.Rotation = 360) then
+          if (Silk.Component.Rotation = 0) or (Silk.Component.Rotation = 180) or (Silk.Component.Rotation = 360) then
             Silk.Rotation := MirrorBottomRotation(Silk, 0)
-          else if (Silk.Component.Rotation = 90) or
-            (Silk.Component.Rotation = 270) then
+          else if (Silk.Component.Rotation = 90) or (Silk.Component.Rotation = 270) then
             Silk.Rotation := MirrorBottomRotation(Silk, 90);
         end
         else
         begin
-          if (Silk.Component.Rotation = 0) or (Silk.Component.Rotation = 180) or
-            (Silk.Component.Rotation = 360) then
+          if (Silk.Component.Rotation = 0) or (Silk.Component.Rotation = 180) or (Silk.Component.Rotation = 360) then
             Silk.Rotation := MirrorBottomRotation(Silk, 90)
-          else if (Silk.Component.Rotation = 90) or
-            (Silk.Component.Rotation = 270) then
+          else if (Silk.Component.Rotation = 90) or (Silk.Component.Rotation = 270) then
             Silk.Rotation := MirrorBottomRotation(Silk, 0);
         end;
       end;
@@ -1096,8 +1073,7 @@ begin
     Silkscreen.EndModify;
 
     // If not placed, reduce silkscreen size
-    while (CoordToMils(Silkscreen.size) >= ABS_MIN_SILK_SIZE) or
-      (SilkscreenIsFixedSize) do
+    while (CoordToMils(Silkscreen.size) >= ABS_MIN_SILK_SIZE) or (SilkscreenIsFixedSize) do
     begin
       xoff := 0;
       // If not placed, increment x offset
@@ -1127,9 +1103,7 @@ begin
 
             Silkscreen.Component.ChangeNameAutoposition := NextAutoP;
 
-            AutoPosDeltaAdjust(NextAutoP, xoff * OFFSET_DELTA,
-              yoff * OFFSET_DELTA, Silkscreen,
-              Layer2String(Silkscreen.Component.Layer));
+            AutoPosDeltaAdjust(NextAutoP, xoff * OFFSET_DELTA, yoff * OFFSET_DELTA, Silkscreen, Layer2String(Silkscreen.Component.Layer));
 
             Silkscreen.EndModify;
 
@@ -1157,8 +1131,7 @@ begin
             begin
               Continue;
             end
-            else if (AvoidVias) and
-              (IsOverObj(Silkscreen, eViaObject, FilterSize)) then
+            else if (AvoidVias) and (IsOverObj(Silkscreen, eViaObject, FilterSize)) then
             begin
               Continue;
             end
@@ -1180,8 +1153,7 @@ begin
           xoff := xoff + 1; // Toggle increment
       end;
 
-      if Placed or ((CoordToMils(Silkscreen.size) - SILK_SIZE_DELTA) <
-        ABS_MIN_SILK_SIZE) then
+      if Placed or ((CoordToMils(Silkscreen.size) - SILK_SIZE_DELTA) < ABS_MIN_SILK_SIZE) then
       begin
         Break;
       end;
@@ -1312,9 +1284,7 @@ begin
   // https://www.altium.com/ru/documentation/altium-nexus/wsm-api-types-and-constants/#Image%20Index%20Table
   // [!!!] 66 index for debug info
   GetWorkspace.DM_MessagesManager.BeginUpdate();
-  GetWorkspace.DM_MessagesManager.AddMessage(MessageClass, MessageText,
-    'Auto Place Silkscreen', GetWorkspace.DM_FocusedDocument.DM_FileName, '',
-    '', 75, MessageClass = 'APS Status');
+  GetWorkspace.DM_MessagesManager.AddMessage(MessageClass, MessageText, 'Auto Place Silkscreen', GetWorkspace.DM_FocusedDocument.DM_FileName, '', '', 75, MessageClass = 'APS Status');
   GetWorkspace.DM_MessagesManager.EndUpdate();
   GetWorkspace.DM_MessagesManager.UpdateWindow();
 end;
@@ -1404,8 +1374,7 @@ begin
 
     AddMessage('APS Status',
       Format('%d of %d silkscreens placed (%f%%) in %d Second(s)',
-      [PlaceCnt, Count, PlaceCnt / Count * 100,
-      Trunc((Now() - StartTime) * 86400)]));
+          [PlaceCnt, Count, PlaceCnt / Count * 100, Trunc((Now() - StartTime) * 86400)]));
   end;
   Board.BoardIterator_Destroy(Iterator);
 
@@ -1434,11 +1403,10 @@ begin
 
   AddMessage('APS Event',
     Format('Placing finished with 0 contention(s). Failed to placed %d silkscreen(s) in %d Second(s)',
-    [Count - PlaceCnt, Trunc((Now() - StartTime) * 86400)]));
+        [Count - PlaceCnt, Trunc((Now() - StartTime) * 86400)]));
 
   ShowMessage('Script execution complete. ' + IntToStr(PlaceCnt) + ' out of ' +
-    IntToStr(Count) + ' Placed. ' + FloatToStr(Round((PlaceCnt / Count) *
-    100)) + '%');
+    IntToStr(Count) + ' Placed. ' + FloatToStr(Round((PlaceCnt / Count) * 100)) + '%');
 end;
 { .............................................................................. }
 
@@ -1476,13 +1444,10 @@ begin
   IniFile.WriteInteger('Window', 'Top', Form_PlaceSilk.Top);
   IniFile.WriteInteger('Window', 'Left', Form_PlaceSilk.Left);
   IniFile.WriteInteger('General', 'FilterOptions', RG_Filter.ItemIndex);
-  IniFile.WriteInteger('General', 'FailedPlacementOptions',
-    RG_Failures.ItemIndex);
+  IniFile.WriteInteger('General', 'FailedPlacementOptions', RG_Failures.ItemIndex);
   IniFile.WriteBool('General', 'AvoidVias', chkAvoidVias.Checked);
-  IniFile.WriteInteger('General', 'RotationStrategy',
-    RotationStrategyCb.ItemIndex);
-  IniFile.WriteBool('General', 'TryAlteredRotation',
-    TryAlteredRotationChk.Checked);
+  IniFile.WriteInteger('General', 'RotationStrategy', RotationStrategyCb.ItemIndex);
+  IniFile.WriteBool('General', 'TryAlteredRotation', TryAlteredRotationChk.Checked);
   IniFile.WriteBool('General', 'FixedSizeEnabled', FixedSizeChk.Checked);
   IniFile.WriteString('General', 'FixedSize', FixedSizeEdt.Text);
   IniFile.WriteBool('General', 'FixedWidthEnabled', FixedWidthChk.Checked);
@@ -1510,57 +1475,35 @@ var
 begin
   IniFile := TIniFile.Create(AFileName);
 
-  Form_PlaceSilk.Top := IniFile.ReadInteger('Window', 'Top',
-    Form_PlaceSilk.Top);
-  Form_PlaceSilk.Left := IniFile.ReadInteger('Window', 'Left',
-    Form_PlaceSilk.Left);
+  Form_PlaceSilk.Top := IniFile.ReadInteger('Window', 'Top', Form_PlaceSilk.Top);
+  Form_PlaceSilk.Left := IniFile.ReadInteger('Window', 'Left', Form_PlaceSilk.Left);
 
-  RG_Filter.ItemIndex := IniFile.ReadInteger('General', 'FilterOptions',
-    RG_Filter.ItemIndex);
-  RG_Failures.ItemIndex := IniFile.ReadInteger('General',
-    'FailedPlacementOptions', RG_Failures.ItemIndex);
-  chkAvoidVias.Checked := IniFile.ReadBool('General', 'AvoidVias',
-    chkAvoidVias.Checked);
-  RotationStrategyCb.ItemIndex := IniFile.ReadInteger('General',
-    'RotationStrategy', RotationStrategyCb.ItemIndex);
-  TryAlteredRotationChk.Checked := IniFile.ReadBool('General',
-    'TryAlteredRotation', TryAlteredRotationChk.Checked);
-  FixedSizeChk.Checked := IniFile.ReadBool('General', 'FixedSizeEnabled',
-    FixedSizeChk.Checked);
-  FixedSizeEdt.Text := IniFile.ReadString('General', 'FixedSize',
-    FixedSizeEdt.Text);
-  FixedWidthChk.Checked := IniFile.ReadBool('General', 'FixedWidthEnabled',
-    FixedWidthChk.Checked);
-  FixedWidthEdt.Text := IniFile.ReadString('General', 'FixedWidth',
-    FixedWidthEdt.Text);
-  PositionDeltaEdt.Text := IniFile.ReadString('General', 'PositionDelta',
-    PositionDeltaEdt.Text);
+  RG_Filter.ItemIndex := IniFile.ReadInteger('General', 'FilterOptions', RG_Filter.ItemIndex);
+  RG_Failures.ItemIndex := IniFile.ReadInteger('General', 'FailedPlacementOptions', RG_Failures.ItemIndex);
+  chkAvoidVias.Checked := IniFile.ReadBool('General', 'AvoidVias', chkAvoidVias.Checked);
+  RotationStrategyCb.ItemIndex := IniFile.ReadInteger('General', 'RotationStrategy', RotationStrategyCb.ItemIndex);
+  TryAlteredRotationChk.Checked := IniFile.ReadBool('General', 'TryAlteredRotation', TryAlteredRotationChk.Checked);
+  FixedSizeChk.Checked := IniFile.ReadBool('General', 'FixedSizeEnabled', FixedSizeChk.Checked);
+  FixedWidthChk.Checked := IniFile.ReadBool('General', 'FixedWidthEnabled', FixedWidthChk.Checked);
+  FixedWidthEdt.Text := IniFile.ReadString('General', 'FixedWidth', FixedWidthEdt.Text);
+  PositionDeltaEdt.Text := IniFile.ReadString('General', 'PositionDelta', PositionDeltaEdt.Text);
 
   // I know about loops, but...
-  PositionsClb.Checked[0] := IniFile.ReadString('General', 'Position1',
-    PositionsClb.Checked[0]);
-  PositionsClb.Checked[1] := IniFile.ReadString('General', 'Position2',
-    PositionsClb.Checked[1]);
-  PositionsClb.Checked[2] := IniFile.ReadString('General', 'Position3',
-    PositionsClb.Checked[2]);
-  PositionsClb.Checked[3] := IniFile.ReadString('General', 'Position4',
-    PositionsClb.Checked[3]);
-  PositionsClb.Checked[4] := IniFile.ReadString('General', 'Position5',
-    PositionsClb.Checked[4]);
-  PositionsClb.Checked[5] := IniFile.ReadString('General', 'Position6',
-    PositionsClb.Checked[5]);
-  PositionsClb.Checked[6] := IniFile.ReadString('General', 'Position7',
-    PositionsClb.Checked[6]);
-  PositionsClb.Checked[7] := IniFile.ReadString('General', 'Position8',
-    PositionsClb.Checked[7]);
+  PositionsClb.Checked[0] := IniFile.ReadString('General', 'Position1', PositionsClb.Checked[0]);
+  PositionsClb.Checked[1] := IniFile.ReadString('General', 'Position2', PositionsClb.Checked[1]);
+  PositionsClb.Checked[2] := IniFile.ReadString('General', 'Position3', PositionsClb.Checked[2]);
+  PositionsClb.Checked[3] := IniFile.ReadString('General', 'Position4', PositionsClb.Checked[3]);
+  PositionsClb.Checked[4] := IniFile.ReadString('General', 'Position5', PositionsClb.Checked[4]);
+  PositionsClb.Checked[5] := IniFile.ReadString('General', 'Position6', PositionsClb.Checked[5]);
+  PositionsClb.Checked[6] := IniFile.ReadString('General', 'Position7', PositionsClb.Checked[6]);
+  PositionsClb.Checked[7] := IniFile.ReadString('General', 'Position8', PositionsClb.Checked[7]);
 
   IniFile.Free;
 end;
 
 function ConfigFilename(Dummy: String = ''): String;
 begin
-  result := ClientAPI_SpecialFolder_AltiumApplicationData +
-    '\AutoPlaceSilkscreen.ini'
+  result := ClientAPI_SpecialFolder_AltiumApplicationData + '\AutoPlaceSilkscreen.ini';
 end;
 
 procedure TForm_PlaceSilk.BTN_RunClick(Sender: TObject);
@@ -1591,8 +1534,7 @@ begin
   end;
 
   DisplayUnit := Board.DisplayUnit;
-  StringToCoordUnit(PositionDeltaEdt.Text, SilkscreenPositionDelta,
-    DisplayUnit);
+  StringToCoordUnit(PositionDeltaEdt.Text, SilkscreenPositionDelta, DisplayUnit);
 
   DisplayUnit := Board.DisplayUnit;
   StringToCoordUnit(FixedSizeEdt.Text, SilkscreenFixedSize, DisplayUnit);
@@ -1665,14 +1607,13 @@ begin
     MechLayerIDList.Add(IntToStr(LayerObj.V6_LayerID));
 
     // Set default layer
-    if (LayerObj.Name = DEFAULT_CMP_OUTLINE_LAYER) or
-      (ContainsText(LayerObj.Name, 'Component Outline')) then
+    if (LayerObj.Name = DEFAULT_CMP_OUTLINE_LAYER) or (ContainsText(LayerObj.Name, 'Component Outline')) then
     begin
       cbCmpOutlineLayer.SetItemIndex(idx);
       CmpOutlineLayerID := LayerObj.V6_LayerID;
     end;
 
-    Inc(idx)
+    Inc(idx);
   end;
 
   RotationStrategy := RotationStrategyCb.GetItemIndex();
