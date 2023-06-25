@@ -359,9 +359,8 @@ begin
                 TextProperites.Add(Slk.Text + '.YLocation=' + IntToStr(Slk.YLocation));
 
                 Slk.BeginModify;
-                Slk.MoveToXY(Board.XOrigin - 1000000, Board.YOrigin - 1000000);
+                Slk.MoveToXY(Board.XOrigin - 1000000, Board.YOrigin - 1000000); // Move slightly off board origin
                 Slk.EndModify;
-                // Move slightly off board origin
             end;
         end;
 
@@ -1011,15 +1010,12 @@ end;
 
 function Place_Silkscreen(Silkscreen: IPCB_Text): Boolean;
 const
-    OFFSET_DELTA = 5;
-    // [mils] Silkscreen placement will move the position around by this delta
+    OFFSET_DELTA = 5; // [mils] Silkscreen placement will move the position around by this delta
     OFFSET_CNT = 3; // Number of attempts to offset position in x or y directions
     MIN_SILK_SIZE = 30; // [mils]
     ABS_MIN_SILK_SIZE = 25; // [mils]
-    SILK_SIZE_DELTA = 5;
-    // [mils] Decrement silkscreen size by this value if not placed
-    FILTER_SIZE_MILS = 0;
-    // [mils] Additional delta to check surrounding objects. Adds delta to object rectangle.
+    SILK_SIZE_DELTA = 5; // [mils] Decrement silkscreen size by this value if not placed
+    FILTER_SIZE_MILS = 0; // [mils] Additional delta to check surrounding objects. Adds delta to object rectangle.
 var
     NextAutoP: Integer;
     Placed: Boolean;
@@ -1168,8 +1164,7 @@ begin
             if SilkscreenIsFixedWidth then
                 Silkscreen.Width := SilkscreenFixedWidth
             else
-                Silkscreen.Width := Int(2 * (Silkscreen.size / 10) - 10000);
-            // Width needs to change relative to size
+                Silkscreen.Width := Int(2 * (Silkscreen.size / 10) - 10000); // Width needs to change relative to size
 
             Silkscreen.EndModify;
         end;
@@ -1210,8 +1205,7 @@ end;
 // Try different rotations on squarish components
 function Try_Rotation(SlkList: TObjectList): Integer;
 const
-    MAX_RATIO = 1.2;
-    // Component is almost square, so we are safe to try a different rotation
+    MAX_RATIO = 1.2; // Component is almost square, so we are safe to try a different rotation
 var
     Slk: IPCB_Text;
     Rect: TCoordRect;
