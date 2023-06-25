@@ -473,8 +473,7 @@ begin
     end;
 end;
 
-procedure AutoPosDeltaAdjust(autoPos: Integer; X_offset: Integer;
-    Y_offset: Integer; Silk: IPCB_Text; Layer: TPCBString);
+procedure AutoPosDeltaAdjust(autoPos: Integer; X_offset: Integer; Y_offset: Integer; Silk: IPCB_Text; Layer: TPCBString);
 var
     dx, dy, d: Integer;
     XOrigin, YOrigin: Integer;
@@ -913,8 +912,7 @@ begin
     DictionaryCache.Add(Component.Pattern + '=' + IntToStr(result));
 end;
 
-procedure Rotation_Silk(Silk: IPCB_Text; SilkscreenHor: Integer;
-    NameAutoPosition: Integer);
+procedure Rotation_Silk(Silk: IPCB_Text; SilkscreenHor: Integer; NameAutoPosition: Integer);
 var
     R: Integer; // Component Rotation
 begin
@@ -1290,8 +1288,7 @@ begin
 end;
 
 { .............................................................................. }
-procedure Main(Place_Selected: Boolean; Place_OverComp: Boolean;
-    Place_RestoreOriginal: Boolean; AllowUnderList: TStringList);
+procedure Main(Place_Selected: Boolean; Place_OverComp: Boolean; Place_RestoreOriginal: Boolean; AllowUnderList: TStringList);
 var
     Silkscreen: IPCB_Text;
     Cmp: IPCB_Component;
