@@ -30,7 +30,9 @@ Note: May take a long time to run depending on board size, board density, & spee
 
 ## Potential Issues
 - I've currently only tested on a couple of boards and it works well, but issues may crop up once I've expanded testing.
-- Board outline is only approximated as a Bounding Rectangle. Non rectangular boards will probably have issues.
+- Board outline is only approximated as a Bounding Rectangle. Non rectangular boards will probably have issues. **MIGHT be fixed in AnyAngle update now**
+- Autoposition behavior is bugged after flipping component to the other side of the board, **UNTIL THE PCB IS RE-OPENED**. It is not recommended to run script after flipping parts to the other side of the board.
+- **AnyAngle** placement support has had limited testing, mostly with "Along Axis" rotation strategy.
 
 ### Useful Links
 - Zoom help: https://www.altium.com/documentation/18.0/display/ADES/PCB_Cmd-Zoom((Zoom))_AD
