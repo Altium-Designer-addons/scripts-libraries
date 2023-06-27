@@ -49,6 +49,9 @@ function AutopositionJustify(Silkscreen : IPCB_Text; tc_AutoPos : TTextAutoposit
 var
     rotation : Integer;
     mirror   : Boolean;
+    taller   : Boolean;
+    rect     : TCoordRect;
+    APSet    : TSet;
 
 begin
     // AD19+ supports text justification for designators with AdvanceSnapping property
@@ -64,6 +67,14 @@ begin
     mirror := false; // x Direction flips on the bottom layer
     if Layer2String(Silkscreen.Component.Layer) = 'Bottom Layer' then
         mirror := true;
+
+    // Top|Bottom Left|Right autopos behaves differently for strings that are height>width
+    rect := Silkscreen.BoundingRectangle;
+    taller := (rect.Top - rect.Bottom) > (rect.Right - rect.Left);
+
+    APSet := MkSet(eAutoPos_TopLeft, eAutoPos_BottomLeft, eAutoPos_TopRight, eAutoPos_BottomRight);
+
+    if taller and InSet(tc_AutoPos, APSet) then rotation := (rotation + 180) mod 360; // easier to trick rotation than add all the cases below
 
     if rotation > 315 then rotation := 0;
 
@@ -148,7 +159,8 @@ begin
             contour := poly.Contour(iPoly);
             for iPoint := 0 to contour.Count - 1 do
             begin
-                PointList.Add(Format('%d:%s,%s', [iPoint, CoordUnitToString(contour.x(iPoint), eImperial), CoordUnitToString(contour.y(iPoint), eImperial)]));
+                PointList.Add(Format('%d:%s,%s', [iPoint, CoordUnitToString(contour.x(iPoint) - Board.XOrigin, Board.DisplayUnit xor 1),
+                        CoordUnitToString(contour.y(iPoint) - Board.YOrigin, Board.DisplayUnit xor 1)]));
             end;
         end;
     end
@@ -262,8 +274,11 @@ function Is_Outside_Board_V2(Obj: IPCB_ObjectClass): Boolean;
 var
     BoardPoly, poly: IPCB_GeometricPolygon;
     contour: IPCB_Contour;
+    DebugString: WideString;
     iPoly, iPoint: Integer;
 begin
+    if iDebugLevel = 3 then DebugString := Format('Obj: %s', [Obj.Descriptor]);
+    if iDebugLevel = 3 then if ConfirmOKCancelWithCaption('Confirm or Cancel Debug', 'Is_Outside_Board_V2 called' + NEWLINECODE + DebugString) = False then iDebugLevel := 0;
     // Function  PCBServer.PCBContourUtilities.PointInContour(AContour : IPCB_Contour; x : Integer; y : Integer) : Boolean;
     poly := Get_Obj_Poly(Obj);
     BoardPoly := Get_Obj_Poly(Board);
@@ -280,11 +295,20 @@ begin
                 if not PCBServer.PCBContourUtilities.PointInContour(BoardPoly.Contour(0), contour.x(iPoint), contour.y(iPoint)) then
                 begin
                     result := True;
+                    if iDebugLevel >= 1 then DebugString := Format('Obj: %s%sBoard: %s%snot PointInContour: %s @ [%s, %s]',
+                            [Obj.Descriptor, NEWLINECODE, Board.Identifier, NEWLINECODE, BoolToStr(result, True),
+                            CoordUnitToString(contour.x(iPoint) - Board.XOrigin, Board.DisplayUnit xor 1), CoordUnitToString(contour.y(iPoint) - Board.YOrigin, Board.DisplayUnit xor 1)]);
+                    if iDebugLevel >= 1 then if ConfirmOKCancelWithCaption('Confirm or Cancel Debug', DebugString) = False then iDebugLevel := 0;
                     Exit;
                 end;
             end;
         end;
     end;
+
+    if iDebugLevel >= 2 then DebugString := Format('Obj: %s%sBoard: %s%snot PointInContour: %s @ [%s, %s]',
+            [Obj.Descriptor, NEWLINECODE, Board.Descriptor, NEWLINECODE, BoolToStr(result, True),
+            CoordUnitToString(contour.x(iPoint), Board.DisplayUnit xor 1), CoordUnitToString(contour.y(iPoint), Board.DisplayUnit xor 1)]);
+    if iDebugLevel >= 2 then if ConfirmOKCancelWithCaption('Confirm or Cancel Debug', DebugString) = False then iDebugLevel := 0;
 
     result := False;
 end;
@@ -731,6 +755,35 @@ begin
         result := eAutoPos_Manual;
     end;
 end;
+
+function StrFromAutoPos(eAutoPos: TTextAutoposition): String;
+begin
+    { TTextAutoposition = ( eAutoPos_Manual,
+                        eAutoPos_TopLeft,
+                        eAutoPos_CenterLeft,
+                        eAutoPos_BottomLeft,
+                        eAutoPos_TopCenter,
+                        eAutoPos_CenterCenter,
+                        eAutoPos_BottomCenter,
+                        eAutoPos_TopRight,
+                        eAutoPos_CenterRight,
+                        eAutoPos_BottomRight);}
+    case eAutoPos of
+        0: result := 'eAutoPos_Manual';
+        1: result := 'eAutoPos_TopLeft';
+        2: result := 'eAutoPos_CenterLeft';
+        3: result := 'eAutoPos_BottomLeft';
+        4: result := 'eAutoPos_TopCenter';
+        5: result := 'eAutoPos_CenterCenter';
+        6: result := 'eAutoPos_BottomCenter';
+        7: result := 'eAutoPos_TopRight';
+        8: result := 'eAutoPos_CenterRight';
+        9: result := 'eAutoPos_BottomRight';
+    else
+        result := 'Invalid';
+    end;
+end;
+
 
 function StrToAutoPos(iteration: String): Integer;
 begin
@@ -1334,17 +1387,6 @@ begin
                 NEWLINECODE + 'Target Angle: ' + FloatToStr(Angle) +
                 NEWLINECODE + 'OldJustify: ' + IntToStr(OldJustify)) = False then iDebugLevel := 0;
 
-        { TTextAutoposition = ( eAutoPos_Manual,
-                                eAutoPos_TopLeft,
-                                eAutoPos_CenterLeft,
-                                eAutoPos_BottomLeft,
-                                eAutoPos_TopCenter,
-                                eAutoPos_CenterCenter,
-                                eAutoPos_BottomCenter,
-                                eAutoPos_TopRight,
-                                eAutoPos_CenterRight,
-                                eAutoPos_BottomRight);}
-
         // need to transform justification setting
         case OldJustify of
             eAutoPos_TopLeft        : NewJustify := eAutoPos_BottomRight;
@@ -1489,7 +1531,7 @@ begin
                         Silkscreen.BeginModify;
 
                         Silkscreen.Component.ChangeNameAutoposition := NextAutoP;
-                        if iDebugLevel >= 2 then if ConfirmOKCancelWithCaption('Confirm or Cancel Debug', 'Autopositioned') = False then iDebugLevel := 0;
+                        if iDebugLevel >= 2 then if ConfirmOKCancelWithCaption('Confirm or Cancel Debug', 'Autopositioned: ' + StrFromAutoPos(NextAutoP)) = False then iDebugLevel := 0;
 
                         // need to EndModify and BeginModify here to refresh internal Text properties, else changing justification may move text
                         Silkscreen.EndModify;
@@ -1502,7 +1544,10 @@ begin
 
                         Silkscreen.Component.ChangeNameAutoposition := eAutoPos_Manual;
 
-                        if iDebugLevel >= 2 then if ConfirmOKCancelWithCaption('Confirm or Cancel Debug', 'Adjusted') = False then iDebugLevel := 0;
+                        if iDebugLevel >= 2 then if ConfirmOKCancelWithCaption('Confirm or Cancel Debug', 'Adjusted Position' + NEWLINECODE +
+                                'SilkscreenPositionDelta: ' + CoordUnitToString(SilkscreenPositionDelta, Board.DisplayUnit xor 1) + NEWLINECODE +
+                                'X_offset: ' + CoordUnitToString(MilsToCoord(xoff * OFFSET_DELTA), Board.DisplayUnit xor 1) + NEWLINECODE +
+                                'Y_offset: ' + CoordUnitToString(MilsToCoord(yoff * OFFSET_DELTA), Board.DisplayUnit xor 1)) = False then iDebugLevel := 0;
 
                         // TODO: Could do all clearance checks to parent component at this point, when bounding boxes may be more aligned
                         // TODO: in that case, you would ignore objects in host component after de-rotation
@@ -1748,6 +1793,8 @@ var
     Cmp: IPCB_Component;
     Iterator: IPCB_BoardIterator;
     Count, PlaceCnt, NotPlaceCnt, i: Integer;
+    NumSelected: Integer;
+    //CurSelected: IPCB_Primitive;
     //NotPlaced: TObjectList; // use global var
     PCBSystemOptions: IPCB_SystemOptions;
     DRCSetting: Boolean;
@@ -1792,9 +1839,17 @@ begin
     NotPlaced := CreateObject(TObjectList);
     NotPlaced.OwnsObjects := False; // required to not throw invalid pointer errors when NotPlaced is freed
 
+    // count number of components selected so we can stop iterating early if we processed all selected
+    NumSelected := 0;
+    for i := 0 to Board.SelectecObjectCount - 1 do
+    begin
+        //CurSelected := Board.SelectecObject[i];
+        if Board.SelectecObject[i].ObjectId = eComponentObject then NumSelected := NumSelected + 1;
+    end;
+
     ProgressBar1.Position := 0;
     ProgressBar1.Update;
-    ProgressBar1.Max := Get_Iterator_Count(Iterator);
+    if Place_Selected then ProgressBar1.Max := NumSelected else ProgressBar1.Max := Get_Iterator_Count(Iterator);
 
     // Search for component body objects and get their Name, Kind, Area and OverallHeight values
     Count := 0;
@@ -1821,12 +1876,15 @@ begin
         end;
         Cmp := Iterator.NextPCBObject;
 
-        ProgressBar1.Position := ProgressBar1.Position + 1;
+        //ProgressBar1.Position := ProgressBar1.Position + 1;
+        ProgressBar1.Position := Count;
         ProgressBar1.Update;
 
         AddMessage('APS Status',
             Format('%d of %d silkscreens placed (%f%%) in %d Second(s)',
                     [PlaceCnt, Count, PlaceCnt / Count * 100, Trunc((Now() - StartTime) * 86400)]));
+
+        if Place_Selected and (Count >= NumSelected) then break;
     end;
     Board.BoardIterator_Destroy(Iterator);
 
@@ -1995,14 +2053,14 @@ begin
         Split(',', StrNoSpace, AllowUnderList);
     end;
 
-    DisplayUnit := Board.DisplayUnit;
-    StringToCoordUnit(PositionDeltaEdt.Text, SilkscreenPositionDelta, DisplayUnit);
+    DisplayUnit := Board.DisplayUnit;   // need to xor with 1 to convert to eMetric or eImperial for StringToCoordUnit
+    StringToCoordUnit(PositionDeltaEdt.Text, SilkscreenPositionDelta, DisplayUnit xor 1);
 
     DisplayUnit := Board.DisplayUnit;
-    StringToCoordUnit(FixedSizeEdt.Text, SilkscreenFixedSize, DisplayUnit);
+    StringToCoordUnit(FixedSizeEdt.Text, SilkscreenFixedSize, DisplayUnit xor 1);
 
     DisplayUnit := Board.DisplayUnit;
-    StringToCoordUnit(FixedWidthEdt.Text, SilkscreenFixedWidth, DisplayUnit);
+    StringToCoordUnit(FixedWidthEdt.Text, SilkscreenFixedWidth, DisplayUnit xor 1);
 
     SilkscreenIsFixedSize := FixedSizeChk.Checked;
     SilkscreenIsFixedWidth := FixedWidthChk.Checked;
