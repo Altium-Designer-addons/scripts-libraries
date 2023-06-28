@@ -796,24 +796,15 @@ end;
 function GetNextAutoPosition(iteration: Integer): Integer;
 begin
     Case iteration of
-        0:
-            result := eAutoPos_CenterRight;
-        1:
-            result := eAutoPos_TopCenter;
-        2:
-            result := eAutoPos_CenterLeft;
-        3:
-            result := eAutoPos_BottomCenter;
-        4:
-            result := eAutoPos_TopLeft;
-        5:
-            result := eAutoPos_TopRight;
-        6:
-            result := eAutoPos_BottomLeft;
-        7:
-            result := eAutoPos_BottomRight;
-        8:
-            result := eAutoPos_Manual;
+        0:  result := eAutoPos_CenterRight;
+        1:  result := eAutoPos_TopCenter;
+        2:  result := eAutoPos_CenterLeft;
+        3:  result := eAutoPos_BottomCenter;
+        4:  result := eAutoPos_TopLeft;
+        5:  result := eAutoPos_TopRight;
+        6:  result := eAutoPos_BottomLeft;
+        7:  result := eAutoPos_BottomRight;
+        8:  result := eAutoPos_Manual;
     else
         result := eAutoPos_Manual;
     end;
@@ -822,14 +813,15 @@ end;
 function StrFromRotationStrategy(RotationStrategy : Integer): String;
 begin
     case RotationStrategy of
-        0:  result := 'Component Rotation'
-        1:  result := 'Horizontal Rotation'
-        2:  result := 'Vertical Rotation'
-        3:  result := 'Along Side'
-        4:  result := 'Along Axis'
-        5:  result := 'Along Pins'
-        6:  result := 'KLC Style')
-    else    result := 'Invalid';
+        0:  result := 'Component Rotation';
+        1:  result := 'Horizontal Rotation';
+        2:  result := 'Vertical Rotation';
+        3:  result := 'Along Side';
+        4:  result := 'Along Axis';
+        5:  result := 'Along Pins';
+        6:  result := 'KLC Style';
+    else
+        result := 'Invalid';
 end;
 
 function StrFromAutoPos(eAutoPos: TTextAutoposition): String;
@@ -855,29 +847,23 @@ begin
         7:  result := 'eAutoPos_TopRight';
         8:  result := 'eAutoPos_CenterRight';
         9:  result := 'eAutoPos_BottomRight';
-    else    result := 'Invalid';
+    else
+        result := 'Invalid';
+    end;
 end;
 
 
 function StrToAutoPos(iteration: String): Integer;
 begin
     Case iteration of
-        'CenterRight':
-            result := eAutoPos_CenterRight;
-        'TopCenter':
-            result := eAutoPos_TopCenter;
-        'CenterLeft':
-            result := eAutoPos_CenterLeft;
-        'BottomCenter':
-            result := eAutoPos_BottomCenter;
-        'TopLeft':
-            result := eAutoPos_TopLeft;
-        'TopRight':
-            result := eAutoPos_TopRight;
-        'BottomLeft':
-            result := eAutoPos_BottomLeft;
-        'BottomRight':
-            result := eAutoPos_BottomRight;
+        'CenterRight':  result := eAutoPos_CenterRight;
+        'TopCenter':    result := eAutoPos_TopCenter;
+        'CenterLeft':   result := eAutoPos_CenterLeft;
+        'BottomCenter': result := eAutoPos_BottomCenter;
+        'TopLeft':      result := eAutoPos_TopLeft;
+        'TopRight':     result := eAutoPos_TopRight;
+        'BottomLeft':   result := eAutoPos_BottomLeft;
+        'BottomRight':  result := eAutoPos_BottomRight;
     else
         result := -1;
     end;
