@@ -775,7 +775,7 @@ begin
         if IsAtLeastAD19 then
         begin
             _Index := TextProperites.IndexOfName(Slk.Text + '.TTFInvertedTextJustify');
-            Slk.TTFInvertedTextJustify := TextProperites.ValueFromIndex[_Index];
+            Slk.TTFInvertedTextJustify := StrToInt(TextProperites.ValueFromIndex[_Index]);
         end;
 
         Slk.EndModify;
@@ -822,6 +822,7 @@ begin
         6:  result := 'KLC Style';
     else
         result := 'Invalid';
+    end;
 end;
 
 function StrFromAutoPos(eAutoPos: TTextAutoposition): String;
