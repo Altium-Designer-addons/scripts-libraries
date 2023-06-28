@@ -144,6 +144,27 @@ begin
 
 end; { AutopositionJustify }
 
+function DebugContourInfo(contour : IPCB_Contour) : TStringList;
+var
+    PointList: TStringList;
+    iPoint: Integer;
+begin
+    PointList := CreateObject(TStringList);
+    if contour.Count > 0 then
+    begin
+        PointList.Add('contour points');
+        for iPoint := 0 to contour.Count - 1 do
+        begin
+            PointList.Add(Format('%d:%s,%s', [iPoint,
+                    CoordUnitToString(contour.x(iPoint) - Board.XOrigin, Board.DisplayUnit xor 1),
+                    CoordUnitToString(contour.y(iPoint) - Board.YOrigin, Board.DisplayUnit xor 1)]));
+        end;
+    end
+    else PointList.Add('Empty or invalid contour');
+
+    Result := PointList;
+end;
+
 function DebugGeometricPolygonInfo(poly : IPCB_GeometricPolygon) : TStringList;
 var
     PointList: TStringList;
@@ -157,14 +178,13 @@ begin
         for iPoly := 0 to poly.Count - 1 do
         begin
             contour := poly.Contour(iPoly);
-            for iPoint := 0 to contour.Count - 1 do
-            begin
-                PointList.Add(Format('%d:%s,%s', [iPoint, CoordUnitToString(contour.x(iPoint) - Board.XOrigin, Board.DisplayUnit xor 1),
-                        CoordUnitToString(contour.y(iPoint) - Board.YOrigin, Board.DisplayUnit xor 1)]));
-            end;
+            PointList.AddStrings(DebugContourInfo(contour))
         end;
     end
-    else PointList.Add('Polygon has no contours');
+    else
+    begin
+        PointList.Add('Polygon has no contours');
+    end;
 
     Result := PointList;
 end;
@@ -272,42 +292,85 @@ end;
 // Check if any part of object outline is outside board contour
 function Is_Outside_Board_V2(Obj: IPCB_ObjectClass): Boolean;
 var
-    BoardPoly, poly: IPCB_GeometricPolygon;
+    BoardPoly, SilkPoly: IPCB_GeometricPolygon;
     contour: IPCB_Contour;
     DebugString: WideString;
-    iPoly, iPoint: Integer;
+    CutoutContours: TInterfaceList;
+    CutoutRegion: IPCB_Region;
+    iter: IPCB_BoardIterator;
+    iContour, iPoly, iPoint: Integer;
 begin
     if iDebugLevel = 3 then DebugString := Format('Obj: %s', [Obj.Descriptor]);
     if iDebugLevel = 3 then if ConfirmOKCancelWithCaption('Confirm or Cancel Debug', 'Is_Outside_Board_V2 called' + NEWLINECODE + DebugString) = False then iDebugLevel := 0;
     // Function  PCBServer.PCBContourUtilities.PointInContour(AContour : IPCB_Contour; x : Integer; y : Integer) : Boolean;
-    poly := Get_Obj_Poly(Obj);
+    SilkPoly := Get_Obj_Poly(Obj);
     BoardPoly := Get_Obj_Poly(Board);
 
-    // check each silkscreen contour point is inside board outline's 0th contour.
-    // TODO: make sure board cutouts or other outline features don't mess this up.
-    if poly.Count > 0 then
+    if iDebugLevel = 3 then if ConfirmOKCancelWithCaption('Confirm or Cancel Debug', 'BoardPoly' + NEWLINECODE +
+            DebugGeometricPolygonInfo(BoardPoly).Text) = False then iDebugLevel := 0;
+
+    // use board iterator to find all eRegionObject then further, all eRegionKind_BoardCutout
+    CutoutContours := CreateObject(TInterfaceList);
+    iter := Board.BoardIterator_Create;
+    iter.AddFilter_ObjectSet(MkSet(eRegionObject));
+    iter.AddFilter_LayerSet(MkSet(eMultiLayer));
+    iter.AddFilter_Method(eProcessAll);
+    CutoutRegion := iter.FirstPCBObject;
+    while (CutoutRegion <> nil) do
     begin
-        for iPoly := 0 to poly.Count - 1 do
+        if CutoutRegion.Kind = eRegionKind_BoardCutout then
         begin
-            contour := poly.Contour(iPoly);
+            // add all contours that are more than 0.1% different than the board outline itself
+            if ABS(1 - (CutoutRegion.Area / BoardPoly.Area)) > 0.001 then CutoutContours.Add(CutoutRegion.GetMainContour);
+        end;
+        CutoutRegion := iter.NextPCBObject;
+    end;
+
+    if iDebugLevel = 3 then
+        for iContour := 0 to CutoutContours.Count - 1 do
+            if ConfirmOKCancelWithCaption('Confirm or Cancel Debug', 'Cutout contours' + NEWLINECODE + DebugContourInfo(CutoutContours[iContour]).Text) = False then iDebugLevel := 0;
+
+    // check each silkscreen contour point is inside board outline's 0th contour.
+    // TODO: board outlines and cutouts are handled, but there may be other cases
+    if SilkPoly.Count > 0 then
+    begin
+        for iPoly := 0 to SilkPoly.Count - 1 do
+        begin
+            contour := SilkPoly.Contour(iPoly);
             for iPoint := 0 to contour.Count - 1 do
             begin
+                // check for any point of the silkscreen lying outside of board outline
                 if not PCBServer.PCBContourUtilities.PointInContour(BoardPoly.Contour(0), contour.x(iPoint), contour.y(iPoint)) then
                 begin
                     result := True;
-                    if iDebugLevel >= 1 then DebugString := Format('Obj: %s%sBoard: %s%snot PointInContour: %s @ [%s, %s]',
-                            [Obj.Descriptor, NEWLINECODE, Board.Identifier, NEWLINECODE, BoolToStr(result, True),
+                    if iDebugLevel >= 1 then DebugString := 'Board outline check' + NEWLINECODE + Format('Obj: %s%sBoard: %s%sPoint Outside Board Contour: %s @ [%s, %s]',
+                            [Obj.Descriptor, NEWLINECODE, Board.Identifier, NEWLINECODE, BoolToStr(result xor 1, True),
                             CoordUnitToString(contour.x(iPoint) - Board.XOrigin, Board.DisplayUnit xor 1), CoordUnitToString(contour.y(iPoint) - Board.YOrigin, Board.DisplayUnit xor 1)]);
                     if iDebugLevel >= 1 then if ConfirmOKCancelWithCaption('Confirm or Cancel Debug', DebugString) = False then iDebugLevel := 0;
                     Exit;
+                end
+                else
+                begin
+                    // if point is inside, make sure it is not inside a board cutout
+                    for iContour := 0 to CutoutContours.Count - 1 do
+                    begin
+                        if PCBServer.PCBContourUtilities.PointInContour(CutoutContours[iContour], contour.x(iPoint), contour.y(iPoint)) then
+                        begin
+                            result := True;
+                            if iDebugLevel >= 1 then DebugString := 'Board cutout check' + NEWLINECODE + Format('Obj: %s%sBoard: %s%sPoint Inside Cutout Contour: %s @ [%s, %s]',
+                                    [Obj.Descriptor, NEWLINECODE, Board.Identifier, NEWLINECODE, BoolToStr(result, True),
+                                    CoordUnitToString(contour.x(iPoint) - Board.XOrigin, Board.DisplayUnit xor 1), CoordUnitToString(contour.y(iPoint) - Board.YOrigin, Board.DisplayUnit xor 1)]);
+                            if iDebugLevel >= 1 then if ConfirmOKCancelWithCaption('Confirm or Cancel Debug', DebugString) = False then iDebugLevel := 0;
+                            Exit;
+                        end;
+                    end;
                 end;
             end;
         end;
     end;
 
-    if iDebugLevel >= 2 then DebugString := Format('Obj: %s%sBoard: %s%snot PointInContour: %s @ [%s, %s]',
-            [Obj.Descriptor, NEWLINECODE, Board.Descriptor, NEWLINECODE, BoolToStr(result, True),
-            CoordUnitToString(contour.x(iPoint), Board.DisplayUnit xor 1), CoordUnitToString(contour.y(iPoint), Board.DisplayUnit xor 1)]);
+    if iDebugLevel >= 2 then DebugString := 'Silkscreen on board check' + NEWLINECODE + Format('Obj: %s%sBoard: %s%sAll points on board.',
+            [Obj.Descriptor, NEWLINECODE, Board.Identifier, NEWLINECODE]);
     if iDebugLevel >= 2 then if ConfirmOKCancelWithCaption('Confirm or Cancel Debug', DebugString) = False then iDebugLevel := 0;
 
     result := False;
@@ -1620,7 +1683,7 @@ begin
                                 Application.ProcessMessages;
                                 Sleep(DEBUGANIMWAIT);
                             end;
-                            if iDebugLevel >= 1 then ShowInfo(Silkscreen.Text + ' placed. Offsets attempted:' + NEWLINECODE + StepList.DelimitedText);
+                            if iDebugLevel >= 1 then ShowInfo(Silkscreen.Text + ' PLACED' + NEWLINECODE+ 'Offsets attempted:' + NEWLINECODE + StepList.DelimitedText);
 
                             if Silkscreen.Selected = True then Silkscreen.Selected := False;
                             Exit;
