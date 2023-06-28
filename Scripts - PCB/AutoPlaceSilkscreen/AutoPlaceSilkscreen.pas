@@ -819,6 +819,19 @@ begin
     end;
 end;
 
+function StrFromRotationStrategy(RotationStrategy : Integer): String;
+begin
+    case RotationStrategy of
+        0:  result := 'Component Rotation'
+        1:  result := 'Horizontal Rotation'
+        2:  result := 'Vertical Rotation'
+        3:  result := 'Along Side'
+        4:  result := 'Along Axis'
+        5:  result := 'Along Pins'
+        6:  result := 'KLC Style')
+    else    result := 'Invalid';
+end;
+
 function StrFromAutoPos(eAutoPos: TTextAutoposition): String;
 begin
     { TTextAutoposition = ( eAutoPos_Manual,
@@ -832,19 +845,17 @@ begin
                         eAutoPos_CenterRight,
                         eAutoPos_BottomRight);}
     case eAutoPos of
-        0: result := 'eAutoPos_Manual';
-        1: result := 'eAutoPos_TopLeft';
-        2: result := 'eAutoPos_CenterLeft';
-        3: result := 'eAutoPos_BottomLeft';
-        4: result := 'eAutoPos_TopCenter';
-        5: result := 'eAutoPos_CenterCenter';
-        6: result := 'eAutoPos_BottomCenter';
-        7: result := 'eAutoPos_TopRight';
-        8: result := 'eAutoPos_CenterRight';
-        9: result := 'eAutoPos_BottomRight';
-    else
-        result := 'Invalid';
-    end;
+        0:  result := 'eAutoPos_Manual';
+        1:  result := 'eAutoPos_TopLeft';
+        2:  result := 'eAutoPos_CenterLeft';
+        3:  result := 'eAutoPos_BottomLeft';
+        4:  result := 'eAutoPos_TopCenter';
+        5:  result := 'eAutoPos_CenterCenter';
+        6:  result := 'eAutoPos_BottomCenter';
+        7:  result := 'eAutoPos_TopRight';
+        8:  result := 'eAutoPos_CenterRight';
+        9:  result := 'eAutoPos_BottomRight';
+    else    result := 'Invalid';
 end;
 
 
@@ -1328,7 +1339,11 @@ begin
             begin
                 Silk.Rotation := MirrorBottomRotation(Silk, 0);
             end;
-        2:  // 'Along Side'
+        2:  // 'Vertical Rotation'
+            begin
+                Silk.Rotation := MirrorBottomRotation(Silk, 90);
+            end;
+        3:  // 'Along Side'
             begin
                 Case NameAutoPosition of
                     eAutoPos_CenterRight:
@@ -1349,14 +1364,14 @@ begin
                         Silk.Rotation := MirrorBottomRotation(Silk, 0);
                 end;
             end;
-        3:  // 'Along Axis'
+        4:  // 'Along Axis'
             begin
                 if (Silk.Component.BoundingRectangle.Right - Silk.Component.BoundingRectangle.Left) > (Silk.Component.BoundingRectangle.Top - Silk.Component.BoundingRectangle.Bottom) then
                     Silk.Rotation := MirrorBottomRotation(Silk, 0)
                 else
                     Silk.Rotation := MirrorBottomRotation(Silk, 90);
             end;
-        4:  // 'Along Pins'
+        5:  // 'Along Pins'
             begin
                 if (SilkscreenHor = 1) then
                 begin
@@ -1373,7 +1388,7 @@ begin
                         Silk.Rotation := MirrorBottomRotation(Silk, 0);
                 end;
             end;
-        5:  // 'KLC Style')
+        6:  // 'KLC Style')
             begin
                 if (SilkscreenHor = 1) then
                 begin
@@ -1390,6 +1405,7 @@ begin
                         Silk.Rotation := MirrorBottomRotation(Silk, 0);
                 end;
             end;
+
     end;
 end;
 
@@ -1522,9 +1538,9 @@ begin
 
     FilterSize := MilsToCoord(FILTER_SIZE_MILS);
 
-    if RotationStrategy = 4 then
+    if RotationStrategy = 5 then
         SilkscreenHor := CalculateHor(Silkscreen.Component)
-    else if RotationStrategy = 5 then
+    else if RotationStrategy = 6 then
         SilkscreenHor := CalculateHor2(Silkscreen.Component)
     else
         SilkscreenHor := -1;
@@ -1583,7 +1599,7 @@ begin
                         if iDebugLevel >= 1 then Silkscreen.Selected := True;
 
                         if iDebugLevel >= 2 then if ConfirmOKCancelWithCaption('Confirm or Cancel Debug', 'SilkscreenHor: ' + IntToStr(SilkscreenHor) +
-                                NEWLINECODE + 'RotationStrategy: ' + IntToStr(RotationStrategy)) = False then iDebugLevel := 0;
+                                NEWLINECODE + 'RotationStrategy: ' + StrFromRotationStrategy(RotationStrategy)) = False then iDebugLevel := 0;
 
                         Rotation_Silk(Silkscreen, SilkscreenHor, NextAutoP);
                         if AlteredRotation = 1 then
@@ -2100,6 +2116,8 @@ var
     i: Integer;
     DisplayUnit: TUnit;
 begin
+    RotationStrategy := RotationStrategyCb.GetItemIndex();  // moved from form creation
+
     HintLbl.Visible := True;
     HintLbl.Update;
 
@@ -2221,8 +2239,6 @@ begin
     HintLbl.Left := (Form_PlaceSilk.ClientWidth - HintLbl.Width) div 2;
 
     ReadFromIniFile(ConfigFilename);
-
-    RotationStrategy := RotationStrategyCb.GetItemIndex();  // moved to after preferences loaded
 end;
 
 procedure TForm_PlaceSilk.Form_PlaceSilkClose(Sender: TObject;
