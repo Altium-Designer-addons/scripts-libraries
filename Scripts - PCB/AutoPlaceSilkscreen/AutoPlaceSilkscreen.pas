@@ -63,9 +63,9 @@ begin
 
     Silkscreen.AdvanceSnapping := True;
 
-    rotation := Round(Silkscreen.Rotation);
+    rotation := Round(((Silkscreen.Rotation mod 360 + 360) mod 360) / 90) * 90; // coerce any possible value of rotation to a multiple of 90
     mirror := false; // x Direction flips on the bottom layer
-    if Layer2String(Silkscreen.Component.Layer) = 'Bottom Layer' then
+    if Silkscreen.Layer = eBottomOverlay then
         mirror := true;
 
     // Top|Bottom Left|Right autopos behaves differently for strings that are height>width
@@ -76,11 +76,9 @@ begin
 
     if taller and InSet(tc_AutoPos, APSet) then rotation := (rotation + 180) mod 360; // easier to trick rotation than add all the cases below
 
-    if rotation > 315 then rotation := 0;
-
     // technically AutoPosition being enabled should coerce to 0,90,180, or 270
     case rotation of
-        0..45 :
+        0 :
             begin
                 case tc_AutoPos of
                     eAutoPos_TopLeft        : Result := eAutoPos_BottomLeft;
@@ -93,22 +91,22 @@ begin
                     eAutoPos_BottomRight    : Result := eAutoPos_TopRight;
                     else                      Result := tc_AutoPos;
                 end; { case tc_AutoPos }
-            end; { 0..45 }
-        46..135 :
+            end;
+        90 :
             begin
                 case tc_AutoPos of
-                    eAutoPos_TopLeft        : if mirror then Result := eAutoPos_TopLeft else Result := eAutoPos_BottomRight;
+                    eAutoPos_TopLeft        : if mirror then Result := eAutoPos_BottomRight else Result := eAutoPos_TopLeft;
                     eAutoPos_CenterLeft     : if mirror then Result := eAutoPos_TopCenter else Result := eAutoPos_BottomCenter;
-                    eAutoPos_BottomLeft     : if mirror then Result := eAutoPos_TopRight else Result := eAutoPos_BottomLeft;
+                    eAutoPos_BottomLeft     : if mirror then Result := eAutoPos_BottomLeft else Result := eAutoPos_TopRight;
                     eAutoPos_TopCenter      : if mirror then Result := eAutoPos_CenterRight else Result := eAutoPos_CenterLeft;
                     eAutoPos_BottomCenter   : if mirror then Result := eAutoPos_CenterLeft else Result := eAutoPos_CenterRight;
-                    eAutoPos_TopRight       : if mirror then Result := eAutoPos_BottomLeft else Result := eAutoPos_TopRight;
-                    eAutoPos_CenterRight    : if mirror then Result := eAutoPos_BottomCenter else Result := eAutoPos_TopCenter; //Result := eAutoPos_BottomCenter;
-                    eAutoPos_BottomRight    : if mirror then Result := eAutoPos_BottomRight else Result := eAutoPos_TopLeft;
+                    eAutoPos_TopRight       : if mirror then Result := eAutoPos_TopRight else Result := eAutoPos_BottomLeft;
+                    eAutoPos_CenterRight    : if mirror then Result := eAutoPos_BottomCenter else Result := eAutoPos_TopCenter;
+                    eAutoPos_BottomRight    : if mirror then Result := eAutoPos_TopLeft else Result := eAutoPos_BottomRight;
                     else                      Result := tc_AutoPos;
                 end; { case tc_AutoPos }
-            end; { 46..135 }
-        136..225 :
+            end;
+        180 :
             begin
                 case tc_AutoPos of
                     eAutoPos_TopLeft        : Result := eAutoPos_TopRight;
@@ -121,21 +119,21 @@ begin
                     eAutoPos_BottomRight    : Result := eAutoPos_BottomLeft;
                     else                      Result := tc_AutoPos;
                 end; { case tc_AutoPos }
-            end; { 136..225 }
-        226..315 :
+            end;
+        270 :
             begin
                 case tc_AutoPos of
-                    eAutoPos_TopLeft        : if mirror then Result := eAutoPos_BottomRight else Result := eAutoPos_TopLeft;
-                    eAutoPos_CenterLeft     : if mirror then Result := eAutoPos_BottomCenter else Result := eAutoPos_TopCenter; //Result := eAutoPos_BottomCenter;
-                    eAutoPos_BottomLeft     : if mirror then Result := eAutoPos_BottomLeft else Result := eAutoPos_TopRight;
+                    eAutoPos_TopLeft        : if mirror then Result := eAutoPos_TopLeft else Result := eAutoPos_BottomRight;
+                    eAutoPos_CenterLeft     : if mirror then Result := eAutoPos_BottomCenter else Result := eAutoPos_TopCenter;
+                    eAutoPos_BottomLeft     : if mirror then Result := eAutoPos_TopRight else Result := eAutoPos_BottomLeft;
                     eAutoPos_TopCenter      : if mirror then Result := eAutoPos_CenterLeft else Result := eAutoPos_CenterRight;
                     eAutoPos_BottomCenter   : if mirror then Result := eAutoPos_CenterRight else Result := eAutoPos_CenterLeft;
-                    eAutoPos_TopRight       : if mirror then Result := eAutoPos_TopRight else Result := eAutoPos_BottomLeft;
+                    eAutoPos_TopRight       : if mirror then Result := eAutoPos_BottomLeft else Result := eAutoPos_TopRight;
                     eAutoPos_CenterRight    : if mirror then Result := eAutoPos_TopCenter else Result := eAutoPos_BottomCenter;
-                    eAutoPos_BottomRight    : if mirror then Result := eAutoPos_TopLeft else Result := eAutoPos_BottomRight;
+                    eAutoPos_BottomRight    : if mirror then Result := eAutoPos_BottomRight else Result := eAutoPos_TopLeft;
                     else                      Result := tc_AutoPos;
                 end; { case tc_AutoPos }
-            end; { 226..315 }
+            end;
         else Result := tc_AutoPos;
     end; { case rotation }
 
@@ -609,8 +607,7 @@ begin
 end;
 
 // Get components for surrounding area
-function IsOverObj(Slk: IPCB_Text; ObjID: Integer;
-    Filter_Size: Integer): Boolean;
+function IsOverObj(Slk: IPCB_Text; ObjID: Integer; Filter_Size: Integer): Boolean;
 var
     Iterator: IPCB_SpatialIterator;
     Obj: IPCB_ObjectClass;
