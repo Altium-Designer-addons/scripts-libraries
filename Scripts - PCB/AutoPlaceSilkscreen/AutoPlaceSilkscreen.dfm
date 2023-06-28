@@ -74,7 +74,8 @@ object Form_PlaceSilk: TForm_PlaceSilk
     ItemIndex = 0
     Items.Strings = (
       'Center Over Components'
-      'Place Off Board (Bottom Left)')
+      'Place Off Board (Bottom Left)'
+      'Restore Original')
     TabOrder = 2
   end
   object GB_AllowUnder: TGroupBox
@@ -136,12 +137,13 @@ object Form_PlaceSilk: TForm_PlaceSilk
     Width = 193
     Height = 21
     Style = csDropDownList
-    ItemIndex = 4
+    ItemIndex = 5
     TabOrder = 7
     Text = 'Along Pins'
     Items.Strings = (
       'Component Rotation'
       'Horizontal Rotation'
+      'Vertical Rotation'
       'Along Side'
       'Along Axis'
       'Along Pins'
