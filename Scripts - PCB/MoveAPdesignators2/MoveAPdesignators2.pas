@@ -84,14 +84,14 @@ end; { About }
 function AutoMove(Silk : IPCB_Text; ParentOnly : Boolean = True; StartDist : TCoord = 400000; MinDist : TCoord = 25000) : TCoord;
 const
     MINATTEMPTS = 2;
+    SEARCHDIST = 1000000;
+    MINSEARCHDIST = 50000;
 var
     MoveDist, TotalDist : TCoord;
-    bRevert : Boolean;
-    iAttempt : Integer;
+    bFirstPass : Boolean;
 begin
-    StartDist := Min(StartDist, 400000);
-    bRevert := False;
-    iAttempt := 0;
+    StartDist := Min(StartDist, MINSEARCHDIST * 8);
+    bFirstPass := False;
 
     if not (Silk <> nil and Silk.InComponent) then
     begin
@@ -102,8 +102,8 @@ begin
 
     if not IsValidPlacement(Silk, ParentOnly) then
     begin
-        StartDist := 400000;
-        DebugMessage(1, 'Initial placement interferes. Starting move distance at 40mil.');
+        StartDist := MINSEARCHDIST * 4;
+        DebugMessage(1, 'Initial placement interferes. Starting move distance at ' + CoordToStr(StartDist));
     end;
 
     DebugMessage(2, 'Starting automove with Ignore other components = ' + BoolToStr(ParentOnly, True));
@@ -111,49 +111,62 @@ begin
     // initial move attempt
     MoveDist := StartDist;
     repeat
-        if bRevert then
-        begin
-            // undo all the moving and break out of the loop
-            AutoPosDeltaAdjust(Silk, -TotalDist, Silk.Component.NameAutoPosition);
-            DebugMessage(2, 'Failed to find passing placement. Move reverted ' + CoordToStr(TotalDist));
-            MoveDist := 0;
-            TotalDist := 0;
-            break;
-        end
-        else
-        begin
-            AutoPosDeltaAdjust(Silk, MoveDist, Silk.Component.NameAutoPosition);
-            if iDebugLevel >= 2 then Silk.GraphicallyInvalidate;
-            if iDebugLevel >= 2 then Application.ProcessMessages;
-            DebugMessage(2, 'Moved by MoveDist=' + CoordToStr(MoveDist));
-            iAttempt := iAttempt + 1;
-        end;
+        AutoPosDeltaAdjust(Silk, MoveDist, Silk.Component.NameAutoPosition);
+        if iDebugLevel >= 2 then Silk.GraphicallyInvalidate;
+        if iDebugLevel >= 2 then Application.ProcessMessages;
+        TotalDist := TotalDist + MoveDist;
 
         if IsValidPlacement(Silk, ParentOnly) then
         begin
-            TotalDist := TotalDist + MoveDist;
-            if TotalDist > (5 * StartDist) then bRevert := True;
+            if TotalDist > 0 then
+            begin
+                bFirstPass := True;
+                DebugMessage(2, 'Total move distance=' + CoordToStr(TotalDist) + sLineBreak + 'Moved by MoveDist=' + CoordToStr(MoveDist) + sLineBreak + 'bFirstPass=' + BoolToStr(bFirstPass, True) + sLineBreak + 'Valid Placement=True');
+            end;
+            MoveDist := ABS(MoveDist);  // always move positive after pass
         end
         else
         begin
-            if (iAttempt < MINATTEMPTS) then
+            DebugMessage(2, 'Total move distance=' + CoordToStr(TotalDist) + sLineBreak + 'Failed move by MoveDist=' + CoordToStr(MoveDist) + sLineBreak + 'bFirstPass=' + BoolToStr(bFirstPass, True));
+
+            if not bFirstPass then
             begin
-                // don't start backing off for the first couple failures
-                TotalDist := TotalDist + MoveDist;
-                continue;
+                // oscillate between 0 and SEARCHDIST of movement, halving each time the limit is reached
+                if (TotalDist >= SEARCHDIST) then
+                begin
+                    MoveDist := -MoveDist div 2; // Start moving in the negative direction and halve distance
+                end
+                else if (TotalDist <= 0) then
+                begin
+                    MoveDist := ABS(MoveDist) div 2; // Start moving in the positive direction and halve distance
+                end;
+
+                if ABS(MoveDist) < MINSEARCHDIST then break; // stop once moves are too small to be likely productive
+            end
+            else
+            begin
+                // once there has been at least one valid placement, start approaching in half-size steps
+                AutoPosDeltaAdjust(Silk, -MoveDist, Silk.Component.NameAutoPosition);
+                if iDebugLevel >= 2 then Silk.GraphicallyInvalidate;
+                if iDebugLevel >= 2 then Application.ProcessMessages;
+                TotalDist := TotalDist - MoveDist;
+                MoveDist := MoveDist div 2;
             end;
-            // if placement is invalid, undo move and halve distance for next iteration
-            AutoPosDeltaAdjust(Silk, -MoveDist, Silk.Component.NameAutoPosition);
-            if iDebugLevel >= 2 then Silk.GraphicallyInvalidate;
-            if iDebugLevel >= 2 then Application.ProcessMessages;
-            MoveDist := MoveDist div 2;
         end;
 
-    until (MoveDist < MinDist);
+    until (ABS(MoveDist) < MinDist);
+
+    if not bFirstPass then
+    begin
+        // undo all the moving
+        AutoPosDeltaAdjust(Silk, -TotalDist, Silk.Component.NameAutoPosition);
+        DebugMessage(2, 'Failed to find passing placement within ' + CoordToStr(TotalDist) + '. Move attempt cancelled.');
+        TotalDist := 0;
+    end;
 
     Result := TotalDist;
-
 end;
+
 
 
 procedure AutoPosDeltaAdjust(Silk : IPCB_Text; MoveDistance : TCoord; autoPos : TTextAutoposition);
