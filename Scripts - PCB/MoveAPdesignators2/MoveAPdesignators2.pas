@@ -14,8 +14,8 @@ var
 
 const
     cESC                = -1;
-    cAltKey             = 1;
-    cShiftKey           = 2; // don't use it. Makes funny selection stuff happen
+    cAltKey             = 1; // don't use when selecting component. Okay when clicking location.
+    cShiftKey           = 2; // don't use it for component or location. Makes funny selection stuff happen
     cCtrlKey            = 3;
     DEBUGLEVEL          = 0;
     cPersistentMode     = False;
@@ -399,7 +399,13 @@ end; { BuildPresetList }
 
 
 function CoordToStr(Coords : TCoord) : String;
+const
+	MAXINT = 2147483647
+	MININT = -2147483647
 begin
+	if Coords < MININT then Coords := MININT
+    else if Coords > MAXINT then Coords := MAXINT;
+
     result := CoordUnitToString(Coords, Board.DisplayUnit xor 1);
 end;
 
@@ -583,6 +589,8 @@ end;
 
 
 function GetMinDesignatorClearance(var Comp : IPCB_Component) : TCoord;
+const
+    MAXINT = 2147483647;
 var
     Designator      : IPCB_Text;
     Iterator        : IPCB_GroupIterator;
@@ -604,7 +612,7 @@ begin
     // bounding boxes plus a margin number to set distance for silkscreen (or to create a silkscreen region to use PrimPrimDistance against)
 
     // Initialize minimum distance to a large number (MaxInt doesn't exist in DelphiScript)
-    MinDistance := 2147483647;
+    MinDistance := MAXINT;
 
     // Create group iterator
     Iterator := Comp.GroupIterator_Create;
