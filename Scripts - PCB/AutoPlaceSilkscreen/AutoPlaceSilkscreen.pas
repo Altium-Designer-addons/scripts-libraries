@@ -516,10 +516,6 @@ var
     Poly1, Poly2: IPCB_GeometricPolygon;
     Expansion: TCoord;
     DebugString: WideString;
-    Rect1, Rect2: TCoordRect;
-    L, R, T, B: Integer;
-    L2, R2, T2, B2: Integer;
-    Delta1, Delta2: Integer;
 begin
     if iDebugLevel = 3 then DebugString := Format('Obj1: %s%sObj2: %s', [Obj1.Descriptor, NEWLINECODE, Obj2.Descriptor]);
     if iDebugLevel = 3 then if ConfirmOKCancelWithCaption('Confirm or Cancel Debug', 'Is_Overlapping_V2 called' + NEWLINECODE + DebugString) = False then iDebugLevel := 0;
@@ -807,21 +803,6 @@ begin
     end;
 end;
 
-function StrFromRotationStrategy(RotationStrategy : Integer): String;
-begin
-    case RotationStrategy of
-        0:  result := 'Component Rotation';
-        1:  result := 'Horizontal Rotation';
-        2:  result := 'Vertical Rotation';
-        3:  result := 'Along Side';
-        4:  result := 'Along Axis';
-        5:  result := 'Along Pins';
-        6:  result := 'KLC Style';
-    else
-        result := 'Invalid';
-    end;
-end;
-
 function StrFromAutoPos(eAutoPos: TTextAutoposition): String;
 begin
     { TTextAutoposition = ( eAutoPos_Manual,
@@ -850,6 +831,55 @@ begin
     end;
 end;
 
+function StrFromObjectId(ObjectId: TObjectId): String;
+begin
+    case ObjectId of
+        0:  Result := 'eNoObject';
+        1:  Result := 'eArcObject';
+        2:  Result := 'ePadObject';
+        3:  Result := 'eViaObject';
+        4:  Result := 'eTrackObject';
+        5:  Result := 'eTextObject';
+        6:  Result := 'eFillObject';
+        7:  Result := 'eConnectionObject';
+        8:  Result := 'eNetObject';
+        9:  Result := 'eComponentObject';
+        10: Result := 'ePolyObject';
+        11: Result := 'eRegionObject';
+        12: Result := 'eComponentBodyObject';
+        13: Result := 'eDimensionObject';
+        14: Result := 'eCoordinateObject';
+        15: Result := 'eClassObject';
+        16: Result := 'eRuleObject';
+        17: Result := 'eFromToObject';
+        18: Result := 'eDifferentialPairObject';
+        19: Result := 'eViolationObject';
+        20: Result := 'eEmbeddedObject';
+        21: Result := 'eEmbeddedBoardObject';
+        22: Result := 'eSplitPlaneObject';
+        23: Result := 'eTraceObject';
+        24: Result := 'eSpareViaObject';
+        25: Result := 'eBoardObject';
+        26: Result := 'eBoardOutlineObject';
+    else
+        Result := 'Invalid object ID';
+    end;
+end;
+
+function StrFromRotationStrategy(RotationStrategy : Integer): String;
+begin
+    case RotationStrategy of
+        0:  result := 'Component Rotation';
+        1:  result := 'Horizontal Rotation';
+        2:  result := 'Vertical Rotation';
+        3:  result := 'Along Side';
+        4:  result := 'Along Axis';
+        5:  result := 'Along Pins';
+        6:  result := 'KLC Style';
+    else
+        result := 'Invalid';
+    end;
+end;
 
 function StrToAutoPos(iteration: String): Integer;
 begin
