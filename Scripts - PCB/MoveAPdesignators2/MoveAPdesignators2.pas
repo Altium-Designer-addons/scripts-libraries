@@ -3,36 +3,67 @@
 { ****************************************************************************** }
 
 var
-    Board                          : IPCB_Board;
-    UnHideDesignators, AbortScript : Boolean;
-    PresetFilePath                 : string;
-    PresetList                     : TStringList;
-    IsAtLeastAD19                  : Boolean;
+    Board                           : IPCB_Board;
+    IsAtLeastAD19                   : Boolean;
+    iDebugLevel                     : Integer;
+    KeySet                          : TObjectSet;    // keyboard key modifiers <alt> <shift> <cntl>
+    UnHideDesignators, AbortScript  : Boolean;
+    PresetFilePath                  : String;
+    PresetList                      : TStringList;
 
 
 const
-    UsePresets      = True;
-    NumPresets      = 12; // not just for presets, also used to save previous state
-    PresetFileName  = 'MoveAPdesignators2Settings.txt' // default file name is MyMoveDesignatorsPresets.txt
-    ScriptTitle     = 'MoveAPdesignators2';
-    ScriptVersion   = '2.05';
+    cESC                = -1;
+    cAltKey             = 1;
+    cShiftKey           = 2; // don't use it. Makes funny selection stuff happen
+    cCtrlKey            = 3;
+    DEBUGLEVEL          = 0;
+    cPersistentMode     = False;
+    UsePresets          = True;
+    NumPresets          = 12; // not just for presets, also used to save previous state
+    PresetFileName      = 'MoveAPdesignators2Settings.txt' // default file name is MyMoveDesignatorsPresets.txt
+    ScriptTitle         = 'MoveAPdesignators2';
+    ScriptVersion       = '2.06';
 
 
 procedure About; forward;
+function AutoMove(Silk : IPCB_Text; ParentOnly : Boolean = True; StartDist : TCoord = 400000; MinDist : TCoord = 25000) : TCoord; forward;
+procedure AutoPosDeltaAdjust(Silk : IPCB_Text; MoveDistance : TCoord; autoPos : TTextAutoposition); forward;
+function AutopositionJustify(var Designator : IPCB_Text; const tc_AutoPos : TTextAutoposition): TTextAutoposition; forward;
 procedure BothInitialCheck(var status : Integer); forward;
 procedure BuildPresetList(var TempPresetList : TStringList); forward;
+function CoordToStr(Coords : TCoord) : String; forward;
+function CoordToX(Coords : TCoord) : String; forward;
+function CoordToY(Coords : TCoord) : String; forward;
+function DebugContourInfo(contour : IPCB_Contour) : TStringList; forward;
+function DebugGeometricPolygonInfo(poly : IPCB_GeometricPolygon) : TStringList; forward;
+function DebugLevelStr : String; forward;
+procedure DebugMessage(const ShowLevel : Integer; const msg : WideString; const Caption : String = 'Confirm or Cancel Debug'); forward;
+function GetComponentAtCursor(const sPrompt : TString) : IPCB_Primitive; forward;
+function GetObjPoly(Obj: IPCB_ObjectClass, Expansion: TCoord = 0): IPCB_GeometricPolygon; forward;
+function GetLayerSet(SlkLayer: Integer; ObjID: Integer): TV6_LayerSet; forward;
+function GetMinDesignatorClearance(var Comp : IPCB_Component) : TCoord; forward;
+function GetRelativeAutoposition(var Comp : IPCB_Component; const loc_x, loc_y : TCoord) : TTextAutoposition; forward;
+procedure InteractivelyAutoposition; forward;
+function IsSameSide(Obj1: IPCB_ObjectClass; Obj2: IPCB_ObjectClass): Boolean; forward;
 function IsStringANum(Text : string) : Boolean; forward;
+function IsOverlapping(Text: IPCB_ObjectClass; Obj2: IPCB_ObjectClass) : Boolean; forward;
+function IsValidPlacement(Silkscreen : IPCB_Text; ParentOnly : Boolean = False) : Boolean; forward;
 procedure LoadPresetListFromFile(const dummy : Integer); forward;
+function IsTextOverObj(Text: IPCB_Text; ObjID: Integer; Filter_Size: Integer; ParentOnly: Boolean = False): Boolean; forward;
 procedure PresetButtonClicked(Sender : TObject); forward;
+function RotateTextToAngle(var Text : IPCB_Text; const Angle : Double; const Normalize : Boolean = False; const Ortho : Boolean = False) : Double; forward;
 function SelectCompAndDesignators(dummy : Boolean = False) : Boolean; forward;
-function TransformAutoPos(Designator : IPCB_Text, tc_AutoPos : TTextAutoposition) : TTextAutoposition; forward;
+procedure SetAutopositionLocation(var Comp : IPCB_Component; const tc_Autopos : TTextAutoposition; const KeySet : TObjectSet); forward;
+function StrFromAutoPos(eAutoPos: TTextAutoposition): String; forward;
+function StrFromObjectId(ObjectId: TObjectId): String; forward;
 procedure TweakDesignators; forward;
 procedure UserKeyPress(Sender : TObject; var Key : Char); forward;
 procedure ValidateOnChange(Sender : TObject); forward;
-procedure TTweakDesForm.ButtonCancelClick(Sender : TObject); forward;
 procedure TTweakDesForm.ButtonOKClick(Sender : TObject); forward;
-procedure TTweakDesForm.EditDistanceChange(Sender : TObject); forward;
 procedure TTweakDesForm.MMmilButtonClick(Sender : TObject); forward;
+procedure TTweakDesForm.EditDistanceChange(Sender : TObject); forward;
+procedure TTweakDesForm.ButtonCancelClick(Sender : TObject); forward;
 procedure TTweakDesForm.TweakDesFormShow(Sender : TObject); forward;
 
 
@@ -48,6 +79,235 @@ begin
 
     ShowInfo(MsgText, 'About');
 end; { About }
+
+
+function AutoMove(Silk : IPCB_Text; ParentOnly : Boolean = True; StartDist : TCoord = 400000; MinDist : TCoord = 25000) : TCoord;
+const
+    MINATTEMPTS = 2;
+var
+    MoveDist, TotalDist : TCoord;
+    bRevert : Boolean;
+    iAttempt : Integer;
+begin
+    StartDist := Min(StartDist, 400000);
+    bRevert := False;
+    iAttempt := 0;
+
+    if not (Silk <> nil and Silk.InComponent) then
+    begin
+        Result := 0;
+        Exit;
+    end;
+    TotalDist := 0;
+
+    if not IsValidPlacement(Silk, ParentOnly) then
+    begin
+        StartDist := 400000;
+        DebugMessage(1, 'Initial placement interferes. Starting move distance at 40mil.');
+    end;
+
+    DebugMessage(2, 'Starting automove with Ignore other components = ' + BoolToStr(ParentOnly, True));
+
+    // initial move attempt
+    MoveDist := StartDist;
+    repeat
+        if bRevert then
+        begin
+            // undo all the moving and break out of the loop
+            AutoPosDeltaAdjust(Silk, -TotalDist, Silk.Component.NameAutoPosition);
+            DebugMessage(2, 'Failed to find passing placement. Move reverted ' + CoordToStr(TotalDist));
+            MoveDist := 0;
+            TotalDist := 0;
+            break;
+        end
+        else
+        begin
+            AutoPosDeltaAdjust(Silk, MoveDist, Silk.Component.NameAutoPosition);
+            if iDebugLevel >= 2 then Silk.GraphicallyInvalidate;
+            if iDebugLevel >= 2 then Application.ProcessMessages;
+            DebugMessage(2, 'Moved by MoveDist=' + CoordToStr(MoveDist));
+            iAttempt := iAttempt + 1;
+        end;
+
+        if IsValidPlacement(Silk, ParentOnly) then
+        begin
+            TotalDist := TotalDist + MoveDist;
+            if TotalDist > (5 * StartDist) then bRevert := True;
+        end
+        else
+        begin
+            if (iAttempt < MINATTEMPTS) then
+            begin
+                // don't start backing off for the first couple failures
+                TotalDist := TotalDist + MoveDist;
+                continue;
+            end;
+            // if placement is invalid, undo move and halve distance for next iteration
+            AutoPosDeltaAdjust(Silk, -MoveDist, Silk.Component.NameAutoPosition);
+            if iDebugLevel >= 2 then Silk.GraphicallyInvalidate;
+            if iDebugLevel >= 2 then Application.ProcessMessages;
+            MoveDist := MoveDist div 2;
+        end;
+
+    until (MoveDist < MinDist);
+
+    Result := TotalDist;
+
+end;
+
+
+procedure AutoPosDeltaAdjust(Silk : IPCB_Text; MoveDistance : TCoord; autoPos : TTextAutoposition);
+var
+    dx, dy, d: Integer;
+    flipx: Integer;
+    rect : TCoordRect;
+    taller : Boolean;
+begin
+    d := MoveDistance;
+    dx := 0;
+    dy := 0;
+    flipx := 1; // x Direction flips on the bottom layer
+    if Silk.Layer = eBottomOverlay then
+        flipx := -1;
+
+    // Top|Bottom Left|Right autopos behaves differently for strings that are height>width
+    rect := Silk.BoundingRectangle;
+    taller := (rect.Top - rect.Bottom) > (rect.Right - rect.Left);
+
+    Case autoPos of
+        eAutoPos_CenterRight:
+            dx := -d * flipx;
+        eAutoPos_TopCenter:
+            dy := -d;
+        eAutoPos_CenterLeft:
+            dx := d * flipx;
+        eAutoPos_BottomCenter:
+            dy := d;
+        eAutoPos_TopLeft:
+            dy := -d;
+        eAutoPos_TopRight:
+            dy := -d;
+        eAutoPos_BottomLeft:
+            dy := d;
+        eAutoPos_BottomRight:
+            dy := d;
+    end;
+
+    if taller then
+    begin
+        if (autoPos = eAutoPos_TopLeft) or (autoPos = eAutoPos_BottomLeft) then
+        begin
+            dy := 0;
+            dx := d * flipx;
+        end
+        else if (autoPos = eAutoPos_TopRight) or (autoPos = eAutoPos_BottomRight) then
+        begin
+            dy := 0;
+            dx := -d * flipx;
+        end;
+    end;
+    Silk.BeginModify;
+    Silk.MoveByXY(dx, dy);
+    Silk.EndModify;
+end;
+
+{ function to transform text justification based on designator autoposition and rotation }
+function AutopositionJustify(var Designator : IPCB_Text; const tc_AutoPos : TTextAutoposition): TTextAutoposition;
+var
+    rotation : Integer;
+    mirror   : Boolean;
+    taller   : Boolean;
+    rect     : TCoordRect;
+    APSet    : TSet;
+
+begin
+    // AD19+ supports text justification for designators with AdvanceSnapping property
+    if not IsAtLeastAD19 then
+    begin
+        Result := tc_AutoPos;
+        Exit;
+    end;
+
+    Designator.AdvanceSnapping := True;
+
+    rotation := Round(((Designator.Rotation mod 360 + 360) mod 360) / 90) * 90; // coerce any possible value of rotation to a multiple of 90
+    mirror := false; // x Direction flips on the bottom layer
+    if Designator.Layer = eBottomOverlay then
+        mirror := true;
+
+    // Top|Bottom Left|Right autopos behaves differently for strings that are height>width
+    rect := Designator.BoundingRectangle;
+    taller := (rect.Top - rect.Bottom) > (rect.Right - rect.Left);
+
+    APSet := MkSet(eAutoPos_TopLeft, eAutoPos_BottomLeft, eAutoPos_TopRight, eAutoPos_BottomRight);
+
+    if taller and InSet(tc_AutoPos, APSet) then rotation := (rotation + 180) mod 360; // easier to trick rotation than add all the cases below
+
+    // technically AutoPosition being enabled should coerce to 0,90,180, or 270
+    case rotation of
+        0 :
+            begin
+                case tc_AutoPos of
+                    eAutoPos_TopLeft        : Result := eAutoPos_BottomLeft;
+                    eAutoPos_CenterLeft     : Result := eAutoPos_CenterRight;
+                    eAutoPos_BottomLeft     : Result := eAutoPos_TopLeft;
+                    eAutoPos_TopCenter      : Result := eAutoPos_BottomCenter;
+                    eAutoPos_BottomCenter   : Result := eAutoPos_TopCenter;
+                    eAutoPos_TopRight       : Result := eAutoPos_BottomRight;
+                    eAutoPos_CenterRight    : Result := eAutoPos_CenterLeft;
+                    eAutoPos_BottomRight    : Result := eAutoPos_TopRight;
+                    else                      Result := tc_AutoPos;
+                end; { case tc_AutoPos }
+            end;
+        90 :
+            begin
+                case tc_AutoPos of
+                    eAutoPos_TopLeft        : if mirror then Result := eAutoPos_BottomRight else Result := eAutoPos_TopLeft;
+                    eAutoPos_CenterLeft     : if mirror then Result := eAutoPos_TopCenter else Result := eAutoPos_BottomCenter;
+                    eAutoPos_BottomLeft     : if mirror then Result := eAutoPos_BottomLeft else Result := eAutoPos_TopRight;
+                    eAutoPos_TopCenter      : if mirror then Result := eAutoPos_CenterRight else Result := eAutoPos_CenterLeft;
+                    eAutoPos_BottomCenter   : if mirror then Result := eAutoPos_CenterLeft else Result := eAutoPos_CenterRight;
+                    eAutoPos_TopRight       : if mirror then Result := eAutoPos_TopRight else Result := eAutoPos_BottomLeft;
+                    eAutoPos_CenterRight    : if mirror then Result := eAutoPos_BottomCenter else Result := eAutoPos_TopCenter;
+                    eAutoPos_BottomRight    : if mirror then Result := eAutoPos_TopLeft else Result := eAutoPos_BottomRight;
+                    else                      Result := tc_AutoPos;
+                end; { case tc_AutoPos }
+            end;
+        180 :
+            begin
+                case tc_AutoPos of
+                    eAutoPos_TopLeft        : Result := eAutoPos_TopRight;
+                    eAutoPos_CenterLeft     : Result := eAutoPos_CenterLeft;
+                    eAutoPos_BottomLeft     : Result := eAutoPos_BottomRight;
+                    eAutoPos_TopCenter      : Result := eAutoPos_TopCenter;
+                    eAutoPos_BottomCenter   : Result := eAutoPos_BottomCenter;
+                    eAutoPos_TopRight       : Result := eAutoPos_TopLeft;
+                    eAutoPos_CenterRight    : Result := eAutoPos_CenterRight;
+                    eAutoPos_BottomRight    : Result := eAutoPos_BottomLeft;
+                    else                      Result := tc_AutoPos;
+                end; { case tc_AutoPos }
+            end;
+        270 :
+            begin
+                case tc_AutoPos of
+                    eAutoPos_TopLeft        : if mirror then Result := eAutoPos_TopLeft else Result := eAutoPos_BottomRight;
+                    eAutoPos_CenterLeft     : if mirror then Result := eAutoPos_BottomCenter else Result := eAutoPos_TopCenter;
+                    eAutoPos_BottomLeft     : if mirror then Result := eAutoPos_TopRight else Result := eAutoPos_BottomLeft;
+                    eAutoPos_TopCenter      : if mirror then Result := eAutoPos_CenterLeft else Result := eAutoPos_CenterRight;
+                    eAutoPos_BottomCenter   : if mirror then Result := eAutoPos_CenterRight else Result := eAutoPos_CenterLeft;
+                    eAutoPos_TopRight       : if mirror then Result := eAutoPos_BottomLeft else Result := eAutoPos_TopRight;
+                    eAutoPos_CenterRight    : if mirror then Result := eAutoPos_TopCenter else Result := eAutoPos_BottomCenter;
+                    eAutoPos_BottomRight    : if mirror then Result := eAutoPos_BottomRight else Result := eAutoPos_TopLeft;
+                    else                      Result := tc_AutoPos;
+                end; { case tc_AutoPos }
+            end;
+        else Result := tc_AutoPos;
+    end; { case rotation }
+
+    // Set text justification according to Autoposition setting
+    Designator.TTFInvertedTextJustify := Result;
+
+end; { AutopositionJustify }
 
 
 { Initial checks when a mix of components and Designators are ostensibly selected }
@@ -125,6 +385,690 @@ begin
 end; { BuildPresetList }
 
 
+function CoordToStr(Coords : TCoord) : String;
+begin
+    result := CoordUnitToString(Coords, Board.DisplayUnit xor 1);
+end;
+
+
+function CoordToX(Coords : TCoord) : String;
+begin
+    result := CoordUnitToString(Coords - Board.XOrigin, Board.DisplayUnit xor 1);
+end;
+
+
+function CoordToY(Coords : TCoord) : String;
+begin
+    result := CoordUnitToString(Coords - Board.YOrigin, Board.DisplayUnit xor 1);
+end;
+
+
+function DebugContourInfo(contour : IPCB_Contour) : TStringList;
+var
+    PointList: TStringList;
+    iPoint: Integer;
+begin
+    PointList := CreateObject(TStringList);
+    if contour.Count > 0 then
+    begin
+        PointList.Add('contour points');
+        for iPoint := 0 to contour.Count - 1 do
+        begin
+            PointList.Add(Format('%d:%s,%s', [iPoint, CoordToX(contour.x(iPoint)), CoordToY(contour.y(iPoint))]));
+        end;
+    end
+    else PointList.Add('Empty or invalid contour');
+
+    Result := PointList;
+end;
+
+
+function DebugGeometricPolygonInfo(poly : IPCB_GeometricPolygon) : TStringList;
+var
+    PointList: TStringList;
+    contour: IPCB_Contour;
+    iPoly, iPoint: Integer;
+begin
+    PointList := CreateObject(TStringList);
+    PointList.Clear;
+    if (poly <> nil) and (poly.Count > 0) then
+    begin
+        for iPoly := 0 to poly.Count - 1 do
+        begin
+            contour := poly.Contour(iPoly);
+            PointList.AddStrings(DebugContourInfo(contour))
+        end;
+    end
+    else
+    begin
+        PointList.Add('Polygon has no contours');
+    end;
+
+    Result := PointList;
+end;
+
+
+function DebugLevelStr : String;
+begin
+    Result := '-------------------------  Debug Level: ' + IntToStr(iDebugLevel) + '  -------------------------' + sLineBreak;
+end;
+
+
+procedure DebugMessage(const ShowLevel : Integer; const msg : WideString; const Caption : String = 'Confirm or Cancel Debug');
+begin
+    // iDebugLevel must be an Integer global variable initialized before first call to this procedure
+    if iDebugLevel >= ShowLevel then
+    begin
+        msg := DebugLevelStr + msg;
+        // if user clicks on Cancel, downgrade the debug level by 1 until it reaches 0
+        if ConfirmOKCancelWithCaption(Caption, msg) = False then
+            iDebugLevel := Max(iDebugLevel - 1, 0);
+    end;
+end;
+
+
+function GetComponentAtCursor(const sPrompt : TString) : IPCB_Primitive;
+var
+    x, y    : TCoord;
+
+begin
+    KeySet := MkSet();
+    Result := eNoObject;
+
+    if Board.ChooseLocation(x, y, sPrompt) then  // false = ESC Key is pressed or right-clicked to cancel
+    begin
+        //   read modifier keys just as/after the "pick" mouse click
+        if ShiftKeyDown   then KeySet := MkSet(cShiftKey);
+        if ControlKeyDown then KeySet := SetUnion(KeySet, MkSet(cCtrlKey));
+
+        Result := Board.GetObjectAtXYAskUserIfAmbiguous(x, y, MkSet(eComponentObject), MkSet(eTopLayer, eBottomLayer), eEditAction_Focus);         // eEditAction_DontCare
+        if (Result = Nil) then Result := eNoObject;
+    end
+    else Result := cESC;
+end;
+
+
+// Get GeometricPolygon using PCBServer.PCBContourMaker
+function GetObjPoly(Obj: IPCB_ObjectClass, Expansion: TCoord = 0): IPCB_GeometricPolygon;
+var
+    Poly: IPCB_GeometricPolygon;
+    OldRect: TCoordRect;
+    NewContour: IPCB_Contour;
+begin
+    if Obj.ObjectId = eBoardObject then
+    begin
+        //Rect := Obj.BoardOutline.BoundingRectangle;
+        Poly := Obj.BoardOutline.BoardOutline_GeometricPolygon;
+    end
+    else if Obj.ObjectId = eComponentObject then
+    begin
+        //Rect := Obj.BoundingRectangleNoNameCommentForSignals;
+        // TODO: figure out how to create a contour for a component (currently components are de facto ignored)
+        Poly := PCBServer.PCBGeometricPolygonFactory; // create empty poly
+        Poly.AddEmptyContour;
+    end
+    else if Obj.ObjectId = eTrackObject then
+    begin
+        // Function  MakeContour(APrim : IPCB_Primitive; AExpansion : Integer; ALayer : TV6_Layer) : IPCB_GeometricPolygon;
+        Poly := PCBServer.PCBContourMaker.MakeContour(Obj, Expansion, Obj.Layer);
+    end
+    else if Obj.ObjectId = eRegionObject then
+    begin
+        // Function  MakeContour(APrim : IPCB_Primitive; AExpansion : Integer; ALayer : TV6_Layer) : IPCB_GeometricPolygon;
+        Poly := PCBServer.PCBContourMaker.MakeContour(Obj, Expansion, Obj.Layer);
+    end
+    else if Obj.ObjectId = eTextObject then
+    begin
+        // Function  MakeContour(APrim : IPCB_Primitive; AExpansion : Integer; ALayer : TV6_Layer) : IPCB_GeometricPolygon;
+        if Obj.UseTTFonts then Poly := PCBServer.PCBContourMaker.MakeContour(Obj, Expansion, Obj.Layer)
+        else Poly := PCBServer.PCBContourMaker.MakeContour(Obj, Expansion - (Obj.Width / 2), Obj.Layer);
+    end
+    else if Obj.ObjectId = ePadObject then
+    begin
+        // Function  MakeContour(APrim : IPCB_Primitive; AExpansion : Integer; ALayer : TV6_Layer) : IPCB_GeometricPolygon;
+        Poly := PCBServer.PCBContourMaker.MakeContour(Obj, Expansion, Obj.Layer);
+    end
+    else
+    begin
+        //Rect := Obj.BoundingRectangle;
+        // For uknown types, fall back to a dumb bounding rectangle, but wrapped as IPCB_GeometricPolygon
+        OldRect := Obj.BoundingRectangle;
+        NewContour := PCBServer.PCBContourFactory;
+        // Procedure AddPoint(x : Integer; y : Integer);
+        NewContour.AddPoint(OldRect.Left, OldRect.Bottom);
+        NewContour.AddPoint(OldRect.Right, OldRect.Bottom);
+        NewContour.AddPoint(OldRect.Right, OldRect.Top);
+        NewContour.AddPoint(OldRect.Left, OldRect.Top);
+        // Function  AddContour(AContour : IPCB_Contour) : IPCB_Contour;
+        Poly := PCBServer.PCBGeometricPolygonFactory;
+        Poly.AddContour(NewContour);
+    end;
+
+    result := Poly;
+end;
+
+
+// Returns correct layer set given the object being used
+function GetLayerSet(SlkLayer: Integer; ObjID: Integer): TV6_LayerSet;
+var
+    TopBot: Integer;
+begin
+    TopBot := eTopLayer;
+    if (Layer2String(SlkLayer) = 'Bottom Overlay') then
+        TopBot := eBottomLayer;
+
+    result := MkSet(SlkLayer); // Default layer set
+    if (ObjID = eComponentObject) or (ObjID = ePadObject) or (ObjID = eViaObject) then
+    begin
+        result := MkSet(TopBot, eMultiLayer);
+    end
+    else if (ObjID = eComponentBodyObject) then
+    begin
+        result := MkSet(CmpOutlineLayerID);
+    end;
+end;
+
+
+function GetMinDesignatorClearance(var Comp : IPCB_Component) : TCoord;
+var
+    Designator      : IPCB_Text;
+    Iterator        : IPCB_GroupIterator;
+    Primitive       : IPCB_Primitive;
+    MinDistance     : TCoord;
+    CurrentDistance : TCoord;
+begin
+    Result := Nil;
+
+    DebugMessage(4, 'function GetMinDesignatorClearance(var Comp : IPCB_Component) called');
+
+    // TODO: Use Comp.GroupIterator_Create to iterate through all component primitives on the component's mounting layer, its silkscreen (except the designator), and its 3D bodies
+    // TODO: Use `Function  PrimPrimDistance(APrimitive1 : IPCB_Primitive; APrimitive2 : IPCB_Primitive) : Integer;` to get minimum distance between those primitives and Designator
+    // TODO: Return minimum value found
+
+    Designator := Comp.Name;
+
+    // NOTES: inspired by AutoPlaceSilkscreen script's CaclulateHor function, build a dictionary of custom bounding boxes for each footprint, then use those
+    // bounding boxes plus a margin number to set distance for silkscreen (or to create a silkscreen region to use PrimPrimDistance against)
+
+    // Initialize minimum distance to a large number (MaxInt doesn't exist in DelphiScript)
+    MinDistance := 2147483647;
+
+    // Create group iterator
+    Iterator := Comp.GroupIterator_Create;
+
+    // Try to cast the first element to a primitive
+    Primitive := Iterator.FirstPCBObject;
+
+    while (Primitive <> nil) do
+    begin
+        // Ignore the Designator itself
+        if Primitive <> Designator then
+        begin
+            // Calculate distance from Designator to current Primitive
+            CurrentDistance := Board.PrimPrimDistance(Designator, Primitive);
+
+            // Update minimum distance if the current distance is smaller
+            if CurrentDistance < MinDistance then
+                MinDistance := CurrentDistance;
+        end;
+
+        // Move to the next Primitive in the group
+        Primitive := Iterator.NextPCBObject;
+    end;
+
+    // Clean up the Iterator
+    Comp.GroupIterator_Destroy(Iterator);
+
+    DebugMessage(1, 'MinDistance: ' + CoordToStr(MinDistance));
+
+    // Return the minimum distance found
+    Result := MinDistance;
+end;
+
+
+function GetRelativeAutoposition(var Comp : IPCB_Component; const loc_x, loc_y : TCoord) : TTextAutoposition;
+var
+    Angle : Integer;
+begin
+    { TTextAutoposition = ( eAutoPos_Manual,
+                            eAutoPos_TopLeft,
+                            eAutoPos_CenterLeft,
+                            eAutoPos_BottomLeft,
+                            eAutoPos_TopCenter,
+                            eAutoPos_CenterCenter,
+                            eAutoPos_BottomCenter,
+                            eAutoPos_TopRight,
+                            eAutoPos_CenterRight,
+                            eAutoPos_BottomRight);}
+    Result := eAutoPos_Manual;
+
+    Angle := Round(ArcTan2((loc_y - Comp.y), (loc_x - Comp.x)) / Pi * 180);
+    if Angle < 0 then Angle := Angle + 360;
+
+    // Map the angle to the relative position (rotate 22 degrees and index into 45 degree segments)
+    case ((Angle + 22) mod 360) div 45 of
+        0: Result := eAutoPos_CenterRight;
+        1: Result := eAutoPos_TopRight;
+        2: Result := eAutoPos_TopCenter;
+        3: Result := eAutoPos_TopLeft;
+        4: Result := eAutoPos_CenterLeft;
+        5: Result := eAutoPos_BottomLeft;
+        6: Result := eAutoPos_BottomCenter;
+        7: Result := eAutoPos_BottomRight;
+    end;
+
+    DebugMessage(4, Format('Angle is %d, Result is %d', [Angle, Result]));
+end;
+
+
+procedure InteractivelyAutoposition;
+var
+    x, y                : TCoord;
+    ModList             : TStringList;
+    Comp                : IPCB_Component;
+    bLocationFlag       : Boolean;
+    bPersistentMode     : Boolean;
+    sPrompt             : String;
+    tc_Autopos          : TTextAutoposition;
+    ParentOnly          : Boolean;
+    MoveDist          : TCoord;
+begin
+    iDebugLevel := DEBUGLEVEL;
+    // set AD build flag
+    if (GetBuildNumberPart(Client.GetProductVersion, 0) >= 19) then IsAtLeastAD19 := True else IsAtLeastAD19 := False;
+
+    // Get the document
+    Board := PCBServer.GetCurrentPCBBoard;
+    If Board = Nil Then Exit;
+
+    // Make it work for Pads, Vias, Strings, Polygons, Dimensions and coordinates
+    //ASetOfObjects  := MkSet(ePadObject, eViaObject, eTextObject, ePolyObject, eRegionObject, eDimensionObject, eCoordinateObject);
+
+    ModList := CreateObject(TStringList);
+    ModList.Delimiter := '|';
+
+    Comp := Nil;
+    KeySet     := MkSet();
+    bPersistentMode := cPersistentMode;
+
+    repeat
+        // process if source component & destination location are selected
+        if bLocationFlag And Assigned(Comp) then
+        begin
+            if DEBUGLEVEL >= 2 then iDebugLevel := DEBUGLEVEL;
+            // copy formatting of PCB dimension
+            PCBServer.PreProcess;
+
+            ModList.Clear;
+            if InSet(cAltKey, KeySet) then ModList.Add('ALT');
+            if InSet(cShiftKey, KeySet) then ModList.Add('SHIFT');
+            if InSet(cCtrlKey, KeySet) then ModList.Add('CTRL');
+
+            DebugMessage(1, Format('Picked %s @ [%s, %s]; location [%s, %s]%sModifiers: %s', [ Comp.Name.Text, CoordToX(Comp.x), CoordToY(Comp.y), CoordToX(x), CoordToY(y), sLineBreak, ModList.DelimitedText ]));
+
+            // get autoposition relative to component origin
+            tc_Autopos := GetRelativeAutoposition(Comp, x, y);
+
+            // Set autoposition based on modifiers
+            SetAutopositionLocation(Comp, tc_Autopos, KeySet);
+
+            //GetMinDesignatorClearance(Comp);
+
+            if InSet(cCtrlKey, KeySet) then ParentOnly := True else ParentOnly := False;
+            DebugMessage(3, 'Begin: IsValidPlacement=' + BoolToStr(IsValidPlacement(Comp.Name, ParentOnly), True));
+
+            MoveDist := AutoMove(Comp.Name, ParentOnly, 400000, 10000);
+            Comp.Name.GraphicallyInvalidate;
+
+            if MoveDist > 0 then
+            begin
+                Comp.BeginModify;
+                Comp.ChangeNameAutoPosition(eAutoPos_Manual);
+                Comp.EndModify;
+                Comp.GraphicallyInvalidate;
+                DebugMessage(1, 'AutoMove moved by ' + CoordToStr(MoveDist));
+            end
+            else
+            begin
+                ShowInfo('No valid placement found' + sLineBreak + 'Ignored other components = ' + BoolToStr(ParentOnly, True));
+            end;
+
+            DebugMessage(3, 'End: IsValidPlacement=' + BoolToStr(IsValidPlacement(Comp.Name, ParentOnly), True));
+
+            if not bPersistentMode then Comp := Nil;  // don't clear Source if in persistent mode (i.e. wait for user to escape)
+
+            bLocationFlag := False; // clear location flag to allow picking a new location
+
+            PCBServer.PostProcess;
+            Board.ViewManager_FullUpdate;
+        end;
+
+        // Get PCB location
+        if Assigned(Comp) then
+        begin
+            KeySet := MkSet();
+
+            sPrompt := 'Choose location around ' + Comp.Name.Text + ' (Hold CTRL to ignore other components, Hold ALT for orthogonal placement)';
+
+            if Board.ChooseLocation(x, y, sPrompt) then  // false = ESC Key is pressed or right-clicked to cancel
+            begin
+                // read modifier keys just as/after the "pick" mouse click
+                if AltKeyDown   then KeySet := MkSet(cAltKey);  // Plan: hold ALT to rotate orthogonally
+                //if ShiftKeyDown then KeySet := SetUnion(KeySet, MkSet(cShiftKey));
+                if ControlKeyDown then KeySet := SetUnion(KeySet, MkSet(cCtrlKey));
+
+                bLocationFlag := True;
+
+            end
+            else Comp := Nil;    // user canceled picking location, time to get a new source component
+        end;
+
+        if not Assigned(Comp) then
+        begin
+            bLocationFlag := False;
+            repeat
+               Comp := GetComponentAtCursor('Choose Source Component');
+            until Assigned(Comp) or (Comp = cEsc);
+
+        end;
+    until (Comp = cESC);
+end;
+
+
+// Checks if text object overlaps other object
+function IsOverlapping(Text: IPCB_ObjectClass; Obj2: IPCB_ObjectClass) : Boolean;
+const
+    TEXTEXPANSION       = 5; // [mils] Expansion for other text objects
+    PADEXPANSION        = 7; // [mils] Expansion for pads
+    CUTOUTEXPANSION     = 0; // [mils] Expansion for cutout regions
+    DEFAULTEXPANSION    = 6; // [mils] Expansion for everything else
+var
+    TextPoly, ObjPoly: IPCB_GeometricPolygon;
+    Expansion: TCoord;
+begin
+    // If silkscreen object equals itself, return False
+    if Text.I_ObjectAddress = Obj2.I_ObjectAddress then
+    begin
+        result := False;
+        Exit; // Continue
+    end;
+
+    // Continue if Hidden
+    if Text.IsHidden or Obj2.IsHidden then
+    begin
+        result := False;
+        Exit; // Continue
+    end;
+
+    // Continue if Layers Dont Match
+    if not IsSameSide(Text, Obj2) then
+    begin
+        result := False;
+        Exit; // Continue
+    end;
+
+    Expansion := MilsToCoord(DEFAULTEXPANSION);
+    case Obj2.ObjectId of
+        eTextObject:    Expansion := MilsToCoord(TEXTEXPANSION);
+        ePadObject:     Expansion := MilsToCoord(PADEXPANSION);
+        eRegionObject:  if Obj2.Kind = eRegionKind_Cutout then Expansion := MilsToCoord(CUTOUTEXPANSION);
+    end;
+
+    if Obj2.ObjectId = eTextObject then Expansion := MilsToCoord(TEXTEXPANSION)
+    else if Obj2.ObjectId = ePadObject then Expansion := MilsToCoord(PADEXPANSION)
+    else if (Obj2.ObjectId = eRegionObject) and (Obj2.Kind = eRegionKind_Cutout) then Expansion := MilsToCoord(CUTOUTEXPANSION)
+    else Expansion := MilsToCoord(DEFAULTEXPANSION);
+
+    // Get geometric polygons for both objects
+    TextPoly := GetObjPoly(Text);
+    ObjPoly := GetObjPoly(Obj2, Expansion);
+
+    DebugMessage(3, 'TextPoly Contours' + sLineBreak + DebugGeometricPolygonInfo(TextPoly).Text);
+    DebugMessage(3, Obj2.Identifier + sLineBreak + 'ObjPoly Contours' + sLineBreak + DebugGeometricPolygonInfo(ObjPoly).Text);
+
+    // IPCB_ContourUtilities Function  GeometricPolygonsTouch(AGeometricPolygon : IPCB_GeometricPolygon; BGeometricPolygon : IPCB_GeometricPolygon) : Boolean;
+    result := PCBServer.PCBContourUtilities.GeometricPolygonsTouch(TextPoly, ObjPoly);
+end;
+
+
+// Check if two layers are the on the same side of the board. Handle different layer names.
+function IsSameSide(Obj1: IPCB_ObjectClass; Obj2: IPCB_ObjectClass): Boolean;
+var
+    Layer1, Layer2: Integer;
+begin
+    Layer1 := Obj1.Layer;
+    Layer2 := Obj2.Layer;
+    if Obj1.ObjectId = eComponentBodyObject then
+        Layer1 := Obj1.Component.Layer;
+    if Obj2.ObjectId = eComponentBodyObject then
+        Layer2 := Obj2.Component.Layer;
+
+    // Top Layer
+    if (Layer1 = eTopLayer) or (Layer1 = eTopOverlay) then
+    begin
+        if (Layer2 <> eBottomLayer) and (Layer2 <> eBottomOverlay) then
+        begin
+            result := True;
+            Exit; // return True
+        end;
+    end
+    // Bottom Layer
+    else if (Layer1 = eBottomLayer) or (Layer1 = eBottomOverlay) then
+    begin
+        if (Layer2 <> eTopLayer) and (Layer2 <> eTopOverlay) then
+        begin
+            result := True;
+            Exit; // return True
+        end;
+    end
+    // Multi Layer
+    else if (Layer1 = eMultiLayer) or (Layer2 = eMultiLayer) then
+    begin
+        result := True;
+        Exit;
+    end;
+
+    result := False;
+end;
+
+function IsStringANum(Text : string) : Boolean;
+var
+    i        : Integer;
+    dotCount : Integer;
+    ChSet    : TSet;
+begin
+    Result := True;
+
+    // Test for number, hyphen, dot, or comma
+    ChSet := SetUnion(MkSet(Ord('-'), Ord('.'), Ord(',')), MkSetRange(Ord('0'), Ord('9')));
+    for i := 1 to Length(Text) do
+        if not InSet(Ord(Text[i]), ChSet) then Result := False;
+
+    // test if there is a hyphen that isn't leading
+    ChSet := MkSet(Ord('-'));
+    for i := 2 to Length(Text) do
+        if InSet(Ord(Text[i]), ChSet) then Result := False;
+
+    // Test for more than one hyphen, dot, or comma
+    dotCount := 0;
+    ChSet    := MkSet(Ord('-'), Ord('.'), Ord(','));
+    for i    := 1 to Length(Text) do
+        if InSet(Ord(Text[i]), ChSet) then inc(dotCount);
+
+    if dotCount > 1 then Result := False;
+end; { IsStringANum }
+
+
+// search area for objects of given ObjectId and check to see if Text is too close
+function IsTextOverObj(Text: IPCB_Text; ObjID: Integer; Filter_Size: Integer; ParentOnly: Boolean = False): Boolean;
+var
+    Iterator: IPCB_SpatialIterator;
+    Obj: IPCB_ObjectClass;
+    Rect: TCoordRect;
+    RectL, RectR, RectB, RectT: TCoord;
+    RegIter: Boolean; // Regular Iterator
+    Name: TPCBString;
+    DebugString: WideString;
+begin
+    // Spatial Iterators only work with Primitive Objects and not group objects like eComponentObject and dimensions
+    if (ObjID = eComponentObject) then
+    begin
+        Iterator := Board.BoardIterator_Create;
+        Iterator.AddFilter_ObjectSet(MkSet(ObjID));
+        Iterator.AddFilter_LayerSet(GetLayerSet(Text.Layer, ObjID));
+        Iterator.AddFilter_Method(eProcessAll);
+        RegIter := True;
+    end
+    else
+    begin
+        Rect := Text.BoundingRectangle;
+        RectL := Rect.Left - Filter_Size;
+        RectR := Rect.Right + Filter_Size;
+        RectT := Rect.Top + Filter_Size;
+        RectB := Rect.Bottom - Filter_Size;
+
+        if iDebugLevel >= 2 then DebugString := Format('Left: %s, Right: %s, Top: %s, Bot: %s', [CoordToX(RectL), CoordToX(RectR), CoordToY(RectT), CoordToY(RectB)]);
+        DebugMessage(3, StrFromObjectId(ObjID) + ' Spatial Iterator Area' + sLineBreak + DebugString);
+
+        Iterator := Board.SpatialIterator_Create;
+        Iterator.AddFilter_ObjectSet(MkSet(ObjID));
+        Iterator.AddFilter_LayerSet(GetLayerSet(Text.Layer, ObjID));
+        Iterator.AddFilter_Area(RectL, RectB, RectR, RectT);
+        RegIter := False;
+    end;
+
+    // Iterate through components or pads or silkscreen etc. Depends on which object is passed in.
+    Obj := Iterator.FirstPCBObject;
+    while Obj <> nil do
+    begin
+        // ignore itself
+        if Text.I_ObjectAddress = Obj.I_ObjectAddress then
+        begin
+            Obj := Iterator.NextPCBObject;
+            Continue;
+        end;
+
+        // Ignore Hidden Objects
+        if Obj.IsHidden then
+        begin
+            Obj := Iterator.NextPCBObject;
+            Continue;
+        end;
+
+        if (not RegIter) and (Obj.ObjectId = eComponentObject) then
+        begin
+            Obj := Iterator.NextPCBObject;
+            Continue;
+        end;
+
+        // Convert ComponentBody objects to Component objects
+        if Obj.ObjectId = eComponentBodyObject then
+        begin
+            Obj := Obj.Component;
+
+            // skip non-components or components on other side
+            if (Obj = nil) or (Obj.Name.Layer <> Text.Layer) then
+            begin
+                Obj := Iterator.NextPCBObject;
+                Continue;
+            end;
+        end;
+
+        // skip objects that don't belong to the parent component
+        if ParentOnly and (Obj.ObjectId <> eComponentObject) then
+        begin
+            if (Obj.Component = nil) or (Obj.Component.I_ObjectAddress <> Text.Component.I_ObjectAddress) then
+            begin
+                Obj := Iterator.NextPCBObject;
+                Continue;
+            end
+            else
+            begin
+            	Sleep(0);
+            end;
+        end;
+
+        try
+            // Check if Silkscreen is overlapping with other object (component/pad/silk)
+            if IsOverlapping(Text, Obj) then
+            begin
+                result := True;
+                Exit;
+            end;
+        except
+            Name := Text.Text;
+        end;
+
+        Obj := Iterator.NextPCBObject;
+    end;
+
+    // Destroy Iterator
+    if RegIter then
+    begin
+        Board.BoardIterator_Destroy(Iterator);
+    end
+    else
+    begin
+        Board.SpatialIterator_Destroy(Iterator);
+    end;
+
+    result := False;    // nothing detected in area
+end;
+
+
+{ function to check if silkscreen placement is valid }
+function IsValidPlacement(Silkscreen : IPCB_Text; ParentOnly : Boolean = False) : Boolean;
+const
+    FILTERSIZE = 200000;
+begin
+    Result := False;
+
+    // Silkscreen RefDes Overlap Detection
+    if IsTextOverObj(Silkscreen, eTextObject, FILTERSIZE, ParentOnly) then
+    begin
+        DebugMessage(3, 'eTextObject check failed');
+        Exit;
+    end
+    // Silkscreen Tracks Overlap Detection
+    else if IsTextOverObj(Silkscreen, eTrackObject, FILTERSIZE, ParentOnly) then
+    begin
+        DebugMessage(3, 'eTrackObject check failed');
+        Exit;
+    end
+    // Silkscreen Regions Overlap Detection
+    else if IsTextOverObj(Silkscreen, eRegionObject, FILTERSIZE, ParentOnly) then
+    begin
+        DebugMessage(3, 'eRegionObject check failed');
+        Exit;
+    end
+    // Silkscreen Fills Overlap Detection
+    else if IsTextOverObj(Silkscreen, eFillObject, FILTERSIZE, ParentOnly) then
+    begin
+        DebugMessage(3, 'eFillObject check failed');
+        Exit;
+    end
+    // same-side pad overlap detection
+    else if IsTextOverObj(Silkscreen, ePadObject, FILTERSIZE, ParentOnly) then
+    begin
+        DebugMessage(3, 'ePadObject check failed');
+        Exit;
+    end
+    // Component Overlap Detection
+    else if IsTextOverObj(Silkscreen, eComponentBodyObject, FILTERSIZE, ParentOnly) then
+    begin
+        DebugMessage(3, 'eComponentBodyObject check failed');
+        Exit;
+    end
+    // none of the previous checks failed
+    else
+    begin
+        DebugMessage(3, 'IsValidPlacement checks PASSED');
+        Result := True;
+    end;
+
+end;
+
+
 { function to load preset list from file }
 procedure LoadPresetListFromFile(const dummy : Integer);
 begin
@@ -170,6 +1114,59 @@ begin
         PresetList.SaveToFile(PresetFilePath);
     end;
 end; { LoadPresetListFromFile }
+
+
+procedure PresetButtonClicked(Sender : TObject);
+begin
+    // ShowMessage('PresetButtonClicked');
+    if Sender = ButtonPreset1 then EditDistance.Text      := tPreset1.Text
+    else if Sender = ButtonPreset2 then EditDistance.Text := tPreset2.Text
+    else if Sender = ButtonPreset3 then EditDistance.Text := tPreset3.Text
+    else if Sender = ButtonPreset4 then EditDistance.Text := tPreset4.Text
+    else if Sender = ButtonPreset5 then EditDistance.Text := tPreset5.Text
+    else if Sender = ButtonPreset6 then EditDistance.Text := tPreset6.Text
+    else if Sender = ButtonPreset7 then EditDistance.Text := tPreset7.Text
+    else if Sender = ButtonPreset8 then EditDistance.Text := tPreset8.Text;
+    TweakDesForm.Close;
+end; { PresetButtonClicked }
+
+
+{ rotates IPCB_Text object to specific angle, optionally normalizing it to be right-reading, optionally rotating 90° CCW }
+function RotateTextToAngle(var Text : IPCB_Text; const Angle : Double; const Normalize : Boolean = False; const Ortho : Boolean = False) : Double;
+var
+    mirror : Boolean;
+begin
+    if Ortho then Angle := Angle + 90;
+
+    // coerce angle to 0 ~ 360
+    Angle := (Angle mod 360 + 360) mod 360; // technically an integer operation. TODO: make proper floating point mod throughout
+
+    mirror := false; // x Direction flips on the bottom layer
+    if Text.Layer = eBottomOverlay then
+        mirror := true;
+
+    // rotate text to match Angle, based on how mirrored text reads from the flipside of the board
+    case mirror of
+        True :
+            begin
+                // mirrored text should be rotated to match layer flip behavior of text vs components
+                if not Ortho then Angle := (Angle + 180) mod 360;
+                if Normalize and (Angle >= 90) and (Angle < 270) then
+                    Text.Rotation := (Angle + 180) mod 360
+                else
+                    Text.Rotation := Angle;
+            end;
+        False :
+            begin
+                if Normalize and (Angle > 90) and (Angle <= 270) then
+                    Text.Rotation := (Angle + 180) mod 360
+                else
+                    Text.Rotation := Angle;
+            end;
+    end;
+
+    Result := Text.Rotation;
+end;
 
 
 { function to select both components and designators for selected objects }
@@ -224,79 +1221,106 @@ begin
 end;
 
 
-{ function to transform TTextAutoposition based on rotation }
-function TransformAutoPos(Designator : IPCB_Text, tc_AutoPos : TTextAutoposition) : TTextAutoposition;
+procedure SetAutopositionLocation(var Comp : IPCB_Component; const tc_Autopos : TTextAutoposition; const KeySet : TObjectSet);
 var
-    rotation : Integer;
-    mirror   : Boolean;
-
+    Designator          : IPCB_Text;
+    Ortho               : Boolean;
+    TargetRotation      : Double;
+    AfterRotation       : Double;
 begin
-    rotation := Round(Designator.GetState_Rotation);
-    mirror := Designator.GetState_Mirror;
-    if rotation > 315 then rotation := 0;
+    Designator := Comp.Name;
 
-    // technically AutoPosition being enabled should coerce to 0,90,180, or 270
-    case rotation of
-        0..45 :
-            begin
-                case tc_AutoPos of
-                    eAutoPos_TopLeft        : Result := eAutoPos_BottomLeft;
-                    eAutoPos_CenterLeft     : Result := eAutoPos_CenterRight;
-                    eAutoPos_BottomLeft     : Result := eAutoPos_TopLeft;
-                    eAutoPos_TopCenter      : Result := eAutoPos_BottomCenter;
-                    eAutoPos_BottomCenter   : Result := eAutoPos_TopCenter;
-                    eAutoPos_TopRight       : Result := eAutoPos_BottomRight;
-                    eAutoPos_CenterRight    : Result := eAutoPos_CenterLeft;
-                    eAutoPos_BottomRight    : Result := eAutoPos_TopRight;
-                    else                      Result := tc_AutoPos;
-                end; { case tc_AutoPos }
-            end; { 0..45 }
-        46..135 :
-            begin
-                case tc_AutoPos of
-                    eAutoPos_TopLeft        : if mirror then Result := eAutoPos_TopLeft else Result := eAutoPos_BottomRight;
-                    eAutoPos_CenterLeft     : if mirror then Result := eAutoPos_TopCenter else Result := eAutoPos_BottomCenter;
-                    eAutoPos_BottomLeft     : if mirror then Result := eAutoPos_TopRight else Result := eAutoPos_BottomLeft;
-                    eAutoPos_TopCenter      : if mirror then Result := eAutoPos_CenterRight else Result := eAutoPos_CenterLeft;
-                    eAutoPos_BottomCenter   : if mirror then Result := eAutoPos_CenterLeft else Result := eAutoPos_CenterRight;
-                    eAutoPos_TopRight       : if mirror then Result := eAutoPos_BottomLeft else Result := eAutoPos_TopRight;
-                    eAutoPos_CenterRight    : Result := eAutoPos_BottomCenter;
-                    eAutoPos_BottomRight    : if mirror then Result := eAutoPos_BottomRight else Result := eAutoPos_TopLeft;
-                    else                      Result := tc_AutoPos;
-                end; { case tc_AutoPos }
-            end; { 46..135 }
-        136..225 :
-            begin
-                case tc_AutoPos of
-                    eAutoPos_TopLeft        : Result := eAutoPos_TopRight;
-                    eAutoPos_CenterLeft     : Result := eAutoPos_CenterLeft;
-                    eAutoPos_BottomLeft     : Result := eAutoPos_BottomRight;
-                    eAutoPos_TopCenter      : Result := eAutoPos_TopCenter;
-                    eAutoPos_BottomCenter   : Result := eAutoPos_BottomCenter;
-                    eAutoPos_TopRight       : Result := eAutoPos_TopLeft;
-                    eAutoPos_CenterRight    : Result := eAutoPos_CenterRight;
-                    eAutoPos_BottomRight    : Result := eAutoPos_BottomLeft;
-                    else                      Result := tc_AutoPos;
-                end; { case tc_AutoPos }
-            end; { 136..225 }
-        226..315 :
-            begin
-                case tc_AutoPos of
-                    eAutoPos_TopLeft        : if mirror then Result := eAutoPos_BottomRight else Result := eAutoPos_TopLeft;
-                    eAutoPos_CenterLeft     : Result := eAutoPos_BottomCenter;
-                    eAutoPos_BottomLeft     : if mirror then Result := eAutoPos_BottomLeft else Result := eAutoPos_TopRight;
-                    eAutoPos_TopCenter      : if mirror then Result := eAutoPos_CenterLeft else Result := eAutoPos_CenterRight;
-                    eAutoPos_BottomCenter   : if mirror then Result := eAutoPos_CenterRight else Result := eAutoPos_CenterLeft;
-                    eAutoPos_TopRight       : if mirror then Result := eAutoPos_TopRight else Result := eAutoPos_BottomLeft;
-                    eAutoPos_CenterRight    : if mirror then Result := eAutoPos_TopCenter else Result := eAutoPos_BottomCenter;
-                    eAutoPos_BottomRight    : if mirror then Result := eAutoPos_TopLeft else Result := eAutoPos_BottomRight;
-                    else                      Result := tc_AutoPos;
-                end; { case tc_AutoPos }
-            end; { 226..315 }
-        else Result := tc_AutoPos;
-    end; { case rotation }
+    //TargetRotation := Comp.Rotation;
 
-end; { TransformAutopos }
+    // round to the nearest multiple of 90 degrees
+    //TargetRotation := Round(TargetRotation / 90) * 90;
+
+    // if ALT key was used, set Ortho flag to rotate 90 deg CCW
+    if InSet(cAltKey, KeySet) then Ortho := True else Ortho := False;
+
+    Designator.BeginModify;
+
+    // rotate Designator to TargetRotation (just use 0, it's easier to predict since we only use 90° placement)
+    AfterRotation := RotateTextToAngle(Designator, 0, True, Ortho);
+
+    // Set text justification according to Autoposition setting
+    AutopositionJustify(Designator, tc_Autopos);
+
+    Designator.EndModify;
+    Designator.GraphicallyInvalidate;
+
+    Comp.BeginModify;
+
+    Comp.ChangeNameAutoposition(tc_Autopos);
+
+    Comp.EndModify;
+    Comp.GraphicallyInvalidate;
+end;
+
+
+function StrFromAutoPos(eAutoPos: TTextAutoposition): String;
+begin
+    { TTextAutoposition = ( eAutoPos_Manual,
+                        eAutoPos_TopLeft,
+                        eAutoPos_CenterLeft,
+                        eAutoPos_BottomLeft,
+                        eAutoPos_TopCenter,
+                        eAutoPos_CenterCenter,
+                        eAutoPos_BottomCenter,
+                        eAutoPos_TopRight,
+                        eAutoPos_CenterRight,
+                        eAutoPos_BottomRight);}
+    case eAutoPos of
+        0:  result := 'eAutoPos_Manual';
+        1:  result := 'eAutoPos_TopLeft';
+        2:  result := 'eAutoPos_CenterLeft';
+        3:  result := 'eAutoPos_BottomLeft';
+        4:  result := 'eAutoPos_TopCenter';
+        5:  result := 'eAutoPos_CenterCenter';
+        6:  result := 'eAutoPos_BottomCenter';
+        7:  result := 'eAutoPos_TopRight';
+        8:  result := 'eAutoPos_CenterRight';
+        9:  result := 'eAutoPos_BottomRight';
+    else
+        result := 'Invalid';
+    end;
+end;
+
+
+function StrFromObjectId(ObjectId: TObjectId): String;
+begin
+    case ObjectId of
+        0:  Result := 'eNoObject';
+        1:  Result := 'eArcObject';
+        2:  Result := 'ePadObject';
+        3:  Result := 'eViaObject';
+        4:  Result := 'eTrackObject';
+        5:  Result := 'eTextObject';
+        6:  Result := 'eFillObject';
+        7:  Result := 'eConnectionObject';
+        8:  Result := 'eNetObject';
+        9:  Result := 'eComponentObject';
+        10: Result := 'ePolyObject';
+        11: Result := 'eRegionObject';
+        12: Result := 'eComponentBodyObject';
+        13: Result := 'eDimensionObject';
+        14: Result := 'eCoordinateObject';
+        15: Result := 'eClassObject';
+        16: Result := 'eRuleObject';
+        17: Result := 'eFromToObject';
+        18: Result := 'eDifferentialPairObject';
+        19: Result := 'eViolationObject';
+        20: Result := 'eEmbeddedObject';
+        21: Result := 'eEmbeddedBoardObject';
+        22: Result := 'eSplitPlaneObject';
+        23: Result := 'eTraceObject';
+        24: Result := 'eSpareViaObject';
+        25: Result := 'eBoardObject';
+        26: Result := 'eBoardOutlineObject';
+    else
+        Result := 'Invalid object ID';
+    end;
+end;
 
 
 { Main procedure }
@@ -308,12 +1332,13 @@ var
     PCBSystemOptions        : IPCB_SystemOptions;
     DRCSetting              : Boolean;
     tc_AutoPos              : TTextAutoposition; // Current AP setting
-    DesignatorXmove         : Integer;           // Distance to move
+    MoveDistance            : Integer;
     TempPresetList          : TStringList;
     RotatedAutoPos          : Boolean;
     status, i               : Integer;
 
 begin
+    iDebugLevel := DEBUGLEVEL;
     // set version label
     LabelVersion.Caption := 'v' + ScriptVersion;
 
@@ -356,8 +1381,8 @@ begin
                 else break; // Find the first selected comp if select only checked
 
         // Set the move distance to DB units converted from mils or mm
-        if TweakDesForm.MMmilButton.Caption = 'mm' then DesignatorXmove := MMsToCoord(TweakDesForm.EditDistance.Text)
-        else DesignatorXmove := MilsToCoord(TweakDesForm.EditDistance.Text);
+        if TweakDesForm.MMmilButton.Caption = 'mm' then MoveDistance := MMsToCoord(TweakDesForm.EditDistance.Text)
+        else MoveDistance := MilsToCoord(TweakDesForm.EditDistance.Text);
 
         while (Component <> Nil) do
         begin
@@ -374,116 +1399,23 @@ begin
             // Get the designator handle
             Designator := Component.Name;
 
-            // Autoposition works differently for rotated text
-            if ( Round(Designator.GetState_Rotation) = 90 ) or ( Round(Designator.GetState_Rotation) = 270 ) then RotatedAutoPos := True else RotatedAutoPos := False;
-
             // notify that the pcb object is going to be modified
-            // PCBServer.SendMessageToRobots(Designator.I_ObjectAddress, c_Broadcast, PCBM_BeginModify, c_NoEventData);
             Component.Name.BeginModify;
 
-            // if AD19+, need to turn on AdvanceSnapping
-            if IsAtLeastAD19 then Designator.AdvanceSnapping := True;
-
             // Set text justification according to autoposition setting
-            Designator.TTFInvertedTextJustify := TransformAutoPos(Designator, tc_AutoPos);
+            AutopositionJustify(Designator, tc_AutoPos);
 
-            // Move designators, accounting for rotation and autoposition settings
-            case Designator.GetState_Mirror of
-                True : // If designator is mirrored, we will assume that X-axis movement should be reversed
-                    // Move designator depending on current AP setting
-                    case tc_AutoPos of
-                        eAutoPos_Manual :;
-                        eAutoPos_TopLeft :
-                            begin
-                                if RotatedAutoPos then Designator.MoveToXY(Designator.Xlocation - DesignatorXmove, Designator.Ylocation)
-                                    else Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation - DesignatorXmove);
-                            end;
-                        eAutoPos_CenterLeft :
-                            begin
-                                Designator.MoveToXY(Designator.Xlocation - DesignatorXmove, Designator.Ylocation);
-                            end;
-                        eAutoPos_BottomLeft :
-                            begin
-                                if RotatedAutoPos then Designator.MoveToXY(Designator.Xlocation - DesignatorXmove, Designator.Ylocation)
-                                    else Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation + DesignatorXmove);
-                            end;
-                        eAutoPos_TopCenter :
-                            begin
-                                Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation - DesignatorXmove);
-                            end;
-                        eAutoPos_BottomCenter :
-                            begin
-                                Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation + DesignatorXmove);
-                            end;
-                        eAutoPos_TopRight :
-                            begin
-                                if RotatedAutoPos then Designator.MoveToXY(Designator.Xlocation + DesignatorXmove, Designator.Ylocation)
-                                    else Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation - DesignatorXmove);
-                            end;
-                        eAutoPos_CenterRight :
-                            begin
-                                Designator.MoveToXY(Designator.Xlocation + DesignatorXmove, Designator.Ylocation);
-                            end;
-                        eAutoPos_BottomRight :
-                            begin
-                                if RotatedAutoPos then Designator.MoveToXY(Designator.Xlocation + DesignatorXmove, Designator.Ylocation)
-                                    else Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation + DesignatorXmove);
-                            end;
-                        eAutoPos_CenterCenter :;
-                    end; { case tc_AutoPos }
-                False :
-                    // Move designator depending on current AP setting
-                    case tc_AutoPos of
-                        eAutoPos_Manual :;
-                        eAutoPos_TopLeft :
-                            begin
-                                if RotatedAutoPos then Designator.MoveToXY(Designator.Xlocation + DesignatorXmove, Designator.Ylocation)
-                                    else Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation - DesignatorXmove);
-                            end;
-                        eAutoPos_CenterLeft :
-                            begin
-                                Designator.MoveToXY(Designator.Xlocation + DesignatorXmove, Designator.Ylocation);
-                            end;
-                        eAutoPos_BottomLeft :
-                            begin
-                                if RotatedAutoPos then Designator.MoveToXY(Designator.Xlocation + DesignatorXmove, Designator.Ylocation)
-                                    else Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation + DesignatorXmove);
-                            end;
-                        eAutoPos_TopCenter :
-                            begin
-                                Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation - DesignatorXmove);
-                            end;
-                        eAutoPos_BottomCenter :
-                            begin
-                                Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation + DesignatorXmove);
-                            end;
-                        eAutoPos_TopRight :
-                            begin
-                                if RotatedAutoPos then Designator.MoveToXY(Designator.Xlocation - DesignatorXmove, Designator.Ylocation)
-                                    else Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation - DesignatorXmove);
-                            end;
-                        eAutoPos_CenterRight :
-                            begin
-                                Designator.MoveToXY(Designator.Xlocation - DesignatorXmove, Designator.Ylocation);
-                            end;
-                        eAutoPos_BottomRight :
-                            begin
-                                if RotatedAutoPos then Designator.MoveToXY(Designator.Xlocation - DesignatorXmove, Designator.Ylocation)
-                                    else Designator.MoveToXY(Designator.Xlocation, Designator.Ylocation + DesignatorXmove);
-                            end;
-                        eAutoPos_CenterCenter :;
-                    end; { case tc_AutoPos }
-            end; { case Designator.GetState_Mirror }
+            AutoPosDeltaAdjust(Designator, MoveDistance, tc_AutoPos);
 
             // notify that the pcb object is modified
             // PCBServer.SendMessageToRobots(Designator.I_ObjectAddress, c_Broadcast, PCBM_EndModify , c_NoEventData);
-            Designator.EndModify;
-            Designator.GraphicallyInvalidate;
-            Board.DispatchMessage(Board.I_ObjectAddress, c_Broadcast, PCBM_BoardRegisteration, Designator.I_ObjectAddress);
+            Component.Name.EndModify;
+            Component.Name.GraphicallyInvalidate;
+            //Board.DispatchMessage(Board.I_ObjectAddress, c_Broadcast, PCBM_BoardRegisteration, Designator.I_ObjectAddress);
 
             Component.EndModify;
             Component.GraphicallyInvalidate;
-            Board.DispatchMessage(Board.I_ObjectAddress, c_Broadcast, PCBM_BoardRegisteration, Component.I_ObjectAddress);
+            //Board.DispatchMessage(Board.I_ObjectAddress, c_Broadcast, PCBM_BoardRegisteration, Component.I_ObjectAddress);
 
             // Get the next component handle
             Component := ComponentIteratorHandle.NextPCBObject;
@@ -493,7 +1425,7 @@ begin
                     else break; // Find the next selected comp if select only checked
 
 
-        end; { end while }
+        end; // end while
 
         // Notify the pcbserver that all changes have been made (Stop undo)
         PCBServer.PostProcess;
@@ -537,32 +1469,15 @@ begin
 end; { TweakDesignators }
 
 
-function IsStringANum(Text : string) : Boolean;
-var
-    i        : Integer;
-    dotCount : Integer;
-    ChSet    : TSet;
+{ programmatically, OnKeyPress fires before OnChange event and "catches" the key press }
+procedure UserKeyPress(Sender : TObject; var Key : Char);
 begin
-    Result := True;
-
-    // Test for number, hyphen, dot, or comma
-    ChSet := SetUnion(MkSet(Ord('-'), Ord('.'), Ord(',')), MkSetRange(Ord('0'), Ord('9')));
-    for i := 1 to Length(Text) do
-        if not InSet(Ord(Text[i]), ChSet) then Result := False;
-
-    // test if there is a hyphen that isn't leading
-    ChSet := MkSet(Ord('-'));
-    for i := 2 to Length(Text) do
-        if InSet(Ord(Text[i]), ChSet) then Result := False;
-
-    // Test for more than one hyphen, dot, or comma
-    dotCount := 0;
-    ChSet    := MkSet(Ord('-'), Ord('.'), Ord(','));
-    for i    := 1 to Length(Text) do
-        if InSet(Ord(Text[i]), ChSet) then inc(dotCount);
-
-    if dotCount > 1 then Result := False;
-end; { IsStringANum }
+    if (ButtonOK.Enabled) and (Ord(Key) = 13) then
+    begin
+        Key := #0; // catch and discard key press to avoid beep
+        if ButtonOK.Enabled then TweakDesForm.Close;
+    end;
+end; { UserKeyPress }
 
 
 procedure ValidateOnChange(Sender : TObject);
@@ -579,31 +1494,6 @@ begin
     else ButtonOK.Enabled := False;
 
 end; { ValidateOnChange }
-
-{ programmatically, OnKeyPress fires before OnChange event and "catches" the key press }
-procedure UserKeyPress(Sender : TObject; var Key : Char);
-begin
-    if (ButtonOK.Enabled) and (Ord(Key) = 13) then
-    begin
-        Key := #0; // catch and discard key press to avoid beep
-        if ButtonOK.Enabled then TweakDesForm.Close;
-    end;
-end; { UserKeyPress }
-
-
-procedure PresetButtonClicked(Sender : TObject);
-begin
-    // ShowMessage('PresetButtonClicked');
-    if Sender = ButtonPreset1 then EditDistance.Text      := tPreset1.Text
-    else if Sender = ButtonPreset2 then EditDistance.Text := tPreset2.Text
-    else if Sender = ButtonPreset3 then EditDistance.Text := tPreset3.Text
-    else if Sender = ButtonPreset4 then EditDistance.Text := tPreset4.Text
-    else if Sender = ButtonPreset5 then EditDistance.Text := tPreset5.Text
-    else if Sender = ButtonPreset6 then EditDistance.Text := tPreset6.Text
-    else if Sender = ButtonPreset7 then EditDistance.Text := tPreset7.Text
-    else if Sender = ButtonPreset8 then EditDistance.Text := tPreset8.Text;
-    TweakDesForm.Close;
-end; { PresetButtonClicked }
 
 
 procedure TTweakDesForm.ButtonOKClick(Sender : TObject);
