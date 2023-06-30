@@ -142,32 +142,6 @@ begin
 
 end; { AutopositionJustify }
 
-procedure AutoSet_Silk_Size(var Silkscreen : IPCB_Text; const MinSilkSizeMils : Integer);
-const
-	MAXINT = 2147483647;
-var
-    SlkSizeMils : Integer; // despite being in mils, Get_Silk_Size uses Integers
-begin
-    if Silkscreen = nil then exit;
-
-    if MinSilkSizeMils > MAXINT then MinSilkSizeMils := MAXINT;
-
-    Silkscreen.BeginModify;
-
-    // Get Silkscreen Size
-    SlkSizeMils := Get_Silk_Size(Silkscreen, MinSilkSizeMils);
-    if SilkscreenIsFixedSize then
-        Silkscreen.size := SilkscreenFixedSize
-    else
-        Silkscreen.size := MilsToCoord(SlkSizeMils);
-    if SilkscreenIsFixedWidth then
-        Silkscreen.Width := SilkscreenFixedWidth
-    else
-        Silkscreen.Width := Round(Silkscreen.Size / 10000) * 1000 + 20000;
-
-    Silkscreen.EndModify;
-end;
-
 function DebugContourInfo(contour : IPCB_Contour) : TStringList;
 var
     PointList: TStringList;
@@ -453,7 +427,8 @@ var
     size: Integer;
 begin
     // Stroke Width & Text Height
-    Rect := Get_Obj_Rect(Slk.Component);
+    //Rect := Get_Obj_Rect(Slk.Component);
+    Rect := Slk.Component.BoundingRectangleNoNameComment;
     area := CoordToMils(Rect.Right - Rect.Left) * CoordToMils(Rect.Top - Rect.Bottom);
 
     size := Int((82 * area) / (16700 + area));
@@ -461,6 +436,32 @@ begin
         size := Min_Size;
 
     result := size;
+end;
+
+procedure AutoSet_Silk_Size(var Silkscreen : IPCB_Text; const MinSilkSizeMils : Integer);
+const
+	MAXINT = 2147483647;
+var
+    SlkSizeMils : Integer; // despite being in mils, Get_Silk_Size uses Integers
+begin
+    if Silkscreen = nil then exit;
+
+    if MinSilkSizeMils > MAXINT then MinSilkSizeMils := MAXINT;
+
+    Silkscreen.BeginModify;
+
+    // Get Silkscreen Size
+    SlkSizeMils := Get_Silk_Size(Silkscreen, MinSilkSizeMils);
+    if SilkscreenIsFixedSize then
+        Silkscreen.size := SilkscreenFixedSize
+    else
+        Silkscreen.size := MilsToCoord(SlkSizeMils);
+    if SilkscreenIsFixedWidth then
+        Silkscreen.Width := SilkscreenFixedWidth
+    else
+        Silkscreen.Width := Round(Silkscreen.Size / 10000) * 1000 + 20000;
+
+    Silkscreen.EndModify;
 end;
 
 // Checks if 2 objects are overlapping on the PCB
@@ -1626,6 +1627,10 @@ begin
                             TempRotation := Silkscreen.Component.Rotation;
                             TempRotated := True;
 
+                            Silkscreen.Component.BeginModify;
+                            Silkscreen.Component.Rotation := 0;
+                            Silkscreen.Component.EndModify;
+
                             // if we rotated the component for the first time, need to recalculate silkscreen autosize for consistency
                             if SlkSize = 0 then
                             begin
@@ -1634,7 +1639,6 @@ begin
                                 SlkSize := Silkscreen.Size; // change SlkSize from zero so later size reduction algorithm doesn't get undone
                             end;
 
-                            SilkScreen.Component.Rotation := 0;
                             if iDebugLevel >= 2 then if ConfirmOKCancelWithCaption('Confirm or Cancel Debug', 'Temp-rotated') = False then iDebugLevel := 0;
                         end;
 
@@ -1677,7 +1681,9 @@ begin
 
                         if TempRotated then
                         begin
+                            Silkscreen.Component.BeginModify;
                             Silkscreen.Component.Rotation := TempRotation;
+                            Silkscreen.Component.EndModify;
                             TempRotated := False;
                             if iDebugLevel >= 2 then if ConfirmOKCancelWithCaption('Confirm or Cancel Debug', 'De-rotated') = False then iDebugLevel := 0;
                         end;
