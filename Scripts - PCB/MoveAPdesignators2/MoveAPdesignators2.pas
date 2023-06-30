@@ -570,6 +570,11 @@ begin
         Poly := PCBServer.PCBGeometricPolygonFactory; // create empty poly
         Poly.AddEmptyContour;
     end
+    else if Obj.ObjectId = eArcObject then
+    begin
+        // Function  MakeContour(APrim : IPCB_Primitive; AExpansion : Integer; ALayer : TV6_Layer) : IPCB_GeometricPolygon;
+        Poly := PCBServer.PCBContourMaker.MakeContour(Obj, Expansion, Obj.Layer);
+    end
     else if Obj.ObjectId = eTrackObject then
     begin
         // Function  MakeContour(APrim : IPCB_Primitive; AExpansion : Integer; ALayer : TV6_Layer) : IPCB_GeometricPolygon;
@@ -844,7 +849,7 @@ end;
 function IsOverlapping(Text: IPCB_ObjectClass; Obj2: IPCB_ObjectClass) : Boolean;
 const
     TEXTEXPANSION       = 5; // [mils] Expansion for other text objects
-    PADEXPANSION        = 7; // [mils] Expansion for pads
+    PADEXPANSION        = 8; // [mils] Expansion for pads
     CUTOUTEXPANSION     = 0; // [mils] Expansion for cutout regions
     DEFAULTEXPANSION    = 6; // [mils] Expansion for everything else
 var
@@ -878,11 +883,6 @@ begin
         ePadObject:     Expansion := MilsToCoord(PADEXPANSION);
         eRegionObject:  if Obj2.Kind = eRegionKind_Cutout then Expansion := MilsToCoord(CUTOUTEXPANSION);
     end;
-
-    if Obj2.ObjectId = eTextObject then Expansion := MilsToCoord(TEXTEXPANSION)
-    else if Obj2.ObjectId = ePadObject then Expansion := MilsToCoord(PADEXPANSION)
-    else if (Obj2.ObjectId = eRegionObject) and (Obj2.Kind = eRegionKind_Cutout) then Expansion := MilsToCoord(CUTOUTEXPANSION)
-    else Expansion := MilsToCoord(DEFAULTEXPANSION);
 
     // Get geometric polygons for both objects
     TextPoly := GetObjPoly(Text);
@@ -1092,6 +1092,12 @@ begin
     if IsTextOverObj(Silkscreen, eTextObject, FILTERSIZE, ParentOnly) then
     begin
         DebugMessage(3, 'eTextObject check failed');
+        Exit;
+    end
+    // Silkscreen Arcs Overlap Detection
+    else if IsTextOverObj(Silkscreen, eArcObject, FILTERSIZE, ParentOnly) then
+    begin
+        DebugMessage(3, 'eArcObject check failed');
         Exit;
     end
     // Silkscreen Tracks Overlap Detection
