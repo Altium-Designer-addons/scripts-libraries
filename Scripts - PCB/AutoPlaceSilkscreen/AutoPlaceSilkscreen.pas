@@ -142,6 +142,32 @@ begin
 
 end; { AutopositionJustify }
 
+procedure AutoSet_Silk_Size(var Silkscreen : IPCB_Text; const MinSilkSizeMils : Integer);
+const
+	MAXINT = 2147483647;
+var
+    SlkSizeMils : Integer; // despite being in mils, Get_Silk_Size uses Integers
+begin
+    if Silkscreen = nil then exit;
+
+    if MinSilkSizeMils > MAXINT then MinSilkSizeMils := MAXINT;
+
+    Silkscreen.BeginModify;
+
+    // Get Silkscreen Size
+    SlkSizeMils := Get_Silk_Size(Silkscreen, MinSilkSizeMils);
+    if SilkscreenIsFixedSize then
+        Silkscreen.size := SilkscreenFixedSize
+    else
+        Silkscreen.size := MilsToCoord(SlkSizeMils);
+    if SilkscreenIsFixedWidth then
+        Silkscreen.Width := SilkscreenFixedWidth
+    else
+        Silkscreen.Width := Round(Silkscreen.Size / 10000) * 1000 + 20000;
+
+    Silkscreen.EndModify;
+end;
+
 function DebugContourInfo(contour : IPCB_Contour) : TStringList;
 var
     PointList: TStringList;
@@ -1542,6 +1568,7 @@ var
     PointList: TStringList;
 begin
     iDebugLevel := DEBUGLEVEL;
+    SlkSize := 0;
 
     StepList := CreateObject(TStringList);
     StepList.Delimiter := '|';
@@ -1568,20 +1595,8 @@ begin
 
     For AlteredRotation := 0 to TryAlteredRotation do
     begin
-        Silkscreen.BeginModify;
-
-        // Get Silkscreen Size
-        SlkSize := Get_Silk_Size(Silkscreen, MIN_SILK_SIZE);
-        if SilkscreenIsFixedSize then
-            Silkscreen.size := SilkscreenFixedSize
-        else
-            Silkscreen.size := MilsToCoord(SlkSize);
-        if SilkscreenIsFixedWidth then
-            Silkscreen.Width := SilkscreenFixedWidth
-        else
-            Silkscreen.Width := Round(Silkscreen.Size / 10000) * 1000 + 20000;
-
-        Silkscreen.EndModify;
+        // autoset Silkscreen size based on MIN_SILK_SIZE and global variables
+        AutoSet_Silk_Size(Silkscreen, MIN_SILK_SIZE);
 
         // If not placed, reduce silkscreen size
         while (CoordToMils(Silkscreen.size) >= ABS_MIN_SILK_SIZE) or (SilkscreenIsFixedSize) do
@@ -1606,16 +1621,24 @@ begin
 
                         NextAutoP := StrToAutoPos(FormCheckListBox1.Items[i]);
 
-                        Silkscreen.BeginModify;
-
                         if (Round(Silkscreen.Component.Rotation) mod 90 <> 0) then
                         begin
                             TempRotation := Silkscreen.Component.Rotation;
                             TempRotated := True;
 
+                            // if we rotated the component for the first time, need to recalculate silkscreen autosize for consistency
+                            if SlkSize = 0 then
+                            begin
+                                // since bounding box changed, reset Silkscreen size based on MIN_SILK_SIZE and global variables
+                                AutoSet_Silk_Size(Silkscreen, MIN_SILK_SIZE);
+                                SlkSize := Silkscreen.Size; // change SlkSize from zero so later size reduction algorithm doesn't get undone
+                            end;
+
                             SilkScreen.Component.Rotation := 0;
                             if iDebugLevel >= 2 then if ConfirmOKCancelWithCaption('Confirm or Cancel Debug', 'Temp-rotated') = False then iDebugLevel := 0;
                         end;
+
+                        Silkscreen.BeginModify;
 
                         if iDebugLevel >= 1 then Silkscreen.Selected := True;
 
@@ -1770,25 +1793,15 @@ begin
         if iDebugLevel >= 2 then ShowInfo(StepList.DelimitedText);
         result := False;
 
-        Silkscreen.BeginModify;
-
-        // Reset Silkscreen Size
-        SlkSize := Get_Silk_Size(Silkscreen, MIN_SILK_SIZE);
-        if SilkscreenIsFixedSize then
-            Silkscreen.size := SilkscreenFixedSize
-        else
-            Silkscreen.size := MilsToCoord(SlkSize);
-        if SilkscreenIsFixedWidth then
-            Silkscreen.Width := SilkscreenFixedWidth
-        else
-            Silkscreen.Width := Round(Silkscreen.Size / 10000) * 1000 + 20000;
+        // reset Silkscreen size based on MIN_SILK_SIZE and global variables
+        AutoSet_Silk_Size(Silkscreen, MIN_SILK_SIZE);
 
         // Move off board for now
-        Rotation_MatchSilk2Comp(Silkscreen);
-
-        Silkscreen.EndModify;
         Silkscreen.BeginModify;
+        Rotation_MatchSilk2Comp(Silkscreen);
+        Silkscreen.EndModify;
 
+        Silkscreen.BeginModify;
         Silkscreen.Component.ChangeNameAutoposition := eAutoPos_Manual;
 
         // need to EndModify and BeginModify here to refresh internal Text properties, else changing justification may move text
