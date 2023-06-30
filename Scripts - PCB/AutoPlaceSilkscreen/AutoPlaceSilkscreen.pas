@@ -1572,7 +1572,7 @@ begin
         if SilkscreenIsFixedWidth then
             Silkscreen.Width := SilkscreenFixedWidth
         else
-            Silkscreen.Width := 2 * (Silkscreen.size / 10);
+            Silkscreen.Width := Round(Silkscreen.Size / 10000) * 1000 + 20000;
 
         Silkscreen.EndModify;
 
@@ -1747,7 +1747,7 @@ begin
             if SilkscreenIsFixedWidth then
                 Silkscreen.Width := SilkscreenFixedWidth
             else
-                Silkscreen.Width := Int(2 * (Silkscreen.size / 10) - 10000); // Width needs to change relative to size
+                Silkscreen.Width := Round(Silkscreen.Size / 10000) * 1000 + 20000; // Width needs to change relative to size
 
             Silkscreen.EndModify;
         end;
@@ -1769,7 +1769,7 @@ begin
         if SilkscreenIsFixedWidth then
             Silkscreen.Width := SilkscreenFixedWidth
         else
-            Silkscreen.Width := 2 * (Silkscreen.size / 10);
+            Silkscreen.Width := Round(Silkscreen.Size / 10000) * 1000 + 20000;
 
         // Move off board for now
         Rotation_MatchSilk2Comp(Silkscreen);
