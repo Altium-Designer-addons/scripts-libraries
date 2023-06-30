@@ -15,8 +15,8 @@ var
 const
     cESC                = -1;
     cAltKey             = 1; // don't use when selecting component. Okay when clicking location.
-    cShiftKey           = 2; // don't use it for component or location. Makes funny selection stuff happen
-    cCtrlKey            = 3;
+    cShiftKey           = 2; // don't use it for selecting component or location. Makes funny selection stuff happen
+    cCtrlKey            = 3; // available for use during component and location selection
     DEBUGLEVEL          = 0;
     cPersistentMode     = False;
     UsePresets          = True;
@@ -91,11 +91,13 @@ var
     CurSearchDist : TCoord;
     bFirstPass : Boolean;
     bRunoff : Boolean;
+    bDefaultValid : Boolean;
 begin
     StartDist := MIN(StartDist, MINSEARCHDIST * 8);
     CurSearchDist := SEARCHDIST;
     bFirstPass := False;
     bRunoff := False;
+    bDefaultValid := True;
 
     if not (Silk <> nil and Silk.InComponent) then
     begin
@@ -106,6 +108,7 @@ begin
 
     if not IsValidPlacement(Silk, ParentOnly) then
     begin
+        bDefaultValid := False;
         StartDist := MINSEARCHDIST * 4;
         DebugMessage(1, 'Initial placement interferes. Starting move distance at ' + CoordToStr(StartDist));
     end;
@@ -128,7 +131,11 @@ begin
                 if iDebugLevel >= 2 then Application.ProcessMessages;
                 CurSearchDist := SEARCHDIST div 2;
                 MoveDist := MINSEARCHDIST * 2;
-                DebugMessage(2, 'Runaway detected. Resetting to start position.' + sLineBreak + 'New MoveDist=' + CoordToStr(MoveDist) + sLineBreak + 'bFirstPass=' + BoolToStr(bFirstPass, True) + sLineBreak + 'bRunuff=' + BoolToStr(bRunoff, True));
+                DebugMessage(2, 'Runaway detected. Resetting to start position.' + sLineBreak +
+                        'New MoveDist=' + CoordToStr(MoveDist) + sLineBreak +
+                        'bFirstPass=' + BoolToStr(bFirstPass, True) + sLineBreak +
+                        'bRunuff=' + BoolToStr(bRunoff, True) + sLineBreak +
+                        'Valid Placement=' + BoolToStr(bDefaultValid, True));
             end
             else
             begin
@@ -150,18 +157,27 @@ begin
                 // if the first step is good, or if we previously identified runoff, or if we get a pass on the negative swing of the oscillator
                 bFirstPass := True;
             end;
-            DebugMessage(2, 'Total move distance=' + CoordToStr(TotalDist) + sLineBreak + 'Moved by MoveDist=' + CoordToStr(MoveDist) + sLineBreak + 'bFirstPass=' + BoolToStr(bFirstPass, True) + sLineBreak + 'Valid Placement=True');
+            DebugMessage(2, 'Total move distance=' + CoordToStr(TotalDist) + sLineBreak +
+                    'Moved by MoveDist=' + CoordToStr(MoveDist) + sLineBreak +
+                    'bFirstPass=' + BoolToStr(bFirstPass, True) + sLineBreak +
+                    'bRunuff=' + BoolToStr(bRunoff, True) + sLineBreak +
+                    'Valid Placement=True');
             MoveDist := ABS(MoveDist);  // always move positive after pass
         end
         else
         begin
-            DebugMessage(2, 'Total move distance=' + CoordToStr(TotalDist) + sLineBreak + 'Failed move by MoveDist=' + CoordToStr(MoveDist) + sLineBreak + 'bFirstPass=' + BoolToStr(bFirstPass, True));
+            DebugMessage(2, 'Total move distance=' + CoordToStr(TotalDist) + sLineBreak +
+                    'Failed move by MoveDist=' + CoordToStr(MoveDist) + sLineBreak +
+                    'bFirstPass=' + BoolToStr(bFirstPass, True) + sLineBreak +
+                    'bRunuff=' + BoolToStr(bRunoff, True) + sLineBreak +
+                    'Valid Placement=False');
 
             if not bFirstPass then
             begin
                 // oscillate between 0 and CurSearchDist of movement, halving each time the limit is reached
                 if (TotalDist >= CurSearchDist) and (SIGN(MoveDist) > 0) then
                 begin
+                    bRunoff := True; // treat migration backward as equivalent to runoff
                     MoveDist := -MoveDist div 2; // Start moving in the negative direction and halve distance
                 end
                 else if (TotalDist <= 0) then
