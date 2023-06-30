@@ -230,6 +230,11 @@ begin
         //Rect := Obj.BoundingRectangleNoNameCommentForSignals;
         // TODO: figure out how to create a contour for a component
     end
+    else if ObjID = eArcObject then
+    begin
+        // Function  MakeContour(APrim : IPCB_Primitive; AExpansion : Integer; ALayer : TV6_Layer) : IPCB_GeometricPolygon;
+        Poly := ContourMaker.MakeContour(Obj, Expansion, Obj.Layer);
+    end
     else if ObjID = eTrackObject then
     begin
         // Function  MakeContour(APrim : IPCB_Primitive; AExpansion : Integer; ALayer : TV6_Layer) : IPCB_GeometricPolygon;
@@ -507,11 +512,10 @@ end;
 // Checks if 2 objects are overlapping on the PCB
 function Is_Overlapping_V2(Obj1: IPCB_ObjectClass; Obj2: IPCB_ObjectClass) : Boolean;
 const
-    SLKPAD = 40000; // Allowed Overlap = 4 mil
-    PADPAD = 10000; // Margin beyond pad = 1 mil
-    TEXTEXPANSION       = 50000; // [Coords] Expansion for other text objects = 5 mil
-    PADEXPANSION        = 70000; // [Coords] Expansion for pads = 7 mil
-    DEFAULTEXPANSION    = 40000; // [Coords] Expansion for everything else = 4 mil
+    TEXTEXPANSION       = 5; // [mils] Expansion for other text objects
+    PADEXPANSION        = 8; // [mils] Expansion for pads
+    CUTOUTEXPANSION     = 0; // [mils] Expansion for cutout regions
+    DEFAULTEXPANSION    = 6; // [mils] Expansion for everything else
 var
     Poly1, Poly2: IPCB_GeometricPolygon;
     Expansion: TCoord;
@@ -541,9 +545,12 @@ begin
         Exit; // Continue
     end;
 
-    if Obj2.ObjectId = eTextObject then Expansion := TEXTEXPANSION
-    else if Obj2.ObjectId = ePadObject then Expansion := PADEXPANSION
-    else Expansion := DEFAULTEXPANSION;
+    Expansion := MilsToCoord(DEFAULTEXPANSION);
+    case Obj2.ObjectId of
+        eTextObject:    Expansion := MilsToCoord(TEXTEXPANSION);
+        ePadObject:     Expansion := MilsToCoord(PADEXPANSION);
+        eRegionObject:  if Obj2.Kind = eRegionKind_Cutout then Expansion := MilsToCoord(CUTOUTEXPANSION);
+    end;
 
     // Get geometric polygons for both objects
     Poly1 := Get_Obj_Poly(Obj1);    // in practice, Place_Silkscreen always uses Obj1 for silkscreen being manipulated, so don't add expansion to it
@@ -1663,6 +1670,11 @@ begin
 
                         // Silkscreen RefDes Overlap Detection
                         if IsOverObj(Silkscreen, eTextObject, FilterSize) then
+                        begin
+                            Continue;
+                        end
+                        // Silkscreen Arcs Overlap Detection
+                        else if IsOverObj(Silkscreen, eArcObject, FilterSize) then
                         begin
                             Continue;
                         end
