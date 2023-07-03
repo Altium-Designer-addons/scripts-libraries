@@ -27,9 +27,9 @@ const
 
 
 procedure About; forward;
-function AutoMove(Silk : IPCB_Text; ParentOnly : Boolean = True; StartDist : TCoord = 400000; MinDist : TCoord = 25000) : TCoord; forward;
-procedure AutoPosDeltaAdjust(Silk : IPCB_Text; MoveDistance : TCoord; autoPos : TTextAutoposition); forward;
-function AutopositionJustify(var Designator : IPCB_Text; const tc_AutoPos : TTextAutoposition): TTextAutoposition; forward;
+function AutoMove(var NameOrComment : IPCB_Text; ParentOnly : Boolean = True; StartDist : TCoord = 400000; MinDist : TCoord = 25000) : TCoord; forward;
+procedure AutoPosDeltaAdjust(var NameOrComment : IPCB_Text; MoveDistance : TCoord; autoPos : TTextAutoposition); forward;
+function AutopositionJustify(var NameOrComment : IPCB_Text; const tc_AutoPos : TTextAutoposition): TTextAutoposition; forward;
 procedure BothInitialCheck(var status : Integer); forward;
 procedure BuildPresetList(var TempPresetList : TStringList); forward;
 function CoordToStr(Coords : TCoord) : String; forward;
@@ -45,16 +45,16 @@ function GetLayerSet(SlkLayer: Integer; ObjID: Integer): TV6_LayerSet; forward;
 function GetMinDesignatorClearance(var Comp : IPCB_Component) : TCoord; forward;
 function GetRelativeAutoposition(var Comp : IPCB_Component; const loc_x, loc_y : TCoord) : TTextAutoposition; forward;
 procedure InteractivelyAutoposition; forward;
+function IsOverlapping(Text: IPCB_ObjectClass; Obj2: IPCB_ObjectClass) : Boolean; forward;
 function IsSameSide(Obj1: IPCB_ObjectClass; Obj2: IPCB_ObjectClass): Boolean; forward;
 function IsStringANum(Text : string) : Boolean; forward;
-function IsOverlapping(Text: IPCB_ObjectClass; Obj2: IPCB_ObjectClass) : Boolean; forward;
+function IsTextOverObj(Text: IPCB_Text; ObjID: Integer; Filter_Size: Integer; ParentOnly: Boolean = False): Boolean; forward;
 function IsValidPlacement(Silkscreen : IPCB_Text; ParentOnly : Boolean = False) : Boolean; forward;
 procedure LoadPresetListFromFile(const dummy : Integer); forward;
-function IsTextOverObj(Text: IPCB_Text; ObjID: Integer; Filter_Size: Integer; ParentOnly: Boolean = False): Boolean; forward;
 procedure PresetButtonClicked(Sender : TObject); forward;
 function RotateTextToAngle(var Text : IPCB_Text; const Angle : Double; const Normalize : Boolean = False; const Ortho : Boolean = False) : Double; forward;
 function SelectCompAndDesignators(dummy : Boolean = False) : Boolean; forward;
-procedure SetAutopositionLocation(var Comp : IPCB_Component; const tc_Autopos : TTextAutoposition; const KeySet : TObjectSet); forward;
+procedure SetAutopositionLocation(var Comp : IPCB_Component; const tc_Autopos : TTextAutoposition; const KeySet : TObjectSet; bDesignator : Boolean = True); forward;
 function StrFromAutoPos(eAutoPos: TTextAutoposition): String; forward;
 function StrFromObjectId(ObjectId: TObjectId): String; forward;
 procedure TweakDesignators; forward;
@@ -81,13 +81,14 @@ begin
 end; { About }
 
 
-function AutoMove(Silk : IPCB_Text; ParentOnly : Boolean = True; StartDist : TCoord = 400000; MinDist : TCoord = 25000) : TCoord;
+function AutoMove(var NameOrComment : IPCB_Text; ParentOnly : Boolean = True; StartDist : TCoord = 400000; MinDist : TCoord = 25000) : TCoord;
 const
     MINATTEMPTS = 2;
     SEARCHDIST = 1200000; // don't make this too big or it leaves room to jump into valid placement on other side of part
     MINSEARCHDIST = 50000;
 var
     MoveDist, TotalDist : TCoord;
+    NameOrCommentAP : TTextAutoposition;
     CurSearchDist : TCoord;
     bFirstPass : Boolean;
     bRunoff : Boolean;
@@ -99,14 +100,16 @@ begin
     bRunoff := False;
     bDefaultValid := True;
 
-    if not (Silk <> nil and Silk.InComponent) then
+    if NameOrComment.IsDesignator then NameOrCommentAP := NameOrComment.Component.NameAutoPosition else NameOrCommentAP := NameOrComment.Component.CommentAutoPosition;
+
+    if not (NameOrComment <> nil and NameOrComment.InComponent) then
     begin
         Result := 0;
         Exit;
     end;
     TotalDist := 0;
 
-    if not IsValidPlacement(Silk, ParentOnly) then
+    if not IsValidPlacement(NameOrComment, ParentOnly) then
     begin
         bDefaultValid := False;
         StartDist := MINSEARCHDIST * 4;
@@ -125,9 +128,10 @@ begin
                 // first time the designator runs off to the search distance limit
                 // (such as if the initial search puts it on the opposite side of the part and there is valid placement room)
                 bRunoff := True;
-                AutoPosDeltaAdjust(Silk, -TotalDist, Silk.Component.NameAutoPosition);
+
+                AutoPosDeltaAdjust(NameOrComment, -TotalDist, NameOrCommentAP);
                 TotalDist := 0;
-                if iDebugLevel >= 2 then Silk.GraphicallyInvalidate;
+                if iDebugLevel >= 2 then NameOrComment.GraphicallyInvalidate;
                 if iDebugLevel >= 2 then Application.ProcessMessages;
                 CurSearchDist := SEARCHDIST div 2;
                 MoveDist := MINSEARCHDIST * 2;
@@ -145,12 +149,12 @@ begin
         end;
 
         // coerce MoveDist to not exceed search distance, but don't change the value of the variable
-        AutoPosDeltaAdjust(Silk, MIN(MoveDist, CurSearchDist - TotalDist), Silk.Component.NameAutoPosition);
-        if iDebugLevel >= 2 then Silk.GraphicallyInvalidate;
+        AutoPosDeltaAdjust(NameOrComment, MIN(MoveDist, CurSearchDist - TotalDist), NameOrCommentAP);
+        if iDebugLevel >= 2 then NameOrComment.GraphicallyInvalidate;
         if iDebugLevel >= 2 then Application.ProcessMessages;
         TotalDist := TotalDist + MIN(MoveDist, CurSearchDist - TotalDist);
 
-        if IsValidPlacement(Silk, ParentOnly) then
+        if IsValidPlacement(NameOrComment, ParentOnly) then
         begin
             if (TotalDist = StartDist) or bRunoff or ((TotalDist >= 0) and (SIGN(MoveDist) < 0)) then
             begin
@@ -190,8 +194,8 @@ begin
             else
             begin
                 // once there has been at least one valid placement, start approaching in half-size steps
-                AutoPosDeltaAdjust(Silk, -MoveDist, Silk.Component.NameAutoPosition);
-                if iDebugLevel >= 2 then Silk.GraphicallyInvalidate;
+                AutoPosDeltaAdjust(NameOrComment, -MoveDist, NameOrCommentAP);
+                if iDebugLevel >= 2 then NameOrComment.GraphicallyInvalidate;
                 if iDebugLevel >= 2 then Application.ProcessMessages;
                 TotalDist := TotalDist - MoveDist;
                 MoveDist := MoveDist div 2;
@@ -203,7 +207,7 @@ begin
     if not bFirstPass then
     begin
         // undo all the moving
-        AutoPosDeltaAdjust(Silk, -TotalDist, Silk.Component.NameAutoPosition);
+        AutoPosDeltaAdjust(NameOrComment, -TotalDist, NameOrCommentAP);
         DebugMessage(2, 'Failed to find passing placement within ' + CoordToStr(TotalDist) + '. Move attempt cancelled.');
         TotalDist := 0;
     end;
@@ -213,7 +217,7 @@ end;
 
 
 
-procedure AutoPosDeltaAdjust(Silk : IPCB_Text; MoveDistance : TCoord; autoPos : TTextAutoposition);
+procedure AutoPosDeltaAdjust(var NameOrComment : IPCB_Text; MoveDistance : TCoord; autoPos : TTextAutoposition);
 var
     dx, dy, d: Integer;
     flipx: Integer;
@@ -224,11 +228,11 @@ begin
     dx := 0;
     dy := 0;
     flipx := 1; // x Direction flips on the bottom layer
-    if Silk.Layer = eBottomOverlay then
+    if NameOrComment.Layer = eBottomOverlay then
         flipx := -1;
 
     // Top|Bottom Left|Right autopos behaves differently for strings that are height>width
-    rect := Silk.BoundingRectangle;
+    rect := NameOrComment.BoundingRectangle;
     taller := (rect.Top - rect.Bottom) > (rect.Right - rect.Left);
 
     Case autoPos of
@@ -263,13 +267,13 @@ begin
             dx := -d * flipx;
         end;
     end;
-    Silk.BeginModify;
-    Silk.MoveByXY(dx, dy);
-    Silk.EndModify;
+    NameOrComment.BeginModify;
+    NameOrComment.MoveByXY(dx, dy);
+    NameOrComment.EndModify;
 end;
 
-{ function to transform text justification based on designator autoposition and rotation }
-function AutopositionJustify(var Designator : IPCB_Text; const tc_AutoPos : TTextAutoposition): TTextAutoposition;
+{ function to transform text justification based on IPCB_Text autoposition and rotation }
+function AutopositionJustify(var NameOrComment : IPCB_Text; const tc_AutoPos : TTextAutoposition): TTextAutoposition;
 var
     rotation : Integer;
     mirror   : Boolean;
@@ -278,22 +282,22 @@ var
     APSet    : TSet;
 
 begin
-    // AD19+ supports text justification for designators with AdvanceSnapping property
+    // AD19+ supports text justification for single-line IPCB_Text with AdvanceSnapping property
     if not IsAtLeastAD19 then
     begin
         Result := tc_AutoPos;
         Exit;
     end;
 
-    Designator.AdvanceSnapping := True;
+    NameOrComment.AdvanceSnapping := True;
 
-    rotation := Round(((Designator.Rotation mod 360 + 360) mod 360) / 90) * 90; // coerce any possible value of rotation to a multiple of 90
+    rotation := Round(((NameOrComment.Rotation mod 360 + 360) mod 360) / 90) * 90; // coerce any possible value of rotation to a multiple of 90
     mirror := false; // x Direction flips on the bottom layer
-    if Designator.Layer = eBottomOverlay then
+    if NameOrComment.Layer = eBottomOverlay then
         mirror := true;
 
     // Top|Bottom Left|Right autopos behaves differently for strings that are height>width
-    rect := Designator.BoundingRectangle;
+    rect := NameOrComment.BoundingRectangle;
     taller := (rect.Top - rect.Bottom) > (rect.Right - rect.Left);
 
     APSet := MkSet(eAutoPos_TopLeft, eAutoPos_BottomLeft, eAutoPos_TopRight, eAutoPos_BottomRight);
@@ -362,7 +366,7 @@ begin
     end; { case rotation }
 
     // Set text justification according to Autoposition setting
-    Designator.TTFInvertedTextJustify := Result;
+    NameOrComment.TTFInvertedTextJustify := Result;
 
 end; { AutopositionJustify }
 
@@ -736,12 +740,14 @@ var
     x, y                : TCoord;
     ModList             : TStringList;
     Comp                : IPCB_Component;
+    NameOrComment       : IPCB_Text;
+    bDesignator         : Boolean;
     bLocationFlag       : Boolean;
     bPersistentMode     : Boolean;
     sPrompt             : String;
     tc_Autopos          : TTextAutoposition;
     ParentOnly          : Boolean;
-    MoveDist          : TCoord;
+    MoveDist            : TCoord;
 begin
     iDebugLevel := DEBUGLEVEL;
     // set AD build flag
@@ -774,26 +780,28 @@ begin
             if InSet(cShiftKey, KeySet) then ModList.Add('SHIFT');
             if InSet(cCtrlKey, KeySet) then ModList.Add('CTRL');
 
+            if bDesignator then NameOrComment := Comp.Name else NameOrComment := Comp.Comment;
+
             DebugMessage(1, Format('Picked %s @ [%s, %s]; location [%s, %s]%sModifiers: %s', [ Comp.Name.Text, CoordToX(Comp.x), CoordToY(Comp.y), CoordToX(x), CoordToY(y), sLineBreak, ModList.DelimitedText ]));
 
             // get autoposition relative to component origin
             tc_Autopos := GetRelativeAutoposition(Comp, x, y);
 
             // Set autoposition based on modifiers
-            SetAutopositionLocation(Comp, tc_Autopos, KeySet);
+            SetAutopositionLocation(Comp, tc_Autopos, KeySet, bDesignator);
 
             //GetMinDesignatorClearance(Comp);
 
-            if InSet(cCtrlKey, KeySet) then ParentOnly := True else ParentOnly := False;
-            DebugMessage(3, 'Begin: IsValidPlacement=' + BoolToStr(IsValidPlacement(Comp.Name, ParentOnly), True));
+            if InSet(cCtrlKey, KeySet) then ParentOnly := False else ParentOnly := True; // hold CTRL to also avoid things that are outside parent component
+            DebugMessage(3, 'Begin: IsValidPlacement=' + BoolToStr(IsValidPlacement(NameOrComment, ParentOnly), True));
 
-            MoveDist := AutoMove(Comp.Name, ParentOnly, 400000, 10000);
-            Comp.Name.GraphicallyInvalidate;
+            MoveDist := AutoMove(NameOrComment, ParentOnly, 400000, 10000);
+            NameOrComment.GraphicallyInvalidate;
 
             if MoveDist > 0 then
             begin
                 Comp.BeginModify;
-                Comp.ChangeNameAutoPosition(eAutoPos_Manual);
+                if bDesignator then Comp.ChangeNameAutoPosition(eAutoPos_Manual) else Comp.ChangeCommentAutoPosition(eAutoPos_Manual);
                 Comp.EndModify;
                 Comp.GraphicallyInvalidate;
                 DebugMessage(1, 'AutoMove moved by ' + CoordToStr(MoveDist));
@@ -803,7 +811,7 @@ begin
                 ShowInfo('No valid placement found' + sLineBreak + 'Ignored other components = ' + BoolToStr(ParentOnly, True));
             end;
 
-            DebugMessage(3, 'End: IsValidPlacement=' + BoolToStr(IsValidPlacement(Comp.Name, ParentOnly), True));
+            DebugMessage(3, 'End: IsValidPlacement=' + BoolToStr(IsValidPlacement(NameOrComment, ParentOnly), True));
 
             if not bPersistentMode then Comp := Nil;  // don't clear Source if in persistent mode (i.e. wait for user to escape)
 
@@ -816,16 +824,18 @@ begin
         // Get PCB location
         if Assigned(Comp) then
         begin
-            KeySet := MkSet();
+            if InSet(cCtrlKey, KeySet) then bDesignator := False else bDesignator := True; // hold CTRL to autoposition Comment instead
 
-            sPrompt := 'Choose location around ' + Comp.Name.Text + ' (Hold CTRL to ignore other components, Hold ALT for orthogonal placement)';
+            if bDesignator then sPrompt := 'Choose location for Designator around ' else sPrompt := 'Choose location for Comment around ';
+            sPrompt := sPrompt + Comp.Name.Text + ' (Hold CTRL to avoid things outside parent component, Hold ALT for orthogonal placement)';
 
             if Board.ChooseLocation(x, y, sPrompt) then  // false = ESC Key is pressed or right-clicked to cancel
             begin
+                KeySet := MkSet(); // clear modifier keyset
                 // read modifier keys just as/after the "pick" mouse click
                 if AltKeyDown   then KeySet := MkSet(cAltKey);  // Plan: hold ALT to rotate orthogonally
                 //if ShiftKeyDown then KeySet := SetUnion(KeySet, MkSet(cShiftKey));
-                if ControlKeyDown then KeySet := SetUnion(KeySet, MkSet(cCtrlKey));
+                if ControlKeyDown then KeySet := SetUnion(KeySet, MkSet(cCtrlKey)); // Plan: hold CTRL to stop ignoring outside objects
 
                 bLocationFlag := True;
 
@@ -837,7 +847,8 @@ begin
         begin
             bLocationFlag := False;
             repeat
-               Comp := GetComponentAtCursor('Choose Source Component');
+               Comp := GetComponentAtCursor('Choose Source Component (Hold CTRL to position Comment instead of Designator)');
+               if ControlKeyDown then KeySet := MkSet(cCtrlKey); // CTRL key held down during component pick
             until Assigned(Comp) or (Comp = cEsc);
 
         end;
@@ -992,7 +1003,7 @@ begin
         RectT := Rect.Top + Filter_Size;
         RectB := Rect.Bottom - Filter_Size;
 
-        if iDebugLevel >= 2 then DebugString := Format('Left: %s, Right: %s, Top: %s, Bot: %s', [CoordToX(RectL), CoordToX(RectR), CoordToY(RectT), CoordToY(RectB)]);
+        if iDebugLevel >= 2 then DebugString := Format('Left: %s, Right: %s, Top: %s, Bot: %s', [CoordToX(RectL), CoordToX(RectR), CoordToY(RectT), CoordToY(RectB)]) else DebugString := '';
         DebugMessage(3, StrFromObjectId(ObjID) + ' Spatial Iterator Area' + sLineBreak + DebugString);
 
         Iterator := Board.SpatialIterator_Create;
@@ -1292,14 +1303,14 @@ begin
 end;
 
 
-procedure SetAutopositionLocation(var Comp : IPCB_Component; const tc_Autopos : TTextAutoposition; const KeySet : TObjectSet);
+procedure SetAutopositionLocation(var Comp : IPCB_Component; const tc_Autopos : TTextAutoposition; const KeySet : TObjectSet; bDesignator : Boolean = True);
 var
-    Designator          : IPCB_Text;
+    NameOrComment       : IPCB_Text;
     Ortho               : Boolean;
     TargetRotation      : Double;
     AfterRotation       : Double;
 begin
-    Designator := Comp.Name;
+    if bDesignator then NameOrComment := Comp.Name else NameOrComment := Comp.Comment;
 
     //TargetRotation := Comp.Rotation;
 
@@ -1309,20 +1320,29 @@ begin
     // if ALT key was used, set Ortho flag to rotate 90 deg CCW
     if InSet(cAltKey, KeySet) then Ortho := True else Ortho := False;
 
-    Designator.BeginModify;
+    NameOrComment.BeginModify;
 
-    // rotate Designator to TargetRotation (just use 0, it's easier to predict since we only use 90° placement)
-    AfterRotation := RotateTextToAngle(Designator, 0, True, Ortho);
+    // rotate NameOrComment to TargetRotation (just use 0, it's easier to predict since we only use 90° placement)
+    AfterRotation := RotateTextToAngle(NameOrComment, 0, True, Ortho);
 
     // Set text justification according to Autoposition setting
-    AutopositionJustify(Designator, tc_Autopos);
+    AutopositionJustify(NameOrComment, tc_Autopos);
 
-    Designator.EndModify;
-    Designator.GraphicallyInvalidate;
+    NameOrComment.EndModify;
+    NameOrComment.GraphicallyInvalidate;
 
     Comp.BeginModify;
 
-    Comp.ChangeNameAutoposition(tc_Autopos);
+    if bDesignator then
+    begin
+        if not Comp.NameOn then Comp.NameOn := True;
+        Comp.ChangeNameAutoposition(tc_Autopos);
+    end
+    else
+    begin
+        if not Comp.CommentOn then Comp.CommentOn := True;
+        Comp.ChangeCommentAutoposition(tc_Autopos);
+    end;
 
     Comp.EndModify;
     Comp.GraphicallyInvalidate;
