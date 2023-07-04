@@ -42,6 +42,8 @@ function DebugGeometricPolygonInfo(poly : IPCB_GeometricPolygon) : TStringList; 
 function DebugLevelStr(dummy : String = '') : String; forward;
 procedure DebugMessage(const ShowLevel : Integer; const msg : WideString; const Caption : String = 'Confirm or Cancel Debug'); forward;
 function GetComponentAtCursor(const sPrompt : TString) : IPCB_Primitive; forward;
+function GetComponentBodyLargest(Comp : IPCB_Component) : IPCB_ComponentBody; forward;
+function GetComponentBodyLayerSet(Comp : IPCB_Component) : TV6_LayerSet; forward;
 function GetObjPoly(Obj: IPCB_ObjectClass, Expansion: TCoord = 0): IPCB_GeometricPolygon; forward;
 function GetLayerSet(SlkLayer: Integer; ObjID: Integer): TV6_LayerSet; forward;
 function GetMinDesignatorClearance(var Comp : IPCB_Component) : TCoord; forward;
@@ -553,6 +555,53 @@ begin
 end;
 
 
+function GetComponentBodyLargest(Comp : IPCB_Component) : IPCB_ComponentBody;
+var
+    GIter : IPCB_GroupIterator;
+    Prim : IPCB_Primitive;
+    Area : Int64;
+begin
+    Area := 0;
+    Result := nil;
+    // Create group iterator
+    GIter := Comp.GroupIterator_Create;
+    GIter.AddFilter_ObjectSet(MkSet(eComponentBodyObject));
+
+    // Try to cast the first element to a primitive
+    Prim := GIter.FirstPCBObject;
+
+    while (Prim <> nil) do
+    begin
+        // only return layer of body with largest area, which means we have to check them all
+        if Prim.Area > Area then
+        begin
+            Area := Prim.Area;
+            Result := Prim;
+        end;
+
+        // Move to the next Primitive in the group
+        Prim := GIter.NextPCBObject;
+    end;
+
+    DebugMessage(3, StrFromObjectId(Result.ObjectId) + ' with largest area detected on layer ' + Layer2String(Result.Layer) + sLineBreak + Result.Identifier);
+
+    // Clean up the Iterator
+    Comp.GroupIterator_Destroy(GIter);
+end;
+
+
+function GetComponentBodyLayerSet(Comp : IPCB_Component) : TV6_LayerSet;
+var
+    Prim : IPCB_Primitive;
+begin
+    Result := MkSet(Comp.Layer);
+
+    Prim := GetComponentBodyLargest(Comp);
+
+    if Prim <> nil then Result := MkSet(Prim.Layer);
+end;
+
+
 // Get GeometricPolygon using PCBServer.PCBContourMaker
 function GetObjPoly(Obj: IPCB_ObjectClass, Expansion: TCoord = 0): IPCB_GeometricPolygon;
 var
@@ -568,9 +617,8 @@ begin
     else if Obj.ObjectId = eComponentObject then
     begin
         //Rect := Obj.BoundingRectangleNoNameCommentForSignals;
-        // TODO: figure out how to create a contour for a component (currently components are de facto ignored)
-        Poly := PCBServer.PCBGeometricPolygonFactory; // create empty poly
-        Poly.AddEmptyContour;
+        //Poly := GetComponentBodyLargest(Obj).GeometricPolygon; // doesn't have expansion argument
+        Poly := PCBServer.PCBContourMaker.MakeContour(GetComponentBodyLargest(Obj), Expansion, Obj.Layer);
     end
     else if Obj.ObjectId = eArcObject then
     begin
@@ -632,10 +680,6 @@ begin
     begin
         result := MkSet(TopBot, eMultiLayer);
     end
-    else if (ObjID = eComponentBodyObject) then
-    begin
-        result := MkSet(CmpOutlineLayerID);
-    end;
 end;
 
 
@@ -857,6 +901,7 @@ end;
 // Checks if text object overlaps other object
 function IsOverlapping(Text: IPCB_ObjectClass; Obj2: IPCB_ObjectClass) : Boolean;
 const
+    BODYEXPANSION       = 8; // [mils] Expansion for component bodies
     TEXTEXPANSION       = 5; // [mils] Expansion for other text objects
     PADEXPANSION        = 8; // [mils] Expansion for pads
     CUTOUTEXPANSION     = 0; // [mils] Expansion for cutout regions
@@ -888,9 +933,10 @@ begin
 
     Expansion := MilsToCoord(DEFAULTEXPANSION);
     case Obj2.ObjectId of
-        eTextObject:    Expansion := MilsToCoord(TEXTEXPANSION);
-        ePadObject:     Expansion := MilsToCoord(PADEXPANSION);
-        eRegionObject:  if Obj2.Kind = eRegionKind_Cutout then Expansion := MilsToCoord(CUTOUTEXPANSION);
+        eComponentObject:   Expansion := MilsToCoord(BODYEXPANSION);
+        eTextObject:        Expansion := MilsToCoord(TEXTEXPANSION);
+        ePadObject:         Expansion := MilsToCoord(PADEXPANSION);
+        eRegionObject:      if Obj2.Kind = eRegionKind_Cutout then Expansion := MilsToCoord(CUTOUTEXPANSION);
     end;
 
     // Get geometric polygons for both objects
@@ -987,6 +1033,8 @@ begin
     // Spatial Iterators only work with Primitive Objects and not group objects like eComponentObject and dimensions
     if (ObjID = eComponentObject) then
     begin
+        DebugMessage(4, StrFromObjectId(ObjID) + ' Board Iterator created');
+
         Iterator := Board.BoardIterator_Create;
         Iterator.AddFilter_ObjectSet(MkSet(ObjID));
         Iterator.AddFilter_LayerSet(GetLayerSet(Text.Layer, ObjID));
@@ -1001,12 +1049,14 @@ begin
         RectT := Rect.Top + Filter_Size;
         RectB := Rect.Bottom - Filter_Size;
 
-        if iDebugLevel >= 2 then DebugString := Format('Left: %s, Right: %s, Top: %s, Bot: %s', [CoordToX(RectL), CoordToX(RectR), CoordToY(RectT), CoordToY(RectB)]) else DebugString := '';
-        DebugMessage(3, StrFromObjectId(ObjID) + ' Spatial Iterator Area' + sLineBreak + DebugString);
+        if iDebugLevel >= 4 then DebugString := Format('Left: %s, Right: %s, Top: %s, Bot: %s', [CoordToX(RectL), CoordToX(RectR), CoordToY(RectT), CoordToY(RectB)]) else DebugString := '';
+        DebugMessage(4, StrFromObjectId(ObjID) + ' Spatial Iterator Area' + sLineBreak + DebugString);
 
         Iterator := Board.SpatialIterator_Create;
         Iterator.AddFilter_ObjectSet(MkSet(ObjID));
-        Iterator.AddFilter_LayerSet(GetLayerSet(Text.Layer, ObjID));
+        if ObjID = eComponentBodyObject then Iterator.AddFilter_LayerSet(GetComponentBodyLayerSet(Text.Component))
+        else Iterator.AddFilter_LayerSet(GetLayerSet(Text.Layer, ObjID));
+
         Iterator.AddFilter_Area(RectL, RectB, RectR, RectT);
         RegIter := False;
     end;
@@ -1035,19 +1085,6 @@ begin
             Continue;
         end;
 
-        // Convert ComponentBody objects to Component objects
-        if Obj.ObjectId = eComponentBodyObject then
-        begin
-            Obj := Obj.Component;
-
-            // skip non-components or components on other side
-            if (Obj = nil) or (Obj.Name.Layer <> Text.Layer) then
-            begin
-                Obj := Iterator.NextPCBObject;
-                Continue;
-            end;
-        end;
-
         // skip objects that don't belong to the parent component
         if ParentOnly and (Obj.ObjectId <> eComponentObject) then
         begin
@@ -1059,6 +1096,20 @@ begin
             else
             begin
                 Sleep(0);
+            end;
+        end;
+
+        // Convert ComponentBody objects to Component objects
+        if Obj.ObjectId = eComponentBodyObject then
+        begin
+            Obj := Obj.Component;
+            //GetComponentBodyLargest(Obj); // for dev debugging
+
+            // skip non-components or components on other side
+            if (Obj = nil) or (Obj.Name.Layer <> Text.Layer) then
+            begin
+                Obj := Iterator.NextPCBObject;
+                Continue;
             end;
         end;
 
@@ -1696,13 +1747,13 @@ begin
 end; { TTweakDesForm.TweakDesFormShow }
 
 
-procedure TTweakDesForm.LabelVersionClick(Sender: TObject);
+procedure TTweakDesForm.LabelVersionClick(Sender : TObject);
 begin
     About;
 end;
 
 
-function ConfigFile_GetPath(Dummy : String = ''): String;
+function ConfigFile_GetPath(dummy : String = ''): String;
 begin
     result := ClientAPI_SpecialFolder_AltiumApplicationData + '\' + cConfigFileName;
 end;
