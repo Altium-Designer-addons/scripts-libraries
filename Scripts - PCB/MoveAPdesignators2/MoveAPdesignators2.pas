@@ -81,9 +81,15 @@ procedure About;
 var
     MsgText : string;
 begin
-    MsgText := '"' + cScriptTitle + '" script version ' + cScriptVersion + sLineBreak + sLineBreak +
+    MsgText := '"' + cScriptTitle + '" script version ' + cScriptVersion + sLineBreak +
+        sLineBreak +
+        'Use "TweakDesignators" to adjust all or selected autopositioned designators' + sLineBreak +
+        sLineBreak +
+        'Use "InteractivelyAutoposition" to interactively place Designator or Comment for individual components.' + sLineBreak +
+        sLineBreak +
         'Updated versions may be found here:' + sLineBreak +
-        'https://github.com/Altium-Designer-addons/scripts-libraries' + sLineBreak + sLineBreak +
+        'https://github.com/Altium-Designer-addons/scripts-libraries' + sLineBreak +
+        sLineBreak +
         'Settings save location:' + sLineBreak +
         ConfigFile_GetPath;
 
@@ -413,22 +419,6 @@ begin
         Prim1 := Board.SelectecObject[i];
         if (Prim1.ObjectId = eComponentObject) then ComponentCount := ComponentCount + 1;
         if ((Prim1.ObjectId = eTextObject) and (Prim1.IsDesignator)) then DesignatorCount := DesignatorCount + 1;
-    end;
-
-    if ((ComponentCount < 1) and (DesignatorCount < 1)) then
-    begin
-        if DebuggingEnabled then
-        begin
-            ShowError('Select at least 1 component or designator.' + sLineBreak + sLineBreak +
-                        '-- Debugging Info --' + sLineBreak +
-                        'ComponentCount: ' + IntToStr(ComponentCount) + sLineBreak +
-                        'DesignatorCount: ' + IntToStr(DesignatorCount) + sLineBreak +
-                        'Selected Object Count: ' + IntToStr(Board.SelectecObjectCount));
-        end
-        else ShowError('Select at least 1 component or designator special string.');
-
-        status := 1;
-        exit;
     end;
 
     if ((ComponentCount + DesignatorCount) <> Board.SelectecObjectCount) then
@@ -1462,6 +1452,7 @@ var
     AutoMoveResult          : Integer;
     RotatedAutoPos          : Boolean;
     status, i               : Integer;
+    bEnableSelected         : Boolean;
 
 begin
     iDebugLevel := cDEBUGLEVEL;
@@ -1471,11 +1462,7 @@ begin
     // set AD build flag
     if (GetBuildNumberPart(Client.GetProductVersion, 0) >= 19) then IsAtLeastAD19 := True else IsAtLeastAD19 := False;
 
-    if not SelectCompAndDesignators then
-    begin
-        ShowError('No components selected');
-        Exit;
-    end;
+    if SelectCompAndDesignators then bEnableSelected := True else bEnableSelected := False;
 
     // Disables Online DRC during designator movement to improve speed
     PCBSystemOptions := PCBServer.SystemOptions;
@@ -1486,6 +1473,7 @@ begin
     PCBSystemOptions.DoOnlineDRC := False;
     try
         bAbortScript := False;
+        if not bEnableSelected then SelectedCheckBox.Enabled := False;
         TweakDesForm.ShowModal; // Show the settings dialogue (and resume script here after closed)
         if bAbortScript then Exit;
 
