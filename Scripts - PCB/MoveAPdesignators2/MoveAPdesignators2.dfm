@@ -5,7 +5,7 @@ object TweakDesForm: TTweakDesForm
   BorderStyle = bsSingle
   Caption = 'Move Auto-Positioned Designators'
   ClientHeight = 283
-  ClientWidth = 325
+  ClientWidth = 346
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -17,264 +17,369 @@ object TweakDesForm: TTweakDesForm
   PixelsPerInch = 96
   TextHeight = 13
   object LabelVersion: TLabel
-    Left = 21
-    Top = 167
-    Width = 54
-    Height = 13
+    Left = 8
+    Top = 2
+    Width = 101
+    Height = 16
+    AutoSize = False
     Caption = 'version X.X'
+    OnClick = LabelVersionClick
+  end
+  object Bevel1: TBevel
+    Left = 104
+    Top = 144
+    Width = 88
+    Height = 80
+  end
+  object Bevel2: TBevel
+    Left = 8
+    Top = 144
+    Width = 88
+    Height = 80
+  end
+  object Label1: TLabel
+    Left = 29
+    Top = 31
+    Width = 32
+    Height = 13
+    Caption = 'Units:'
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -11
+    Font.Name = 'Tahoma'
+    Font.Style = [fsBold]
+    ParentFont = False
+  end
+  object Label2: TLabel
+    Left = 104
+    Top = 132
+    Width = 88
+    Height = 13
+    Alignment = taCenter
+    AutoSize = False
+    Caption = 'MAX OFFSET'
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -11
+    Font.Name = 'Tahoma'
+    Font.Style = [fsBold]
+    ParentFont = False
+  end
+  object Label3: TLabel
+    Left = 8
+    Top = 132
+    Width = 88
+    Height = 13
+    Alignment = taCenter
+    AutoSize = False
+    Caption = 'FIXED OFFSET'
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -11
+    Font.Name = 'Tahoma'
+    Font.Style = [fsBold]
+    ParentFont = False
+  end
+  object Label4: TLabel
+    Left = 200
+    Top = 4
+    Width = 136
+    Height = 13
+    Alignment = taCenter
+    AutoSize = False
+    Caption = 'FIXED PRESETS'
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -11
+    Font.Name = 'Tahoma'
+    Font.Style = [fsBold]
+    ParentFont = False
   end
   object SelectedCheckBox: TCheckBox
-    Left = 35
-    Top = 66
+    Left = 19
+    Top = 58
     Width = 117
     Height = 17
     Caption = '&Selected Parts Only'
     Checked = True
     State = cbChecked
-    TabOrder = 0
+    TabOrder = 11
   end
   object ButtonOK: TButton
-    Left = 14
-    Top = 120
-    Width = 75
+    Left = 16
+    Top = 184
+    Width = 72
     Height = 32
     Caption = 'OK'
-    Default = True
-    TabOrder = 1
+    TabOrder = 14
     OnClick = ButtonOKClick
   end
   object EditDistance: TEdit
-    Left = 24
-    Top = 30
-    Width = 64
+    Left = 16
+    Top = 152
+    Width = 72
     Height = 21
     Hint = 'Negative values move away'
     Alignment = taCenter
     ParentShowHint = False
     ShowHint = True
-    TabOrder = 2
+    TabOrder = 0
     Text = '0.5'
     OnChange = EditDistanceChange
+    OnKeyPress = UserKeyPress
   end
   object MMmilButton: TButton
-    Left = 102
-    Top = 30
+    Left = 70
+    Top = 28
     Width = 42
     Height = 20
     Caption = 'mm'
-    TabOrder = 3
+    TabOrder = 10
     OnClick = MMmilButtonClick
   end
   object UnHideDesignatorsCheckBox: TCheckBox
-    Left = 35
-    Top = 90
+    Left = 19
+    Top = 82
     Width = 117
     Height = 17
     Caption = 'UnHide &Designators'
     Checked = True
     State = cbChecked
-    TabOrder = 4
+    TabOrder = 12
   end
   object ButtonCancel: TButton
-    Left = 96
-    Top = 120
-    Width = 75
+    Left = 8
+    Top = 240
+    Width = 184
     Height = 32
     Cancel = True
     Caption = 'Cancel'
-    TabOrder = 5
+    TabOrder = 16
     OnClick = ButtonCancelClick
   end
   object ButtonPreset1: TButton
-    Left = 248
-    Top = 17
+    Left = 272
+    Top = 22
     Width = 64
     Height = 25
     Caption = 'Preset &1'
-    TabOrder = 6
+    TabOrder = 17
     TabStop = False
     OnClick = PresetButtonClicked
   end
   object tPreset1: TEdit
-    Left = 176
-    Top = 19
+    Left = 200
+    Top = 24
     Width = 64
     Height = 21
     Align = alCustom
     Alignment = taCenter
     OEMConvert = True
-    TabOrder = 7
+    TabOrder = 2
     Text = '4'
     TextHint = 'Enter value for fixed radius'
     OnChange = ValidateOnChange
     OnKeyPress = UserKeyPress
   end
   object ButtonPreset2: TButton
-    Left = 248
-    Top = 49
+    Left = 272
+    Top = 54
     Width = 64
     Height = 25
     Caption = 'Preset &2'
-    TabOrder = 8
+    TabOrder = 18
     TabStop = False
     OnClick = PresetButtonClicked
   end
   object tPreset2: TEdit
-    Left = 176
-    Top = 51
+    Left = 200
+    Top = 56
     Width = 64
     Height = 21
     Align = alCustom
     Alignment = taCenter
     OEMConvert = True
-    TabOrder = 9
+    TabOrder = 3
     Text = '5'
     TextHint = 'Enter value for fixed radius'
     OnChange = ValidateOnChange
     OnKeyPress = UserKeyPress
   end
   object ButtonPreset3: TButton
-    Left = 248
-    Top = 81
+    Left = 272
+    Top = 86
     Width = 64
     Height = 25
     Caption = 'Preset &3'
-    TabOrder = 10
+    TabOrder = 19
     TabStop = False
     OnClick = PresetButtonClicked
   end
   object tPreset3: TEdit
-    Left = 176
-    Top = 83
+    Left = 200
+    Top = 88
     Width = 64
     Height = 21
     Align = alCustom
     Alignment = taCenter
     OEMConvert = True
-    TabOrder = 11
+    TabOrder = 4
     Text = '6'
     TextHint = 'Enter value for fixed radius'
     OnChange = ValidateOnChange
     OnKeyPress = UserKeyPress
   end
   object ButtonPreset4: TButton
-    Left = 248
-    Top = 113
+    Left = 272
+    Top = 118
     Width = 64
     Height = 25
     Caption = 'Preset &4'
-    TabOrder = 12
+    TabOrder = 20
     TabStop = False
     OnClick = PresetButtonClicked
   end
   object tPreset4: TEdit
-    Left = 176
-    Top = 115
+    Left = 200
+    Top = 120
     Width = 64
     Height = 21
     Align = alCustom
     Alignment = taCenter
     OEMConvert = True
-    TabOrder = 13
+    TabOrder = 5
     Text = '8'
     TextHint = 'Enter value for fixed radius'
     OnChange = ValidateOnChange
     OnKeyPress = UserKeyPress
   end
   object ButtonPreset5: TButton
-    Left = 248
-    Top = 145
+    Left = 272
+    Top = 150
     Width = 64
     Height = 25
     Caption = 'Preset &5'
-    TabOrder = 14
+    TabOrder = 21
     TabStop = False
     OnClick = PresetButtonClicked
   end
   object tPreset5: TEdit
-    Left = 176
-    Top = 147
+    Left = 200
+    Top = 152
     Width = 64
     Height = 21
     Align = alCustom
     Alignment = taCenter
     OEMConvert = True
-    TabOrder = 15
+    TabOrder = 6
     Text = '10'
     TextHint = 'Enter value for fixed radius'
     OnChange = ValidateOnChange
     OnKeyPress = UserKeyPress
   end
   object ButtonPreset6: TButton
-    Left = 248
-    Top = 177
+    Left = 272
+    Top = 182
     Width = 64
     Height = 25
     Caption = 'Preset &6'
-    TabOrder = 16
+    TabOrder = 22
     TabStop = False
     OnClick = PresetButtonClicked
   end
   object tPreset6: TEdit
-    Left = 176
-    Top = 179
+    Left = 200
+    Top = 184
     Width = 64
     Height = 21
     Align = alCustom
     Alignment = taCenter
     OEMConvert = True
-    TabOrder = 17
+    TabOrder = 7
     Text = '16'
     TextHint = 'Enter value for fixed radius'
     OnChange = ValidateOnChange
     OnKeyPress = UserKeyPress
   end
   object ButtonPreset7: TButton
-    Left = 248
-    Top = 209
+    Left = 272
+    Top = 214
     Width = 64
     Height = 25
     Caption = 'Preset &7'
-    TabOrder = 18
+    TabOrder = 23
     TabStop = False
     OnClick = PresetButtonClicked
   end
   object tPreset7: TEdit
-    Left = 176
-    Top = 211
+    Left = 200
+    Top = 216
     Width = 64
     Height = 21
     Align = alCustom
     Alignment = taCenter
     OEMConvert = True
-    TabOrder = 19
+    TabOrder = 8
     Text = '20'
     TextHint = 'Enter value for fixed radius'
     OnChange = ValidateOnChange
     OnKeyPress = UserKeyPress
   end
   object ButtonPreset8: TButton
-    Left = 248
-    Top = 241
+    Left = 272
+    Top = 246
     Width = 64
     Height = 25
     Caption = 'Preset &8'
-    TabOrder = 20
+    TabOrder = 24
     TabStop = False
     OnClick = PresetButtonClicked
   end
   object tPreset8: TEdit
-    Left = 176
-    Top = 243
+    Left = 200
+    Top = 248
     Width = 64
     Height = 21
     Align = alCustom
     Alignment = taCenter
     OEMConvert = True
-    TabOrder = 21
+    TabOrder = 9
     Text = '30'
     TextHint = 'Enter value for fixed radius'
     OnChange = ValidateOnChange
     OnKeyPress = UserKeyPress
+  end
+  object ButtonAuto: TButton
+    Left = 112
+    Top = 184
+    Width = 72
+    Height = 32
+    Caption = 'AUTO'
+    TabOrder = 15
+    OnClick = ButtonAutoClick
+  end
+  object EditMaxDistance: TEdit
+    Left = 112
+    Top = 152
+    Width = 72
+    Height = 21
+    Hint = 'Negative values move away'
+    Alignment = taCenter
+    ParentShowHint = False
+    ShowHint = True
+    TabOrder = 1
+    Text = '3'
+    OnChange = EditMaxDistanceChange
+    OnKeyPress = UserKeyPress
+  end
+  object LazyAutoMoveCheckBox: TCheckBox
+    Left = 19
+    Top = 106
+    Width = 165
+    Height = 17
+    Caption = 'La&zy Offset (AUTO only)'
+    ParentShowHint = False
+    ShowHint = True
+    TabOrder = 13
   end
 end
