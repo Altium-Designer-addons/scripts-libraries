@@ -7,7 +7,10 @@ var
     IsAtLeastAD19                   : Boolean;
     iDebugLevel                     : Integer;
     KeySet                          : TObjectSet;    // keyboard key modifiers <alt> <shift> <cntl>
-    UnHideDesignators, AbortScript  : Boolean;
+    bAbortScript                    : Boolean;
+    bAutoMode                       : Boolean;
+    bLazyAutoMove                   : Boolean;
+    bUnHideDesignators              : Boolean;
     PresetFilePath                  : String;
     PresetList                      : TStringList;
 
@@ -17,27 +20,26 @@ const
     cAltKey             = 1; // don't use when selecting component. Okay when clicking location.
     cShiftKey           = 2; // don't use it for selecting component or location. Makes funny selection stuff happen
     cCtrlKey            = 3; // available for use during component and location selection
-    DEBUGLEVEL          = 0;
+    cDEBUGLEVEL         = 0;
     cPersistentMode     = False;
-    UsePresets          = True;
-    NumPresets          = 12; // not just for presets, also used to save previous state
-    PresetFileName      = 'MoveAPdesignators2Settings.txt' // default file name is MyMoveDesignatorsPresets.txt
-    ScriptTitle         = 'MoveAPdesignators2';
-    ScriptVersion       = '2.06';
+    cUseConfigFile      = True;
+    cNumPresets         = 12; // not just for presets, also used to save previous state
+    cConfigFileName     = 'MoveAPdesignators2Settings.ini'
+    cScriptTitle        = 'MoveAPdesignators2';
+    cScriptVersion      = '2.06';
 
 
 procedure About; forward;
-function AutoMove(var NameOrComment : IPCB_Text; ParentOnly : Boolean = True; StartDist : TCoord = 400000; MinDist : TCoord = 25000) : TCoord; forward;
+function AutoMove(var NameOrComment : IPCB_Text; SearchDist : TCoord = 1200000; ParentOnly : Boolean = True; StartDist : TCoord = 400000; MinDist : TCoord = 25000) : TCoord; forward;
 procedure AutoPosDeltaAdjust(var NameOrComment : IPCB_Text; MoveDistance : TCoord; autoPos : TTextAutoposition); forward;
 function AutopositionJustify(var NameOrComment : IPCB_Text; const tc_AutoPos : TTextAutoposition): TTextAutoposition; forward;
 procedure BothInitialCheck(var status : Integer); forward;
-procedure BuildPresetList(var TempPresetList : TStringList); forward;
 function CoordToStr(Coords : TCoord) : String; forward;
 function CoordToX(Coords : TCoord) : String; forward;
 function CoordToY(Coords : TCoord) : String; forward;
 function DebugContourInfo(contour : IPCB_Contour) : TStringList; forward;
 function DebugGeometricPolygonInfo(poly : IPCB_GeometricPolygon) : TStringList; forward;
-function DebugLevelStr : String; forward;
+function DebugLevelStr(dummy : String = '') : String; forward;
 procedure DebugMessage(const ShowLevel : Integer; const msg : WideString; const Caption : String = 'Confirm or Cancel Debug'); forward;
 function GetComponentAtCursor(const sPrompt : TString) : IPCB_Primitive; forward;
 function GetObjPoly(Obj: IPCB_ObjectClass, Expansion: TCoord = 0): IPCB_GeometricPolygon; forward;
@@ -60,47 +62,52 @@ function StrFromObjectId(ObjectId: TObjectId): String; forward;
 procedure TweakDesignators; forward;
 procedure UserKeyPress(Sender : TObject; var Key : Char); forward;
 procedure ValidateOnChange(Sender : TObject); forward;
+procedure TTweakDesForm.ButtonAutoClick(Sender : TObject); forward;
 procedure TTweakDesForm.ButtonOKClick(Sender : TObject); forward;
 procedure TTweakDesForm.MMmilButtonClick(Sender : TObject); forward;
 procedure TTweakDesForm.EditDistanceChange(Sender : TObject); forward;
+procedure TTweakDesForm.EditMaxDistanceChange(Sender : TObject); forward;
 procedure TTweakDesForm.ButtonCancelClick(Sender : TObject); forward;
 procedure TTweakDesForm.TweakDesFormShow(Sender : TObject); forward;
+procedure TTweakDesForm.LabelVersionClick(Sender: TObject); forward;
+function ConfigFile_GetPath(dummy : String = ''): String; forward;
+procedure ConfigFile_Write(AFileName : String); forward;
+procedure ConfigFile_Read(AFileName : String); forward;
 
 
 procedure About;
 var
     MsgText : string;
 begin
-    MsgText := '"' + ScriptTitle + '" script version ' + ScriptVersion + sLineBreak + sLineBreak +
+    MsgText := '"' + cScriptTitle + '" script version ' + cScriptVersion + sLineBreak + sLineBreak +
         'Updated versions may be found here:' + sLineBreak +
         'https://github.com/Altium-Designer-addons/scripts-libraries' + sLineBreak + sLineBreak +
         'Settings save location:' + sLineBreak +
-        ClientAPI_SpecialFolder_AltiumApplicationData + '\' + PresetFileName;
+        ConfigFile_GetPath;
 
     ShowInfo(MsgText, 'About');
 end; { About }
 
 
-function AutoMove(var NameOrComment : IPCB_Text; ParentOnly : Boolean = True; StartDist : TCoord = 400000; MinDist : TCoord = 25000) : TCoord;
+function AutoMove(var NameOrComment : IPCB_Text; SearchDist : TCoord = 1200000; ParentOnly : Boolean = True; StartDist : TCoord = 400000; MinDist : TCoord = 25000) : TCoord;
 const
-    MINATTEMPTS = 2;
-    SEARCHDIST = 1200000; // don't make this too big or it leaves room to jump into valid placement on other side of part
-    MINSEARCHDIST = 50000;
+    cSEARCHDIST         = 1200000; // don't make this too big or it leaves room to jump into valid placement on other side of part
+    cMINSEARCHDIST      = 50000;
 var
     MoveDist, TotalDist : TCoord;
-    NameOrCommentAP : TTextAutoposition;
-    CurSearchDist : TCoord;
-    bFirstPass : Boolean;
-    bRunoff : Boolean;
-    bDefaultValid : Boolean;
+    NameOrCommentAP     : TTextAutoposition;
+    CurSearchDist       : TCoord;
+    bFirstPass          : Boolean;
+    bRunoff             : Boolean;
+    bDefaultValid       : Boolean;
+    TextTypeStr         : String;
 begin
-    StartDist := MIN(StartDist, MINSEARCHDIST * 8);
-    CurSearchDist := SEARCHDIST;
+    SearchDist := MIN(SearchDist, cSEARCHDIST);
+    StartDist := MIN(StartDist, cMINSEARCHDIST * 8);
+    CurSearchDist := SearchDist;
     bFirstPass := False;
     bRunoff := False;
     bDefaultValid := True;
-
-    if NameOrComment.IsDesignator then NameOrCommentAP := NameOrComment.Component.NameAutoPosition else NameOrCommentAP := NameOrComment.Component.CommentAutoPosition;
 
     if not (NameOrComment <> nil and NameOrComment.InComponent) then
     begin
@@ -109,10 +116,20 @@ begin
     end;
     TotalDist := 0;
 
+    if NameOrComment.IsDesignator then NameOrCommentAP := NameOrComment.Component.NameAutoPosition else NameOrCommentAP := NameOrComment.Component.CommentAutoPosition;
+
+    if NameOrCommentAP = eAutoPos_Manual then
+    begin
+        if NameOrComment.IsDesignator then TextTypeStr := 'Designator' else TextTypeStr := 'Comment';
+        DebugMessage(1, TextTypeStr + ' for component ' + NameOrComment.Component.Name.Text + ' is not Autopositioned. Automove canceled.');
+        Result := 0;
+        Exit;
+    end;
+
     if not IsValidPlacement(NameOrComment, ParentOnly) then
     begin
         bDefaultValid := False;
-        StartDist := MINSEARCHDIST * 4;
+        StartDist := cMINSEARCHDIST * 4;
         DebugMessage(1, 'Initial placement interferes. Starting move distance at ' + CoordToStr(StartDist));
     end;
 
@@ -133,8 +150,8 @@ begin
                 TotalDist := 0;
                 if iDebugLevel >= 2 then NameOrComment.GraphicallyInvalidate;
                 if iDebugLevel >= 2 then Application.ProcessMessages;
-                CurSearchDist := SEARCHDIST div 2;
-                MoveDist := MINSEARCHDIST * 2;
+                CurSearchDist := SearchDist div 2;
+                MoveDist := cMINSEARCHDIST * 2;
                 DebugMessage(2, 'Runaway detected. Resetting to start position.' + sLineBreak +
                         'New MoveDist=' + CoordToStr(MoveDist) + sLineBreak +
                         'bFirstPass=' + BoolToStr(bFirstPass, True) + sLineBreak +
@@ -189,7 +206,7 @@ begin
                     MoveDist := ABS(MoveDist) div 2; // Start moving in the positive direction and halve distance
                 end;
 
-                if ABS(MoveDist) < MINSEARCHDIST then break; // stop once moves are too small to be likely productive
+                if ABS(MoveDist) < cMINSEARCHDIST then break; // stop once moves are too small to be likely productive
             end
             else
             begin
@@ -427,31 +444,12 @@ begin
 end;
 
 
-{ function to populate a TStringList with preset values }
-procedure BuildPresetList(var TempPresetList : TStringList);
-begin
-    TempPresetList.Clear;
-    TempPresetList.Add(EditDistance.Text);
-    TempPresetList.Add(tPreset1.Text);
-    TempPresetList.Add(tPreset2.Text);
-    TempPresetList.Add(tPreset3.Text);
-    TempPresetList.Add(tPreset4.Text);
-    TempPresetList.Add(tPreset5.Text);
-    TempPresetList.Add(tPreset6.Text);
-    TempPresetList.Add(tPreset7.Text);
-    TempPresetList.Add(tPreset8.Text);
-    TempPresetList.Add(MMmilButton.Caption);
-    TempPresetList.Add(SelectedCheckBox.Checked);
-    TempPresetList.Add(UnHideDesignatorsCheckBox.Checked);
-end; { BuildPresetList }
-
-
 function CoordToStr(Coords : TCoord) : String;
 const
-	MAXINT = 2147483647
-	MININT = -2147483647
+    MAXINT = 2147483647;
+    MININT = -2147483647;
 begin
-	if Coords < MININT then Coords := MININT
+    if Coords < MININT then Coords := MININT
     else if Coords > MAXINT then Coords := MAXINT;
 
     result := CoordUnitToString(Coords, Board.DisplayUnit xor 1);
@@ -503,7 +501,7 @@ begin
         for iPoly := 0 to poly.Count - 1 do
         begin
             contour := poly.Contour(iPoly);
-            PointList.AddStrings(DebugContourInfo(contour))
+            PointList.AddStrings(DebugContourInfo(contour));
         end;
     end
     else
@@ -515,7 +513,7 @@ begin
 end;
 
 
-function DebugLevelStr : String;
+function DebugLevelStr(dummy : String = '') : String;
 begin
     Result := '-------------------------  Debug Level: ' + IntToStr(iDebugLevel) + '  -------------------------' + sLineBreak;
 end;
@@ -749,7 +747,7 @@ var
     ParentOnly          : Boolean;
     MoveDist            : TCoord;
 begin
-    iDebugLevel := DEBUGLEVEL;
+    iDebugLevel := cDEBUGLEVEL;
     // set AD build flag
     if (GetBuildNumberPart(Client.GetProductVersion, 0) >= 19) then IsAtLeastAD19 := True else IsAtLeastAD19 := False;
 
@@ -771,7 +769,7 @@ begin
         // process if source component & destination location are selected
         if bLocationFlag And Assigned(Comp) then
         begin
-            if DEBUGLEVEL >= 2 then iDebugLevel := DEBUGLEVEL;
+            if cDEBUGLEVEL >= 2 then iDebugLevel := cDEBUGLEVEL; // if cDEBUGLEVEL is at least 2, reset debug level for each component in case user canceled previously
             // copy formatting of PCB dimension
             PCBServer.PreProcess;
 
@@ -795,7 +793,7 @@ begin
             if InSet(cCtrlKey, KeySet) then ParentOnly := False else ParentOnly := True; // hold CTRL to also avoid things that are outside parent component
             DebugMessage(3, 'Begin: IsValidPlacement=' + BoolToStr(IsValidPlacement(NameOrComment, ParentOnly), True));
 
-            MoveDist := AutoMove(NameOrComment, ParentOnly, 400000, 10000);
+            MoveDist := AutoMove(NameOrComment, 1200000, ParentOnly, 400000, 10000);
             NameOrComment.GraphicallyInvalidate;
 
             if MoveDist > 0 then
@@ -1060,7 +1058,7 @@ begin
             end
             else
             begin
-            	Sleep(0);
+                Sleep(0);
             end;
         end;
 
@@ -1151,29 +1149,15 @@ begin
 end;
 
 
-{ function to load preset list from file }
+{ ** DEPRECATED - replaced with ConfigFile_Read ** function to load preset list from file }
 procedure LoadPresetListFromFile(const dummy : Integer);
 begin
-    PresetFilePath := ClientAPI_SpecialFolder_AltiumApplicationData + '\' + PresetFileName;
+    PresetFilePath := ClientAPI_SpecialFolder_AltiumApplicationData + '\MoveAPdesignators2Settings.txt';
     PresetList     := CreateObject(TStringList);
     if FileExists(PresetFilePath) then
     begin
         // ShowMessage('Loading presets from ' + PresetFilePath);
         PresetList.LoadFromFile(PresetFilePath); // load presets from file if it exists
-
-        case PresetList.Count of
-            // add cases here to handle backward compatibility of preset files
-            NumPresets :
-                begin
-                    // do nothing
-                end
-            else // if PresetList.Count < NumPresets then PresetList file exists but count is short, just regenerate preset file from defaults
-                begin
-                    // ShowMessage(PresetFilePath + ' exists but is not the correct length. Defaults will be used.');
-                    BuildPresetList(PresetList);
-                    PresetList.SaveToFile(PresetFilePath);
-                end;
-        end;
 
         // set text boxes to match preset list (redundant if list was regenerated above)
         tPreset1.Text                     := PresetList[1];
@@ -1190,10 +1174,9 @@ begin
         EditDistance.Text                 := PresetList[0]; // Main input field needs to be set last because setting each preset updates it
     end
     else
-    begin // if preset file didn't exist at all, create from defaults
-        // ShowMessage(PresetFilePath + ' does not exist.');
-        BuildPresetList(PresetList);
-        PresetList.SaveToFile(PresetFilePath);
+    begin
+        // if preset file didn't exist at all, just exit (older file format deprecated)
+        exit;
     end;
 end; { LoadPresetListFromFile }
 
@@ -1424,14 +1407,15 @@ var
     DRCSetting              : Boolean;
     tc_AutoPos              : TTextAutoposition; // Current AP setting
     MoveDistance            : Integer;
-    TempPresetList          : TStringList;
+    MaxDistance             : Integer;
+    AutoMoveResult          : Integer;
     RotatedAutoPos          : Boolean;
     status, i               : Integer;
 
 begin
-    iDebugLevel := DEBUGLEVEL;
+    iDebugLevel := cDEBUGLEVEL;
     // set version label
-    LabelVersion.Caption := 'v' + ScriptVersion;
+    LabelVersion.Caption := 'v' + cScriptVersion;
 
     // set AD build flag
     if (GetBuildNumberPart(Client.GetProductVersion, 0) >= 19) then IsAtLeastAD19 := True else IsAtLeastAD19 := False;
@@ -1450,9 +1434,9 @@ begin
     DRCSetting                   := PCBSystemOptions.DoOnlineDRC;
     PCBSystemOptions.DoOnlineDRC := False;
     try
-        AbortScript := False;
-        TweakDesForm.ShowModal; // Show the settings dialogue (and resume script here after closed?)
-        if AbortScript then Exit;
+        bAbortScript := False;
+        TweakDesForm.ShowModal; // Show the settings dialogue (and resume script here after closed)
+        if bAbortScript then Exit;
 
         // Notify the pcbserver that we will make changes (Start undo)
         PCBServer.PreProcess;
@@ -1461,8 +1445,11 @@ begin
         ComponentIteratorHandle.AddFilter_IPCB_LayerSet(LayerSet.AllLayers);
         ComponentIteratorHandle.AddFilter_Method(eProcessAll);
 
-        if TweakDesForm.UnHideDesignatorsCheckBox.Checked then UnHideDesignators := True
-        else UnHideDesignators := False;
+        if TweakDesForm.UnHideDesignatorsCheckBox.Checked then bUnHideDesignators := True
+        else bUnHideDesignators := False;
+
+        if TweakDesForm.LazyAutoMoveCheckBox.Checked then bLazyAutoMove := True
+        else bLazyAutoMove := False;
 
         Component := ComponentIteratorHandle.FirstPCBObject;
 
@@ -1475,38 +1462,64 @@ begin
         if TweakDesForm.MMmilButton.Caption = 'mm' then MoveDistance := MMsToCoord(TweakDesForm.EditDistance.Text)
         else MoveDistance := MilsToCoord(TweakDesForm.EditDistance.Text);
 
+        if bAutoMode then
+        begin
+            if TweakDesForm.MMmilButton.Caption = 'mm' then MaxDistance := MMsToCoord(TweakDesForm.EditMaxDistance.Text)
+            else MaxDistance := MilsToCoord(TweakDesForm.EditMaxDistance.Text);
+        end;
+
         while (Component <> Nil) do
         begin
             Component.BeginModify;
 
             // Show hidden designators?
-            if UnHideDesignators = True then Component.NameOn := True;
+            if bUnHideDesignators = True then Component.NameOn := True;
 
             tc_AutoPos := Component.GetState_NameAutoPos; // Get current AP state
-
-            // Set AP to manual
-            Component.SetState_NameAutoPos(eAutoPos_Manual);
 
             // Get the designator handle
             Designator := Component.Name;
 
             // notify that the pcb object is going to be modified
-            Component.Name.BeginModify;
+            Designator.BeginModify;
 
             // Set text justification according to autoposition setting
             AutopositionJustify(Designator, tc_AutoPos);
 
-            AutoPosDeltaAdjust(Designator, MoveDistance, tc_AutoPos);
-
             // notify that the pcb object is modified
-            // PCBServer.SendMessageToRobots(Designator.I_ObjectAddress, c_Broadcast, PCBM_EndModify , c_NoEventData);
-            Component.Name.EndModify;
-            Component.Name.GraphicallyInvalidate;
-            //Board.DispatchMessage(Board.I_ObjectAddress, c_Broadcast, PCBM_BoardRegisteration, Designator.I_ObjectAddress);
+            Designator.EndModify;
+
+            if bAutoMode then
+            begin
+                AutoMoveResult := AutoMove(Designator, MaxDistance);
+
+                if AutoMoveResult > 0 then
+                begin
+                    // set autoposition mode to Manual so it doesn't snap back to default position if component is rotated, etc.
+                    Component.ChangeNameAutoPosition(eAutoPos_Manual);
+                end
+                else if bLazyAutoMove then
+                begin
+                    // if AutoMove failed and we're in lazy mode, treat max offset as fixed offset
+                    AutoPosDeltaAdjust(Designator, MaxDistance, tc_AutoPos);
+                    Component.ChangeNameAutoPosition(eAutoPos_Manual);
+                end;
+
+            end // bAutoMode
+            else
+            begin
+                AutoPosDeltaAdjust(Designator, MoveDistance, tc_AutoPos);
+                Component.ChangeNameAutoPosition(eAutoPos_Manual);
+            end;
+
+            if (not bAutoMode) or (bLazyAutoMove and (AutoMoveResult = 0)) then
+            begin
+            end;
+
+            Designator.GraphicallyInvalidate;
 
             Component.EndModify;
             Component.GraphicallyInvalidate;
-            //Board.DispatchMessage(Board.I_ObjectAddress, c_Broadcast, PCBM_BoardRegisteration, Component.I_ObjectAddress);
 
             // Get the next component handle
             Component := ComponentIteratorHandle.NextPCBObject;
@@ -1521,33 +1534,20 @@ begin
         // Notify the pcbserver that all changes have been made (Stop undo)
         PCBServer.PostProcess;
 
-        // Refresh the screen (not needed with .GraphicallyInvalidate)
-        // Client.SendMessage('PCB:Zoom', 'Action=Redraw' , 255, Client.CurrentView);
+        // Refresh the screen (not needed with .GraphicallyInvalidate?)
+        Client.SendMessage('PCB:Zoom', 'Action=Redraw' , 255, Client.CurrentView);
 
         // Destroy the component handle
         Board.BoardIterator_Destroy(ComponentIteratorHandle);
 
-        if UsePresets then
-        begin
-            // build list of currect preset values
-            TempPresetList := CreateObject(TStringList);
-            BuildPresetList(TempPresetList);
-            if TempPresetList.Equals(PresetList) then
-            begin
-                // presets match saved list so do nothing
-            end
-            else
-            begin
-                // save new list to MyMoveDesignatorsPresets.txt
-                TempPresetList.SaveToFile(PresetFilePath);
-            end;
-        end;
+        // save last-used values and presets
+        if cUseConfigFile then ConfigFile_Write(ConfigFile_GetPath);
 
         // deselect designators
         for i := Board.SelectecObjectCount - 1 downto 0 do
         begin
             Designator := Board.SelectecObject[i];
-            if (Designator.ObjectId <> eComponentObject) then Designator.SetState_Selected(False)
+            if (Designator.ObjectId <> eComponentObject) then Designator.SetState_Selected(False);
         end;
 
         Client.SendMessage('PCB:Zoom', 'Action=Redraw' , 255, Client.CurrentView);
@@ -1563,10 +1563,23 @@ end; { TweakDesignators }
 { programmatically, OnKeyPress fires before OnChange event and "catches" the key press }
 procedure UserKeyPress(Sender : TObject; var Key : Char);
 begin
-    if (ButtonOK.Enabled) and (Ord(Key) = 13) then
+    if (Sender = EditMaxDistance) and (ButtonAuto.Enabled) and (Ord(Key) = 13) then
     begin
         Key := #0; // catch and discard key press to avoid beep
-        if ButtonOK.Enabled then TweakDesForm.Close;
+        if ButtonAuto.Enabled then
+        begin
+            bAutoMode := True;
+            TweakDesForm.Close;
+        end;
+    end
+    else if (Sender <> EditMaxDistance) and (ButtonOK.Enabled) and (Ord(Key) = 13) then
+    begin
+        Key := #0; // catch and discard key press to avoid beep
+        if ButtonOK.Enabled then
+        begin
+            bAutoMode := False;
+            TweakDesForm.Close;
+        end;
     end;
 end; { UserKeyPress }
 
@@ -1580,15 +1593,24 @@ begin
     if IsStringANum(textbox.Text) then
     begin
         if Sender <> EditDistance then EditDistance.Text := textbox.Text;
-        ButtonOK.Enabled                                 := True;
+
+        ButtonOK.Enabled := True;
     end
     else ButtonOK.Enabled := False;
 
 end; { ValidateOnChange }
 
 
+procedure TTweakDesForm.ButtonAutoClick(Sender : TObject);
+begin
+    bAutoMode := True;
+    TweakDesForm.Close;
+end; { TTweakDesForm.ButtonAutoClick }
+
+
 procedure TTweakDesForm.ButtonOKClick(Sender : TObject);
 begin
+    bAutoMode := False;
     TweakDesForm.Close;
 end; { TTweakDesForm.ButtonOKClick }
 
@@ -1596,20 +1618,27 @@ end; { TTweakDesForm.ButtonOKClick }
 procedure TTweakDesForm.MMmilButtonClick(Sender : TObject);
 var
     TempString : string;
+    MaxString  : string;
 begin
     TempString := EditDistance.Text;
     if (LastDelimiter(',.', TempString) <> 0) then TempString[LastDelimiter(',.', TempString)] := DecimalSeparator;
 
+    MaxString := EditMaxDistance.Text;
+    if (LastDelimiter(',.', MaxString) <> 0) then MaxString[LastDelimiter(',.', MaxString)] := DecimalSeparator;
+
     if MMmilButton.Caption = 'mil' then
     begin
         MMmilButton.Caption := 'mm';
-        EditDistance.Text   := CoordToMMs(MilsToCoord(StrToFloat(TempString)));
+        if IsStringANum(EditDistance.Text) then EditDistance.Text       := CoordToMMs(MilsToCoord(StrToFloat(TempString)));
+        if IsStringANum(EditMaxDistance.Text) then EditMaxDistance.Text := CoordToMMs(MilsToCoord(StrToFloat(MaxString)));
     end
     else
     begin
         MMmilButton.Caption := 'mil';
-        EditDistance.Text   := CoordToMils(MMsToCoord(StrToFloat(TempString)));
+        if IsStringANum(EditDistance.Text) then EditDistance.Text       := CoordToMils(MMsToCoord(StrToFloat(TempString)));
+        if IsStringANum(EditMaxDistance.Text) then EditMaxDistance.Text := CoordToMils(MMsToCoord(StrToFloat(MaxString)));
     end;
+    EditMaxDistance.Update;
     EditDistance.SetFocus;
     EditDistance.Update;
 end; { TTweakDesForm.MMmilButtonClick }
@@ -1631,15 +1660,116 @@ begin
 end; { TTweakDesForm.EditDistanceChange }
 
 
+procedure TTweakDesForm.EditMaxDistanceChange(Sender : TObject);
+begin
+
+    if IsStringANum(EditMaxDistance.Text) then
+    begin
+        EditMaxDistance.Font.Color  := clWindowText;
+        ButtonAuto.Enabled          := True;
+    end
+    else
+    begin
+        ButtonAuto.Enabled          := False;
+        EditMaxDistance.Font.Color  := clRed;
+    end;
+end; { TTweakDesForm.EditMaxDistanceChange }
+
+
 procedure TTweakDesForm.ButtonCancelClick(Sender : TObject);
 begin
-    AbortScript := True;
+    bAbortScript := True;
     TweakDesForm.Close;
 end; { TTweakDesForm.ButtonCancelClick }
 
 
 procedure TTweakDesForm.TweakDesFormShow(Sender : TObject);
 begin
+    // Set direction control hint
+    Application.HintHidePause := 12000; // extend hint show time
+    LazyAutoMoveCheckBox.Hint := 'ENABLED: if AutoMove REACHES Max offset without detecting an obstacle, will treat as fixed offset.' + sLineBreak +
+        'DISABLED: if AutoMove move finds no obstacles BEFORE the specified Max offset, will abort offset and leave in autoposition.' + sLineBreak +
+        'NOTE: AutoMove procedure is internally limited to 120 mil search range.';
     // read presets from file
-    LoadPresetListFromFile(0);
+    // LoadPresetListFromFile(0); // old file format deprecated
+    if cUseConfigFile then ConfigFile_Read(ConfigFile_GetPath);
 end; { TTweakDesForm.TweakDesFormShow }
+
+
+procedure TTweakDesForm.LabelVersionClick(Sender: TObject);
+begin
+    About;
+end;
+
+
+function ConfigFile_GetPath(Dummy : String = ''): String;
+begin
+    result := ClientAPI_SpecialFolder_AltiumApplicationData + '\' + cConfigFileName;
+end;
+
+
+procedure ConfigFile_Write(AFileName : String);
+var
+    IniFile: TIniFile;
+begin
+    IniFile := TIniFile.Create(AFileName);
+
+    IniFile.WriteInteger('Window Position', 'Top', TweakDesForm.Top);
+    IniFile.WriteInteger('Window Position', 'Left', TweakDesForm.Left);
+
+    IniFile.WriteString('Presets', 'Preset1', tPreset1.Text);
+    IniFile.WriteString('Presets', 'Preset2', tPreset2.Text);
+    IniFile.WriteString('Presets', 'Preset3', tPreset3.Text);
+    IniFile.WriteString('Presets', 'Preset4', tPreset4.Text);
+    IniFile.WriteString('Presets', 'Preset5', tPreset5.Text);
+    IniFile.WriteString('Presets', 'Preset6', tPreset6.Text);
+    IniFile.WriteString('Presets', 'Preset7', tPreset7.Text);
+    IniFile.WriteString('Presets', 'Preset8', tPreset8.Text);
+
+    IniFile.WriteString('Last Used', 'Units', MMmilButton.Caption);
+    IniFile.WriteBool('Last Used', 'Selected Only', SelectedCheckBox.Checked);
+    IniFile.WriteBool('Last Used', 'Unhide Designators', UnHideDesignatorsCheckBox.Checked);
+    IniFile.WriteBool('Last Used', 'Lazy Offset', LazyAutoMoveCheckBox.Checked);
+    IniFile.WriteString('Last Used', 'Auto Distance', EditMaxDistance.Text);
+    IniFile.WriteString('Last Used', 'Fixed Distance', EditDistance.Text);
+
+    IniFile.Free;
+end;
+
+
+procedure ConfigFile_Read(AFileName : String);
+var
+    IniFile: TIniFile;
+begin
+    if not FileExists(AFileName) then
+    begin
+        // ini file doesn't exist, try to fall back on older format file
+        LoadPresetListFromFile(0);
+        exit;
+    end;
+
+    IniFile := TIniFile.Create(AFileName);
+
+    TweakDesForm.Top := IniFile.ReadInteger('Window Position', 'Top', TweakDesForm.Top);
+    TweakDesForm.Left := IniFile.ReadInteger('Window Position', 'Left', TweakDesForm.Left);
+
+    tPreset1.Text := IniFile.ReadString('Presets', 'Preset1', tPreset1.Text);
+    tPreset2.Text := IniFile.ReadString('Presets', 'Preset2', tPreset2.Text);
+    tPreset3.Text := IniFile.ReadString('Presets', 'Preset3', tPreset3.Text);
+    tPreset4.Text := IniFile.ReadString('Presets', 'Preset4', tPreset4.Text);
+    tPreset5.Text := IniFile.ReadString('Presets', 'Preset5', tPreset5.Text);
+    tPreset6.Text := IniFile.ReadString('Presets', 'Preset6', tPreset6.Text);
+    tPreset7.Text := IniFile.ReadString('Presets', 'Preset7', tPreset7.Text);
+    tPreset8.Text := IniFile.ReadString('Presets', 'Preset8', tPreset8.Text);
+
+    MMmilButton.Caption                 := IniFile.ReadString('Last Used', 'Units', MMmilButton.Caption);
+    SelectedCheckBox.Checked            := IniFile.ReadBool('Last Used', 'Selected Only', SelectedCheckBox.Checked);
+    UnHideDesignatorsCheckBox.Checked   := IniFile.ReadBool('Last Used', 'Unhide Designators', UnHideDesignatorsCheckBox.Checked);
+    LazyAutoMoveCheckBox.Checked        := IniFile.ReadBool('Last Used', 'Lazy Offset', LazyAutoMoveCheckBox.Checked);
+    EditMaxDistance.Text                := IniFile.ReadString('Last Used', 'Auto Distance', EditMaxDistance.Text);
+
+    // Main input field needs to be set last because changing some other values trigger it
+    EditDistance.Text                   := IniFile.ReadString('Last Used', 'Fixed Distance', EditDistance.Text);
+
+    IniFile.Free;
+end;
