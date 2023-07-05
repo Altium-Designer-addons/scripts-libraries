@@ -43,6 +43,8 @@ For example:
     - Hold ALT to place the Designator/Comment at 90° rotation instead.
     - CTRL and ALT can be combined
 
+![Interactive Placement Demo](MoveAPdesignators2_InteractivelyPlace.gif)
+
 # Changelog
 - 2022-11-28 - Ver 2.0 : Initial release based on MoveAPdesignators scrip Ver 1.2; uses new string justification settings and fixed bug with designator not actually moving coords; added presets and restore last used values
 - 2022-11-28 - Ver 2.01 : fixed justification for rotated strings (approximated to nearest 90° rotation)
