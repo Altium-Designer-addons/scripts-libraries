@@ -23,7 +23,7 @@ _Step 2_: integrate the script into Altium Designer and execute it.\
 If you are a newcomer to Altium scripts, [please read the "how to" wiki page](https://github.com/Altium-Designer-addons/scripts-libraries/wiki/HowTo_execute_scripts).
 
 ## Known Issues
-- none known at this time
+- AutoMove will fail to detect component bodies if the parent component has none (because it uses largest body in parent component to determine component body layer)
 
 # Features
 ## Automatic movement amount (GUI)
