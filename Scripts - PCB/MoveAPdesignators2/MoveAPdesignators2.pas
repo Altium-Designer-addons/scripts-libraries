@@ -575,7 +575,7 @@ begin
         Prim := GIter.NextPCBObject;
     end;
 
-    DebugMessage(3, StrFromObjectId(Result.ObjectId) + ' with largest area detected on layer ' + Layer2String(Result.Layer) + sLineBreak + Result.Identifier);
+    if Result <> nil then DebugMessage(3, StrFromObjectId(Result.ObjectId) + ' with largest area detected on layer ' + Layer2String(Result.Layer) + sLineBreak + Result.Identifier);
 
     // Clean up the Iterator
     Comp.GroupIterator_Destroy(GIter);
