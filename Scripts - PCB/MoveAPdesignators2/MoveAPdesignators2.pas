@@ -26,7 +26,7 @@ const
     cNumPresets         = 12; // not just for presets, also used to save previous state
     cConfigFileName     = 'MoveAPdesignators2Settings.ini'
     cScriptTitle        = 'MoveAPdesignators2';
-    cScriptVersion      = '2.06';
+    cScriptVersion      = '2.07';
 
 
 procedure About; forward;
@@ -61,17 +61,19 @@ function SelectCompAndDesignators(dummy : Boolean = False) : Boolean; forward;
 procedure SetAutopositionLocation(var Comp : IPCB_Component; const tc_Autopos : TTextAutoposition; const KeySet : TObjectSet; bDesignator : Boolean = True); forward;
 function StrFromAutoPos(eAutoPos: TTextAutoposition): String; forward;
 function StrFromObjectId(ObjectId: TObjectId): String; forward;
+procedure Start; forward;
 procedure TweakDesignators; forward;
 procedure UserKeyPress(Sender : TObject; var Key : Char); forward;
 procedure ValidateOnChange(Sender : TObject); forward;
 procedure TTweakDesForm.ButtonAutoClick(Sender : TObject); forward;
+procedure TTweakDesForm.ButtonCancelClick(Sender : TObject); forward;
+procedure TTweakDesForm.ButtonInteractiveStartClick(Sender: TObject); forward;
 procedure TTweakDesForm.ButtonOKClick(Sender : TObject); forward;
 procedure TTweakDesForm.MMmilButtonClick(Sender : TObject); forward;
 procedure TTweakDesForm.EditDistanceChange(Sender : TObject); forward;
 procedure TTweakDesForm.EditMaxDistanceChange(Sender : TObject); forward;
-procedure TTweakDesForm.ButtonCancelClick(Sender : TObject); forward;
 procedure TTweakDesForm.TweakDesFormShow(Sender : TObject); forward;
-procedure TTweakDesForm.LabelVersionClick(Sender: TObject); forward;
+procedure TTweakDesForm.LabelVersionClick(Sender : TObject); forward;
 function ConfigFile_GetPath(dummy : String = ''): String; forward;
 procedure ConfigFile_Write(AFileName : String); forward;
 procedure ConfigFile_Read(AFileName : String); forward;
@@ -1438,6 +1440,13 @@ begin
 end;
 
 
+{ wrapper for TweakDesignators for users familiar with using "Start" }
+procedure Start;
+begin
+    TweakDesignators;
+end;
+
+
 { Main procedure }
 procedure TweakDesignators;
 var
@@ -1647,6 +1656,25 @@ begin
 end; { TTweakDesForm.ButtonAutoClick }
 
 
+procedure TTweakDesForm.ButtonCancelClick(Sender : TObject);
+begin
+    bAbortScript := True;
+    TweakDesForm.Close;
+end; { TTweakDesForm.ButtonCancelClick }
+
+
+procedure TTweakDesForm.ButtonInteractiveStartClick(Sender: TObject);
+begin
+    TweakDesForm.Visible := False; // hide the form because it's modal and sticks around until InteractivelyAutoposition finishes
+    try
+        InteractivelyAutoposition;
+    finally
+        bAbortScript := True;
+        TweakDesForm.Close; // actually close the invisible form
+    end;
+end;
+
+
 procedure TTweakDesForm.ButtonOKClick(Sender : TObject);
 begin
     bAutoMode := False;
@@ -1713,13 +1741,6 @@ begin
         EditMaxDistance.Font.Color  := clRed;
     end;
 end; { TTweakDesForm.EditMaxDistanceChange }
-
-
-procedure TTweakDesForm.ButtonCancelClick(Sender : TObject);
-begin
-    bAbortScript := True;
-    TweakDesForm.Close;
-end; { TTweakDesForm.ButtonCancelClick }
 
 
 procedure TTweakDesForm.TweakDesFormShow(Sender : TObject);
