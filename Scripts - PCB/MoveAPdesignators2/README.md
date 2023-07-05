@@ -57,6 +57,7 @@ For example:
     - added command (no GUI) to interactively adjust Designator Autoposition setting for components (with automove)
     - improved clearance detection to use object outlines instead of bounding boxes for most things (better support for objects that aren't at 0/90)
     - reworked configuration file to use .ini file instead, for better forward compatibility
+- 2023-07-05 - Ver 2.07 : added button to GUI to start interactive placement tool; added redundant `Start` procedure for users that are accustomed to using that
 
 ## Credits
   - Credit to Mattias Ericson & Tony Chilco for the MoveAPdesignators script I started from
