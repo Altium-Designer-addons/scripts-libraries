@@ -1,4 +1,4 @@
-# [DOWNLOAD](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Scripts%20-%20PCB/MoveAPdesignators2)
+# [DOWNLOAD](https://altium-designer-addons.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Scripts%20-%20PCB/MoveAPdesignators2)
 
 # MoveAPdesignators2
 This script will change auto-positioned designators to manual and move them by a user-defined amount. Will operate on all or selected components.\
@@ -17,7 +17,7 @@ The direction of the movement depends on the current autoposition status.
 - Added Interactive designator and comment placement modes
 
 ## How to install and use
-_Step 1_: [DOWNLOAD](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Scripts%20-%20PCB/MoveAPdesignators2) script
+_Step 1_: [DOWNLOAD](https://altium-designer-addons.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Scripts%20-%20PCB/MoveAPdesignators2) script
 
 _Step 2_: integrate the script into Altium Designer and execute it.\
 If you are a newcomer to Altium scripts, [please read the "how to" wiki page](https://github.com/Altium-Designer-addons/scripts-libraries/wiki/HowTo_execute_scripts).
@@ -44,8 +44,6 @@ For example:
     - Hold CTRL while clicking the location to NOT ignore objects outside the parent component
     - Hold ALT to place the Designator/Comment at 90° rotation instead.
     - CTRL and ALT can be combined
-
-![Interactive Placement Demo](MoveAPdesignators2_InteractivelyPlace.gif)
 
 # Changelog
 - 2022-11-28 - Ver 2.0 : Initial release based on MoveAPdesignators scrip Ver 1.2; uses new string justification settings and fixed bug with designator not actually moving coords; added presets and restore last used values
