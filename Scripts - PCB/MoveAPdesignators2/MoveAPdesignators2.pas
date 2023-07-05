@@ -26,7 +26,7 @@ const
     cNumPresets         = 12; // not just for presets, also used to save previous state
     cConfigFileName     = 'MoveAPdesignators2Settings.ini'
     cScriptTitle        = 'MoveAPdesignators2';
-    cScriptVersion      = '2.07';
+    cScriptVersion      = '2.08';
 
 
 procedure About; forward;
@@ -737,6 +737,7 @@ end;
 function GetRelativeAutoposition(var Comp : IPCB_Component; const loc_x, loc_y : TCoord) : TTextAutoposition;
 var
     Angle : Integer;
+    flipX : Integer;
 begin
     { TTextAutoposition = ( eAutoPos_Manual,
                             eAutoPos_TopLeft,
@@ -748,9 +749,12 @@ begin
                             eAutoPos_TopRight,
                             eAutoPos_CenterRight,
                             eAutoPos_BottomRight);}
+
     Result := eAutoPos_Manual;
 
-    Angle := Round(ArcTan2((loc_y - Comp.y), (loc_x - Comp.x)) / Pi * 180);
+    if Comp.Layer = eBottomLayer then flipX := -1 else flipX := 1;
+
+    Angle := Round(ArcTan2((loc_y - Comp.y), (loc_x - Comp.x) * flipX) / Pi * 180);
     if Angle < 0 then Angle := Angle + 360;
 
     // Map the angle to the relative position (rotate 22 degrees and index into 45 degree segments)
