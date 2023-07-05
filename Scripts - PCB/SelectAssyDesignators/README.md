@@ -4,7 +4,7 @@
 This script is a utility tool to quickly switch between components and a *.Designator* special string belonging to their footprint.
 
 ## How to install and use
-_Step 1_: [DOWNLOAD](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Scripts%20-%20PCB/SelectAssyDesignators) script
+_Step 1_: [DOWNLOAD](https://altium-designer-addons.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Scripts%20-%20PCB/SelectAssyDesignators) script
 
 _Step 2_: integrate the script into Altium Designer and execute it.\
 If you are a newcomer to Altium scripts, [please read the "how to" wiki page](https://github.com/Altium-Designer-addons/scripts-libraries/wiki/HowTo_execute_scripts).
@@ -67,3 +67,5 @@ There might be some value in adding a function to check that all components *hav
 2023-06-09 by Ryan Rutledge : v1.6 - added error message if the _SelectBoth_ procedure is attempted without both Components and Texts enabled in the selection filter
 
 2023-06-21 by Ryan Rutledge : v1.7 - refactored rotation into its own function to make the code more modular and to steal the function for other scripts
+
+2023-07-05 by Ryan Rutledge : v1.8 - added command to normalize any selected text while preserving justification

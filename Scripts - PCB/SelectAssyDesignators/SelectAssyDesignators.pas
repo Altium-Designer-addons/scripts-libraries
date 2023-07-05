@@ -3,15 +3,17 @@
 
 var
     Board : IPCB_Board;
+    IsAtLeastAD19 : Boolean;
 
 const
     DebuggingEnabled = False;
-    ScriptVersion = '1.7';
+    ScriptVersion = '1.8';
     ScriptTitle = 'SelectAssyDesignators';
-    MinDesignatorSize = 100000; // minimum designator size for resizing in Altium coordinate units (100000 = 10 mils)
+    MinDesignatorSize = 100000; // minimum assembly designator size for resizing in Altium coordinate units (100000 = 10 mils)
 
 
-procedure AdjustDesignatorPositions(const Normalize : Boolean = False, const Ortho : Boolean = False, const Resize : Boolean = False); forward;
+procedure About; forward;
+procedure AdjustDesignatorPositions(const Normalize : Boolean = False; const Ortho : Boolean = False; const Resize : Boolean = False); forward;
 procedure BothInitialCheck(var status : Integer); forward;
 procedure CompInitialCheck(var status : Integer); forward;
 procedure DesignatorInitialCheck(var status : Integer); forward;
@@ -20,12 +22,14 @@ procedure DesignatorResize; forward;
 procedure GetBoundingBox(const Comp : IPCB_Component; out box_width : TCoord; out box_height : TCoord); forward;
 function GetComponent(var Text : IPCB_Primitive) : IPCB_Component; forward;
 function GetDesignator(var Comp : IPCB_Component) : IPCB_Primitive; forward;
-procedure Inspect_IPCB_Text(var Text : IPCB_Text, const MyLabel : string = ''); forward;
+procedure Inspect_IPCB_Text(var Text : IPCB_Text3; const MyLabel : string = ''); forward;
+function NormalizeText(var Text : IPCB_Text) : Boolean; forward;
+procedure NormalizeSelectedWithJustification; forward;
 procedure ResetDesignatorPositions; forward;
 procedure ResetDesignatorPositionsNorm; forward;
 procedure ResetDesignatorPositionsNormOrtho; forward;
 procedure ResetDesignatorPositionsOrtho; forward;
-procedure ResizeText(var Text : IPCB_Text, const width : TCoord, const height : TCoord); forward;
+procedure ResizeText(var Text : IPCB_Text; const width : TCoord; const height : TCoord); forward;
 function RotateTextToAngle(var Text : IPCB_Text; const Angle : Double; const Normalize : Boolean = False; const Ortho : Boolean = False) : Double; forward;
 procedure SelectBoth; forward;
 procedure SelectComponents; forward;
@@ -46,7 +50,7 @@ end;
 
 
 { Main function to select both components and assembly designators for selected objects, then reset .Designator positions }
-procedure AdjustDesignatorPositions(const Normalize : Boolean = False, const Ortho : Boolean = False, const Resize : Boolean = False);
+procedure AdjustDesignatorPositions(const Normalize : Boolean = False; const Ortho : Boolean = False; const Resize : Boolean = False);
 var
     i           : Integer;
     status      : Integer;
@@ -123,38 +127,6 @@ begin
 
     Client.SendMessage('PCB:Zoom', 'Action=Redraw' , 255, Client.CurrentView);
 
-end;
-
-
-{ rotates IPCB_Text object to specific angle, optionally normalizing it to be right-reading, optionally rotating 90° CW }
-function RotateTextToAngle(var Text : IPCB_Text; const Angle : Double; const Normalize : Boolean = False; const Ortho : Boolean = False) : Double;
-begin
-    if Ortho then Angle := Angle + 270;
-
-    // coerce angle to 0 ~ 360
-    Angle := (Angle mod 360 + 360) mod 360; // technically an integer operation. TODO: make proper floating point mod throughout
-
-    // rotate text to match Angle, based on how mirrored text reads from the flipside of the board
-    case Text.GetState_Mirror of
-        True :
-            begin
-                // mirrored text should be rotated to match layer flip behavior of text vs components
-                if not Ortho then Angle := (Angle + 180) mod 360;
-                if Normalize and (Angle >= 90) and (Angle < 270) then
-                    Text.Rotation := (Angle + 180) mod 360
-                else
-                    Text.Rotation := Angle;
-            end;
-        False :
-            begin
-                if Normalize and (Angle > 90) and (Angle <= 270) then
-                    Text.Rotation := (Angle + 180) mod 360
-                else
-                    Text.Rotation := Angle;
-            end;
-    end;
-
-    Result := Text.Rotation;
 end;
 
 
@@ -427,7 +399,7 @@ end;
 
 
 { IPCB_Text inspector for debugging }
-procedure Inspect_IPCB_Text(var Text : IPCB_Text3, const MyLabel : string = '');
+procedure Inspect_IPCB_Text(var Text : IPCB_Text3; const MyLabel : string = '');
 var
     AD19DebugStr : String;
 begin
@@ -469,6 +441,92 @@ begin
 end;
 
 
+{ normalizes IPCB_Text object to be right-reading }
+function NormalizeText(var Text : IPCB_Text) : Boolean;
+var
+    Angle: Double;
+    OldJustify, NewJustify: TTextAutoposition;
+begin
+    // AD19+ functions used for normalization
+    if not IsAtLeastAD19 then
+    begin
+        Result := False;
+        Exit;
+    end;
+
+    Result := False;
+
+    // coerce angle to 0 ~ 360
+    Angle := (Text.Rotation mod 360 + 360) mod 360; // technically an integer operation. TODO: make proper floating point mod throughout
+
+    // rotate text to match Angle, based on how mirrored text reads from the flipside of the board
+    if Text.MirrorFlag then
+    begin
+        // mirrored text should be rotated to match layer flip behavior of text vs components
+        if (Angle >= 90) and (Angle < 270) then Angle := (Angle + 180) mod 360
+    end
+    else
+    begin
+        // slightly different behavior at 90 and 270 for top side
+        if (Angle > 90) and (Angle <= 270) then Angle := (Angle + 180) mod 360
+    end;
+
+    if Text.Rotation <> Angle then
+    begin
+        OldJustify := Text.TTFInvertedTextJustify;
+
+        // need to transform justification setting
+        case OldJustify of
+            eAutoPos_TopLeft        : NewJustify := eAutoPos_BottomRight;
+            eAutoPos_CenterLeft     : NewJustify := eAutoPos_CenterRight;
+            eAutoPos_BottomLeft     : NewJustify := eAutoPos_TopRight;
+            eAutoPos_TopCenter      : NewJustify := eAutoPos_BottomCenter;
+            eAutoPos_BottomCenter   : NewJustify := eAutoPos_TopCenter;
+            eAutoPos_TopRight       : NewJustify := eAutoPos_BottomLeft;
+            eAutoPos_CenterRight    : NewJustify := eAutoPos_CenterLeft;
+            eAutoPos_BottomRight    : NewJustify := eAutoPos_TopLeft;
+            else                      NewJustify := OldJustify;
+        end;
+
+        Text.BeginModify;
+        Text.TTFInvertedTextJustify := eAutoPos_CenterCenter; // uses center justification to rotate in place
+        Text.Rotation := Angle;
+        // need to EndModify and BeginModify here to refresh internal Text.Rotation cache, else changing justification will move text
+        Text.EndModify;
+        Text.BeginModify;
+        Text.TTFInvertedTextJustify := NewJustify;
+        Text.EndModify;
+        Result := True;
+    end
+    else Result := False;
+
+end;
+
+
+{ normalizes selected text objects to be right-reading while preserving their justification }
+procedure NormalizeSelectedWithJustification;
+var
+    i       : Integer;
+    Prim    : IPCB_Primitive;
+begin
+    // Checks if current document is a PCB kind if not, exit.
+    Board := PCBServer.GetCurrentPCBBoard;
+    if Board = nil then exit;
+
+    // set AD build flag
+    if (GetBuildNumberPart(Client.GetProductVersion, 0) >= 19) then IsAtLeastAD19 := True else IsAtLeastAD19 := False;
+
+    // Count components and .Designator special strings without deselecting them
+    for i := 0 to Board.SelectecObjectCount - 1 do
+    begin
+        Prim := Board.SelectecObject[i];
+        if Prim.ObjectId <> eTextObject then continue;
+
+        NormalizeText(Prim);
+    end;
+end;
+
+
 { wrapper call to AdjustDesignatorPositions that will exactly match component rotation }
 procedure ResetDesignatorPositions;
 begin
@@ -498,7 +556,7 @@ end;
 
 
 { procedure to scale text to approximately fit within the selected width and height }
-procedure ResizeText(var Text : IPCB_Text, const width : TCoord, const height : TCoord);
+procedure ResizeText(var Text : IPCB_Text; const width : TCoord; const height : TCoord);
 var
     width_ratio     : double;
     TTF_ratio       : double;
@@ -523,6 +581,38 @@ begin
         Text.Width := Text.Size div 10;  // set stroke width to a tenth of the character height
     end;
 
+end;
+
+
+{ rotates IPCB_Text object to specific angle, optionally normalizing it to be right-reading, optionally rotating 90° CW }
+function RotateTextToAngle(var Text : IPCB_Text; const Angle : Double; const Normalize : Boolean = False; const Ortho : Boolean = False) : Double;
+begin
+    if Ortho then Angle := Angle + 270;
+
+    // coerce angle to 0 ~ 360
+    Angle := (Angle mod 360 + 360) mod 360; // technically an integer operation. TODO: make proper floating point mod throughout
+
+    // rotate text to match Angle, based on how mirrored text reads from the flipside of the board
+    case Text.GetState_Mirror of
+        True :
+            begin
+                // mirrored text should be rotated to match layer flip behavior of text vs components
+                if not Ortho then Angle := (Angle + 180) mod 360;
+                if Normalize and (Angle >= 90) and (Angle < 270) then
+                    Text.Rotation := (Angle + 180) mod 360
+                else
+                    Text.Rotation := Angle;
+            end;
+        False :
+            begin
+                if Normalize and (Angle > 90) and (Angle <= 270) then
+                    Text.Rotation := (Angle + 180) mod 360
+                else
+                    Text.Rotation := Angle;
+            end;
+    end;
+
+    Result := Text.Rotation;
 end;
 
 
