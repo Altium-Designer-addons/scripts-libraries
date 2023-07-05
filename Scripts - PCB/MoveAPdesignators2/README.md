@@ -1,3 +1,5 @@
+# [DOWNLOAD](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Scripts%20-%20PCB/MoveAPdesignators2)
+
 # MoveAPdesignators2
 This script will change auto-positioned designators to manual and move them by a user-defined amount. Will operate on all or selected components.\
 The direction of the movement depends on the current autoposition status.
