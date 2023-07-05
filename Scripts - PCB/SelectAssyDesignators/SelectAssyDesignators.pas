@@ -444,8 +444,8 @@ end;
 { normalizes IPCB_Text object to be right-reading }
 function NormalizeText(var Text : IPCB_Text) : Boolean;
 var
-    Angle: Double;
-    OldJustify, NewJustify: TTextAutoposition;
+    OldAngle, NewAngle      : Double;
+    OldJustify, NewJustify  : TTextAutoposition;
 begin
     // AD19+ functions used for normalization
     if not IsAtLeastAD19 then
@@ -457,40 +457,46 @@ begin
     Result := False;
 
     // coerce angle to 0 ~ 360
-    Angle := (Text.Rotation mod 360 + 360) mod 360; // technically an integer operation. TODO: make proper floating point mod throughout
+    OldAngle := (Text.Rotation mod 360 + 360) mod 360; // technically an integer operation. TODO: make proper floating point mod throughout
+    NewAngle := OldAngle; // use coerced value for later comparison
 
     // rotate text to match Angle, based on how mirrored text reads from the flipside of the board
     if Text.MirrorFlag then
     begin
         // mirrored text should be rotated to match layer flip behavior of text vs components
-        if (Angle >= 90) and (Angle < 270) then Angle := (Angle + 180) mod 360
+        if (OldAngle >= 90) and (OldAngle < 270) then NewAngle := (OldAngle + 180) mod 360
     end
     else
     begin
         // slightly different behavior at 90 and 270 for top side
-        if (Angle > 90) and (Angle <= 270) then Angle := (Angle + 180) mod 360
+        if (OldAngle > 90) and (OldAngle <= 270) then NewAngle := (OldAngle + 180) mod 360
     end;
 
-    if Text.Rotation <> Angle then
+    if Text.Rotation <> NewAngle then
     begin
         OldJustify := Text.TTFInvertedTextJustify;
 
-        // need to transform justification setting
-        case OldJustify of
-            eAutoPos_TopLeft        : NewJustify := eAutoPos_BottomRight;
-            eAutoPos_CenterLeft     : NewJustify := eAutoPos_CenterRight;
-            eAutoPos_BottomLeft     : NewJustify := eAutoPos_TopRight;
-            eAutoPos_TopCenter      : NewJustify := eAutoPos_BottomCenter;
-            eAutoPos_BottomCenter   : NewJustify := eAutoPos_TopCenter;
-            eAutoPos_TopRight       : NewJustify := eAutoPos_BottomLeft;
-            eAutoPos_CenterRight    : NewJustify := eAutoPos_CenterLeft;
-            eAutoPos_BottomRight    : NewJustify := eAutoPos_TopLeft;
-            else                      NewJustify := OldJustify;
-        end;
+        // only change justification if the rotation *really* changed
+        if NewAngle <> OldAngle then
+        begin
+            // need to transform justification setting
+            case OldJustify of
+                eAutoPos_TopLeft        : NewJustify := eAutoPos_BottomRight;
+                eAutoPos_CenterLeft     : NewJustify := eAutoPos_CenterRight;
+                eAutoPos_BottomLeft     : NewJustify := eAutoPos_TopRight;
+                eAutoPos_TopCenter      : NewJustify := eAutoPos_BottomCenter;
+                eAutoPos_BottomCenter   : NewJustify := eAutoPos_TopCenter;
+                eAutoPos_TopRight       : NewJustify := eAutoPos_BottomLeft;
+                eAutoPos_CenterRight    : NewJustify := eAutoPos_CenterLeft;
+                eAutoPos_BottomRight    : NewJustify := eAutoPos_TopLeft;
+                else                      NewJustify := OldJustify;
+            end;
+        end
+        else NewJustify := OldJustify;
 
         Text.BeginModify;
         Text.TTFInvertedTextJustify := eAutoPos_CenterCenter; // uses center justification to rotate in place
-        Text.Rotation := Angle;
+        Text.Rotation := NewAngle;
         // need to EndModify and BeginModify here to refresh internal Text.Rotation cache, else changing justification will move text
         Text.EndModify;
         Text.BeginModify;
