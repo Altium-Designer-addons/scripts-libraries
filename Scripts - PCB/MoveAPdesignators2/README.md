@@ -23,7 +23,7 @@ _Step 2_: integrate the script into Altium Designer and execute it.\
 If you are a newcomer to Altium scripts, [please read the "how to" wiki page](https://github.com/Altium-Designer-addons/scripts-libraries/wiki/HowTo_execute_scripts).
 
 ## Known Issues
-- AutoMove will fail to detect component bodies if the parent component has none (because it uses largest body in parent component to determine component body layer)
+- none known at this time
 
 # Features
 ## Automatic movement amount (GUI)
@@ -58,6 +58,7 @@ For example:
     - improved clearance detection to use object outlines instead of bounding boxes for most things (better support for objects that aren't at 0/90)
     - reworked configuration file to use .ini file instead, for better forward compatibility
 - 2023-07-05 - Ver 2.07 : added button to GUI to start interactive placement tool; added redundant `Start` procedure for users that are accustomed to using that
+- 2023-07-05 - Ver 2.08 : fixed issue with interactive placement tool being flipped horizontally for bottom side components
 
 ## Credits
   - Credit to Mattias Ericson & Tony Chilco for the MoveAPdesignators script I started from
