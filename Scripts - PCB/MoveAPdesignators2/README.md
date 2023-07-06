@@ -59,6 +59,7 @@ For example:
     - reworked configuration file to use .ini file instead, for better forward compatibility
 - 2023-07-05 - Ver 2.07 : added button to GUI to start interactive placement tool; added redundant `Start` procedure for users that are accustomed to using that
 - 2023-07-05 - Ver 2.08 : fixed issue with interactive placement tool being flipped horizontally for bottom side components
+- 2023-07-06 - Ver 2.09 : (Interactive placement) added ability to target locked components
 
 ## Credits
   - Credit to Mattias Ericson & Tony Chilco for the MoveAPdesignators script I started from
