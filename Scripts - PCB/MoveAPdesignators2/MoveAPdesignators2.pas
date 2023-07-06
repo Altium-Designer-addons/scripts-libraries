@@ -26,7 +26,7 @@ const
     cNumPresets         = 12; // not just for presets, also used to save previous state
     cConfigFileName     = 'MoveAPdesignators2Settings.ini'
     cScriptTitle        = 'MoveAPdesignators2';
-    cScriptVersion      = '2.08';
+    cScriptVersion      = '2.09';
 
 
 procedure About; forward;
@@ -41,6 +41,7 @@ function DebugContourInfo(contour : IPCB_Contour) : TStringList; forward;
 function DebugGeometricPolygonInfo(poly : IPCB_GeometricPolygon) : TStringList; forward;
 function DebugLevelStr(dummy : String = '') : String; forward;
 procedure DebugMessage(const ShowLevel : Integer; const msg : WideString; const Caption : String = 'Confirm or Cancel Debug'); forward;
+function GetComponentAreaMils(Comp : IPCB_Component) : Int64; forward;
 function GetComponentAtCursor(const sPrompt : TString) : IPCB_Primitive; forward;
 function GetComponentBodyLargest(Comp : IPCB_Component) : IPCB_ComponentBody; forward;
 function GetComponentBodyLayerSet(Comp : IPCB_Component) : TV6_LayerSet; forward;
@@ -526,9 +527,26 @@ begin
 end;
 
 
+function GetComponentAreaMils(Comp : IPCB_Component) : Int64;
+var
+    BRect : TCoordRect;
+begin
+    Result := -1;
+    if Comp <> nil then
+    begin
+        BRect := Comp.BoundingRectangleNoNameComment;
+        Result := ((BRect.right - BRect.left) div 10000) * ((BRect.top - BRect.bottom) div 10000);
+    end;
+end;
+
+
 function GetComponentAtCursor(const sPrompt : TString) : IPCB_Primitive;
 var
-    x, y    : TCoord;
+    x, y            : TCoord;
+    Comp, PrevComp  : IPCB_Component;
+    Area, PrevArea  : Int64;
+    Iter            : IPCB_BoardIterator;
+    BRect           : TCoordRect;
 
 begin
     KeySet := MkSet();
@@ -542,6 +560,48 @@ begin
 
         Result := Board.GetObjectAtXYAskUserIfAmbiguous(x, y, MkSet(eComponentObject), MkSet(eTopLayer, eBottomLayer), eEditAction_Focus);         // eEditAction_DontCare
         if (Result = Nil) then Result := eNoObject;
+
+        // look again, component might be locked (has to iterate all components on board)
+        if Result = eNoObject then
+        begin
+            Iter := Board.BoardIterator_Create;
+            Iter.AddFilter_ObjectSet(MkSet(eComponentObject));
+            Iter.AddFilter_LayerSet(MkSet(eTopLayer, eBottomLayer));
+            Iter.AddFilter_Method(eProcessAll);
+            //SIter.AddFilter_Area(x - 100, y - 100, x + 100, y + 100); // only applies to spatial iterator, which apparently doesn't see locked objects
+
+            Comp := Iter.FirstPCBObject;
+            while (Comp <> Nil) do
+            begin
+                BRect := Comp.BoundingRectangleNoNameComment;
+                Area := GetComponentAreaMils(Comp);
+                // click should be within bounding rectangle
+                if (BRect.left < x) and (x < BRect.right) and (BRect.bottom < y) and (y < BRect.top) then
+                begin
+                    // layer should be visible
+                    if Board.LayerIsDisplayed(Comp.Layer) then
+                    begin
+                        if Result <> eNoObject then
+                        begin
+                            // prioritize component on current layer if previous component is not
+                            if (Comp.Layer = Board.CurrentLayer) and (PrevComp.Layer <> Board.CurrentLayer) then Result := Comp
+                            // both components are on the same layer, prioritize smaller component
+                            else if (Comp.Layer = PrevComp.Layer) and (Area < PrevArea) then Result := Comp;
+                        end
+                        else
+                        begin
+                            Result := Comp;
+                            Area := GetComponentAreaMils(Comp);
+                        end;
+
+                        PrevComp := Result;
+                        PrevArea := GetComponentAreaMils(Result);
+                    end;
+                end;
+                Comp := Iter.NextPCBObject;
+            end;
+            Board.BoardIterator_Destroy(Iter);
+        end;
     end
     else Result := cESC;
 end;
