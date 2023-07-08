@@ -4,8 +4,6 @@
 
 var
     Board             : IPCB_Board;
-    PresetFilePath    : string;
-    PresetList        : TStringList;
     SortedTracks      : TStringList;
     SortedVias        : TStringList;
     TrimPerpendicular : Boolean; // test feature that trims dangling track ends
@@ -17,10 +15,9 @@ var
     ViaModeEnabled    : Boolean;
 
 const
-    NumPresets = 18; // no longer just for presets, also used to save previous state
     ScriptVersion = '1.54';
     ScriptTitle = 'Distribute';
-    PresetFileName = 'MyDistributePresets.txt';
+    cConfigFileName = 'MyDistributeConfig.ini';
 
 
 procedure About; forward;
@@ -28,10 +25,12 @@ procedure AddToDebugListAfter(var Prim : IPCB_Track; LastIntercept : TCoord); fo
 procedure AddToDebugListBefore(var Prim : IPCB_Track; TargetSlope : Double; TargetIntercept : TCoord); forward;
 procedure AddToDebugListFirstVia(var Prim1 : IPCB_Via; var Prim2 : IPCB_Track); forward;
 procedure AddToDebugListSecondVia(var Prim1 : IPCB_Via; var Prim2 : IPCB_Track; const viaminc, viamaxc, midc : TCoord); forward;
-procedure BuildPresetList(var TempPresetList : TStringList); forward;
 procedure calculate(LaunchedFromGUI : Boolean); forward;
 procedure CompileSortedTracks(const dummy : Integer); forward;
 function CompileSortedVias(const dummy : Integer) : Boolean; forward;
+function ConfigFile_GetPath(dummy : String = ''): String; forward;
+procedure ConfigFile_Read(AFileName : String); forward;
+procedure ConfigFile_Write(AFileName : String); forward;
 function DistributeBackward(startc, stepc : TCoord; coef : Double); forward;
 function DistributeForward(startc, stepc : TCoord; coef : Double); forward;
 function DistributeFromCenter(startc, stepc : TCoord; coef : Double); forward;
@@ -85,7 +84,7 @@ begin
         'Updated versions may be found here:' + sLineBreak +
         'https://github.com/Altium-Designer-addons/scripts-libraries' + sLineBreak + sLineBreak +
         'Settings save location:' + sLineBreak +
-        ClientAPI_SpecialFolder_AltiumApplicationData + '\' + PresetFileName;
+        ClientAPI_SpecialFolder_AltiumApplicationData + '\' + cConfigFileName;
 
     ShowInfo(MsgText, 'About');
 end;
@@ -208,33 +207,6 @@ end;
 
 
 {......................................................................................................................}
-{ function to populate a TStringList with preset values }
-procedure BuildPresetList(var TempPresetList : TStringList);
-begin
-    TempPresetList.Clear;
-    TempPresetList.Add(EditDistance.Text);
-    TempPresetList.Add(tPreset1.Text);
-    TempPresetList.Add(tPreset2.Text);
-    TempPresetList.Add(tPreset3.Text);
-    TempPresetList.Add(tPreset4.Text);
-    TempPresetList.Add(tPreset5.Text);
-    TempPresetList.Add(tPreset6.Text);
-    TempPresetList.Add(tPreset7.Text);
-    TempPresetList.Add(tPreset8.Text);
-    TempPresetList.Add(RadioDirections.ItemIndex);
-    TempPresetList.Add(RadioButtonClearance.Checked);
-    TempPresetList.Add(RadioButtonCenters.Checked);
-    TempPresetList.Add(RadioButtonClearanceVal.Checked);
-    TempPresetList.Add(RadioButtonCentersVal.Checked);
-    TempPresetList.Add(CheckBoxTrimEnds.Checked);
-    TempPresetList.Add(EditViaClearance.Text);
-    TempPresetList.Add(ButtonUnits.Caption);
-    TempPresetList.Add(ButtonViaUnits.Caption);
-end;
-{......................................................................................................................}
-
-
-{......................................................................................................................}
 { main procedure to distribute tracks }
 procedure calculate(LaunchedFromGUI : Boolean);
 var
@@ -253,7 +225,6 @@ var
     NumOfChar                                               : Integer; // broj znamenki
     TempString                                              : string;
     coef                                                    : Double;
-    TempPresetList                                          : TStringList;
 
 begin
     if (Board <> PCBServer.GetCurrentPCBBoard) then
@@ -461,22 +432,8 @@ begin
 
         if ViaModeEnabled and ((CheckBoxViaClearance.Checked) or (RadioDirections.ItemIndex = 1)) then SelectListItems(SortedVias);
 
-        if LaunchedFromGUI then
-        begin
-            // build list of currect preset values
-            TempPresetList := CreateObject(TStringList);
-            BuildPresetList(TempPresetList);
-            if TempPresetList.Equals(PresetList) then
-            begin
-                // presets match saved list so do nothing
-            end
-            else
-            begin
-                // save new list to MyDistributePresets.txt
-                TempPresetList.SaveToFile(PresetFilePath);
-            end;
-
-        end;
+        // save last-used values and presets
+        if LaunchedFromGUI then ConfigFile_Write(ConfigFile_GetPath);
 
         if DebuggingEnabled then
         begin
@@ -583,6 +540,93 @@ begin
         PadAndSort(SortedVias);
         Result := True;
     end;
+end;
+{......................................................................................................................}
+
+
+{......................................................................................................................}
+function ConfigFile_GetPath(dummy : String = ''): String;
+begin
+    result := ClientAPI_SpecialFolder_AltiumApplicationData + '\' + cConfigFileName;
+end;
+{......................................................................................................................}
+
+
+{......................................................................................................................}
+procedure ConfigFile_Read(AFileName : String);
+var
+    IniFile: TIniFile;
+begin
+    if not FileExists(AFileName) then
+    begin
+        // ini file doesn't exist, try to fall back on older format file
+        LoadPresetListFromFile(0);
+        exit;
+    end;
+
+    IniFile := TIniFile.Create(AFileName);
+
+    TweakDesForm.Top    := IniFile.ReadInteger('Window Position', 'Top', TweakDesForm.Top);
+    TweakDesForm.Left   := IniFile.ReadInteger('Window Position', 'Left', TweakDesForm.Left);
+
+    tPreset1.Text := IniFile.ReadString('Presets', 'Preset1', tPreset1.Text);
+    tPreset2.Text := IniFile.ReadString('Presets', 'Preset2', tPreset2.Text);
+    tPreset3.Text := IniFile.ReadString('Presets', 'Preset3', tPreset3.Text);
+    tPreset4.Text := IniFile.ReadString('Presets', 'Preset4', tPreset4.Text);
+    tPreset5.Text := IniFile.ReadString('Presets', 'Preset5', tPreset5.Text);
+    tPreset6.Text := IniFile.ReadString('Presets', 'Preset6', tPreset6.Text);
+    tPreset7.Text := IniFile.ReadString('Presets', 'Preset7', tPreset7.Text);
+    tPreset8.Text := IniFile.ReadString('Presets', 'Preset8', tPreset8.Text);
+
+    RadioDirections.ItemIndex       := IniFile.ReadInteger('Last Used', 'Distribute Direction', RadioDirections.ItemIndex)
+    RadioButtonClearance.Checked    := IniFile.ReadBool('Last Used', 'Evenly Distribute Gaps', RadioButtonClearance.Checked);
+    RadioButtonCenters.Checked      := IniFile.ReadBool('Last Used', 'Evenly Distribute Centerlines', RadioButtonCenters.Checked);
+    RadioButtonClearanceVal.Checked := IniFile.ReadBool('Last Used', 'Distribute Clearance By Value', RadioButtonClearanceVal.Checked);
+    RadioButtonCentersVal.Checked   := IniFile.ReadBool('Last Used', 'Distribute Centers By Value', RadioButtonCentersVal.Checked);
+    CheckBoxTrimEnds.Checked        := IniFile.ReadBool('Last Used', 'Trim Track Ends', CheckBoxTrimEnds.Checked);
+    EditViaClearance.Text           := IniFile.ReadString('Last Used', 'Via Clearance', EditViaClearance.Text);
+    ButtonUnits.Caption             := IniFile.ReadString('Last Used', 'Units', ButtonUnits.Caption);
+    ButtonViaUnits.Caption          := IniFile.ReadString('Last Used', 'Via Units', ButtonViaUnits.Caption);
+
+    // Main input field needs to be set last because changing some other values trigger it
+    EditDistance.Text               := IniFile.ReadString('Last Used', 'By-Value Distance', EditDistance.Text);
+
+    IniFile.Free;
+end;
+{......................................................................................................................}
+
+
+{......................................................................................................................}
+procedure ConfigFile_Write(AFileName : String);
+var
+    IniFile: TIniFile;
+begin
+    IniFile := TIniFile.Create(AFileName);
+
+    IniFile.WriteInteger('Window Position', 'Top', TweakDesForm.Top);
+    IniFile.WriteInteger('Window Position', 'Left', TweakDesForm.Left);
+
+    IniFile.WriteString('Presets', 'Preset1', tPreset1.Text);
+    IniFile.WriteString('Presets', 'Preset2', tPreset2.Text);
+    IniFile.WriteString('Presets', 'Preset3', tPreset3.Text);
+    IniFile.WriteString('Presets', 'Preset4', tPreset4.Text);
+    IniFile.WriteString('Presets', 'Preset5', tPreset5.Text);
+    IniFile.WriteString('Presets', 'Preset6', tPreset6.Text);
+    IniFile.WriteString('Presets', 'Preset7', tPreset7.Text);
+    IniFile.WriteString('Presets', 'Preset8', tPreset8.Text);
+
+    IniFile.WriteInteger('Last Used', 'Distribute Direction', RadioDirections.ItemIndex)
+    IniFile.WriteBool('Last Used', 'Evenly Distribute Gaps', RadioButtonClearance.Checked);
+    IniFile.WriteBool('Last Used', 'Evenly Distribute Centerlines', RadioButtonCenters.Checked);
+    IniFile.WriteBool('Last Used', 'Distribute Clearance By Value', RadioButtonClearanceVal.Checked);
+    IniFile.WriteBool('Last Used', 'Distribute Centers By Value', RadioButtonCentersVal.Checked);
+    IniFile.WriteBool('Last Used', 'Trim Track Ends', CheckBoxTrimEnds.Checked);
+    IniFile.WriteString('Last Used', 'Via Clearance', EditViaClearance.Text);
+    IniFile.WriteString('Last Used', 'Units', ButtonUnits.Caption);
+    IniFile.WriteString('Last Used', 'Via Units', ButtonViaUnits.Caption);
+    IniFile.WriteString('Last Used', 'By-Value Distance', EditDistance.Text);
+
+    IniFile.Free;
 end;
 {......................................................................................................................}
 
@@ -1184,11 +1228,16 @@ end;
 
 
 {......................................................................................................................}
-{ function to load preset list from file }
+{ ** DEPRECATED - replaced with ConfigFile_Read ** function to load preset list from file }
 procedure LoadPresetListFromFile(const dummy : Integer);
+const
+    NumPresets = 18; // no longer needed with ini format
+var
+    PresetFilePath    : string;
+    PresetList        : TStringList;
 begin
     // default file name is MyDistributePresets.txt
-    PresetFilePath := ClientAPI_SpecialFolder_AltiumApplicationData + '\' + PresetFileName;
+    PresetFilePath := ClientAPI_SpecialFolder_AltiumApplicationData + '\MyDistributePresets.txt';
     PresetList     := CreateObject(TStringList);
     if FileExists(PresetFilePath) then
     begin
@@ -1207,12 +1256,7 @@ begin
                 begin
                     // do nothing
                 end;
-            else  // if PresetList.Count < NumPresets then PresetList file exists but count is short, just regenerate preset file from defaults
-                begin
-                    if DebuggingEnabled then ShowInfo(PresetFilePath + ' exists but is not the correct length. Defaults will be used.');
-                    BuildPresetList(PresetList);
-                    //PresetList.SaveToFile(PresetFilePath); // don't immediately save over existing file - user might cancel dialog
-                end;
+            else exit; // if PresetList.Count < NumPresets then PresetList file exists but count is short, just exit and use defaults
         end;
 
         // set text boxes to match preset list (redundant if list was regenerated above)
@@ -1235,12 +1279,7 @@ begin
         ButtonViaUnits.Caption          := PresetList[17];
         EditDistance.Text               := PresetList[0]; // Main input field needs to be set last because setting each preset updates it
     end
-    else
-    begin // if preset file didn't exist at all, create from defaults
-        if DebuggingEnabled then ShowInfo(PresetFilePath + ' does not exist. Creating from defaults.');
-        BuildPresetList(PresetList);
-        PresetList.SaveToFile(PresetFilePath);
-    end;
+    else exit; // if preset file didn't exist at all, just exit (older file format deprecated)
 
 end;
 {......................................................................................................................}
@@ -1798,8 +1837,8 @@ begin
         'CEN/VIA examples: a pair of tracks and no vias will move symmetrically; a single track with two vias will center the track between vias.' + sLineBreak +
         'REV: Will reverse the direction of distribution i.e. what would normally be the last track is instead the first track.';
 
-    // read presets from file
-    LoadPresetListFromFile(0);
+    // load previous settings from config file
+    ConfigFile_Read(ConfigFile_GetPath);
 
     if Board.SelectecObjectCount = 2 then
     begin
@@ -1888,7 +1927,6 @@ var
     textbox : TEdit;
 begin
     textbox := Sender;
-    // if DebuggingEnabled then ShowInfo(textbox.Text);
     if IsStringANum(textbox.Text) then
     begin
         if Sender <> EditDistance then EditDistance.Text := textbox.Text;
