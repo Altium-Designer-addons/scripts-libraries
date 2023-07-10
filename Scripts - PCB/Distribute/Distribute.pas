@@ -4,8 +4,6 @@
 
 var
     Board             : IPCB_Board;
-    PresetFilePath    : string;
-    PresetList        : TStringList;
     SortedTracks      : TStringList;
     SortedVias        : TStringList;
     TrimPerpendicular : Boolean; // test feature that trims dangling track ends
@@ -14,12 +12,12 @@ var
     DebugList         : TStringList;
     ViaDebugFilePath  : string;
     ViaDebugList      : TStringList;
+    ViaModeEnabled    : Boolean;
 
 const
-    NumPresets = 15; // no longer just for presets, also used to save previous state
-    ScriptVersion = '1.53';
+    ScriptVersion = '1.54';
     ScriptTitle = 'Distribute';
-    PresetFileName = 'MyDistributePresets.txt';
+    cConfigFileName = 'MyDistributeConfig.ini';
 
 
 procedure About; forward;
@@ -27,13 +25,16 @@ procedure AddToDebugListAfter(var Prim : IPCB_Track; LastIntercept : TCoord); fo
 procedure AddToDebugListBefore(var Prim : IPCB_Track; TargetSlope : Double; TargetIntercept : TCoord); forward;
 procedure AddToDebugListFirstVia(var Prim1 : IPCB_Via; var Prim2 : IPCB_Track); forward;
 procedure AddToDebugListSecondVia(var Prim1 : IPCB_Via; var Prim2 : IPCB_Track; const viaminc, viamaxc, midc : TCoord); forward;
-procedure BuildPresetList(var TempPresetList : TStringList); forward;
 procedure calculate(LaunchedFromGUI : Boolean); forward;
 procedure CompileSortedTracks(const dummy : Integer); forward;
 function CompileSortedVias(const dummy : Integer) : Boolean; forward;
+function ConfigFile_GetPath(dummy : String = ''): String; forward;
+procedure ConfigFile_Read(AFileName : String); forward;
+procedure ConfigFile_Write(AFileName : String); forward;
 function DistributeBackward(startc, stepc : TCoord; coef : Double); forward;
 function DistributeForward(startc, stepc : TCoord; coef : Double); forward;
 function DistributeFromCenter(startc, stepc : TCoord; coef : Double); forward;
+procedure EnableBetweenViaControls(NewEnable : Boolean); forward;
 procedure EnableByValControls(NewEnable : Boolean); forward;
 procedure FastDistributeByCenterline; forward;
 procedure FastDistributeByClearance; forward;
@@ -50,6 +51,7 @@ function MoveTrackToIntercept(ThisTrackIndex, ConnectedTrackOneIndex, ConnectedT
 procedure PadAndSort(var list : TStringList); forward;
 function PointToPointDistance(X1, Y1, X2, Y2 : TCoord) : Double; forward;
 procedure PresetButtonClicked(Sender : TObject); forward;
+procedure SelectListItems(const list : TStringList); forward;
 procedure SetupDataFromTrack(var Prim1 : IPCB_Track; out IsVertical : Boolean; out k : Double; out c, X1, Y1, X2, Y2 : TCoord); forward;
 procedure SetupDataFromVia(var PrimVia : IPCB_Via; var PrimTrack : IPCB_Track; out IsIntVert : Boolean; out k : Double; out c, X, Y, size : TCoord); forward;
 procedure Start; forward;
@@ -57,8 +59,11 @@ procedure StartWithDebug; forward;
 procedure TFormDistribute.ButtonCancelClick(Sender : TObject); forward;
 procedure TFormDistribute.ButtonOKClick(Sender : TObject); forward;
 procedure TFormDistribute.ButtonUnitsClick(Sender : TObject); forward;
+procedure TFormDistribute.ButtonViaUnitsClick(Sender : TObject); forward;
 procedure TFormDistribute.CheckBoxTrimEndsClick(Sender : TObject); forward;
+procedure TFormDistribute.CheckBoxViaClearanceClick(Sender : TObject); forward;
 procedure TFormDistribute.EditDistanceChange(Sender : TObject); forward;
+procedure TFormDistribute.EditViaClearanceChange(Sender : TObject); forward;
 procedure TFormDistribute.FormDistributeShow(Sender : TObject); forward;
 procedure TFormDistribute.RadioButtonCentersClick(Sender : TObject); forward;
 procedure TFormDistribute.RadioButtonCentersValClick(Sender : TObject); forward;
@@ -79,7 +84,7 @@ begin
         'Updated versions may be found here:' + sLineBreak +
         'https://github.com/Altium-Designer-addons/scripts-libraries' + sLineBreak + sLineBreak +
         'Settings save location:' + sLineBreak +
-        ClientAPI_SpecialFolder_AltiumApplicationData + '\' + PresetFileName;
+        ClientAPI_SpecialFolder_AltiumApplicationData + '\' + cConfigFileName;
 
     ShowInfo(MsgText, 'About');
 end;
@@ -202,37 +207,13 @@ end;
 
 
 {......................................................................................................................}
-{ function to populate a TStringList with preset values }
-procedure BuildPresetList(var TempPresetList : TStringList);
-begin
-    TempPresetList.Clear;
-    TempPresetList.Add(EditDistance.Text);
-    TempPresetList.Add(tPreset1.Text);
-    TempPresetList.Add(tPreset2.Text);
-    TempPresetList.Add(tPreset3.Text);
-    TempPresetList.Add(tPreset4.Text);
-    TempPresetList.Add(tPreset5.Text);
-    TempPresetList.Add(tPreset6.Text);
-    TempPresetList.Add(tPreset7.Text);
-    TempPresetList.Add(tPreset8.Text);
-    TempPresetList.Add(RadioDirections.ItemIndex);
-    TempPresetList.Add(RadioButtonClearance.Checked);
-    TempPresetList.Add(RadioButtonCenters.Checked);
-    TempPresetList.Add(RadioButtonClearanceVal.Checked);
-    TempPresetList.Add(RadioButtonCentersVal.Checked);
-    TempPresetList.Add(CheckBoxTrimEnds.Checked);
-end;
-{......................................................................................................................}
-
-
-{......................................................................................................................}
 { main procedure to distribute tracks }
 procedure calculate(LaunchedFromGUI : Boolean);
 var
     i, j                                                    : Integer;
     k1, k2                                                  : Double;
     c1, c2, minc, midc, maxc, stepc, cFromWidths            : TCoord;
-    viaminc, viamaxc, viasize                               : TCoord;
+    viaminc, viamaxc, viasize, viaclearance, cTotalWidths   : TCoord;
     IsVert1                                                 : Boolean;
     IsVert2                                                 : Boolean;
     IsFirstPoint                                            : Boolean;
@@ -244,7 +225,6 @@ var
     NumOfChar                                               : Integer; // broj znamenki
     TempString                                              : string;
     coef                                                    : Double;
-    TempPresetList                                          : TStringList;
 
 begin
     if (Board <> PCBServer.GetCurrentPCBBoard) then
@@ -276,7 +256,8 @@ begin
         if IsVert1 then coef := 1.0 // if first track has been coerced to vertical, coef needs to be 1 for later width compensation
         else coef        := cos(arctan(k1)); // y-intercept coefficient based on slope (i.e. how much intercept shifts for a perpendicular shift of the track)
 
-        cFromWidths := Prim1.Width / (2 * coef); // start cFromWidths with half of the first track's width
+        cFromWidths := Prim1.Width / (2 * coef);    // start cFromWidths with half of the first track's width
+        cTotalWidths := Prim1.Width / coef;         // start cTotalWidths with first track's width
 
         // calculate extents of intercept values and sum of track widths in intercept units
         for i := 1 to SortedTracks.Count - 1 do
@@ -287,7 +268,8 @@ begin
             if (minc > c2) then minc := c2;
             if (maxc < c2) then maxc := c2;
 
-            cFromWidths := cFromWidths + Prim1.Width / coef; // add subsequent track widths
+            cFromWidths := cFromWidths + Prim1.Width / coef;    // add subsequent track widths
+            cTotalWidths := cTotalWidths + Prim1.Width / coef;  // add subsequent track widths
         end;
 
         cFromWidths := cFromWidths - Prim1.Width / (2 * coef); // subtract half of last track's width
@@ -318,23 +300,26 @@ begin
             SetupDataFromVia(Prim1, Prim2, IsVert1, k1, c1, x11, y11, viasize);
             viamaxc := c1 - viasize / (2 * coef);          // subtract via pad radius
 
-            midc := (Round(viaminc + viamaxc)) div 2;   // midline between the vias, accounting for their size
+            if ViaModeEnabled and CheckBoxViaClearance.Checked then
+            begin
+                TempString := EditViaClearance.Text;
+                if (LastDelimiter(',.', TempString) <> 0) then TempString[LastDelimiter(',.', TempString)] := DecimalSeparator;
+
+                // convert desired intercept step using intercept coefficient and selected units
+                if (ButtonViaUnits.Caption = 'mm') then viaclearance := mmsToCoord(StrToFloat(TempString)) / (coef)
+                else viaclearance                                    := milsToCoord(StrToFloat(TempString)) / (coef);
+
+                viaminc := viaminc + viaclearance;  // add user clearance
+                viamaxc := viamaxc - viaclearance;  // subtract user clearance
+            end;
+
+            viaminc := Ceil(viaminc / 20) * 20;     // apply some rounding to make sure to clear by the requested amount
+            viamaxc := Floor(viamaxc / 20) * 20;
+
+            midc := (viaminc + viamaxc) div 2;   // midline between the vias, accounting for their size
 
             if DebuggingEnabled then AddToDebugListSecondVia(Prim1, Prim2, viaminc, viamaxc, midc);
         end;
-
-        {
-            // Test case if all is good until now
-            for i := 0 to SortedTracks.Count - 1 do
-            begin
-            Prim1 := SortedTracks.GetObject(i);
-            Prim1.Selected := False;
-
-            ShowInfo(SortedTracks[i]);
-
-            Prim1.Selected := True;
-            end;
-        }
 
         // Add connected tracks to the track list, or pad the list if there is no track connected to a given end
         // (Dio koji puni object listu sa susjednim trackovima ako je track onda u listu ide YES a noj stavlja NO)
@@ -416,8 +401,16 @@ begin
         end
         else if RadioButtonClearance.Checked then
         begin
-            stepc := (maxc - minc - cFromWidths) / ((SortedTracks.Count / 3) - 1); // intercept increment is same as above but subtracting sum of track widths from intercept extents
-            DistributeForward(minc, stepc, coef);
+            if ViaModeEnabled and CheckBoxViaClearance.Checked then
+            begin
+                stepc := (viamaxc - viaminc - cTotalWidths) / ((SortedTracks.Count / 3) - 1); // same intercept increment as above but between vias and subtracting sum of track widths
+                DistributeFromCenter(midc, stepc, coef);
+            end
+            else
+            begin
+                stepc := (maxc - minc - cFromWidths) / ((SortedTracks.Count / 3) - 1); // intercept increment is same as above but subtracting sum of track widths from intercept extents
+                DistributeForward(minc, stepc, coef);
+            end;
         end
         else
         begin // distributing using input value rather than between intercept extents
@@ -437,22 +430,10 @@ begin
             end;
         end;
 
-        if LaunchedFromGUI then
-        begin
-            // build list of currect preset values
-            TempPresetList := CreateObject(TStringList);
-            BuildPresetList(TempPresetList);
-            if TempPresetList.Equals(PresetList) then
-            begin
-                // presets match saved list so do nothing
-            end
-            else
-            begin
-                // save new list to MyDistributePresets.txt
-                TempPresetList.SaveToFile(PresetFilePath);
-            end;
+        if ViaModeEnabled and ((CheckBoxViaClearance.Checked) or (RadioDirections.ItemIndex = 1)) then SelectListItems(SortedVias);
 
-        end;
+        // save last-used values and presets
+        if LaunchedFromGUI then ConfigFile_Write(ConfigFile_GetPath);
 
         if DebuggingEnabled then
         begin
@@ -559,6 +540,93 @@ begin
         PadAndSort(SortedVias);
         Result := True;
     end;
+end;
+{......................................................................................................................}
+
+
+{......................................................................................................................}
+function ConfigFile_GetPath(dummy : String = ''): String;
+begin
+    result := ClientAPI_SpecialFolder_AltiumApplicationData + '\' + cConfigFileName;
+end;
+{......................................................................................................................}
+
+
+{......................................................................................................................}
+procedure ConfigFile_Read(AFileName : String);
+var
+    IniFile: TIniFile;
+begin
+    if not FileExists(AFileName) then
+    begin
+        // ini file doesn't exist, try to fall back on older format file
+        LoadPresetListFromFile(0);
+        exit;
+    end;
+
+    IniFile := TIniFile.Create(AFileName);
+
+    TweakDesForm.Top    := IniFile.ReadInteger('Window Position', 'Top', TweakDesForm.Top);
+    TweakDesForm.Left   := IniFile.ReadInteger('Window Position', 'Left', TweakDesForm.Left);
+
+    tPreset1.Text := IniFile.ReadString('Presets', 'Preset1', tPreset1.Text);
+    tPreset2.Text := IniFile.ReadString('Presets', 'Preset2', tPreset2.Text);
+    tPreset3.Text := IniFile.ReadString('Presets', 'Preset3', tPreset3.Text);
+    tPreset4.Text := IniFile.ReadString('Presets', 'Preset4', tPreset4.Text);
+    tPreset5.Text := IniFile.ReadString('Presets', 'Preset5', tPreset5.Text);
+    tPreset6.Text := IniFile.ReadString('Presets', 'Preset6', tPreset6.Text);
+    tPreset7.Text := IniFile.ReadString('Presets', 'Preset7', tPreset7.Text);
+    tPreset8.Text := IniFile.ReadString('Presets', 'Preset8', tPreset8.Text);
+
+    RadioDirections.ItemIndex       := IniFile.ReadInteger('Last Used', 'Distribute Direction', RadioDirections.ItemIndex);
+    RadioButtonClearance.Checked    := IniFile.ReadBool('Last Used', 'Evenly Distribute Gaps', RadioButtonClearance.Checked);
+    RadioButtonCenters.Checked      := IniFile.ReadBool('Last Used', 'Evenly Distribute Centerlines', RadioButtonCenters.Checked);
+    RadioButtonClearanceVal.Checked := IniFile.ReadBool('Last Used', 'Distribute Clearance By Value', RadioButtonClearanceVal.Checked);
+    RadioButtonCentersVal.Checked   := IniFile.ReadBool('Last Used', 'Distribute Centers By Value', RadioButtonCentersVal.Checked);
+    CheckBoxTrimEnds.Checked        := IniFile.ReadBool('Last Used', 'Trim Track Ends', CheckBoxTrimEnds.Checked);
+    EditViaClearance.Text           := IniFile.ReadString('Last Used', 'Via Clearance', EditViaClearance.Text);
+    ButtonUnits.Caption             := IniFile.ReadString('Last Used', 'Units', ButtonUnits.Caption);
+    ButtonViaUnits.Caption          := IniFile.ReadString('Last Used', 'Via Units', ButtonViaUnits.Caption);
+
+    // Main input field needs to be set last because changing some other values trigger it
+    EditDistance.Text               := IniFile.ReadString('Last Used', 'By-Value Distance', EditDistance.Text);
+
+    IniFile.Free;
+end;
+{......................................................................................................................}
+
+
+{......................................................................................................................}
+procedure ConfigFile_Write(AFileName : String);
+var
+    IniFile: TIniFile;
+begin
+    IniFile := TIniFile.Create(AFileName);
+
+    IniFile.WriteInteger('Window Position', 'Top', TweakDesForm.Top);
+    IniFile.WriteInteger('Window Position', 'Left', TweakDesForm.Left);
+
+    IniFile.WriteString('Presets', 'Preset1', tPreset1.Text);
+    IniFile.WriteString('Presets', 'Preset2', tPreset2.Text);
+    IniFile.WriteString('Presets', 'Preset3', tPreset3.Text);
+    IniFile.WriteString('Presets', 'Preset4', tPreset4.Text);
+    IniFile.WriteString('Presets', 'Preset5', tPreset5.Text);
+    IniFile.WriteString('Presets', 'Preset6', tPreset6.Text);
+    IniFile.WriteString('Presets', 'Preset7', tPreset7.Text);
+    IniFile.WriteString('Presets', 'Preset8', tPreset8.Text);
+
+    IniFile.WriteInteger('Last Used', 'Distribute Direction', RadioDirections.ItemIndex);
+    IniFile.WriteBool('Last Used', 'Evenly Distribute Gaps', RadioButtonClearance.Checked);
+    IniFile.WriteBool('Last Used', 'Evenly Distribute Centerlines', RadioButtonCenters.Checked);
+    IniFile.WriteBool('Last Used', 'Distribute Clearance By Value', RadioButtonClearanceVal.Checked);
+    IniFile.WriteBool('Last Used', 'Distribute Centers By Value', RadioButtonCentersVal.Checked);
+    IniFile.WriteBool('Last Used', 'Trim Track Ends', CheckBoxTrimEnds.Checked);
+    IniFile.WriteString('Last Used', 'Via Clearance', EditViaClearance.Text);
+    IniFile.WriteString('Last Used', 'Units', ButtonUnits.Caption);
+    IniFile.WriteString('Last Used', 'Via Units', ButtonViaUnits.Caption);
+    IniFile.WriteString('Last Used', 'By-Value Distance', EditDistance.Text);
+
+    IniFile.Free;
 end;
 {......................................................................................................................}
 
@@ -746,6 +814,31 @@ end;
 
 
 {......................................................................................................................}
+{ function to enable or disable controls related to between-via distribute mode }
+procedure EnableBetweenViaControls(NewEnable : Boolean);
+begin
+    if RadioButtonClearance.Checked then
+    begin
+        CheckBoxViaClearance.Enabled    := NewEnable;
+        EditViaClearance.Enabled        := CheckBoxViaClearance.Checked;
+        ButtonViaUnits.Enabled          := CheckBoxViaClearance.Checked;
+    end
+    else
+    begin
+        CheckBoxViaClearance.Enabled    := False;
+        EditViaClearance.Enabled        := False;
+        ButtonViaUnits.Enabled          := False;
+    end;
+
+    CheckBoxViaClearance.Visible    := NewEnable;
+    EditViaClearance.Visible        := NewEnable;
+    ButtonViaUnits.Visible          := NewEnable;
+
+end;
+{......................................................................................................................}
+
+
+{......................................................................................................................}
 { function to enable or disable controls related to by-value distribute mode }
 procedure EnableByValControls(NewEnable : Boolean);
 begin
@@ -800,15 +893,14 @@ end;
 procedure FastDistributeByClearance;
 var
     status   : Integer;
-    ViaCount : Integer;
 begin
-    ViaCount := InitialCheck(status);
+    if (InitialCheck(status) = 2) then ViaModeEnabled := True else ViaModeEnabled := False;
     if status = 0 then
     begin
-        if (ViaCount = 2) and (Board.SelectecObjectCount = 3) then
+        if (ViaModeEnabled) and (Board.SelectecObjectCount = 3) then
         begin
             // two vias and one track selected, do track centering instead
-            DebuggingEnabled := False;
+            DebuggingEnabled                := False;
             RadioButtonCenters.Checked      := False;
             RadioButtonClearance.Checked    := False;
             RadioDirections.ItemIndex       := 1;
@@ -816,9 +908,9 @@ begin
         end
         else
         begin
-            DebuggingEnabled := False;
-            RadioButtonCenters.Checked   := False;
-            RadioButtonClearance.Checked := True;
+            DebuggingEnabled                := False;
+            RadioButtonCenters.Checked      := False;
+            RadioButtonClearance.Checked    := True;
             calculate(False);
         end;
     end
@@ -1136,29 +1228,35 @@ end;
 
 
 {......................................................................................................................}
-{ function to load preset list from file }
+{ ** DEPRECATED - replaced with ConfigFile_Read ** function to load preset list from file }
 procedure LoadPresetListFromFile(const dummy : Integer);
+const
+    NumPresets = 18; // no longer needed with ini format
+var
+    PresetFilePath    : string;
+    PresetList        : TStringList;
 begin
     // default file name is MyDistributePresets.txt
-    PresetFilePath := ClientAPI_SpecialFolder_AltiumApplicationData + '\' + PresetFileName;
+    PresetFilePath := ClientAPI_SpecialFolder_AltiumApplicationData + '\MyDistributePresets.txt';
     PresetList     := CreateObject(TStringList);
     if FileExists(PresetFilePath) then
     begin
-        // ShowInfo('Loading presets from ' + PresetFilePath);
+        if DebuggingEnabled then ShowInfo('Loading presets from ' + PresetFilePath);
         PresetList.LoadFromFile(PresetFilePath); // load presets from file if it exists
 
         case PresetList.Count of
-            14 : PresetList.Add(CheckBoxTrimEnds.Checked); // PresetList[14] (14-element PresetList implies v1.4)
+            14 : PresetList.Add(CheckBoxTrimEnds.Checked);  // PresetList[14] (14-element PresetList implies v1.4)
+            15 :
+                begin
+                    PresetList.Add(EditViaClearance.Text);  // PresetList[15] (added in v1.54)
+                    PresetList.Add(ButtonUnits.Caption);    // PresetList[16] (added in v1.54)
+                    PresetList.Add(ButtonViaUnits.Caption); // PresetList[17] (added in v1.54)
+                end;
             NumPresets :
                 begin
                     // do nothing
-                end
-            else  // if PresetList.Count < NumPresets then PresetList file exists but count is short, just regenerate preset file from defaults
-                begin
-                    // ShowInfo(PresetFilePath + ' exists but is not the correct length. Defaults will be used.');
-                    BuildPresetList(PresetList);
-                    PresetList.SaveToFile(PresetFilePath);
                 end;
+            else exit; // if PresetList.Count < NumPresets then PresetList file exists but count is short, just exit and use defaults
         end;
 
         // set text boxes to match preset list (redundant if list was regenerated above)
@@ -1176,14 +1274,12 @@ begin
         RadioButtonClearanceVal.Checked := PresetList[12];
         RadioButtonCentersVal.Checked   := PresetList[13];
         CheckBoxTrimEnds.Checked        := PresetList[14];
+        EditViaClearance.Text           := PresetList[15];
+        ButtonUnits.Caption             := PresetList[16];
+        ButtonViaUnits.Caption          := PresetList[17];
         EditDistance.Text               := PresetList[0]; // Main input field needs to be set last because setting each preset updates it
     end
-    else
-    begin // if preset file didn't exist at all, create from defaults
-        // ShowInfo(PresetFilePath + ' does not exist.');
-        BuildPresetList(PresetList);
-        PresetList.SaveToFile(PresetFilePath);
-    end;
+    else exit; // if preset file didn't exist at all, just exit (older file format deprecated)
 
 end;
 {......................................................................................................................}
@@ -1420,7 +1516,7 @@ end;
 {......................................................................................................................}
 procedure PresetButtonClicked(Sender : TObject);
 begin
-    // ShowInfo('PresetButtonClicked');
+    if DebuggingEnabled then ShowInfo(Sender.Name + ' PresetButtonClicked');
     if Sender = ButtonPreset1 then EditDistance.Text      := tPreset1.Text
     else if Sender = ButtonPreset2 then EditDistance.Text := tPreset2.Text
     else if Sender = ButtonPreset3 then EditDistance.Text := tPreset3.Text
@@ -1430,6 +1526,21 @@ begin
     else if Sender = ButtonPreset7 then EditDistance.Text := tPreset7.Text
     else if Sender = ButtonPreset8 then EditDistance.Text := tPreset8.Text;
     calculate(True);
+end;
+{......................................................................................................................}
+
+
+{......................................................................................................................}
+procedure SelectListItems(const list : TStringList);
+var
+    Prim : IPCB_Primitive;
+    i    : Integer;
+begin
+    for i := 0 to list.Count - 1 do
+    begin
+        Prim := list.getObject(i);
+        Prim.Selected := True;
+    end;
 end;
 {......................................................................................................................}
 
@@ -1567,7 +1678,7 @@ var
     status : Integer;
 begin
     DebuggingEnabled := False;
-    InitialCheck(status);
+    if (InitialCheck(status) = 2) then ViaModeEnabled := True else ViaModeEnabled := False;
     if status = 0 then
     begin
         FormDistribute.ShowModal;
@@ -1583,7 +1694,7 @@ var
     status : Integer;
 begin
     DebuggingEnabled := True;
-    InitialCheck(status);
+    if (InitialCheck(status) = 2) then ViaModeEnabled := True else ViaModeEnabled := False;
     if status = 0 then
     begin
         FormDistribute.ShowModal;
@@ -1633,10 +1744,42 @@ end;
 
 
 {......................................................................................................................}
+procedure TFormDistribute.ButtonViaUnitsClick(Sender : TObject);
+var
+    TempString : string;
+begin
+    TempString := EditViaClearance.Text;
+    if (LastDelimiter(',.', TempString) <> 0) then TempString[LastDelimiter(',.', TempString)] := DecimalSeparator;
+
+    if ButtonViaUnits.Caption = 'mil' then
+    begin
+        ButtonViaUnits.Caption := 'mm';
+        EditViaClearance.Text   := CoordToMMs(milsToCoord(StrToFloat(TempString)));
+    end
+    else
+    begin
+        ButtonViaUnits.Caption := 'mil';
+        EditViaClearance.Text   := CoordToMils(mmsToCoord(StrToFloat(TempString)));
+    end;
+    EditViaClearance.SetFocus;
+end;
+{......................................................................................................................}
+
+
+{......................................................................................................................}
 procedure TFormDistribute.CheckBoxTrimEndsClick(Sender : TObject);
 begin
     TrimPerpendicular := CheckBoxTrimEnds.Checked;
     if (GetPresetButtonEnable(0) and FormDistribute.Active) then EditDistance.SetFocus;
+end;
+{......................................................................................................................}
+
+
+{......................................................................................................................}
+procedure TFormDistribute.CheckBoxViaClearanceClick(Sender : TObject);
+begin
+    EnableBetweenViaControls(ViaModeEnabled);
+    if (CheckBoxViaClearance.Checked and FormDistribute.Active) then EditViaClearance.SetFocus;
 end;
 {......................................................................................................................}
 
@@ -1649,11 +1792,33 @@ begin
     begin
         EditDistance.Font.Color := clWindowText;
         ButtonOK.Enabled        := True;
+        ButtonUnits.Enabled     := True;
     end
     else
     begin
         ButtonOK.Enabled        := False;
+        ButtonUnits.Enabled     := False;
         EditDistance.Font.Color := clRed;
+    end;
+end;
+{......................................................................................................................}
+
+
+{......................................................................................................................}
+procedure TFormDistribute.EditViaClearanceChange(Sender : TObject);
+begin
+
+    if IsStringANum(Sender.Text) then
+    begin
+        Sender.Font.Color       := clWindowText;
+        ButtonOK.Enabled        := True;
+        ButtonViaUnits.Enabled  := True;
+    end
+    else
+    begin
+        ButtonOK.Enabled        := False;
+        ButtonViaUnits.Enabled  := False;
+        Sender.Font.Color       := clRed;
     end;
 end;
 {......................................................................................................................}
@@ -1672,8 +1837,8 @@ begin
         'CEN/VIA examples: a pair of tracks and no vias will move symmetrically; a single track with two vias will center the track between vias.' + sLineBreak +
         'REV: Will reverse the direction of distribution i.e. what would normally be the last track is instead the first track.';
 
-    // read presets from file
-    LoadPresetListFromFile(0);
+    // load previous settings from config file
+    ConfigFile_Read(ConfigFile_GetPath);
 
     if Board.SelectecObjectCount = 2 then
     begin
@@ -1686,7 +1851,12 @@ begin
     begin
         EnableByValControls(True);
     end
-    else EnableByValControls(False);
+    else
+    begin
+        EnableByValControls(False);
+    end;
+
+    EnableBetweenViaControls(ViaModeEnabled);
 
 end;
 {......................................................................................................................}
@@ -1696,6 +1866,7 @@ end;
 procedure TFormDistribute.RadioButtonCentersClick(Sender : TObject);
 begin
     EnableByValControls(False);
+    EnableBetweenViaControls(ViaModeEnabled);
 end;
 {......................................................................................................................}
 
@@ -1704,6 +1875,7 @@ end;
 procedure TFormDistribute.RadioButtonCentersValClick(Sender : TObject);
 begin
     EnableByValControls(True);
+    EnableBetweenViaControls(ViaModeEnabled);
     EditDistance.SetFocus;
 end;
 {......................................................................................................................}
@@ -1713,6 +1885,7 @@ end;
 procedure TFormDistribute.RadioButtonClearanceClick(Sender : TObject);
 begin
     EnableByValControls(False);
+    EnableBetweenViaControls(ViaModeEnabled);
 end;
 {......................................................................................................................}
 
@@ -1721,6 +1894,7 @@ end;
 procedure TFormDistribute.RadioButtonClearanceValClick(Sender : TObject);
 begin
     EnableByValControls(True);
+    EnableBetweenViaControls(ViaModeEnabled);
     EditDistance.SetFocus;
 end;
 {......................................................................................................................}
@@ -1753,7 +1927,6 @@ var
     textbox : TEdit;
 begin
     textbox := Sender;
-    // ShowInfo(textbox.Text);
     if IsStringANum(textbox.Text) then
     begin
         if Sender <> EditDistance then EditDistance.Text := textbox.Text;

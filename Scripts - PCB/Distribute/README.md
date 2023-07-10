@@ -1,10 +1,12 @@
+# [DOWNLOAD](https://altium-designer-addons.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Scripts%20-%20PCB/Distribute) script
+
 # Distribute Script
 
 ## What is it
 This script can set the clearance or center-to-center distance between two or more tracks, and in the case of three or more tracks, can distribute the track centers or clearances evenly between the outer pair of tracks.
 
 ## How to install and use
-_Step 1_: [DOWNLOAD](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Scripts%20-%20PCB/Distribute) script
+_Step 1_: [DOWNLOAD](https://altium-designer-addons.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Scripts%20-%20PCB/Distribute) script
 
 _Step 2_: integrate the script into Altium Designer and execute it.\
 If you are a newcomer to Altium scripts, [please read the "how to" wiki page](https://github.com/Altium-Designer-addons/scripts-libraries/wiki/HowTo_execute_scripts).
@@ -86,3 +88,5 @@ Tracks with a slope greater than 20 (90° > angle > ~87.137°) will be coerced t
 2023-06-06 by Ryan Rutledge : v1.52 - updated *FastDistributeByClearance* to add support for via centering of single track; fixed typo breaking via centering feature
 
 2023-06-07 by Ryan Rutledge : v1.53 - fixed typo in *SetupDataFromTrack* declaration (didn't seem to be functionally broken though); reformatted function signatures to use more concise and proper Delphi syntax - non-functional change because DelphiScript is untyped, but it's more "correct" now; allow centering between projected drills of vias that don't exist on track layer with user confirmation
+
+2023-07-10 by Ryan Rutledge : v1.54 - after running between-via centering, vias are not deselected; added support for evenly distributing between vias with specific via clearance
