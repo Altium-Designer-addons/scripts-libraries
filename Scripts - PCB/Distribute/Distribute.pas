@@ -578,7 +578,7 @@ begin
     tPreset7.Text := IniFile.ReadString('Presets', 'Preset7', tPreset7.Text);
     tPreset8.Text := IniFile.ReadString('Presets', 'Preset8', tPreset8.Text);
 
-    RadioDirections.ItemIndex       := IniFile.ReadInteger('Last Used', 'Distribute Direction', RadioDirections.ItemIndex)
+    RadioDirections.ItemIndex       := IniFile.ReadInteger('Last Used', 'Distribute Direction', RadioDirections.ItemIndex);
     RadioButtonClearance.Checked    := IniFile.ReadBool('Last Used', 'Evenly Distribute Gaps', RadioButtonClearance.Checked);
     RadioButtonCenters.Checked      := IniFile.ReadBool('Last Used', 'Evenly Distribute Centerlines', RadioButtonCenters.Checked);
     RadioButtonClearanceVal.Checked := IniFile.ReadBool('Last Used', 'Distribute Clearance By Value', RadioButtonClearanceVal.Checked);
@@ -615,7 +615,7 @@ begin
     IniFile.WriteString('Presets', 'Preset7', tPreset7.Text);
     IniFile.WriteString('Presets', 'Preset8', tPreset8.Text);
 
-    IniFile.WriteInteger('Last Used', 'Distribute Direction', RadioDirections.ItemIndex)
+    IniFile.WriteInteger('Last Used', 'Distribute Direction', RadioDirections.ItemIndex);
     IniFile.WriteBool('Last Used', 'Evenly Distribute Gaps', RadioButtonClearance.Checked);
     IniFile.WriteBool('Last Used', 'Evenly Distribute Centerlines', RadioButtonCenters.Checked);
     IniFile.WriteBool('Last Used', 'Distribute Clearance By Value', RadioButtonClearanceVal.Checked);
