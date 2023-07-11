@@ -60,6 +60,7 @@ For example:
 - 2023-07-05 - Ver 2.07 : added button to GUI to start interactive placement tool; added redundant `Start` procedure for users that are accustomed to using that
 - 2023-07-05 - Ver 2.08 : fixed issue with interactive placement tool being flipped horizontally for bottom side components
 - 2023-07-06 - Ver 2.09 : (Interactive placement) added ability to target locked components
+- 2023-07-11 - Ver 2.10 : (Interactive placement) reworked text rotation to be 0° or 90° relative to part rotation (i.e. normal or orthogonal to part, not board); **autoposition now supports any placement angle**
 
 ## Credits
   - Credit to Mattias Ericson & Tony Chilco for the MoveAPdesignators script I started from
