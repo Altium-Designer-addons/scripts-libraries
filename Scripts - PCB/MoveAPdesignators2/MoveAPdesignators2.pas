@@ -848,8 +848,12 @@ begin
 
     Angle := Round(ArcTan2((loc_y - Comp.y), (loc_x - Comp.x) * flipX) / Pi * 180);
 
-    if cEnableAnyAngle then Angle := Round(Angle - Comp.Rotation); // relative to component orientation
+    // relative to component orientation
+    if cEnableAnyAngle then
+        if Comp.Layer = eBottomLayer then Angle := Round(Angle + Comp.Rotation)
+        else Angle := Round(Angle - Comp.Rotation);
 
+    while Angle >= 360 do Angle := Angle - 360;
     while Angle < 0 do Angle := Angle + 360;
 
     // Map the angle to the relative position (rotate 22 degrees and index into 45 degree segments)
