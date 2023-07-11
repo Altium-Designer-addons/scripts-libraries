@@ -23,7 +23,7 @@ _Step 2_: integrate the script into Altium Designer and execute it.\
 If you are a newcomer to Altium scripts, [please read the "how to" wiki page](https://github.com/Altium-Designer-addons/scripts-libraries/wiki/HowTo_execute_scripts).
 
 ## Known Issues
-- none known at this time
+- **ALTIUM BUG**: When a component is flipped to the other side of the board, autopositioning still orients as if it is on the original side. Closing and re-opening the PcbDoc will make the autoposition work properly.
 
 # Features
 ## Automatic movement amount (GUI)
