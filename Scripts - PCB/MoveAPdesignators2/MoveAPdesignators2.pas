@@ -22,16 +22,17 @@ const
     cCtrlKey            = 3; // available for use during component and location selection
     cDEBUGLEVEL         = 0;
     cPersistentMode     = False;
+    cEnableAnyAngle     = True;
     cUseConfigFile      = True;
     cNumPresets         = 12; // not just for presets, also used to save previous state
     cConfigFileName     = 'MoveAPdesignators2Settings.ini'
     cScriptTitle        = 'MoveAPdesignators2';
-    cScriptVersion      = '2.09';
+    cScriptVersion      = '2.10';
 
 
 procedure About; forward;
-function AutoMove(var NameOrComment : IPCB_Text; SearchDist : TCoord = 1200000; ParentOnly : Boolean = True; StartDist : TCoord = 400000; MinDist : TCoord = 25000) : TCoord; forward;
-procedure AutoPosDeltaAdjust(var NameOrComment : IPCB_Text; MoveDistance : TCoord; autoPos : TTextAutoposition); forward;
+function AutoMove(var NameOrComment : IPCB_Text; SearchDist : TCoord = 1200000; ParentOnly : Boolean = True; StartDist : TCoord = 400000; MinDist : TCoord = 25000; ForceAutoPos : TTextAutoposition = eAutoPos_Manual) : TCoord; forward;
+procedure AutoPosDeltaAdjust(var NameOrComment : IPCB_Text; MoveDistance : TCoord; autoPos : TTextAutoposition; bAnyAngleFlag : Boolean = False); forward;
 function AutopositionJustify(var NameOrComment : IPCB_Text; const tc_AutoPos : TTextAutoposition): TTextAutoposition; forward;
 procedure BothInitialCheck(var status : Integer); forward;
 function CoordToStr(Coords : TCoord) : String; forward;
@@ -56,6 +57,7 @@ function IsStringANum(Text : string) : Boolean; forward;
 function IsTextOverObj(Text: IPCB_Text; ObjID: Integer; Filter_Size: Integer; ParentOnly: Boolean = False): Boolean; forward;
 function IsValidPlacement(Silkscreen : IPCB_Text; ParentOnly : Boolean = False) : Boolean; forward;
 procedure LoadPresetListFromFile(const dummy : Integer); forward;
+function NormalizeText(var Text : IPCB_Text) : Boolean; forward;
 procedure PresetButtonClicked(Sender : TObject); forward;
 function RotateTextToAngle(var Text : IPCB_Text; const Angle : Double; const Normalize : Boolean = False; const Ortho : Boolean = False) : Double; forward;
 function SelectCompAndDesignators(dummy : Boolean = False) : Boolean; forward;
@@ -100,7 +102,7 @@ begin
 end; { About }
 
 
-function AutoMove(var NameOrComment : IPCB_Text; SearchDist : TCoord = 1200000; ParentOnly : Boolean = True; StartDist : TCoord = 400000; MinDist : TCoord = 25000) : TCoord;
+function AutoMove(var NameOrComment : IPCB_Text; SearchDist : TCoord = 1200000; ParentOnly : Boolean = True; StartDist : TCoord = 400000; MinDist : TCoord = 25000; ForceAutoPos : TTextAutoposition = eAutoPos_Manual) : TCoord;
 const
     cSEARCHDIST         = 1200000; // don't make this too big or it leaves room to jump into valid placement on other side of part
     cMINSEARCHDIST      = 50000;
@@ -111,6 +113,7 @@ var
     bFirstPass          : Boolean;
     bRunoff             : Boolean;
     bDefaultValid       : Boolean;
+    bAnyAngleFlag       : Boolean;
     TextTypeStr         : String;
 begin
     SearchDist := MIN(SearchDist, cSEARCHDIST);
@@ -119,6 +122,7 @@ begin
     bFirstPass := False;
     bRunoff := False;
     bDefaultValid := True;
+    bAnyAngleFlag := (ForceAutoPos <> eAutoPos_Manual) and cEnableAnyAngle;
 
     if not (NameOrComment <> nil and NameOrComment.InComponent) then
     begin
@@ -127,7 +131,9 @@ begin
     end;
     TotalDist := 0;
 
-    if NameOrComment.IsDesignator then NameOrCommentAP := NameOrComment.Component.NameAutoPosition else NameOrCommentAP := NameOrComment.Component.CommentAutoPosition;
+    if bAnyAngleFlag then NameOrCommentAP := ForceAutoPos
+    else if NameOrComment.IsDesignator then NameOrCommentAP := NameOrComment.Component.NameAutoPosition
+    else NameOrCommentAP := NameOrComment.Component.CommentAutoPosition;
 
     if NameOrCommentAP = eAutoPos_Manual then
     begin
@@ -157,7 +163,7 @@ begin
                 // (such as if the initial search puts it on the opposite side of the part and there is valid placement room)
                 bRunoff := True;
 
-                AutoPosDeltaAdjust(NameOrComment, -TotalDist, NameOrCommentAP);
+                AutoPosDeltaAdjust(NameOrComment, -TotalDist, NameOrCommentAP, bAnyAngleFlag);
                 TotalDist := 0;
                 if iDebugLevel >= 2 then NameOrComment.GraphicallyInvalidate;
                 if iDebugLevel >= 2 then Application.ProcessMessages;
@@ -177,7 +183,7 @@ begin
         end;
 
         // coerce MoveDist to not exceed search distance, but don't change the value of the variable
-        AutoPosDeltaAdjust(NameOrComment, MIN(MoveDist, CurSearchDist - TotalDist), NameOrCommentAP);
+        AutoPosDeltaAdjust(NameOrComment, MIN(MoveDist, CurSearchDist - TotalDist), NameOrCommentAP, bAnyAngleFlag);
         if iDebugLevel >= 2 then NameOrComment.GraphicallyInvalidate;
         if iDebugLevel >= 2 then Application.ProcessMessages;
         TotalDist := TotalDist + MIN(MoveDist, CurSearchDist - TotalDist);
@@ -222,7 +228,7 @@ begin
             else
             begin
                 // once there has been at least one valid placement, start approaching in half-size steps
-                AutoPosDeltaAdjust(NameOrComment, -MoveDist, NameOrCommentAP);
+                AutoPosDeltaAdjust(NameOrComment, -MoveDist, NameOrCommentAP, bAnyAngleFlag);
                 if iDebugLevel >= 2 then NameOrComment.GraphicallyInvalidate;
                 if iDebugLevel >= 2 then Application.ProcessMessages;
                 TotalDist := TotalDist - MoveDist;
@@ -235,7 +241,7 @@ begin
     if not bFirstPass then
     begin
         // undo all the moving
-        AutoPosDeltaAdjust(NameOrComment, -TotalDist, NameOrCommentAP);
+        AutoPosDeltaAdjust(NameOrComment, -TotalDist, NameOrCommentAP, bAnyAngleFlag);
         DebugMessage(2, 'Failed to find passing placement within ' + CoordToStr(TotalDist) + '. Move attempt cancelled.');
         TotalDist := 0;
     end;
@@ -245,13 +251,25 @@ end;
 
 
 
-procedure AutoPosDeltaAdjust(var NameOrComment : IPCB_Text; MoveDistance : TCoord; autoPos : TTextAutoposition);
+procedure AutoPosDeltaAdjust(var NameOrComment : IPCB_Text; MoveDistance : TCoord; autoPos : TTextAutoposition; bAnyAngleFlag : Boolean = False);
 var
     dx, dy, d: Integer;
     flipx: Integer;
     rect : TCoordRect;
     taller : Boolean;
+    TempRotation : Double;
+    ParentComp : IPCB_Component;
 begin
+    if bAnyAngleFlag then
+    begin
+        ParentComp := NameOrComment.Component;
+        TempRotation := ParentComp.Rotation;
+
+        ParentComp.BeginModify;
+        ParentComp.Rotation := 0;
+        ParentComp.EndModify;
+    end;
+
     d := MoveDistance;
     dx := 0;
     dy := 0;
@@ -295,9 +313,23 @@ begin
             dx := -d * flipx;
         end;
     end;
-    NameOrComment.BeginModify;
-    NameOrComment.MoveByXY(dx, dy);
-    NameOrComment.EndModify;
+
+    if bAnyAngleFlag then
+    begin
+        NameOrComment.BeginModify;
+        NameOrComment.MoveByXY(dx, dy);
+        NameOrComment.EndModify;
+
+        ParentComp.BeginModify;
+        ParentComp.Rotation := TempRotation;
+        ParentComp.EndModify;
+    end
+    else
+    begin
+        NameOrComment.BeginModify;
+        NameOrComment.MoveByXY(dx, dy);
+        NameOrComment.EndModify;
+    end;
 end;
 
 { function to transform text justification based on IPCB_Text autoposition and rotation }
@@ -815,7 +847,10 @@ begin
     if Comp.Layer = eBottomLayer then flipX := -1 else flipX := 1;
 
     Angle := Round(ArcTan2((loc_y - Comp.y), (loc_x - Comp.x) * flipX) / Pi * 180);
-    if Angle < 0 then Angle := Angle + 360;
+
+    if cEnableAnyAngle then Angle := Round(Angle - Comp.Rotation); // relative to component orientation
+
+    while Angle < 0 do Angle := Angle + 360;
 
     // Map the angle to the relative position (rotate 22 degrees and index into 45 degree segments)
     case ((Angle + 22) mod 360) div 45 of
@@ -829,7 +864,7 @@ begin
         7: Result := eAutoPos_BottomRight;
     end;
 
-    DebugMessage(4, Format('Angle is %d, Result is %d', [Angle, Result]));
+    DebugMessage(4, Format('Angle is %d, Result is %s', [Angle, StrFromAutoPos(Result)]));
 end;
 
 
@@ -858,8 +893,11 @@ begin
     // Make it work for Pads, Vias, Strings, Polygons, Dimensions and coordinates
     //ASetOfObjects  := MkSet(ePadObject, eViaObject, eTextObject, ePolyObject, eRegionObject, eDimensionObject, eCoordinateObject);
 
-    ModList := CreateObject(TStringList);
-    ModList.Delimiter := '|';
+    if cDEBUGLEVEL > 0 then
+    begin
+        ModList := CreateObject(TStringList);
+        ModList.Delimiter := '|';
+    end;
 
     Comp := Nil;
     KeySet     := MkSet();
@@ -873,17 +911,20 @@ begin
             // copy formatting of PCB dimension
             PCBServer.PreProcess;
 
-            ModList.Clear;
-            if InSet(cAltKey, KeySet) then ModList.Add('ALT');
-            if InSet(cShiftKey, KeySet) then ModList.Add('SHIFT');
-            if InSet(cCtrlKey, KeySet) then ModList.Add('CTRL');
+            if cDEBUGLEVEL > 0 then
+            begin
+                ModList.Clear;
+                if InSet(cAltKey, KeySet) then ModList.Add('ALT');
+                if InSet(cShiftKey, KeySet) then ModList.Add('SHIFT');
+                if InSet(cCtrlKey, KeySet) then ModList.Add('CTRL');
+                DebugMessage(1, Format('Picked %s @ [%s, %s]; location [%s, %s]%sModifiers: %s', [ Comp.Name.Text, CoordToX(Comp.x), CoordToY(Comp.y), CoordToX(x), CoordToY(y), sLineBreak, ModList.DelimitedText ]));
+            end;
 
             if bDesignator then NameOrComment := Comp.Name else NameOrComment := Comp.Comment;
 
-            DebugMessage(1, Format('Picked %s @ [%s, %s]; location [%s, %s]%sModifiers: %s', [ Comp.Name.Text, CoordToX(Comp.x), CoordToY(Comp.y), CoordToX(x), CoordToY(y), sLineBreak, ModList.DelimitedText ]));
-
             // get autoposition relative to component origin
             tc_Autopos := GetRelativeAutoposition(Comp, x, y);
+            DebugMessage(2, 'Autoposition Chosen: ' + StrFromAutoPos(tc_Autopos) + sLineBreak + 'cEnableAnyAngle=' + BoolToStr(cEnableAnyAngle, True));
 
             // Set autoposition based on modifiers
             SetAutopositionLocation(Comp, tc_Autopos, KeySet, bDesignator);
@@ -893,7 +934,10 @@ begin
             if InSet(cCtrlKey, KeySet) then ParentOnly := False else ParentOnly := True; // hold CTRL to also avoid things that are outside parent component
             DebugMessage(3, 'Begin: IsValidPlacement=' + BoolToStr(IsValidPlacement(NameOrComment, ParentOnly), True));
 
-            MoveDist := AutoMove(NameOrComment, 1200000, ParentOnly, 400000, 10000);
+            MoveDist := AutoMove(NameOrComment, 1200000, ParentOnly, 400000, 10000, tc_Autopos);
+
+            NormalizeText(NameOrComment);
+
             NameOrComment.GraphicallyInvalidate;
 
             if MoveDist > 0 then
@@ -1288,6 +1332,74 @@ begin
 end; { LoadPresetListFromFile }
 
 
+{ normalizes IPCB_Text object to be right-reading }
+function NormalizeText(var Text : IPCB_Text) : Boolean;
+var
+    OldAngle, NewAngle      : Double;
+    OldJustify, NewJustify  : TTextAutoposition;
+begin
+    // AD19+ functions used for normalization
+    if not IsAtLeastAD19 then
+    begin
+        Result := False;
+        Exit;
+    end;
+
+    Result := False;
+
+    // coerce angle to 0 ~ 360
+    OldAngle := (Text.Rotation mod 360 + 360) mod 360; // technically an integer operation. TODO: make proper floating point mod throughout
+    NewAngle := OldAngle; // use coerced value for later comparison
+
+    // rotate text to match Angle, based on how mirrored text reads from the flipside of the board
+    if Text.MirrorFlag then
+    begin
+        // mirrored text should be rotated to match layer flip behavior of text vs components
+        if (OldAngle >= 90) and (OldAngle < 270) then NewAngle := (OldAngle + 180) mod 360
+    end
+    else
+    begin
+        // slightly different behavior at 90 and 270 for top side
+        if (OldAngle > 90) and (OldAngle <= 270) then NewAngle := (OldAngle + 180) mod 360
+    end;
+
+    if Text.Rotation <> NewAngle then
+    begin
+        OldJustify := Text.TTFInvertedTextJustify;
+
+        // only change justification if the rotation *really* changed
+        if NewAngle <> OldAngle then
+        begin
+            // need to transform justification setting
+            case OldJustify of
+                eAutoPos_TopLeft        : NewJustify := eAutoPos_BottomRight;
+                eAutoPos_CenterLeft     : NewJustify := eAutoPos_CenterRight;
+                eAutoPos_BottomLeft     : NewJustify := eAutoPos_TopRight;
+                eAutoPos_TopCenter      : NewJustify := eAutoPos_BottomCenter;
+                eAutoPos_BottomCenter   : NewJustify := eAutoPos_TopCenter;
+                eAutoPos_TopRight       : NewJustify := eAutoPos_BottomLeft;
+                eAutoPos_CenterRight    : NewJustify := eAutoPos_CenterLeft;
+                eAutoPos_BottomRight    : NewJustify := eAutoPos_TopLeft;
+                else                      NewJustify := OldJustify;
+            end;
+        end
+        else NewJustify := OldJustify;
+
+        Text.BeginModify;
+        Text.TTFInvertedTextJustify := eAutoPos_CenterCenter; // uses center justification to rotate in place
+        Text.Rotation := NewAngle;
+        // need to EndModify and BeginModify here to refresh internal Text.Rotation cache, else changing justification will move text
+        Text.EndModify;
+        Text.BeginModify;
+        Text.TTFInvertedTextJustify := NewJustify;
+        Text.EndModify;
+        Result := True;
+    end
+    else Result := False;
+
+end;
+
+
 procedure PresetButtonClicked(Sender : TObject);
 begin
     // ShowMessage('PresetButtonClicked');
@@ -1397,22 +1509,30 @@ procedure SetAutopositionLocation(var Comp : IPCB_Component; const tc_Autopos : 
 var
     NameOrComment       : IPCB_Text;
     Ortho               : Boolean;
-    TargetRotation      : Double;
+    TempRotation        : Double;
     AfterRotation       : Double;
 begin
+    TempRotation := 0;
+
     if bDesignator then NameOrComment := Comp.Name else NameOrComment := Comp.Comment;
-
-    //TargetRotation := Comp.Rotation;
-
-    // round to the nearest multiple of 90 degrees
-    //TargetRotation := Round(TargetRotation / 90) * 90;
 
     // if ALT key was used, set Ortho flag to rotate 90 deg CCW
     if InSet(cAltKey, KeySet) then Ortho := True else Ortho := False;
 
+    // in any-angle mode, temporarily set to zero rotation
+    if (Comp.Rotation <> 0) and cEnableAnyAngle then
+    begin
+        TempRotation := Comp.Rotation;
+        Comp.BeginModify;
+
+        Comp.Rotation := 0;
+
+        Comp.EndModify;
+    end;
+
     NameOrComment.BeginModify;
 
-    // rotate NameOrComment to TargetRotation (just use 0, it's easier to predict since we only use 90° placement)
+    // rotate NameOrComment
     AfterRotation := RotateTextToAngle(NameOrComment, 0, True, Ortho);
 
     // Set text justification according to Autoposition setting
@@ -1427,12 +1547,19 @@ begin
     begin
         if not Comp.NameOn then Comp.NameOn := True;
         Comp.ChangeNameAutoposition(tc_Autopos);
+        // after using autoposition, set to manual if it was temp rotated
+        if (TempRotation <> 0) then Comp.ChangeNameAutoposition(eAutoPos_Manual);
     end
     else
     begin
         if not Comp.CommentOn then Comp.CommentOn := True;
         Comp.ChangeCommentAutoposition(tc_Autopos);
+        // after using autoposition, set to manual if it was temp rotated
+        if (TempRotation <> 0) then Comp.ChangeCommentAutoposition(eAutoPos_Manual);
     end;
+
+    // restore original rotation
+    if (TempRotation <> 0) then Comp.Rotation := TempRotation;
 
     Comp.EndModify;
     Comp.GraphicallyInvalidate;
