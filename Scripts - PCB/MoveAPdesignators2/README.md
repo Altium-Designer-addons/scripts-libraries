@@ -40,10 +40,17 @@ For example:
     - clicking in the upper-right octant (~45°) will set autoposition to "Right-Above"
     - clicking in the bottom octant (~270°) will set autoposition to "Center-Below"
 - After clicking the position location, script will automatically move the Designator/Comment toward the component (within 120 mil) as close as it can while clearing silkscreen, pads, component bodies, etc.
-    - Default behavior is to place Designator/Comment with 0° rotation, only taking objects in the parent component into account. Free silkscreen and other components' designators and pads will be ignored.
+    - Default behavior is to place Designator/Comment with 0° rotation *relative to the component orientation*, only taking objects in the parent component into account. Free silkscreen and other components' designators and pads will be ignored.
     - Hold CTRL while clicking the location to NOT ignore objects outside the parent component
     - Hold ALT to place the Designator/Comment at 90° rotation instead.
     - CTRL and ALT can be combined
+## Any-Angle Autopositioning
+- Only applies to Interactive placement command
+- Basically gives you autopositioning of Designators and Comments that aren't limited to angle multiples of 90°
+- "Normal" placement will orient the text at 0° relative to the component's zero orientation
+- "Orthogonal" placement (ALT key) will orient the text at 90° relative to the component's zero orientation
+- Designator/Comment will be normalized to be right-reading after it is manipulated
+- Change `cEnableAnyAngle = True` to `cEnableAnyAngle = False` in .pas file to disable
 
 # Changelog
 - 2022-11-28 - Ver 2.0 : Initial release based on MoveAPdesignators scrip Ver 1.2; uses new string justification settings and fixed bug with designator not actually moving coords; added presets and restore last used values
