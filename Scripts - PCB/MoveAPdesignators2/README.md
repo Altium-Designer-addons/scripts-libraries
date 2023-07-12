@@ -29,7 +29,7 @@ If you are a newcomer to Altium scripts, [please read the "how to" wiki page](ht
 ## Automatic movement amount (GUI)
 - Accessed by launching `TweakDesignators` script procedure
 - Automatically determines movement by moving it in the autoposition-derived direction until it hits (with some hard-coded clearance constants) a pad, silkscreen line, component body, etc.
-## Interactive Designator and Comment placement (no GUI)
+## Interactive Designator and Comment placement (no GUI, works in 2D and 3D mode)
 - Accessed by launching `InteractivelyAutoposition` script procedure
 - Shows instructions in status bar
 - After launching, prompts user to click on a component
