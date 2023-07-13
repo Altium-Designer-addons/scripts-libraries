@@ -953,6 +953,7 @@ var
     tc_Autopos          : TTextAutoposition;
     ParentOnly          : Boolean;
     MoveDist            : TCoord;
+    OldSnapX, OldSnapY  : TCoord;
 begin
     iDebugLevel := cDEBUGLEVEL;
     // set AD build flag
@@ -974,6 +975,16 @@ begin
     Comp := Nil;
     KeySet     := MkSet();
     bPersistentMode := cPersistentMode;
+
+    // save original snap grid sizes
+    OldSnapX := Board.SnapGridSizeX;
+    OldSnapY := Board.SnapGridSizeY;
+
+    // reduce grid size
+    if (Board.DisplayUnit xor 1) = eImperial then Board.SnapGridSize := 50000 else Board.SnapGridSize := 39370; // don't believe the SDK, SnapGridSize takes TCoord, not double
+
+    // TODO: figure out a way to detect whether hotspot snapping is on. In the meantime, small grid is probably sufficient
+    // Client.SendMessage('PCB:DocumentPreferences', 'ObjectGuideSnapEnabled=False|ElectricalGridEnabled=False' , 255, Client.CurrentView);
 
     repeat
         // process if source component & destination location are selected
@@ -1072,6 +1083,11 @@ begin
 
         end;
     until (Comp = cESC);
+
+    // restore original snap grid sizes in case they were modified (not going to use try..finally for this since it's not that important)
+    Board.SnapGridSizeX := OldSnapX;
+    Board.SnapGridSizeY := OldSnapY;
+
 end;
 
 
