@@ -72,6 +72,7 @@ For example:
 - 2023-07-13 - Ver 2.11 : 
     - (interactive placement, when other components NOT ignored) will try up to 30 mils (in 5mil steps) of nudging in each perpendicular direction to try to find a passing solution
     - Cursor will change when picking component, picking location, and when AutoMove is processing
+    - Visible grid will be set to 5mil or 0.1mm at start of interactive placement as large grid can mess things up
 
 ## Credits
   - Credit to Mattias Ericson & Tony Chilco for the MoveAPdesignators script I started from
