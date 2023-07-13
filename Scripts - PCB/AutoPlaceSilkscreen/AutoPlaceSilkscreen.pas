@@ -44,6 +44,59 @@ var
     TryAlteredRotation: Integer;
     RotationStrategy: Integer;
 
+{ Declare all function signatures with `forward` so order doesn't matter later - but don't forget to update them if signatures change }
+function DebugLevelStr(dummy : String = '') : String; forward;
+procedure DebugMessage(const ShowLevel : Integer; const msg : WideString; const Caption : String = 'Confirm or Cancel Debug'); forward;
+function AutopositionJustify(Silkscreen : IPCB_Text; tc_AutoPos : TTextAutoposition): TTextAutoposition; forward;
+function DebugContourInfo(contour : IPCB_Contour) : TStringList; forward;
+function DebugGeometricPolygonInfo(poly : IPCB_GeometricPolygon) : TStringList; forward;
+function GetComponentBodyLargest(Comp : IPCB_Component) : IPCB_ComponentBody; forward;
+function GetComponentBodyLayerSet(Comp : IPCB_Component) : TV6_LayerSet; forward;
+function Get_Obj_Rect(Obj: IPCB_ObjectClass): TCoordRect; forward;
+function Get_Obj_Poly(Obj: IPCB_ObjectClass, Expansion: TCoord = 0): IPCB_GeometricPolygon; forward;
+function Is_Outside_Board(Obj: IPCB_ObjectClass): Boolean; forward;
+function Is_Outside_Board_V2(Obj: IPCB_ObjectClass): Boolean; forward;
+function Is_Same_Side(Obj1: IPCB_ObjectClass; Obj2: IPCB_ObjectClass): Boolean; forward;
+function Get_Silk_Size(Slk: IPCB_Text; Min_Size: Integer): Integer; forward;
+procedure AutoSet_Silk_Size(var Silkscreen : IPCB_Text; const MinSilkSizeMils : Integer); forward;
+function Is_Overlapping(Obj1: IPCB_ObjectClass; Obj2: IPCB_ObjectClass) : Boolean; forward;
+function Is_Overlapping_V2(Obj1: IPCB_ObjectClass; Obj2: IPCB_ObjectClass) : Boolean; forward;
+function Get_LayerSet(SlkLayer: Integer; ObjID: Integer): PAnsiChar; forward;
+function Allow_Under(Cmp: IPCB_Component; AllowUnderList: TStringList): Boolean; forward;
+function IsOverObj(Slk: IPCB_Text; ObjID: Integer; Filter_Size: Integer): Boolean; forward;
+procedure Move_Silk_Off_Board(OnlySelected: Boolean); forward;
+procedure Move_Silk_Over_Comp(SlkList: TObjectList); forward;
+procedure Restore_Comp(SlkList: TObjectList); forward;
+function GetNextAutoPosition(iteration: Integer): Integer; forward;
+function StrFromAutoPos(eAutoPos: TTextAutoposition): String; forward;
+function StrFromObjectId(ObjectId: TObjectId): String; forward;
+function StrFromRotationStrategy(RotationStrategy : Integer): String; forward;
+function StrToAutoPos(iteration: String): Integer; forward;
+procedure AutoPosDeltaAdjust(autoPos: Integer; X_offset: Integer; Y_offset: Integer; Silk: IPCB_Text; Layer: TPCBString); forward;
+function MirrorBottomRotation(Text: IPCB_Text; Rotation: TAngle): TAngle; forward;
+procedure Rotation_MatchSilk2Comp(Silk: IPCB_Text); forward;
+function CalculateHor(Component: IPCB_Component): Integer; forward;
+function CalculateHor2(Component: IPCB_Component): Integer; forward;
+procedure Rotation_Silk(Silk: IPCB_Text; SilkscreenHor: Integer; NameAutoPosition: Integer); forward;
+function Get_Iterator_Count(Iterator: IPCB_BoardIterator): Integer; forward;
+function NormalizeText(var Text : IPCB_Text) : Boolean; forward;
+function Place_Silkscreen(Silkscreen: IPCB_Text): Boolean; forward;
+function Try_Rotation(SlkList: TObjectList): Integer; forward;
+procedure RunGUI; forward;
+procedure AddMessage(MessageClass, MessageText: String); forward;
+procedure Main(Place_Selected: Boolean; Place_OverComp: Boolean; Place_RestoreOriginal: Boolean; AllowUnderList: TStringList); forward;
+procedure Split(Delimiter: Char; Text: TPCBString; ListOfStrings: TStringList); forward;
+function RemoveNewLines(Text: TPCBString): TPCBString; forward;
+procedure WriteToIniFile(AFileName: String); forward;
+procedure ReadFromIniFile(AFileName: String); forward;
+function ConfigFilename(Dummy: String = ''): String; forward;
+procedure TForm_PlaceSilk.BTN_RunClick(Sender: TObject); forward;
+procedure TForm_PlaceSilk.MEM_AllowUnderEnter(Sender: TObject); forward;
+procedure TForm_PlaceSilk.cbCmpOutlineLayerChange(Sender: TObject); forward;
+procedure TForm_PlaceSilk.Form_PlaceSilkCreate(Sender: TObject); forward;
+procedure TForm_PlaceSilk.Form_PlaceSilkClose(Sender: TObject; var Action: TCloseAction); forward;
+
+
 function DebugLevelStr(dummy : String = '') : String;
 begin
     Result := '-------------------------  Debug Level: ' + IntToStr(iDebugLevel) + '  -------------------------' + sLineBreak;
@@ -290,7 +343,8 @@ begin
     else if ObjID = eComponentObject then
     begin
         //Rect := Obj.BoundingRectangleNoNameCommentForSignals;
-        // TODO: figure out how to create a contour for a component
+        //Poly := GetComponentBodyLargest(Obj).GeometricPolygon; // doesn't have expansion argument
+        Poly := PCBServer.PCBContourMaker.MakeContour(GetComponentBodyLargest(Obj), Expansion, Obj.Layer);
     end
     else if ObjID = eArcObject then
     begin
@@ -602,6 +656,7 @@ end;
 // Checks if 2 objects are overlapping on the PCB
 function Is_Overlapping_V2(Obj1: IPCB_ObjectClass; Obj2: IPCB_ObjectClass) : Boolean;
 const
+    BODYEXPANSION       = 8; // [mils] Expansion for component bodies
     TEXTEXPANSION       = 5; // [mils] Expansion for other text objects
     PADEXPANSION        = 8; // [mils] Expansion for pads
     CUTOUTEXPANSION     = 0; // [mils] Expansion for cutout regions
@@ -637,9 +692,10 @@ begin
 
     Expansion := MilsToCoord(DEFAULTEXPANSION);
     case Obj2.ObjectId of
-        eTextObject:    Expansion := MilsToCoord(TEXTEXPANSION);
-        ePadObject:     Expansion := MilsToCoord(PADEXPANSION);
-        eRegionObject:  if Obj2.Kind = eRegionKind_Cutout then Expansion := MilsToCoord(CUTOUTEXPANSION);
+        eComponentObject:   Expansion := MilsToCoord(BODYEXPANSION);
+        eTextObject:        Expansion := MilsToCoord(TEXTEXPANSION);
+        ePadObject:         Expansion := MilsToCoord(PADEXPANSION);
+        eRegionObject:      if Obj2.Kind = eRegionKind_Cutout then Expansion := MilsToCoord(CUTOUTEXPANSION);
     end;
 
     // Get geometric polygons for both objects
@@ -728,7 +784,11 @@ begin
 
         Iterator := Board.SpatialIterator_Create;
         Iterator.AddFilter_ObjectSet(MkSet(ObjID));
-        Iterator.AddFilter_LayerSet(Get_LayerSet(Slk.Layer, ObjID));
+
+        //Iterator.AddFilter_LayerSet(Get_LayerSet(Slk.Layer, ObjID));
+        if (ObjID = eComponentBodyObject and (CmpOutlineLayerID = 0)) then Iterator.AddFilter_LayerSet(GetComponentBodyLayerSet(Slk.Component))
+        else Iterator.AddFilter_LayerSet(GetLayerSet(Slk.Layer, ObjID));
+
         Iterator.AddFilter_Area(RectL, RectB, RectR, RectT);
         RegIter := False;
     end;
@@ -1572,9 +1632,9 @@ begin
     if Text.Rotation <> Angle then
     begin
         OldJustify := Text.TTFInvertedTextJustify;
-        DebugMessage(2, 'Normalizing Text Rotation' + 
+        DebugMessage(2, 'Normalizing Text Rotation' +
                 NEWLINECODE + 'Text.Rotation: ' + FloatToStr(Text.Rotation) +
-                NEWLINECODE + 'Target Angle: ' + FloatToStr(Angle) + 
+                NEWLINECODE + 'Target Angle: ' + FloatToStr(Angle) +
                 NEWLINECODE + 'OldJustify: ' + IntToStr(OldJustify));
 
         // need to transform justification setting
@@ -2316,19 +2376,20 @@ var
     LayerObj: IPCB_LayerObject;
 begin
     idx := cbCmpOutlineLayer.GetItemIndex();
-    LayerObj := cbCmpOutlineLayer.Items[idx];
-
-    LayerIdx := String2Layer(cbCmpOutlineLayer.Text);
     CmpOutlineLayerID := StrToInt(MechLayerIDList.Get(idx));
+
+    // below aren't used, but they definitely won't work with Auto
+    if idx > 0 then
+    begin
+        LayerObj := cbCmpOutlineLayer.Items[idx];
+        LayerIdx := String2Layer(cbCmpOutlineLayer.Text);
+    end;
 end;
 
 procedure TForm_PlaceSilk.Form_PlaceSilkCreate(Sender: TObject);
-const
-    DEFAULT_CMP_OUTLINE_LAYER = 'Mechanical 13';
 var
     MechIterator: IPCB_LayerObjectIterator;
     LayerObj: IPCB_LayerObject;
-    idx: Integer;
 begin
     // Retrieve the current board
     Board := PCBServer.GetCurrentPCBBoard;
@@ -2340,8 +2401,13 @@ begin
 
     MechLayerIDList := CreateObject(TStringList);
 
-    idx := 0;
-    CmpOutlineLayerID := 0;
+    // defaults will be automatic body layer detection
+    CmpOutlineLayerID := 0; // eNoLayer
+    cbCmpOutlineLayer.AddItem('<-AUTO-DETECT->', nil);
+    cbCmpOutlineLayer.SetItemIndex(0);
+    MechLayerIDList.Add('0');
+
+
     MechIterator := Board.MechanicalLayerIterator;
     while MechIterator.Next do
     begin
@@ -2349,15 +2415,6 @@ begin
 
         cbCmpOutlineLayer.AddItem(LayerObj.Name, LayerObj);
         MechLayerIDList.Add(IntToStr(LayerObj.V6_LayerID));
-
-        // Set default layer
-        if (LayerObj.Name = DEFAULT_CMP_OUTLINE_LAYER) or (ContainsText(LayerObj.Name, 'Component Outline')) then
-        begin
-            cbCmpOutlineLayer.SetItemIndex(idx);
-            CmpOutlineLayerID := LayerObj.V6_LayerID;
-        end;
-
-        Inc(idx);
     end;
 
     PositionsClb.Items.Clear;
@@ -2383,8 +2440,7 @@ begin
     ReadFromIniFile(ConfigFilename);
 end;
 
-procedure TForm_PlaceSilk.Form_PlaceSilkClose(Sender: TObject;
-    var Action: TCloseAction);
+procedure TForm_PlaceSilk.Form_PlaceSilkClose(Sender: TObject; var Action: TCloseAction);
 begin
     WriteToIniFile(ConfigFilename);
 end;
