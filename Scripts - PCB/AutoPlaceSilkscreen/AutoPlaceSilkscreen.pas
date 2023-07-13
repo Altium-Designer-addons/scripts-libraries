@@ -204,6 +204,51 @@ begin
     Result := PointList;
 end;
 
+function GetComponentBodyLargest(Comp : IPCB_Component) : IPCB_ComponentBody;
+var
+    GIter : IPCB_GroupIterator;
+    Prim : IPCB_Primitive;
+    Area : Int64;
+begin
+    Area := 0;
+    Result := nil;
+    // Create group iterator
+    GIter := Comp.GroupIterator_Create;
+    GIter.AddFilter_ObjectSet(MkSet(eComponentBodyObject));
+
+    // Try to cast the first element to a primitive
+    Prim := GIter.FirstPCBObject;
+
+    while (Prim <> nil) do
+    begin
+        // only return layer of body with largest area, which means we have to check them all
+        if Prim.Area > Area then
+        begin
+            Area := Prim.Area;
+            Result := Prim;
+        end;
+
+        // Move to the next Primitive in the group
+        Prim := GIter.NextPCBObject;
+    end;
+
+    if Result <> nil then DebugMessage(3, StrFromObjectId(Result.ObjectId) + ' with largest area detected on layer ' + Layer2String(Result.Layer) + sLineBreak + Result.Identifier);
+
+    // Clean up the Iterator
+    Comp.GroupIterator_Destroy(GIter);
+end;
+
+function GetComponentBodyLayerSet(Comp : IPCB_Component) : TV6_LayerSet;
+var
+    Prim : IPCB_Primitive;
+begin
+    Result := MkSet(Comp.Layer);
+
+    Prim := GetComponentBodyLargest(Comp);
+
+    if Prim <> nil then Result := MkSet(Prim.Layer);
+end;
+
 // May want different Bounding Rectangles depending on the object
 function Get_Obj_Rect(Obj: IPCB_ObjectClass): TCoordRect;
 var
