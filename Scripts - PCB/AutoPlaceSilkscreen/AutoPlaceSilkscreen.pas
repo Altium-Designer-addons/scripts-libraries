@@ -44,6 +44,23 @@ var
     TryAlteredRotation: Integer;
     RotationStrategy: Integer;
 
+function DebugLevelStr(dummy : String = '') : String;
+begin
+    Result := '-------------------------  Debug Level: ' + IntToStr(iDebugLevel) + '  -------------------------' + sLineBreak;
+end;
+
+procedure DebugMessage(const ShowLevel : Integer; const msg : WideString; const Caption : String = 'Confirm or Cancel Debug');
+begin
+    // iDebugLevel must be an Integer global variable initialized before first call to this procedure
+    if iDebugLevel >= ShowLevel then
+    begin
+        msg := DebugLevelStr + msg;
+        // if user clicks on Cancel, downgrade the debug level by 1 until it reaches 0
+        if ConfirmOKCancelWithCaption(Caption, msg) = False then
+            iDebugLevel := Max(iDebugLevel - 1, 0);
+    end;
+end;
+
 { function to transform text justification based on designator autoposition and rotation }
 function AutopositionJustify(Silkscreen : IPCB_Text; tc_AutoPos : TTextAutoposition): TTextAutoposition;
 var
@@ -303,14 +320,13 @@ var
     iter: IPCB_BoardIterator;
     iContour, iPoly, iPoint: Integer;
 begin
-    if iDebugLevel = 3 then DebugString := Format('Obj: %s', [Obj.Descriptor]);
-    if iDebugLevel = 3 then if ConfirmOKCancelWithCaption('Confirm or Cancel Debug', 'Is_Outside_Board_V2 called' + NEWLINECODE + DebugString) = False then iDebugLevel := 0;
+    if iDebugLevel = 3 then DebugString := Format('Obj: %s', [Obj.Descriptor]) else DebugString := '';
+    DebugMessage(3, 'Is_Outside_Board_V2 called' + NEWLINECODE + DebugString);
     // Function  PCBServer.PCBContourUtilities.PointInContour(AContour : IPCB_Contour; x : Integer; y : Integer) : Boolean;
     SilkPoly := Get_Obj_Poly(Obj);
     BoardPoly := Get_Obj_Poly(Board);
 
-    if iDebugLevel = 3 then if ConfirmOKCancelWithCaption('Confirm or Cancel Debug', 'BoardPoly' + NEWLINECODE +
-            DebugGeometricPolygonInfo(BoardPoly).Text) = False then iDebugLevel := 0;
+    DebugMessage(3, 'BoardPoly' + NEWLINECODE + DebugGeometricPolygonInfo(BoardPoly).Text);
 
     // use board iterator to find all eRegionObject then further, all eRegionKind_BoardCutout
     CutoutContours := CreateObject(TInterfaceList);
@@ -329,9 +345,8 @@ begin
         CutoutRegion := iter.NextPCBObject;
     end;
 
-    if iDebugLevel = 3 then
-        for iContour := 0 to CutoutContours.Count - 1 do
-            if ConfirmOKCancelWithCaption('Confirm or Cancel Debug', 'Cutout contours' + NEWLINECODE + DebugContourInfo(CutoutContours[iContour]).Text) = False then iDebugLevel := 0;
+    for iContour := 0 to CutoutContours.Count - 1 do
+        DebugMessage(3, 'Cutout contours' + NEWLINECODE + DebugContourInfo(CutoutContours[iContour]).Text);
 
     // check each silkscreen contour point is inside board outline's 0th contour.
     // TODO: board outlines and cutouts are handled, but there may be other cases
@@ -348,8 +363,9 @@ begin
                     result := True;
                     if iDebugLevel >= 1 then DebugString := 'Board outline check' + NEWLINECODE + Format('Obj: %s%sBoard: %s%sPoint Outside Board Contour: %s @ [%s, %s]',
                             [Obj.Descriptor, NEWLINECODE, Board.Identifier, NEWLINECODE, BoolToStr(result xor 1, True),
-                            CoordUnitToString(contour.x(iPoint) - Board.XOrigin, Board.DisplayUnit xor 1), CoordUnitToString(contour.y(iPoint) - Board.YOrigin, Board.DisplayUnit xor 1)]);
-                    if iDebugLevel >= 1 then if ConfirmOKCancelWithCaption('Confirm or Cancel Debug', DebugString) = False then iDebugLevel := 0;
+                            CoordUnitToString(contour.x(iPoint) - Board.XOrigin, Board.DisplayUnit xor 1), CoordUnitToString(contour.y(iPoint) - Board.YOrigin, Board.DisplayUnit xor 1)])
+                    else DebugString := '';
+                    DebugMessage(1, DebugString);
                     Exit;
                 end
                 else
@@ -362,8 +378,9 @@ begin
                             result := True;
                             if iDebugLevel >= 1 then DebugString := 'Board cutout check' + NEWLINECODE + Format('Obj: %s%sBoard: %s%sPoint Inside Cutout Contour: %s @ [%s, %s]',
                                     [Obj.Descriptor, NEWLINECODE, Board.Identifier, NEWLINECODE, BoolToStr(result, True),
-                                    CoordUnitToString(contour.x(iPoint) - Board.XOrigin, Board.DisplayUnit xor 1), CoordUnitToString(contour.y(iPoint) - Board.YOrigin, Board.DisplayUnit xor 1)]);
-                            if iDebugLevel >= 1 then if ConfirmOKCancelWithCaption('Confirm or Cancel Debug', DebugString) = False then iDebugLevel := 0;
+                                    CoordUnitToString(contour.x(iPoint) - Board.XOrigin, Board.DisplayUnit xor 1), CoordUnitToString(contour.y(iPoint) - Board.YOrigin, Board.DisplayUnit xor 1)])
+                            else DebugString := '';
+                            DebugMessage(1, DebugString);
                             Exit;
                         end;
                     end;
@@ -373,8 +390,9 @@ begin
     end;
 
     if iDebugLevel >= 2 then DebugString := 'Silkscreen on board check' + NEWLINECODE + Format('Obj: %s%sBoard: %s%sAll points on board.',
-            [Obj.Descriptor, NEWLINECODE, Board.Identifier, NEWLINECODE]);
-    if iDebugLevel >= 2 then if ConfirmOKCancelWithCaption('Confirm or Cancel Debug', DebugString) = False then iDebugLevel := 0;
+            [Obj.Descriptor, NEWLINECODE, Board.Identifier, NEWLINECODE])
+    else DebugString := '';
+    DebugMessage(2, DebugString);
 
     result := False;
 end;
@@ -548,8 +566,8 @@ var
     Expansion: TCoord;
     DebugString: WideString;
 begin
-    if iDebugLevel = 3 then DebugString := Format('Obj1: %s%sObj2: %s', [Obj1.Descriptor, NEWLINECODE, Obj2.Descriptor]);
-    if iDebugLevel = 3 then if ConfirmOKCancelWithCaption('Confirm or Cancel Debug', 'Is_Overlapping_V2 called' + NEWLINECODE + DebugString) = False then iDebugLevel := 0;
+    if iDebugLevel = 3 then DebugString := Format('Obj1: %s%sObj2: %s', [Obj1.Descriptor, NEWLINECODE, Obj2.Descriptor]) else DebugString := '';
+    DebugMessage(3, 'Is_Overlapping_V2 called' + NEWLINECODE + DebugString);
 
     // If silkscreen object equals itself, return False
     if Obj1.I_ObjectAddress = Obj2.I_ObjectAddress then
@@ -583,16 +601,16 @@ begin
     Poly1 := Get_Obj_Poly(Obj1);    // in practice, Place_Silkscreen always uses Obj1 for silkscreen being manipulated, so don't add expansion to it
     Poly2 := Get_Obj_Poly(Obj2, Expansion);
 
-    if iDebugLevel = 3 then if ConfirmOKCancelWithCaption('Confirm or Cancel Debug Poly1', DebugGeometricPolygonInfo(Poly1).Text) = False then iDebugLevel := 0;
-    if iDebugLevel = 3 then if ConfirmOKCancelWithCaption('Confirm or Cancel Debug Poly2', DebugGeometricPolygonInfo(Poly2).Text) = False then iDebugLevel := 0;
+    DebugMessage(3, DebugGeometricPolygonInfo(Poly1).Text, 'Confirm or Cancel Debug Poly1');
+    DebugMessage(3, DebugGeometricPolygonInfo(Poly2).Text, 'Confirm or Cancel Debug Poly2');
 
     // IPCB_ContourUtilities Function  GeometricPolygonsTouch(AGeometricPolygon : IPCB_GeometricPolygon; BGeometricPolygon : IPCB_GeometricPolygon) : Boolean;
     result := PCBServer.PCBContourUtilities.GeometricPolygonsTouch(Poly1, Poly2);
 
     if result or (iDebugLevel >= 2) then
     begin
-        if iDebugLevel >= 1 then DebugString := Format('Obj1: %s%sObj2: %s%sGeometricPolygonsTouch: %s', [Obj1.Descriptor, NEWLINECODE, Obj2.Descriptor, NEWLINECODE, BoolToStr(result, True)]);
-        if iDebugLevel >= 1 then if ConfirmOKCancelWithCaption('Confirm or Cancel Debug', DebugString) = False then iDebugLevel := 0;
+        if iDebugLevel >= 1 then DebugString := Format('Obj1: %s%sObj2: %s%sGeometricPolygonsTouch: %s', [Obj1.Descriptor, NEWLINECODE, Obj2.Descriptor, NEWLINECODE, BoolToStr(result, True)]) else DebugString := '';
+        DebugMessage(1, DebugString);
     end;
 end;
 
@@ -1509,10 +1527,10 @@ begin
     if Text.Rotation <> Angle then
     begin
         OldJustify := Text.TTFInvertedTextJustify;
-        if iDebugLevel >= 2 then if ConfirmOKCancelWithCaption('Confirm or Cancel Debug', 'Normalizing Text Rotation' +
+        DebugMessage(2, 'Normalizing Text Rotation' + 
                 NEWLINECODE + 'Text.Rotation: ' + FloatToStr(Text.Rotation) +
-                NEWLINECODE + 'Target Angle: ' + FloatToStr(Angle) +
-                NEWLINECODE + 'OldJustify: ' + IntToStr(OldJustify)) = False then iDebugLevel := 0;
+                NEWLINECODE + 'Target Angle: ' + FloatToStr(Angle) + 
+                NEWLINECODE + 'OldJustify: ' + IntToStr(OldJustify));
 
         // need to transform justification setting
         case OldJustify of
@@ -1639,15 +1657,14 @@ begin
                                 SlkSize := Silkscreen.Size; // change SlkSize from zero so later size reduction algorithm doesn't get undone
                             end;
 
-                            if iDebugLevel >= 2 then if ConfirmOKCancelWithCaption('Confirm or Cancel Debug', 'Temp-rotated') = False then iDebugLevel := 0;
+                            DebugMessage(2, 'Temp-rotated');
                         end;
 
                         Silkscreen.BeginModify;
 
                         if iDebugLevel >= 1 then Silkscreen.Selected := True;
 
-                        if iDebugLevel >= 2 then if ConfirmOKCancelWithCaption('Confirm or Cancel Debug', 'SilkscreenHor: ' + IntToStr(SilkscreenHor) +
-                                NEWLINECODE + 'RotationStrategy: ' + StrFromRotationStrategy(RotationStrategy)) = False then iDebugLevel := 0;
+                        DebugMessage(2, 'SilkscreenHor: ' + IntToStr(SilkscreenHor) + NEWLINECODE + 'RotationStrategy: ' + StrFromRotationStrategy(RotationStrategy));
 
                         Rotation_Silk(Silkscreen, SilkscreenHor, NextAutoP);
                         if AlteredRotation = 1 then
@@ -1658,7 +1675,7 @@ begin
                         Silkscreen.BeginModify;
 
                         Silkscreen.Component.ChangeNameAutoposition := NextAutoP;
-                        if iDebugLevel >= 2 then if ConfirmOKCancelWithCaption('Confirm or Cancel Debug', 'Autopositioned: ' + StrFromAutoPos(NextAutoP)) = False then iDebugLevel := 0;
+                        DebugMessage(2, 'Autopositioned: ' + StrFromAutoPos(NextAutoP));
 
                         // need to EndModify and BeginModify here to refresh internal Text properties, else changing justification may move text
                         Silkscreen.EndModify;
@@ -1671,10 +1688,9 @@ begin
 
                         Silkscreen.Component.ChangeNameAutoposition := eAutoPos_Manual;
 
-                        if iDebugLevel >= 2 then if ConfirmOKCancelWithCaption('Confirm or Cancel Debug', 'Adjusted Position' + NEWLINECODE +
-                                'SilkscreenPositionDelta: ' + CoordUnitToString(SilkscreenPositionDelta, Board.DisplayUnit xor 1) + NEWLINECODE +
-                                'X_offset: ' + CoordUnitToString(MilsToCoord(xoff * OFFSET_DELTA), Board.DisplayUnit xor 1) + NEWLINECODE +
-                                'Y_offset: ' + CoordUnitToString(MilsToCoord(yoff * OFFSET_DELTA), Board.DisplayUnit xor 1)) = False then iDebugLevel := 0;
+                        DebugMessage(2, 'Adjusted Position' + NEWLINECODE + 'SilkscreenPositionDelta: ' + CoordUnitToString(SilkscreenPositionDelta, Board.DisplayUnit xor 1) +
+                                NEWLINECODE + 'X_offset: ' + CoordUnitToString(MilsToCoord(xoff * OFFSET_DELTA), Board.DisplayUnit xor 1) +
+                                NEWLINECODE + 'Y_offset: ' + CoordUnitToString(MilsToCoord(yoff * OFFSET_DELTA), Board.DisplayUnit xor 1));
 
                         // TODO: Could do all clearance checks to parent component at this point, when bounding boxes may be more aligned
                         // TODO: in that case, you would ignore objects in host component after de-rotation
@@ -1685,7 +1701,7 @@ begin
                             Silkscreen.Component.Rotation := TempRotation;
                             Silkscreen.Component.EndModify;
                             TempRotated := False;
-                            if iDebugLevel >= 2 then if ConfirmOKCancelWithCaption('Confirm or Cancel Debug', 'De-rotated') = False then iDebugLevel := 0;
+                            DebugMessage(2, 'De-rotated');
                         end;
 
                         Silkscreen.EndModify;
@@ -2217,14 +2233,12 @@ begin
         Split(',', StrNoSpace, AllowUnderList);
     end;
 
-    DisplayUnit := Board.DisplayUnit;   // need to xor with 1 to convert to eMetric or eImperial for StringToCoordUnit
-    StringToCoordUnit(PositionDeltaEdt.Text, SilkscreenPositionDelta, DisplayUnit xor 1);
+    DisplayUnit := Board.DisplayUnit xor 1;   // need to xor with 1 to convert to eMetric or eImperial for StringToCoordUnit
+    StringToCoordUnit(PositionDeltaEdt.Text, SilkscreenPositionDelta, DisplayUnit);
 
-    DisplayUnit := Board.DisplayUnit;
-    StringToCoordUnit(FixedSizeEdt.Text, SilkscreenFixedSize, DisplayUnit xor 1);
+    StringToCoordUnit(FixedSizeEdt.Text, SilkscreenFixedSize, DisplayUnit);
 
-    DisplayUnit := Board.DisplayUnit;
-    StringToCoordUnit(FixedWidthEdt.Text, SilkscreenFixedWidth, DisplayUnit xor 1);
+    StringToCoordUnit(FixedWidthEdt.Text, SilkscreenFixedWidth, DisplayUnit);
 
     SilkscreenIsFixedSize := FixedSizeChk.Checked;
     SilkscreenIsFixedWidth := FixedWidthChk.Checked;
