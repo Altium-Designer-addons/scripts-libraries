@@ -27,12 +27,12 @@ const
     cNumPresets         = 12; // not just for presets, also used to save previous state
     cConfigFileName     = 'MoveAPdesignators2Settings.ini'
     cScriptTitle        = 'MoveAPdesignators2';
-    cScriptVersion      = '2.10';
+    cScriptVersion      = '2.11';
 
 
 procedure About; forward;
 function AutoMove(var NameOrComment : IPCB_Text; SearchDist : TCoord = 1200000; ParentOnly : Boolean = True; StartDist : TCoord = 400000; MinDist : TCoord = 25000; ForceAutoPos : TTextAutoposition = eAutoPos_Manual) : TCoord; forward;
-procedure AutoPosDeltaAdjust(var NameOrComment : IPCB_Text; MoveDistance : TCoord; autoPos : TTextAutoposition; bAnyAngleFlag : Boolean = False); forward;
+procedure AutoPosDeltaAdjust(var NameOrComment : IPCB_Text; MoveDistance : TCoord; autoPos : TTextAutoposition; bAnyAngleFlag : Boolean = False; SideOffset : Integer = 0); forward;
 function AutopositionJustify(var NameOrComment : IPCB_Text; const tc_AutoPos : TTextAutoposition): TTextAutoposition; forward;
 procedure BothInitialCheck(var status : Integer); forward;
 function CoordToStr(Coords : TCoord) : String; forward;
@@ -115,6 +115,9 @@ var
     bDefaultValid       : Boolean;
     bAnyAngleFlag       : Boolean;
     TextTypeStr         : String;
+    SideOffsets         : array[0..12]; // make sure element count and LastOffsetIndex are in sync
+    OffsetIndex         : Integer;
+    LastOffsetIndex     : Integer;
 begin
     SearchDist := MIN(SearchDist, cSEARCHDIST);
     StartDist := MIN(StartDist, cMINSEARCHDIST * 8);
@@ -123,6 +126,11 @@ begin
     bRunoff := False;
     bDefaultValid := True;
     bAnyAngleFlag := (ForceAutoPos <> eAutoPos_Manual) and cEnableAnyAngle;
+    SideOffsets := [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6]; // excessive number of offsets will increase time to fail dramatically
+    OffsetIndex := 0;
+    LastOffsetIndex := 12;
+
+    BeginHourGlass;
 
     if not (NameOrComment <> nil and NameOrComment.InComponent) then
     begin
@@ -173,12 +181,14 @@ begin
                         'New MoveDist=' + CoordToStr(MoveDist) + sLineBreak +
                         'bFirstPass=' + BoolToStr(bFirstPass, True) + sLineBreak +
                         'bRunuff=' + BoolToStr(bRunoff, True) + sLineBreak +
+                        'SideOffset=' + IntToStr(SideOffsets[OffsetIndex]) + sLineBreak +
                         'Valid Placement=' + BoolToStr(bDefaultValid, True));
             end
             else
             begin
                 bFirstPass := False;
-                break;
+                // if ParentOnly mode, we're done, otherwise set MoveDist to 0 to trigger offset step
+                if ParentOnly then break else MoveDist := 0;
             end;
         end;
 
@@ -199,6 +209,7 @@ begin
                     'Moved by MoveDist=' + CoordToStr(MoveDist) + sLineBreak +
                     'bFirstPass=' + BoolToStr(bFirstPass, True) + sLineBreak +
                     'bRunuff=' + BoolToStr(bRunoff, True) + sLineBreak +
+                    'SideOffset=' + IntToStr(SideOffsets[OffsetIndex]) + sLineBreak +
                     'Valid Placement=True');
             MoveDist := ABS(MoveDist);  // always move positive after pass
         end
@@ -208,6 +219,7 @@ begin
                     'Failed move by MoveDist=' + CoordToStr(MoveDist) + sLineBreak +
                     'bFirstPass=' + BoolToStr(bFirstPass, True) + sLineBreak +
                     'bRunuff=' + BoolToStr(bRunoff, True) + sLineBreak +
+                    'SideOffset=' + IntToStr(SideOffsets[OffsetIndex]) + sLineBreak +
                     'Valid Placement=False');
 
             if not bFirstPass then
@@ -223,7 +235,31 @@ begin
                     MoveDist := ABS(MoveDist) div 2; // Start moving in the positive direction and halve distance
                 end;
 
-                if ABS(MoveDist) < cMINSEARCHDIST then break; // stop once moves are too small to be likely productive
+                // if moves are too small to likely be productive...
+                if ABS(MoveDist) < cMINSEARCHDIST then
+                    if ParentOnly then break
+                    else
+                    begin
+                        // if not ParentOnly, step through lateral offsets in case a nudge will give a passing solution
+                        if OffsetIndex < LastOffsetIndex then
+                        begin
+                            // undo previous moves and offset
+                            AutoPosDeltaAdjust(NameOrComment, -TotalDist, NameOrCommentAP, bAnyAngleFlag, -SideOffsets[OffsetIndex]);
+                            TotalDist := 0;
+
+                            // setup next offset
+                            Inc(OffsetIndex);
+                            AutoPosDeltaAdjust(NameOrComment, 0, NameOrCommentAP, bAnyAngleFlag, SideOffsets[OffsetIndex]);
+                            DebugMessage(1, 'Proceeding to next offset.' + sLineBreak + 'SideOffset=' + IntToStr(SideOffsets[OffsetIndex]));
+                            if (iDebugLevel > 0) and (cDEBUGLEVEL >= 2) then iDebugLevel := MAX(iDebugLevel, cDEBUGLEVEL); // reset debug level unless it was 0
+                            if iDebugLevel >= 2 then NameOrComment.GraphicallyInvalidate;
+                            if iDebugLevel >= 2 then Application.ProcessMessages;
+
+                            // reset loop for a fresh pass
+                            MoveDist := StartDist;
+                            bRunoff := False;
+                        end;
+                    end;
             end
             else
             begin
@@ -241,17 +277,20 @@ begin
     if not bFirstPass then
     begin
         // undo all the moving
-        AutoPosDeltaAdjust(NameOrComment, -TotalDist, NameOrCommentAP, bAnyAngleFlag);
+        AutoPosDeltaAdjust(NameOrComment, -TotalDist, NameOrCommentAP, bAnyAngleFlag, -SideOffsets[OffsetIndex]);
         DebugMessage(2, 'Failed to find passing placement within ' + CoordToStr(TotalDist) + '. Move attempt cancelled.');
         TotalDist := 0;
     end;
 
     Result := TotalDist;
+
+    EndHourGlass;
 end;
 
 
-
-procedure AutoPosDeltaAdjust(var NameOrComment : IPCB_Text; MoveDistance : TCoord; autoPos : TTextAutoposition; bAnyAngleFlag : Boolean = False);
+procedure AutoPosDeltaAdjust(var NameOrComment : IPCB_Text; MoveDistance : TCoord; autoPos : TTextAutoposition; bAnyAngleFlag : Boolean = False; SideOffset : Integer = 0);
+const
+    cOFFSET = 50000; // [coords] 5 mils might be finer than necessary but is conservative
 var
     dx, dy, d: Integer;
     flipx: Integer;
@@ -283,34 +322,58 @@ begin
 
     Case autoPos of
         eAutoPos_CenterRight:
+        begin
             dx := -d * flipx;
+            dy := SideOffset * cOFFSET; // offset direction doesn't really matter, this is brute force
+        end
         eAutoPos_TopCenter:
+        begin
+            dx := SideOffset * cOFFSET;
             dy := -d;
+        end
         eAutoPos_CenterLeft:
+        begin
             dx := d * flipx;
+            dy := SideOffset * cOFFSET;
+        end
         eAutoPos_BottomCenter:
+        begin
+            dx := SideOffset * cOFFSET;
             dy := d;
+        end
         eAutoPos_TopLeft:
+        begin
+            dx := SideOffset * cOFFSET;
             dy := -d;
+        end
         eAutoPos_TopRight:
+        begin
+            dx := SideOffset * cOFFSET;
             dy := -d;
+        end
         eAutoPos_BottomLeft:
+        begin
+            dx := SideOffset * cOFFSET;
             dy := d;
+        end
         eAutoPos_BottomRight:
+        begin
+            dx := SideOffset * cOFFSET;
             dy := d;
+        end
     end;
 
     if taller then
     begin
         if (autoPos = eAutoPos_TopLeft) or (autoPos = eAutoPos_BottomLeft) then
         begin
-            dy := 0;
             dx := d * flipx;
+            dy := SideOffset * cOFFSET;
         end
         else if (autoPos = eAutoPos_TopRight) or (autoPos = eAutoPos_BottomRight) then
         begin
-            dy := 0;
             dx := -d * flipx;
+            dy := SideOffset * cOFFSET;
         end;
     end;
 
@@ -584,58 +647,63 @@ begin
     KeySet := MkSet();
     Result := eNoObject;
 
-    if Board.ChooseLocation(x, y, sPrompt) then  // false = ESC Key is pressed or right-clicked to cancel
-    begin
-        //   read modifier keys just as/after the "pick" mouse click
-        if ShiftKeyDown   then KeySet := MkSet(cShiftKey);
-        if ControlKeyDown then KeySet := SetUnion(KeySet, MkSet(cCtrlKey));
-
-        Result := Board.GetObjectAtXYAskUserIfAmbiguous(x, y, MkSet(eComponentObject), MkSet(eTopLayer, eBottomLayer), eEditAction_Focus);         // eEditAction_DontCare
-        if (Result = Nil) then Result := eNoObject;
-
-        // look again, component might be locked (has to iterate all components on board)
-        if Result = eNoObject then
+    Screen.Cursor := crHandPoint;
+    try
+        if Board.ChooseLocation(x, y, sPrompt) then  // false = ESC Key is pressed or right-clicked to cancel
         begin
-            Iter := Board.BoardIterator_Create;
-            Iter.AddFilter_ObjectSet(MkSet(eComponentObject));
-            Iter.AddFilter_LayerSet(MkSet(eTopLayer, eBottomLayer));
-            Iter.AddFilter_Method(eProcessAll);
-            //SIter.AddFilter_Area(x - 100, y - 100, x + 100, y + 100); // only applies to spatial iterator, which apparently doesn't see locked objects
+            //   read modifier keys just as/after the "pick" mouse click
+            if ShiftKeyDown   then KeySet := MkSet(cShiftKey);
+            if ControlKeyDown then KeySet := SetUnion(KeySet, MkSet(cCtrlKey));
 
-            Comp := Iter.FirstPCBObject;
-            while (Comp <> Nil) do
+            Result := Board.GetObjectAtXYAskUserIfAmbiguous(x, y, MkSet(eComponentObject), MkSet(eTopLayer, eBottomLayer), eEditAction_Focus);         // eEditAction_DontCare
+            if (Result = Nil) then Result := eNoObject;
+
+            // look again, component might be locked (has to iterate all components on board)
+            if Result = eNoObject then
             begin
-                BRect := Comp.BoundingRectangleNoNameComment;
-                Area := GetComponentAreaMils(Comp);
-                // click should be within bounding rectangle
-                if (BRect.left < x) and (x < BRect.right) and (BRect.bottom < y) and (y < BRect.top) then
-                begin
-                    // layer should be visible
-                    if Board.LayerIsDisplayed(Comp.Layer) then
-                    begin
-                        if Result <> eNoObject then
-                        begin
-                            // prioritize component on current layer if previous component is not
-                            if (Comp.Layer = Board.CurrentLayer) and (PrevComp.Layer <> Board.CurrentLayer) then Result := Comp
-                            // both components are on the same layer, prioritize smaller component
-                            else if (Comp.Layer = PrevComp.Layer) and (Area < PrevArea) then Result := Comp;
-                        end
-                        else
-                        begin
-                            Result := Comp;
-                            Area := GetComponentAreaMils(Comp);
-                        end;
+                Iter := Board.BoardIterator_Create;
+                Iter.AddFilter_ObjectSet(MkSet(eComponentObject));
+                Iter.AddFilter_LayerSet(MkSet(eTopLayer, eBottomLayer));
+                Iter.AddFilter_Method(eProcessAll);
+                //SIter.AddFilter_Area(x - 100, y - 100, x + 100, y + 100); // only applies to spatial iterator, which apparently doesn't see locked objects
 
-                        PrevComp := Result;
-                        PrevArea := GetComponentAreaMils(Result);
+                Comp := Iter.FirstPCBObject;
+                while (Comp <> Nil) do
+                begin
+                    BRect := Comp.BoundingRectangleNoNameComment;
+                    Area := GetComponentAreaMils(Comp);
+                    // click should be within bounding rectangle
+                    if (BRect.left < x) and (x < BRect.right) and (BRect.bottom < y) and (y < BRect.top) then
+                    begin
+                        // layer should be visible
+                        if Board.LayerIsDisplayed(Comp.Layer) then
+                        begin
+                            if Result <> eNoObject then
+                            begin
+                                // prioritize component on current layer if previous component is not
+                                if (Comp.Layer = Board.CurrentLayer) and (PrevComp.Layer <> Board.CurrentLayer) then Result := Comp
+                                // both components are on the same layer, prioritize smaller component
+                                else if (Comp.Layer = PrevComp.Layer) and (Area < PrevArea) then Result := Comp;
+                            end
+                            else
+                            begin
+                                Result := Comp;
+                                Area := GetComponentAreaMils(Comp);
+                            end;
+
+                            PrevComp := Result;
+                            PrevArea := GetComponentAreaMils(Result);
+                        end;
                     end;
+                    Comp := Iter.NextPCBObject;
                 end;
-                Comp := Iter.NextPCBObject;
+                Board.BoardIterator_Destroy(Iter);
             end;
-            Board.BoardIterator_Destroy(Iter);
-        end;
-    end
-    else Result := cESC;
+        end
+        else Result := cESC;
+    finally
+        Screen.Cursor := crDefault;
+    end;
 end;
 
 
@@ -975,18 +1043,23 @@ begin
             if bDesignator then sPrompt := 'Choose location for Designator around ' else sPrompt := 'Choose location for Comment around ';
             sPrompt := sPrompt + Comp.Name.Text + ' (Hold CTRL to avoid things outside parent component, Hold ALT for orthogonal placement)';
 
-            if Board.ChooseLocation(x, y, sPrompt) then  // false = ESC Key is pressed or right-clicked to cancel
-            begin
-                KeySet := MkSet(); // clear modifier keyset
-                // read modifier keys just as/after the "pick" mouse click
-                if AltKeyDown   then KeySet := MkSet(cAltKey);  // Plan: hold ALT to rotate orthogonally
-                //if ShiftKeyDown then KeySet := SetUnion(KeySet, MkSet(cShiftKey));
-                if ControlKeyDown then KeySet := SetUnion(KeySet, MkSet(cCtrlKey)); // Plan: hold CTRL to stop ignoring outside objects
+            Screen.Cursor := crCross;
+            try
+                if Board.ChooseLocation(x, y, sPrompt) then  // false = ESC Key is pressed or right-clicked to cancel
+                begin
+                    KeySet := MkSet(); // clear modifier keyset
+                    // read modifier keys just as/after the "pick" mouse click
+                    if AltKeyDown   then KeySet := MkSet(cAltKey);  // Plan: hold ALT to rotate orthogonally
+                    //if ShiftKeyDown then KeySet := SetUnion(KeySet, MkSet(cShiftKey));
+                    if ControlKeyDown then KeySet := SetUnion(KeySet, MkSet(cCtrlKey)); // Plan: hold CTRL to stop ignoring outside objects
 
-                bLocationFlag := True;
+                    bLocationFlag := True;
 
-            end
-            else Comp := Nil;    // user canceled picking location, time to get a new source component
+                end
+                else Comp := Nil;    // user canceled picking location, time to get a new source component
+            finally
+                Screen.Cursor := crDefault;
+            end;
         end;
 
         if not Assigned(Comp) then

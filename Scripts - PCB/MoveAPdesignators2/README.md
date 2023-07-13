@@ -42,6 +42,7 @@ For example:
 - After clicking the position location, script will automatically move the Designator/Comment toward the component (within 120 mil) as close as it can while clearing silkscreen, pads, component bodies, etc.
     - Default behavior is to place Designator/Comment with 0° rotation *relative to the component orientation*, only taking objects in the parent component into account. Free silkscreen and other components' designators and pads will be ignored.
     - Hold CTRL while clicking the location to NOT ignore objects outside the parent component
+        - In this mode, AutoMove will attempt up to 30 mils (in 5mil steps) of nudging in each perpendicular direction to try to find a passing solution
     - Hold ALT to place the Designator/Comment at 90° rotation instead.
     - CTRL and ALT can be combined
 ## Any-Angle Autopositioning
@@ -68,6 +69,9 @@ For example:
 - 2023-07-05 - Ver 2.08 : fixed issue with interactive placement tool being flipped horizontally for bottom side components
 - 2023-07-06 - Ver 2.09 : (Interactive placement) added ability to target locked components
 - 2023-07-11 - Ver 2.10 : (Interactive placement) reworked text rotation to be 0° or 90° relative to part rotation (i.e. normal or orthogonal to part, not board); **autoposition now supports any placement angle**
+- 2023-07-13 - Ver 2.11 : 
+    - (interactive placement, when other components NOT ignored) will try up to 30 mils (in 5mil steps) of nudging in each perpendicular direction to try to find a passing solution
+    - Cursor will change when picking component, picking location, and when AutoMove is processing
 
 ## Credits
   - Credit to Mattias Ericson & Tony Chilco for the MoveAPdesignators script I started from
