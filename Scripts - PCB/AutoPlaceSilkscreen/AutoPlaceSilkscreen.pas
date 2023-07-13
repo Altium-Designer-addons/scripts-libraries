@@ -1954,36 +1954,34 @@ begin
     // Initialize silk reference designators to board origin coordinates.
     Move_Silk_Off_Board(Place_Selected);
 
-    // Create the iterator that will look for Component Body objects only
-    Iterator := Board.BoardIterator_Create;
-    Iterator.AddFilter_ObjectSet(MkSet(eComponentObject));
-    Iterator.AddFilter_LayerSet(MkSet(eTopLayer, eBottomLayer));
-    Iterator.AddFilter_Method(eProcessAll);
-
     NotPlaced := CreateObject(TObjectList);
     NotPlaced.OwnsObjects := False; // required to not throw invalid pointer errors when NotPlaced is freed
 
-    // count number of components selected so we can stop iterating early if we processed all selected
-    NumSelected := 0;
-    for i := 0 to Board.SelectecObjectCount - 1 do
-    begin
-        //CurSelected := Board.SelectecObject[i];
-        if Board.SelectecObject[i].ObjectId = eComponentObject then NumSelected := NumSelected + 1;
-    end;
-
-    ProgressBar1.Position := 0;
-    ProgressBar1.Update;
-    if Place_Selected then ProgressBar1.Max := NumSelected else ProgressBar1.Max := Get_Iterator_Count(Iterator);
-
-    // Search for component body objects and get their Name, Kind, Area and OverallHeight values
     Count := 0;
     PlaceCnt := 0;
     NotPlaceCnt := 0;
-    Cmp := Iterator.FirstPCBObject;
-    while (Cmp <> nil) do
+
+    ProgressBar1.Position := 0;
+    ProgressBar1.Update;
+
+    // Use for loop for selected component's placement, otherwise use iterator (for loop lets selection order determine placement order)
+    if Place_Selected then
     begin
-        if (Place_Selected and Cmp.Selected) or (not(Place_Selected)) then
+        // count number of components selected and deselect non-components
+        NumSelected := 0;
+        for i := Board.SelectecObjectCount - 1 downto 0 do
         begin
+            //CurSelected := Board.SelectecObject[i];
+            if Board.SelectecObject[i].ObjectId = eComponentObject then NumSelected := NumSelected + 1 else Board.SelectecObject[i].Selected := False;
+        end;
+
+        ProgressBar1.Max := NumSelected;
+
+        // place selected component designators
+        for i := 0 to Board.SelectecObjectCount - 1 do
+        begin
+            Cmp := Board.SelectecObject[i];
+
             Silkscreen := Cmp.Name;
 
             if (Place_Silkscreen(Silkscreen)) then
@@ -1997,20 +1995,60 @@ begin
             end;
 
             Inc(Count);
+
+            ProgressBar1.Position := Count;
+            ProgressBar1.Update;
+
+            AddMessage('APS Status',
+                Format('%d of %d silkscreens placed (%f%%) in %d Second(s)',
+                        [PlaceCnt, Board.SelectecObjectCount, PlaceCnt / Board.SelectecObjectCount * 100, Trunc((Now() - StartTime) * 86400)]));
+
         end;
-        Cmp := Iterator.NextPCBObject;
+    end
+    else
+    begin
+        // Create the iterator that will look for Component objects only
+        Iterator := Board.BoardIterator_Create;
+        try
+            Iterator.AddFilter_ObjectSet(MkSet(eComponentObject));
+            Iterator.AddFilter_LayerSet(MkSet(eTopLayer, eBottomLayer));
+            Iterator.AddFilter_Method(eProcessAll);
 
-        //ProgressBar1.Position := ProgressBar1.Position + 1;
-        ProgressBar1.Position := Count;
-        ProgressBar1.Update;
+            ProgressBar1.Max := Get_Iterator_Count(Iterator);
 
-        AddMessage('APS Status',
-            Format('%d of %d silkscreens placed (%f%%) in %d Second(s)',
-                    [PlaceCnt, Count, PlaceCnt / Count * 100, Trunc((Now() - StartTime) * 86400)]));
+            // iterate and place all component designators
+            Cmp := Iterator.FirstPCBObject;
+            while (Cmp <> nil) do
+            begin
+                Silkscreen := Cmp.Name;
 
-        if Place_Selected and (Count >= NumSelected) then break;
+                if (Place_Silkscreen(Silkscreen)) then
+                begin
+                    Inc(PlaceCnt);
+                end
+                else
+                begin
+                    Inc(NotPlaceCnt);
+                    NotPlaced.Add(Silkscreen);
+                end;
+
+                Inc(Count);
+
+                Cmp := Iterator.NextPCBObject;
+
+                ProgressBar1.Position := Count;
+                ProgressBar1.Update;
+
+                AddMessage('APS Status',
+                    Format('%d of %d silkscreens placed (%f%%) in %d Second(s)',
+                            [PlaceCnt, Get_Iterator_Count(Iterator), PlaceCnt / Get_Iterator_Count(Iterator) * 100, Trunc((Now() - StartTime) * 86400)]));
+
+                if Place_Selected and (Count >= NumSelected) then break;
+            end;
+        finally
+            Board.BoardIterator_Destroy(Iterator);
+        end;
     end;
-    Board.BoardIterator_Destroy(Iterator);
 
     // Try different rotation for squarish components
     PlaceCnt := PlaceCnt + Try_Rotation(NotPlaced);
