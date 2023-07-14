@@ -92,8 +92,9 @@ begin
         sLineBreak +
         'Use "InteractivelyAutoposition" to interactively place Designator or Comment for individual components.' + sLineBreak +
         sLineBreak +
-        'Updated versions may be found here:' + sLineBreak +
+        'Updated versions and documentation may be found here:' + sLineBreak +
         'https://github.com/Altium-Designer-addons/scripts-libraries' + sLineBreak +
+        '/tree/master/Scripts - PCB/MoveAPdesignators2' + sLineBreak +
         sLineBreak +
         'Settings save location:' + sLineBreak +
         ConfigFile_GetPath;
