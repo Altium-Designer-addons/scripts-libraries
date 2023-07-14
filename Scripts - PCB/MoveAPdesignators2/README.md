@@ -23,7 +23,8 @@ _Step 2_: integrate the script into Altium Designer and execute it.\
 If you are a newcomer to Altium scripts, [please read the "how to" wiki page](https://github.com/Altium-Designer-addons/scripts-libraries/wiki/HowTo_execute_scripts).
 
 ## Known Issues
-- **ALTIUM BUG**: When a component is flipped to the other side of the board, autopositioning still orients as if it is on the original side. Closing and re-opening the PcbDoc will make the autoposition work properly.
+- **ALTIUM BUG**: When a component is flipped to the other side of the board, autopositioning initially still orients as if it is on the original side. Closing and re-opening the PcbDoc will make the autoposition work properly.
+- An unlocked component on a different board layer will be picked over a locked component on the current layer due to priority order.
 
 # Features
 ## Automatic movement amount (GUI)
