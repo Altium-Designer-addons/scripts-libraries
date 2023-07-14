@@ -27,7 +27,7 @@ const
     cNumPresets         = 12; // not just for presets, also used to save previous state
     cConfigFileName     = 'MoveAPdesignators2Settings.ini'
     cScriptTitle        = 'MoveAPdesignators2';
-    cScriptVersion      = '2.11';
+    cScriptVersion      = '2.12';
 
 
 procedure About; forward;
@@ -643,7 +643,7 @@ var
     Area, PrevArea  : Int64;
     Iter            : IPCB_BoardIterator;
     BRect           : TCoordRect;
-
+    VisibleLayerSet : TV6_LayerSet;
 begin
     KeySet := MkSet();
     Result := eNoObject;
@@ -656,7 +656,11 @@ begin
             if ShiftKeyDown   then KeySet := MkSet(cShiftKey);
             if ControlKeyDown then KeySet := SetUnion(KeySet, MkSet(cCtrlKey));
 
-            Result := Board.GetObjectAtXYAskUserIfAmbiguous(x, y, MkSet(eComponentObject), MkSet(eTopLayer, eBottomLayer), eEditAction_Focus);         // eEditAction_DontCare
+            VisibleLayerSet := MkSet();
+            if Board.LayerIsDisplayed(eTopLayer) then VisibleLayerSet := SetUnion(VisibleLayerSet, MkSet(eTopLayer));
+            if Board.LayerIsDisplayed(eBottomLayer) then VisibleLayerSet := SetUnion(VisibleLayerSet, MkSet(eBottomLayer));
+
+            Result := Board.GetObjectAtXYAskUserIfAmbiguous(x, y, MkSet(eComponentObject), VisibleLayerSet, eEditAction_Focus);         // eEditAction_DontCare
             if (Result = Nil) then Result := eNoObject;
 
             // look again, component might be locked (has to iterate all components on board)
@@ -664,7 +668,7 @@ begin
             begin
                 Iter := Board.BoardIterator_Create;
                 Iter.AddFilter_ObjectSet(MkSet(eComponentObject));
-                Iter.AddFilter_LayerSet(MkSet(eTopLayer, eBottomLayer));
+                Iter.AddFilter_LayerSet(VisibleLayerSet);
                 Iter.AddFilter_Method(eProcessAll);
                 //SIter.AddFilter_Area(x - 100, y - 100, x + 100, y + 100); // only applies to spatial iterator, which apparently doesn't see locked objects
 
@@ -676,25 +680,21 @@ begin
                     // click should be within bounding rectangle
                     if (BRect.left < x) and (x < BRect.right) and (BRect.bottom < y) and (y < BRect.top) then
                     begin
-                        // layer should be visible
-                        if Board.LayerIsDisplayed(Comp.Layer) then
+                        if Result <> eNoObject then
                         begin
-                            if Result <> eNoObject then
-                            begin
-                                // prioritize component on current layer if previous component is not
-                                if (Comp.Layer = Board.CurrentLayer) and (PrevComp.Layer <> Board.CurrentLayer) then Result := Comp
-                                // both components are on the same layer, prioritize smaller component
-                                else if (Comp.Layer = PrevComp.Layer) and (Area < PrevArea) then Result := Comp;
-                            end
-                            else
-                            begin
-                                Result := Comp;
-                                Area := GetComponentAreaMils(Comp);
-                            end;
-
-                            PrevComp := Result;
-                            PrevArea := GetComponentAreaMils(Result);
+                            // prioritize component on current layer if previous component is not
+                            if (Comp.Layer = Board.CurrentLayer) and (PrevComp.Layer <> Board.CurrentLayer) then Result := Comp
+                            // both components are on the same layer, prioritize smaller component
+                            else if (Comp.Layer = PrevComp.Layer) and (Area < PrevArea) then Result := Comp;
+                        end
+                        else
+                        begin
+                            Result := Comp;
+                            Area := GetComponentAreaMils(Comp);
                         end;
+
+                        PrevComp := Result;
+                        PrevArea := GetComponentAreaMils(Result);
                     end;
                     Comp := Iter.NextPCBObject;
                 end;
