@@ -625,7 +625,7 @@ object QuickSilkForm: TQuickSilkForm
   end
   object CheckBoxAnyAngle: TCheckBox
     Left = 8
-    Top = 112
+    Top = 104
     Width = 120
     Height = 17
     Hint = 'ENABLED: angles that aren'#39't 0/90 degrees are supported'
@@ -638,9 +638,9 @@ object QuickSilkForm: TQuickSilkForm
   end
   object RadioGroupParentOnly: TRadioGroup
     Left = 8
-    Top = 136
+    Top = 144
     Width = 120
-    Height = 88
+    Height = 80
     Hint = 
       'Default behavior is to avoid only objects in parent component; P' +
       'ress CTRL to temporarily avoid all objects'
@@ -766,5 +766,18 @@ object QuickSilkForm: TQuickSilkForm
     ShowHint = True
     TabOrder = 34
     OnClick = ButtonSaveConfigClick
+  end
+  object CheckBoxExtraOffsets: TCheckBox
+    Left = 8
+    Top = 120
+    Width = 120
+    Height = 17
+    Hint = 
+      'ENABLED: (time consuming) when avoiding all objects, will try ap' +
+      'proaching parent from every offset'
+    Caption = 'Try Extra Offsets'
+    ParentShowHint = False
+    ShowHint = True
+    TabOrder = 35
   end
 end
