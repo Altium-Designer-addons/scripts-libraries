@@ -2,6 +2,16 @@
 { * See README.md for release info and documentation
 { ****************************************************************************** }
 
+const
+    cESC                = -1;
+    cAltKey             = 1; // don't use when selecting component. Okay when clicking location.
+    cShiftKey           = 2; // don't use it for selecting component or location. Makes funny selection stuff happen
+    cCtrlKey            = 3; // available for use during component and location selection
+    cConfigFileName     = 'QuickSilkSettings.ini';
+    cScriptTitle        = 'QuickSilk';
+    cScriptVersion      = '1.01';
+    cDEBUGLEVEL         = 0;
+
 var
     Board                           : IPCB_Board;
     IsAtLeastAD19                   : Boolean;
@@ -16,20 +26,11 @@ var
     PresetList                      : TStringList;
     bPersistentMode                 : Boolean;
     bEnableAnyAngle                 : Boolean;
+    bExtraOffsets                   : Boolean;
     iClearanceMode                  : Integer;
     TEXTEXPANSION, BODYEXPANSION    : TCoord;
     PADEXPANSION, CUTOUTEXPANSION   : TCoord;
     DEFAULTEXPANSION                : TCoord;
-
-const
-    cESC                = -1;
-    cAltKey             = 1; // don't use when selecting component. Okay when clicking location.
-    cShiftKey           = 2; // don't use it for selecting component or location. Makes funny selection stuff happen
-    cCtrlKey            = 3; // available for use during component and location selection
-    cDEBUGLEVEL         = 0;
-    cConfigFileName     = 'QuickSilkSettings.ini';
-    cScriptTitle        = 'QuickSilk';
-    cScriptVersion      = '1.00';
 
 
 procedure _GUI; forward;
@@ -136,8 +137,10 @@ var
     bRunoff             : Boolean;
     bDefaultValid       : Boolean;
     bAnyAngleFlag       : Boolean;
+    bValidPlacement     : Boolean;
     TextTypeStr         : String;
     SideOffsets         : array[0..12]; // make sure element count and LastOffsetIndex are in sync
+    SideOffset          : Integer;
     OffsetIndex         : Integer;
     LastOffsetIndex     : Integer;
     MinDist             : TCoord;
@@ -148,6 +151,7 @@ begin
     CurSearchDist := SearchDist;
     bFirstPass := False;
     bRunoff := False;
+    bValidPlacement := False;
     bDefaultValid := True;
     bAnyAngleFlag := (ForceAutoPos <> eAutoPos_Manual) and bEnableAnyAngle;
     SideOffsets := [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6]; // excessive number of offsets will increase time to fail dramatically
@@ -173,6 +177,67 @@ begin
         DebugMessage(1, TextTypeStr + ' for component ' + NameOrComment.Component.Name.Text + ' is not Autopositioned. Automove canceled.');
         Result := 0;
         Exit;
+    end;
+
+    // special case when avoiding objects outside parent: try moving up to parent ignoring others first, and see if that passes
+    if not ParentOnly then
+    begin
+        EndHourGlass; // end before recursive call
+
+        // call AutoMove recursively but only avoiding parent objects
+        Result := AutoMove(NameOrComment, SearchDist, True, StartDist, ForceAutoPos);
+
+        if (Result > 0) and IsValidPlacement(NameOrComment, ParentOnly) then
+        begin
+            // if Result is positive then it found a parent-only solution - if it still passes when evaluating outside the parent, we're done
+            exit;
+        end
+        else if Result > 0 then
+        begin
+            // if result is positive but there is not a complete solution, try offset nudging against parent comp (note that this is a gamble)
+            BeginHourGlass; // resume hourglass after recursive call if didn't exit
+            repeat
+                //TotalDist := 0;
+
+                // transform offset array [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6] to [1, -2, 3, -4, 5, -6, 7, -8, 9, -10, 11, -12, 6]
+                // to save calls to AutoPosDeltaAdjust() and end at no offset
+                if OffsetIndex < LastOffsetIndex then
+                begin
+                    if SIGN(SideOffsets[OffsetIndex]) > 0 then SideOffset := -SideOffsets[OffsetIndex] * 2 else SideOffset := -SideOffsets[OffsetIndex] * 2 + 1;
+                end
+                else SideOffset := -SideOffsets[OffsetIndex];
+
+                // try next offset
+                AutoPosDeltaAdjust(NameOrComment, 0, NameOrCommentAP, bAnyAngleFlag, SideOffset);
+                bValidPlacement := IsValidPlacement(NameOrComment, ParentOnly);
+
+                DebugMessage(1, 'Adjusting offset.' + sLineBreak +
+                        'SideOffset=' + IntToStr(SideOffsets[OffsetIndex] + SideOffset) + sLineBreak +
+                        'Valid Placement=' + BoolToStr(bValidPlacement, True));
+                if iDebugLevel >= 2 then NameOrComment.GraphicallyInvalidate;
+                if iDebugLevel >= 2 then Application.ProcessMessages;
+
+                Inc(OffsetIndex);
+            until bValidPlacement or (OffsetIndex > LastOffsetIndex);
+
+            if bValidPlacement then
+            begin
+                EndHourGlass; // end hourglass before exit
+                exit; // note that result will just be move amount toward parent
+            end;
+
+            // restore to start position
+            AutoPosDeltaAdjust(NameOrComment, -Result, NameOrCommentAP, bAnyAngleFlag);
+            Result := 0;
+
+            DebugMessage(1, 'Returned to start position.');
+            if (iDebugLevel > 0) and (cDEBUGLEVEL >= 2) then iDebugLevel := MAX(iDebugLevel, cDEBUGLEVEL); // reset debug level unless it was 0
+            if iDebugLevel >= 2 then NameOrComment.GraphicallyInvalidate;
+            if iDebugLevel >= 2 then Application.ProcessMessages;
+
+            OffsetIndex := 0;
+        end;
+
     end;
 
     if not IsValidPlacement(NameOrComment, ParentOnly) then
@@ -211,8 +276,8 @@ begin
             else
             begin
                 bFirstPass := False;
-                // if ParentOnly mode, we're done, otherwise set MoveDist to 0 to trigger offset step
-                if ParentOnly then break else MoveDist := 0;
+                // if ParentOnly mode unless extra offsets is enabled, we're done, otherwise set MoveDist to 0 to trigger offset step
+                if ParentOnly or (not bExtraOffsets) then break else MoveDist := 0;
             end;
         end;
 
@@ -256,12 +321,13 @@ begin
                 end
                 else if (TotalDist <= 0) then
                 begin
+                    if bRunoff then CurSearchDist := SearchDist div 2; // after first pass backward, reduce search space to optimize time
                     MoveDist := ABS(MoveDist) div 2; // Start moving in the positive direction and halve distance
                 end;
 
                 // if moves are too small to likely be productive...
                 if ABS(MoveDist) < cMINSEARCHDIST then
-                    if ParentOnly then break
+                    if ParentOnly or (not bExtraOffsets) then break
                     else
                     begin
                         // if not ParentOnly, step through lateral offsets in case a nudge will give a passing solution
@@ -1547,7 +1613,7 @@ begin
 end; { PresetButtonClicked }
 
 
-{ rotates IPCB_Text object to specific angle, optionally normalizing it to be right-reading, optionally rotating 90° CCW }
+{ rotates IPCB_Text object to specific angle, optionally normalizing it to be right-reading, optionally rotating 90Â° CCW }
 function RotateTextToAngle(var Text : IPCB_Text; const Angle : Double; const Normalize : Boolean = False; const Ortho : Boolean = False) : Double;
 var
     mirror : Boolean;
@@ -1679,15 +1745,15 @@ begin
     begin
         if not Comp.NameOn then Comp.NameOn := True;
         Comp.ChangeNameAutoposition(tc_Autopos);
-        // after using autoposition, set to manual if it was temp rotated
-        if (TempRotation <> 0) then Comp.ChangeNameAutoposition(eAutoPos_Manual);
+        // after using autoposition, set to manual
+        Comp.ChangeNameAutoposition(eAutoPos_Manual);
     end
     else
     begin
         if not Comp.CommentOn then Comp.CommentOn := True;
         Comp.ChangeCommentAutoposition(tc_Autopos);
-        // after using autoposition, set to manual if it was temp rotated
-        if (TempRotation <> 0) then Comp.ChangeCommentAutoposition(eAutoPos_Manual);
+        // after using autoposition, set to manual
+        Comp.ChangeCommentAutoposition(eAutoPos_Manual);
     end;
 
     // restore original rotation
@@ -2178,6 +2244,7 @@ begin
 
         IniFile.WriteBool('Config', 'Persistent Placement Mode', CheckBoxPersistent.Checked);
         IniFile.WriteBool('Config', 'Any-Angle Placement', CheckBoxAnyAngle.Checked);
+        IniFile.WriteBool('Config', 'Try Extra Offsets', CheckBoxExtraOffsets.Checked);
         IniFile.WriteInteger('Config', 'Clearance Checking Mode', RadioGroupParentOnly.ItemIndex);
 
         IniFile.WriteString('Clearance', 'Text Clearance', tClearanceText.Text);
@@ -2240,6 +2307,7 @@ begin
 
         CheckBoxPersistent.Checked := IniFile.ReadBool('Config', 'Persistent Placement Mode', CheckBoxPersistent.Checked);
         CheckBoxAnyAngle.Checked := IniFile.ReadBool('Config', 'Any-Angle Placement', CheckBoxAnyAngle.Checked);
+        CheckBoxExtraOffsets.Checked := IniFile.ReadBool('Config', 'Try Extra Offsets', CheckBoxExtraOffsets.Checked);
         RadioGroupParentOnly.ItemIndex := IniFile.ReadInteger('Config', 'Clearance Checking Mode', RadioGroupParentOnly.ItemIndex);
 
         tClearanceText.Text := IniFile.ReadString('Clearance', 'Text Clearance', tClearanceText.Text);
@@ -2259,6 +2327,7 @@ begin
 
         bPersistentMode := CheckBoxPersistent.Checked;
         bEnableAnyAngle := CheckBoxAnyAngle.Checked;
+        bExtraOffsets := CheckBoxExtraOffsets.Checked;
         iClearanceMode := RadioGroupParentOnly.ItemIndex;
 
         case MMmilButton.Caption of
