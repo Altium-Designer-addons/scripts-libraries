@@ -95,3 +95,7 @@ For example:
     - clearance constraints are now configurable through GUI
     - main GUI now includes configuration values
     - improved cursor lag issue
+- 2023-07-16 - QuickSilk Ver 1.01 : optimization and polish pass
+    - added quicker nudging routine when avoiding all objects (exhaustive search fallback is available as "Try Extra Offsets" config option)
+    - added separate clearance mode option for mass AutoMove
+    - GUI polish

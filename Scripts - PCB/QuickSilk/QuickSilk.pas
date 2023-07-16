@@ -2,6 +2,16 @@
 { * See README.md for release info and documentation
 { ****************************************************************************** }
 
+const
+    cESC                = -1;
+    cAltKey             = 1; // don't use when selecting component. Okay when clicking location.
+    cShiftKey           = 2; // don't use it for selecting component or location. Makes funny selection stuff happen
+    cCtrlKey            = 3; // available for use during component and location selection
+    cConfigFileName     = 'QuickSilkSettings.ini';
+    cScriptTitle        = 'QuickSilk';
+    cScriptVersion      = '1.01';
+    cDEBUGLEVEL         = 0;
+
 var
     Board                           : IPCB_Board;
     IsAtLeastAD19                   : Boolean;
@@ -12,24 +22,16 @@ var
     bAutoMode                       : Boolean;
     bLazyAutoMove                   : Boolean;
     bUnHideDesignators              : Boolean;
+    bUserConfirmed                  : Boolean;
     PresetFilePath                  : String;
     PresetList                      : TStringList;
     bPersistentMode                 : Boolean;
     bEnableAnyAngle                 : Boolean;
+    bExtraOffsets                   : Boolean;
     iClearanceMode                  : Integer;
     TEXTEXPANSION, BODYEXPANSION    : TCoord;
     PADEXPANSION, CUTOUTEXPANSION   : TCoord;
     DEFAULTEXPANSION                : TCoord;
-
-const
-    cESC                = -1;
-    cAltKey             = 1; // don't use when selecting component. Okay when clicking location.
-    cShiftKey           = 2; // don't use it for selecting component or location. Makes funny selection stuff happen
-    cCtrlKey            = 3; // available for use during component and location selection
-    cDEBUGLEVEL         = 0;
-    cConfigFileName     = 'QuickSilkSettings.ini';
-    cScriptTitle        = 'QuickSilk';
-    cScriptVersion      = '1.00';
 
 
 procedure _GUI; forward;
@@ -37,8 +39,12 @@ procedure _QuickSilk; forward;
 procedure About; forward;
 function AutoMove(var NameOrComment : IPCB_Text; SearchDist : TCoord = 1200000; ParentOnly : Boolean = True; StartDist : TCoord = 400000; ForceAutoPos : TTextAutoposition = eAutoPos_Manual) : TCoord; forward;
 procedure AutoPosDeltaAdjust(var NameOrComment : IPCB_Text; MoveDistance : TCoord; autoPos : TTextAutoposition; bAnyAngleFlag : Boolean = False; SideOffset : Integer = 0); forward;
-function AutopositionJustify(var NameOrComment : IPCB_Text; const tc_AutoPos : TTextAutoposition): TTextAutoposition; forward;
+function AutopositionJustify(var NameOrComment : IPCB_Text; const tc_AutoPos : TTextAutoposition) : TTextAutoposition; forward;
 procedure BothInitialCheck(var status : Integer); forward;
+procedure ChangeTextUnits(Units : TUnit); forward;
+function ConfigFile_GetPath(dummy : String = '') : String; forward;
+procedure ConfigFile_Read(AFileName : String); forward;
+procedure ConfigFile_Write(AFileName : String); forward;
 function CoordToStr(Coords : TCoord) : String; forward;
 function CoordToX(Coords : TCoord) : String; forward;
 function CoordToY(Coords : TCoord) : String; forward;
@@ -50,43 +56,39 @@ function GetComponentAreaMils(Comp : IPCB_Component) : Int64; forward;
 function GetComponentAtCursor(const sPrompt : TString) : IPCB_Primitive; forward;
 function GetComponentBodyLargest(Comp : IPCB_Component) : IPCB_ComponentBody; forward;
 function GetComponentBodyLayerSet(Comp : IPCB_Component) : TV6_LayerSet; forward;
-function GetObjPoly(Obj: IPCB_ObjectClass, Expansion: TCoord = 0): IPCB_GeometricPolygon; forward;
-function GetLayerSet(SlkLayer: Integer; ObjID: Integer): TV6_LayerSet; forward;
+function GetLayerSet(SlkLayer: Integer; ObjID: Integer) : TV6_LayerSet; forward;
 function GetMinDesignatorClearance(var Comp : IPCB_Component) : TCoord; forward;
+function GetObjPoly(Obj: IPCB_ObjectClass, Expansion: TCoord = 0) : IPCB_GeometricPolygon; forward;
 function GetRelativeAutoposition(var Comp : IPCB_Component; const loc_x, loc_y : TCoord) : TTextAutoposition; forward;
 procedure InteractivelyAutoposition; forward;
 function IsOverlapping(Text: IPCB_ObjectClass; Obj2: IPCB_ObjectClass) : Boolean; forward;
-function IsSameSide(Obj1: IPCB_ObjectClass; Obj2: IPCB_ObjectClass): Boolean; forward;
+function IsSameSide(Obj1: IPCB_ObjectClass; Obj2: IPCB_ObjectClass) : Boolean; forward;
 function IsStringANum(Text : string) : Boolean; forward;
-function IsTextOverObj(Text: IPCB_Text; ObjID: Integer; Filter_Size: Integer; ParentOnly: Boolean = False): Boolean; forward;
+function IsTextOverObj(Text: IPCB_Text; ObjID: Integer; Filter_Size: Integer; ParentOnly: Boolean = False) : Boolean; forward;
 function IsValidPlacement(Silkscreen : IPCB_Text; ParentOnly : Boolean = False) : Boolean; forward;
 procedure LoadPresetListFromFile(const dummy : Integer); forward;
 function NormalizeText(var Text : IPCB_Text) : Boolean; forward;
-procedure PresetButtonClicked(Sender : TObject); forward;
 function RotateTextToAngle(var Text : IPCB_Text; const Angle : Double; const Normalize : Boolean = False; const Ortho : Boolean = False) : Double; forward;
 function SelectCompAndDesignators(dummy : Boolean = False) : Boolean; forward;
 procedure SetAutopositionLocation(var Comp : IPCB_Component; const tc_Autopos : TTextAutoposition; bDesignator : Boolean = True); forward;
 procedure SetButtonEnableStates(EnableState : Boolean); forward;
-function StrFromAutoPos(eAutoPos: TTextAutoposition): String; forward;
-function StrFromObjectId(ObjectId: TObjectId): String; forward;
+function StrFromAutoPos(eAutoPos: TTextAutoposition) : String; forward;
+function StrFromObjectId(ObjectId: TObjectId) : String; forward;
 procedure TweakDesignators; forward;
-procedure UserKeyPress(Sender : TObject; var Key : Char); forward;
-procedure ValidateOnChange(Sender : TObject); forward;
 procedure TQuickSilkForm.ButtonAutoClick(Sender : TObject); forward;
 procedure TQuickSilkForm.ButtonCancelClick(Sender : TObject); forward;
-procedure TQuickSilkForm.ButtonInteractiveStartClick(Sender: TObject); forward;
+procedure TQuickSilkForm.ButtonInteractiveStartClick(Sender : TObject); forward;
 procedure TQuickSilkForm.ButtonOKClick(Sender : TObject); forward;
-procedure TQuickSilkForm.MMmilButtonClick(Sender : TObject); forward;
-procedure TQuickSilkForm.ButtonSaveConfigClick(Sender: TObject); forward;
-procedure TQuickSilkForm.EditClearanceChange(Sender : TObject); forward;
-procedure TQuickSilkForm.EditDistanceChange(Sender : TObject); forward;
-procedure TQuickSilkForm.EditMaxDistanceChange(Sender : TObject); forward;
-procedure TQuickSilkForm.QuickSilkFormShow(Sender : TObject); forward;
+procedure TQuickSilkForm.ButtonSaveConfigClick(Sender : TObject); forward;
+procedure TQuickSilkForm.ConfigClick(Sender : TObject); forward;
+procedure TQuickSilkForm.InputValueChange(Sender : TObject); forward;
 procedure TQuickSilkForm.LabelVersionClick(Sender : TObject); forward;
-procedure ChangeTextUnits(Units : TUnit); forward;
-function ConfigFile_GetPath(dummy : String = ''): String; forward;
-procedure ConfigFile_Write(AFileName : String); forward;
-procedure ConfigFile_Read(AFileName : String); forward;
+procedure TQuickSilkForm.MMmilButtonClick(Sender : TObject); forward;
+procedure TQuickSilkForm.PresetButtonClicked(Sender : TObject); forward;
+procedure TQuickSilkForm.PresetValueChange(Sender : TObject); forward;
+procedure TQuickSilkForm.QuickSilkFormCloseQuery(Sender : TObject; var CanClose: Boolean); forward;
+procedure TQuickSilkForm.QuickSilkFormShow(Sender : TObject); forward;
+procedure TQuickSilkForm.UserKeyPress(Sender : TObject; var Key : Char); forward;
 
 
 { wrapper for TweakDesignators that sorts at the top of the list }
@@ -136,8 +138,10 @@ var
     bRunoff             : Boolean;
     bDefaultValid       : Boolean;
     bAnyAngleFlag       : Boolean;
+    bValidPlacement     : Boolean;
     TextTypeStr         : String;
     SideOffsets         : array[0..12]; // make sure element count and LastOffsetIndex are in sync
+    SideOffset          : Integer;
     OffsetIndex         : Integer;
     LastOffsetIndex     : Integer;
     MinDist             : TCoord;
@@ -148,6 +152,7 @@ begin
     CurSearchDist := SearchDist;
     bFirstPass := False;
     bRunoff := False;
+    bValidPlacement := False;
     bDefaultValid := True;
     bAnyAngleFlag := (ForceAutoPos <> eAutoPos_Manual) and bEnableAnyAngle;
     SideOffsets := [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6]; // excessive number of offsets will increase time to fail dramatically
@@ -173,6 +178,67 @@ begin
         DebugMessage(1, TextTypeStr + ' for component ' + NameOrComment.Component.Name.Text + ' is not Autopositioned. Automove canceled.');
         Result := 0;
         Exit;
+    end;
+
+    // special case when avoiding objects outside parent: try moving up to parent ignoring others first, and see if that passes
+    if not ParentOnly then
+    begin
+        EndHourGlass; // end before recursive call
+
+        // call AutoMove recursively but only avoiding parent objects
+        Result := AutoMove(NameOrComment, SearchDist, True, StartDist, ForceAutoPos);
+
+        if (Result > 0) and IsValidPlacement(NameOrComment, ParentOnly) then
+        begin
+            // if Result is positive then it found a parent-only solution - if it still passes when evaluating outside the parent, we're done
+            exit;
+        end
+        else if Result > 0 then
+        begin
+            // if result is positive but there is not a complete solution, try offset nudging against parent comp (note that this is a gamble)
+            BeginHourGlass; // resume hourglass after recursive call if didn't exit
+            repeat
+                //TotalDist := 0;
+
+                // transform offset array [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6] to [1, -2, 3, -4, 5, -6, 7, -8, 9, -10, 11, -12, 6]
+                // to save calls to AutoPosDeltaAdjust() and end at no offset
+                if OffsetIndex < LastOffsetIndex then
+                begin
+                    if SIGN(SideOffsets[OffsetIndex]) > 0 then SideOffset := -SideOffsets[OffsetIndex] * 2 else SideOffset := -SideOffsets[OffsetIndex] * 2 + 1;
+                end
+                else SideOffset := -SideOffsets[OffsetIndex];
+
+                // try next offset
+                AutoPosDeltaAdjust(NameOrComment, 0, NameOrCommentAP, bAnyAngleFlag, SideOffset);
+                bValidPlacement := IsValidPlacement(NameOrComment, ParentOnly);
+
+                DebugMessage(1, 'Adjusting offset.' + sLineBreak +
+                        'SideOffset=' + IntToStr(SideOffsets[OffsetIndex] + SideOffset) + sLineBreak +
+                        'Valid Placement=' + BoolToStr(bValidPlacement, True));
+                if iDebugLevel >= 2 then NameOrComment.GraphicallyInvalidate;
+                if iDebugLevel >= 2 then Application.ProcessMessages;
+
+                Inc(OffsetIndex);
+            until bValidPlacement or (OffsetIndex > LastOffsetIndex);
+
+            if bValidPlacement then
+            begin
+                EndHourGlass; // end hourglass before exit
+                exit; // note that result will just be move amount toward parent
+            end;
+
+            // restore to start position
+            AutoPosDeltaAdjust(NameOrComment, -Result, NameOrCommentAP, bAnyAngleFlag);
+            Result := 0;
+
+            DebugMessage(1, 'Returned to start position.');
+            if (iDebugLevel > 0) and (cDEBUGLEVEL >= 2) then iDebugLevel := MAX(iDebugLevel, cDEBUGLEVEL); // reset debug level unless it was 0
+            if iDebugLevel >= 2 then NameOrComment.GraphicallyInvalidate;
+            if iDebugLevel >= 2 then Application.ProcessMessages;
+
+            OffsetIndex := 0;
+        end;
+
     end;
 
     if not IsValidPlacement(NameOrComment, ParentOnly) then
@@ -211,8 +277,8 @@ begin
             else
             begin
                 bFirstPass := False;
-                // if ParentOnly mode, we're done, otherwise set MoveDist to 0 to trigger offset step
-                if ParentOnly then break else MoveDist := 0;
+                // if ParentOnly mode unless extra offsets is enabled, we're done, otherwise set MoveDist to 0 to trigger offset step
+                if ParentOnly or (not bExtraOffsets) then break else MoveDist := 0;
             end;
         end;
 
@@ -256,12 +322,13 @@ begin
                 end
                 else if (TotalDist <= 0) then
                 begin
+                    if bRunoff then CurSearchDist := SearchDist div 2; // after first pass backward, reduce search space to optimize time
                     MoveDist := ABS(MoveDist) div 2; // Start moving in the positive direction and halve distance
                 end;
 
                 // if moves are too small to likely be productive...
                 if ABS(MoveDist) < cMINSEARCHDIST then
-                    if ParentOnly then break
+                    if ParentOnly or (not bExtraOffsets) then break
                     else
                     begin
                         // if not ParentOnly, step through lateral offsets in case a nudge will give a passing solution
@@ -420,7 +487,7 @@ begin
 end;
 
 { function to transform text justification based on IPCB_Text autoposition and rotation }
-function AutopositionJustify(var NameOrComment : IPCB_Text; const tc_AutoPos : TTextAutoposition): TTextAutoposition;
+function AutopositionJustify(var NameOrComment : IPCB_Text; const tc_AutoPos : TTextAutoposition) : TTextAutoposition;
 var
     rotation : Integer;
     mirror   : Boolean;
@@ -555,6 +622,193 @@ begin
         end;
     end;
 
+end;
+
+
+procedure ChangeTextUnits(Units : TUnit);
+var
+    i           : Integer;
+    ControlList : TObjectList;
+    EditControl : TObject;
+    TempString  : String;
+    EditString  : String;
+begin
+    ControlList := CreateObject(TObjectList);
+    ControlList.OwnsObjects := False; // required to not throw invalid pointer errors when list is freed
+
+    ControlList.Add(tPreset1);
+    ControlList.Add(tPreset2);
+    ControlList.Add(tPreset3);
+    ControlList.Add(tPreset4);
+    ControlList.Add(tPreset5);
+    ControlList.Add(tPreset6);
+    ControlList.Add(tPreset7);
+    ControlList.Add(tPreset8);
+    ControlList.Add(tClearanceText);
+    ControlList.Add(tClearanceBody);
+    ControlList.Add(tClearancePad);
+    ControlList.Add(tClearanceCutout);
+    ControlList.Add(tClearanceDefault);
+    ControlList.Add(EditMaxDistance);
+    ControlList.Add(EditDistance);
+
+    EditString := EditDistance.Text;
+
+    for i := 0 to ControlList.Count - 1 do
+    begin
+        EditControl := ControlList[i];
+        if EditControl = nil then continue;
+
+        // to work around presets triggering EditControl changes
+        if EditControl = EditDistance then EditControl.Text := EditString;
+
+        TempString := EditControl.Text;
+        if (LastDelimiter(',.', TempString) <> 0) then TempString[LastDelimiter(',.', TempString)] := DecimalSeparator;
+
+        if Units = eMetric then
+        begin
+            if IsStringANum(EditControl.Text) then EditControl.Text := CoordToMMs(MilsToCoord(StrToFloat(TempString)));
+        end
+        else
+        begin
+            if IsStringANum(EditControl.Text) then EditControl.Text := CoordToMils(MMsToCoord(StrToFloat(TempString)));
+        end;
+    end;
+
+end;
+
+
+function ConfigFile_GetPath(dummy : String = '') : String;
+begin
+    result := SpecialFolder_AltiumApplicationData + '\' + cConfigFileName;
+end;
+
+
+procedure ConfigFile_Read(AFileName : String);
+var
+    IniFile: TIniFile;
+begin
+    // Check for old MoveAPdesignators2 file if the provided file doesn't exist
+    if not FileExists(AFileName) then
+    begin
+        AFileName := ClientAPI_SpecialFolder_AltiumApplicationData + '\MoveAPdesignators2Settings.ini';
+        if not FileExists(AFileName) then
+        begin
+            // ini file doesn't exist, try to fall back on even older format file
+            LoadPresetListFromFile(0);
+            exit;
+        end;
+    end;
+
+    IniFile := TIniFile.Create(AFileName);
+    try
+        QuickSilkForm.Top := IniFile.ReadInteger('Window Position', 'Top', QuickSilkForm.Top);
+        QuickSilkForm.Left := IniFile.ReadInteger('Window Position', 'Left', QuickSilkForm.Left);
+
+        tPreset1.Text := IniFile.ReadString('Presets', 'Preset1', tPreset1.Text);
+        tPreset2.Text := IniFile.ReadString('Presets', 'Preset2', tPreset2.Text);
+        tPreset3.Text := IniFile.ReadString('Presets', 'Preset3', tPreset3.Text);
+        tPreset4.Text := IniFile.ReadString('Presets', 'Preset4', tPreset4.Text);
+        tPreset5.Text := IniFile.ReadString('Presets', 'Preset5', tPreset5.Text);
+        tPreset6.Text := IniFile.ReadString('Presets', 'Preset6', tPreset6.Text);
+        tPreset7.Text := IniFile.ReadString('Presets', 'Preset7', tPreset7.Text);
+        tPreset8.Text := IniFile.ReadString('Presets', 'Preset8', tPreset8.Text);
+
+        CheckBoxPersistent.Checked := IniFile.ReadBool('Config', 'Persistent Placement Mode', CheckBoxPersistent.Checked);
+        CheckBoxAnyAngle.Checked := IniFile.ReadBool('Config', 'Any-Angle Placement', CheckBoxAnyAngle.Checked);
+        CheckBoxExtraOffsets.Checked := IniFile.ReadBool('Config', 'Try Extra Offsets', CheckBoxExtraOffsets.Checked);
+        RadioGroupParentOnly.ItemIndex := IniFile.ReadInteger('Config', 'Clearance Checking Mode', RadioGroupParentOnly.ItemIndex);
+
+        tClearanceText.Text := IniFile.ReadString('Clearance', 'Text Clearance', tClearanceText.Text);
+        tClearanceBody.Text := IniFile.ReadString('Clearance', 'Component Body Clearance', tClearanceBody.Text);
+        tClearancePad.Text := IniFile.ReadString('Clearance', 'Pad Clearance', tClearancePad.Text);
+        tClearanceCutout.Text := IniFile.ReadString('Clearance', 'Cutout Region Clearance', tClearanceCutout.Text);
+        tClearanceDefault.Text := IniFile.ReadString('Clearance', 'Default Clearance', tClearanceDefault.Text);
+
+        MMmilButton.Caption                 := IniFile.ReadString('Last Used', 'Units', MMmilButton.Caption);
+        SelectedCheckBox.Checked            := IniFile.ReadBool('Last Used', 'Selected Only', SelectedCheckBox.Checked);
+        UnHideDesignatorsCheckBox.Checked   := IniFile.ReadBool('Last Used', 'Unhide Designators', UnHideDesignatorsCheckBox.Checked);
+        LazyAutoMoveCheckBox.Checked        := IniFile.ReadBool('Last Used', 'Lazy Offset', LazyAutoMoveCheckBox.Checked);
+        CheckBoxAutoParentOnly.Checked      := IniFile.ReadBool('Last Used', 'Parent-Only AutoMove', CheckBoxAutoParentOnly.Checked);
+        EditMaxDistance.Text                := IniFile.ReadString('Last Used', 'Auto Distance', EditMaxDistance.Text);
+
+        // Main input field needs to be set last because changing some other values trigger it
+        EditDistance.Text                   := IniFile.ReadString('Last Used', 'Fixed Distance', EditDistance.Text);
+
+        bPersistentMode := CheckBoxPersistent.Checked;
+        bEnableAnyAngle := CheckBoxAnyAngle.Checked;
+        bExtraOffsets := CheckBoxExtraOffsets.Checked;
+        iClearanceMode := RadioGroupParentOnly.ItemIndex;
+
+        case MMmilButton.Caption of
+            'mil':
+            begin
+                StringToCoordUnit(tClearanceText.Text, TEXTEXPANSION, eImperial);
+                StringToCoordUnit(tClearanceBody.Text, BODYEXPANSION, eImperial);
+                StringToCoordUnit(tClearancePad.Text, PADEXPANSION, eImperial);
+                StringToCoordUnit(tClearanceCutout.Text, CUTOUTEXPANSION, eImperial);
+                StringToCoordUnit(tClearanceDefault.Text, DEFAULTEXPANSION, eImperial);
+            end;
+            'mm':
+            begin
+                StringToCoordUnit(tClearanceText.Text, TEXTEXPANSION, eMetric);
+                StringToCoordUnit(tClearanceBody.Text, BODYEXPANSION, eMetric);
+                StringToCoordUnit(tClearancePad.Text, PADEXPANSION, eMetric);
+                StringToCoordUnit(tClearanceCutout.Text, CUTOUTEXPANSION, eMetric);
+                StringToCoordUnit(tClearanceDefault.Text, DEFAULTEXPANSION, eMetric);
+            end;
+            else
+            begin
+                // invalid
+            end;
+        end;
+
+    finally
+        IniFile.Free;
+    end;
+end;
+
+
+procedure ConfigFile_Write(AFileName : String);
+var
+    IniFile: TIniFile;
+begin
+    IniFile := TIniFile.Create(AFileName);
+    try
+        IniFile.WriteInteger('Window Position', 'Top', QuickSilkForm.Top);
+        IniFile.WriteInteger('Window Position', 'Left', QuickSilkForm.Left);
+
+        IniFile.WriteBool('Config', 'Persistent Placement Mode', CheckBoxPersistent.Checked);
+        IniFile.WriteBool('Config', 'Any-Angle Placement', CheckBoxAnyAngle.Checked);
+        IniFile.WriteBool('Config', 'Try Extra Offsets', CheckBoxExtraOffsets.Checked);
+        IniFile.WriteInteger('Config', 'Clearance Checking Mode', RadioGroupParentOnly.ItemIndex);
+
+        IniFile.WriteString('Clearance', 'Text Clearance', tClearanceText.Text);
+        IniFile.WriteString('Clearance', 'Component Body Clearance', tClearanceBody.Text);
+        IniFile.WriteString('Clearance', 'Pad Clearance', tClearancePad.Text);
+        IniFile.WriteString('Clearance', 'Cutout Region Clearance', tClearanceCutout.Text);
+        IniFile.WriteString('Clearance', 'Default Clearance', tClearanceDefault.Text);
+
+        IniFile.WriteString('Last Used', 'Units', MMmilButton.Caption);
+        IniFile.WriteBool('Last Used', 'Selected Only', SelectedCheckBox.Checked);
+        IniFile.WriteBool('Last Used', 'Unhide Designators', UnHideDesignatorsCheckBox.Checked);
+        IniFile.WriteBool('Last Used', 'Lazy Offset', LazyAutoMoveCheckBox.Checked);
+        IniFile.WriteBool('Last Used', 'Parent-Only AutoMove', CheckBoxAutoParentOnly.Checked);
+        IniFile.WriteString('Last Used', 'Auto Distance', EditMaxDistance.Text);
+        IniFile.WriteString('Last Used', 'Fixed Distance', EditDistance.Text);
+
+        IniFile.WriteString('Presets', 'Preset1', tPreset1.Text);
+        IniFile.WriteString('Presets', 'Preset2', tPreset2.Text);
+        IniFile.WriteString('Presets', 'Preset3', tPreset3.Text);
+        IniFile.WriteString('Presets', 'Preset4', tPreset4.Text);
+        IniFile.WriteString('Presets', 'Preset5', tPreset5.Text);
+        IniFile.WriteString('Presets', 'Preset6', tPreset6.Text);
+        IniFile.WriteString('Presets', 'Preset7', tPreset7.Text);
+        IniFile.WriteString('Presets', 'Preset8', tPreset8.Text);
+
+    finally
+        IniFile.Free;
+    end;
 end;
 
 
@@ -779,72 +1033,8 @@ begin
 end;
 
 
-// Get GeometricPolygon using PCBServer.PCBContourMaker
-function GetObjPoly(Obj: IPCB_ObjectClass, Expansion: TCoord = 0): IPCB_GeometricPolygon;
-var
-    Poly: IPCB_GeometricPolygon;
-    OldRect: TCoordRect;
-    NewContour: IPCB_Contour;
-begin
-    if Obj.ObjectId = eBoardObject then
-    begin
-        //Rect := Obj.BoardOutline.BoundingRectangle;
-        Poly := Obj.BoardOutline.BoardOutline_GeometricPolygon;
-    end
-    else if Obj.ObjectId = eComponentObject then
-    begin
-        //Rect := Obj.BoundingRectangleNoNameCommentForSignals;
-        //Poly := GetComponentBodyLargest(Obj).GeometricPolygon; // doesn't have expansion argument
-        Poly := PCBServer.PCBContourMaker.MakeContour(GetComponentBodyLargest(Obj), Expansion, Obj.Layer);
-    end
-    else if Obj.ObjectId = eArcObject then
-    begin
-        // Function  MakeContour(APrim : IPCB_Primitive; AExpansion : Integer; ALayer : TV6_Layer) : IPCB_GeometricPolygon;
-        Poly := PCBServer.PCBContourMaker.MakeContour(Obj, Expansion, Obj.Layer);
-    end
-    else if Obj.ObjectId = eTrackObject then
-    begin
-        // Function  MakeContour(APrim : IPCB_Primitive; AExpansion : Integer; ALayer : TV6_Layer) : IPCB_GeometricPolygon;
-        Poly := PCBServer.PCBContourMaker.MakeContour(Obj, Expansion, Obj.Layer);
-    end
-    else if Obj.ObjectId = eRegionObject then
-    begin
-        // Function  MakeContour(APrim : IPCB_Primitive; AExpansion : Integer; ALayer : TV6_Layer) : IPCB_GeometricPolygon;
-        Poly := PCBServer.PCBContourMaker.MakeContour(Obj, Expansion, Obj.Layer);
-    end
-    else if Obj.ObjectId = eTextObject then
-    begin
-        // Function  MakeContour(APrim : IPCB_Primitive; AExpansion : Integer; ALayer : TV6_Layer) : IPCB_GeometricPolygon;
-        if Obj.UseTTFonts then Poly := PCBServer.PCBContourMaker.MakeContour(Obj, Expansion, Obj.Layer)
-        else Poly := PCBServer.PCBContourMaker.MakeContour(Obj, Expansion - (Obj.Width / 2), Obj.Layer);
-    end
-    else if Obj.ObjectId = ePadObject then
-    begin
-        // Function  MakeContour(APrim : IPCB_Primitive; AExpansion : Integer; ALayer : TV6_Layer) : IPCB_GeometricPolygon;
-        Poly := PCBServer.PCBContourMaker.MakeContour(Obj, Expansion, Obj.Layer);
-    end
-    else
-    begin
-        //Rect := Obj.BoundingRectangle;
-        // For uknown types, fall back to a dumb bounding rectangle, but wrapped as IPCB_GeometricPolygon
-        OldRect := Obj.BoundingRectangle;
-        NewContour := PCBServer.PCBContourFactory;
-        // Procedure AddPoint(x : Integer; y : Integer);
-        NewContour.AddPoint(OldRect.Left, OldRect.Bottom);
-        NewContour.AddPoint(OldRect.Right, OldRect.Bottom);
-        NewContour.AddPoint(OldRect.Right, OldRect.Top);
-        NewContour.AddPoint(OldRect.Left, OldRect.Top);
-        // Function  AddContour(AContour : IPCB_Contour) : IPCB_Contour;
-        Poly := PCBServer.PCBGeometricPolygonFactory;
-        Poly.AddContour(NewContour);
-    end;
-
-    result := Poly;
-end;
-
-
-// Returns correct layer set given the object being used
-function GetLayerSet(SlkLayer: Integer; ObjID: Integer): TV6_LayerSet;
+// Returns correct layer set given an ObjectId
+function GetLayerSet(SlkLayer: Integer; ObjID: Integer) : TV6_LayerSet;
 var
     TopBot: Integer;
 begin
@@ -916,6 +1106,70 @@ begin
 
     // Return the minimum distance found
     Result := MinDistance;
+end;
+
+
+// Get GeometricPolygon using PCBServer.PCBContourMaker
+function GetObjPoly(Obj: IPCB_ObjectClass, Expansion: TCoord = 0) : IPCB_GeometricPolygon;
+var
+    Poly: IPCB_GeometricPolygon;
+    OldRect: TCoordRect;
+    NewContour: IPCB_Contour;
+begin
+    if Obj.ObjectId = eBoardObject then
+    begin
+        //Rect := Obj.BoardOutline.BoundingRectangle;
+        Poly := Obj.BoardOutline.BoardOutline_GeometricPolygon;
+    end
+    else if Obj.ObjectId = eComponentObject then
+    begin
+        //Rect := Obj.BoundingRectangleNoNameCommentForSignals;
+        //Poly := GetComponentBodyLargest(Obj).GeometricPolygon; // doesn't have expansion argument
+        Poly := PCBServer.PCBContourMaker.MakeContour(GetComponentBodyLargest(Obj), Expansion, Obj.Layer);
+    end
+    else if Obj.ObjectId = eArcObject then
+    begin
+        // Function  MakeContour(APrim : IPCB_Primitive; AExpansion : Integer; ALayer : TV6_Layer) : IPCB_GeometricPolygon;
+        Poly := PCBServer.PCBContourMaker.MakeContour(Obj, Expansion, Obj.Layer);
+    end
+    else if Obj.ObjectId = eTrackObject then
+    begin
+        // Function  MakeContour(APrim : IPCB_Primitive; AExpansion : Integer; ALayer : TV6_Layer) : IPCB_GeometricPolygon;
+        Poly := PCBServer.PCBContourMaker.MakeContour(Obj, Expansion, Obj.Layer);
+    end
+    else if Obj.ObjectId = eRegionObject then
+    begin
+        // Function  MakeContour(APrim : IPCB_Primitive; AExpansion : Integer; ALayer : TV6_Layer) : IPCB_GeometricPolygon;
+        Poly := PCBServer.PCBContourMaker.MakeContour(Obj, Expansion, Obj.Layer);
+    end
+    else if Obj.ObjectId = eTextObject then
+    begin
+        // Function  MakeContour(APrim : IPCB_Primitive; AExpansion : Integer; ALayer : TV6_Layer) : IPCB_GeometricPolygon;
+        if Obj.UseTTFonts then Poly := PCBServer.PCBContourMaker.MakeContour(Obj, Expansion, Obj.Layer)
+        else Poly := PCBServer.PCBContourMaker.MakeContour(Obj, Expansion - (Obj.Width / 2), Obj.Layer);
+    end
+    else if Obj.ObjectId = ePadObject then
+    begin
+        // Function  MakeContour(APrim : IPCB_Primitive; AExpansion : Integer; ALayer : TV6_Layer) : IPCB_GeometricPolygon;
+        Poly := PCBServer.PCBContourMaker.MakeContour(Obj, Expansion, Obj.Layer);
+    end
+    else
+    begin
+        //Rect := Obj.BoundingRectangle;
+        // For uknown types, fall back to a dumb bounding rectangle, but wrapped as IPCB_GeometricPolygon
+        OldRect := Obj.BoundingRectangle;
+        NewContour := PCBServer.PCBContourFactory;
+        // Procedure AddPoint(x : Integer; y : Integer);
+        NewContour.AddPoint(OldRect.Left, OldRect.Bottom);
+        NewContour.AddPoint(OldRect.Right, OldRect.Bottom);
+        NewContour.AddPoint(OldRect.Right, OldRect.Top);
+        NewContour.AddPoint(OldRect.Left, OldRect.Top);
+        // Function  AddContour(AContour : IPCB_Contour) : IPCB_Contour;
+        Poly := PCBServer.PCBGeometricPolygonFactory;
+        Poly.AddContour(NewContour);
+    end;
+
+    result := Poly;
 end;
 
 
@@ -1177,7 +1431,7 @@ end;
 
 
 // Check if two layers are the on the same side of the board. Handle different layer names.
-function IsSameSide(Obj1: IPCB_ObjectClass; Obj2: IPCB_ObjectClass): Boolean;
+function IsSameSide(Obj1: IPCB_ObjectClass; Obj2: IPCB_ObjectClass) : Boolean;
 var
     Layer1, Layer2: Integer;
 begin
@@ -1216,6 +1470,7 @@ begin
     result := False;
 end;
 
+
 function IsStringANum(Text : string) : Boolean;
 var
     i        : Integer;
@@ -1252,7 +1507,7 @@ end; { IsStringANum }
 
 
 // search area for objects of given ObjectId and check to see if Text is too close
-function IsTextOverObj(Text: IPCB_Text; ObjID: Integer; Filter_Size: Integer; ParentOnly: Boolean = False): Boolean;
+function IsTextOverObj(Text: IPCB_Text; ObjID: Integer; Filter_Size: Integer; ParentOnly: Boolean = False) : Boolean;
 var
     Iterator: IPCB_SpatialIterator;
     Obj: IPCB_ObjectClass;
@@ -1532,22 +1787,7 @@ begin
 end;
 
 
-procedure PresetButtonClicked(Sender : TObject);
-begin
-    // ShowMessage('PresetButtonClicked');
-    if Sender = ButtonPreset1 then EditDistance.Text      := tPreset1.Text
-    else if Sender = ButtonPreset2 then EditDistance.Text := tPreset2.Text
-    else if Sender = ButtonPreset3 then EditDistance.Text := tPreset3.Text
-    else if Sender = ButtonPreset4 then EditDistance.Text := tPreset4.Text
-    else if Sender = ButtonPreset5 then EditDistance.Text := tPreset5.Text
-    else if Sender = ButtonPreset6 then EditDistance.Text := tPreset6.Text
-    else if Sender = ButtonPreset7 then EditDistance.Text := tPreset7.Text
-    else if Sender = ButtonPreset8 then EditDistance.Text := tPreset8.Text;
-    QuickSilkForm.Close;
-end; { PresetButtonClicked }
-
-
-{ rotates IPCB_Text object to specific angle, optionally normalizing it to be right-reading, optionally rotating 90° CCW }
+{ rotates IPCB_Text object to specific angle, optionally normalizing it to be right-reading, optionally rotating 90Â° CCW }
 function RotateTextToAngle(var Text : IPCB_Text; const Angle : Double; const Normalize : Boolean = False; const Ortho : Boolean = False) : Double;
 var
     mirror : Boolean;
@@ -1679,15 +1919,15 @@ begin
     begin
         if not Comp.NameOn then Comp.NameOn := True;
         Comp.ChangeNameAutoposition(tc_Autopos);
-        // after using autoposition, set to manual if it was temp rotated
-        if (TempRotation <> 0) then Comp.ChangeNameAutoposition(eAutoPos_Manual);
+        // after using autoposition, set to manual
+        Comp.ChangeNameAutoposition(eAutoPos_Manual);
     end
     else
     begin
         if not Comp.CommentOn then Comp.CommentOn := True;
         Comp.ChangeCommentAutoposition(tc_Autopos);
-        // after using autoposition, set to manual if it was temp rotated
-        if (TempRotation <> 0) then Comp.ChangeCommentAutoposition(eAutoPos_Manual);
+        // after using autoposition, set to manual
+        Comp.ChangeCommentAutoposition(eAutoPos_Manual);
     end;
 
     // restore original rotation
@@ -1712,10 +1952,13 @@ begin
     ButtonPreset7.Enabled           := EnableState;
     ButtonPreset8.Enabled           := EnableState;
     ButtonSaveConfig.Enabled        := EnableState;
+    MMmilButton.Enabled             := EnableState;
+
+    ButtonSaveConfig.Caption := '&SAVE';
 end;
 
 
-function StrFromAutoPos(eAutoPos: TTextAutoposition): String;
+function StrFromAutoPos(eAutoPos: TTextAutoposition) : String;
 begin
     { TTextAutoposition = ( eAutoPos_Manual,
                         eAutoPos_TopLeft,
@@ -1744,7 +1987,7 @@ begin
 end;
 
 
-function StrFromObjectId(ObjectId: TObjectId): String;
+function StrFromObjectId(ObjectId: TObjectId) : String;
 begin
     case ObjectId of
         0:  Result := 'eNoObject';
@@ -1819,8 +2062,6 @@ begin
         QuickSilkForm.ShowModal; // Show the settings dialogue (and resume script here after closed)
         if bAbortScript then Exit;
 
-        // Notify the pcbserver that we will make changes (Start undo)
-        PCBServer.PreProcess;
         ComponentIteratorHandle := Board.BoardIterator_Create;
         ComponentIteratorHandle.AddFilter_ObjectSet(MkSet(eComponentObject));
         ComponentIteratorHandle.AddFilter_IPCB_LayerSet(LayerSet.AllLayers);
@@ -1837,7 +2078,7 @@ begin
         if QuickSilkForm.SelectedCheckBox.Checked then
             while (Component <> Nil) do
                 if not Component.Selected then Component := ComponentIteratorHandle.NextPCBObject
-                else break; // Find the first selected comp if select only checked
+                else break; // Find the first selected comp if "selected only" checked
 
         // Set the move distance to DB units converted from mils or mm
         if QuickSilkForm.MMmilButton.Caption = 'mm' then MoveDistance := MMsToCoord(QuickSilkForm.EditDistance.Text)
@@ -1848,6 +2089,9 @@ begin
             if QuickSilkForm.MMmilButton.Caption = 'mm' then MaxDistance := MMsToCoord(QuickSilkForm.EditMaxDistance.Text)
             else MaxDistance := MilsToCoord(QuickSilkForm.EditMaxDistance.Text);
         end;
+
+        // Notify the pcbserver that we will make changes (Start undo)
+        PCBServer.PreProcess;
 
         while (Component <> Nil) do
         begin
@@ -1872,7 +2116,7 @@ begin
 
             if bAutoMode then
             begin
-                AutoMoveResult := AutoMove(Designator, MaxDistance);
+                AutoMoveResult := AutoMove(Designator, MaxDistance, CheckBoxAutoParentOnly.Checked);
 
                 if AutoMoveResult > 0 then
                 begin
@@ -1907,7 +2151,7 @@ begin
             if QuickSilkForm.SelectedCheckBox.Checked then
                 while (Component <> Nil) do
                     if not Component.Selected then Component := ComponentIteratorHandle.NextPCBObject
-                    else break; // Find the next selected comp if select only checked
+                    else break; // Find the next selected comp if "selected only" checked
 
 
         end; // end while
@@ -1941,50 +2185,10 @@ begin
 end; { TweakDesignators }
 
 
-{ programmatically, OnKeyPress fires before OnChange event and "catches" the key press }
-procedure UserKeyPress(Sender : TObject; var Key : Char);
-begin
-    if (Sender = EditMaxDistance) and (ButtonAuto.Enabled) and (Ord(Key) = 13) then
-    begin
-        Key := #0; // catch and discard key press to avoid beep
-        if ButtonAuto.Enabled then
-        begin
-            bAutoMode := True;
-            QuickSilkForm.Close;
-        end;
-    end
-    else if (Sender <> EditMaxDistance) and (ButtonOK.Enabled) and (Ord(Key) = 13) then
-    begin
-        Key := #0; // catch and discard key press to avoid beep
-        if ButtonOK.Enabled then
-        begin
-            bAutoMode := False;
-            QuickSilkForm.Close;
-        end;
-    end;
-end; { UserKeyPress }
-
-
-procedure ValidateOnChange(Sender : TObject);
-var
-    textbox : TEdit;
-begin
-    textbox := Sender;
-    // ShowMessage(textbox.Text);
-    if IsStringANum(textbox.Text) then
-    begin
-        if Sender <> EditDistance then EditDistance.Text := textbox.Text;
-
-        ButtonOK.Enabled := True;
-    end
-    else ButtonOK.Enabled := False;
-
-end; { ValidateOnChange }
-
-
 procedure TQuickSilkForm.ButtonAutoClick(Sender : TObject);
 begin
     bAutoMode := True;
+    bUserConfirmed := True;
     QuickSilkForm.Close;
 end; { TQuickSilkForm.ButtonAutoClick }
 
@@ -1992,11 +2196,12 @@ end; { TQuickSilkForm.ButtonAutoClick }
 procedure TQuickSilkForm.ButtonCancelClick(Sender : TObject);
 begin
     bAbortScript := True;
+    bUserConfirmed := False;
     QuickSilkForm.Close;
 end; { TQuickSilkForm.ButtonCancelClick }
 
 
-procedure TQuickSilkForm.ButtonInteractiveStartClick(Sender: TObject);
+procedure TQuickSilkForm.ButtonInteractiveStartClick(Sender : TObject);
 begin
     QuickSilkForm.Visible := False; // hide the form because it's modal and sticks around until InteractivelyAutoposition finishes
     try
@@ -2005,6 +2210,7 @@ begin
         InteractivelyAutoposition;
     finally
         bAbortScript := True;
+        bUserConfirmed := False;
         QuickSilkForm.Close; // actually close the invisible form
     end;
 end;
@@ -2013,8 +2219,46 @@ end;
 procedure TQuickSilkForm.ButtonOKClick(Sender : TObject);
 begin
     bAutoMode := False;
+    bUserConfirmed := True;
     QuickSilkForm.Close;
 end; { TQuickSilkForm.ButtonOKClick }
+
+
+procedure TQuickSilkForm.ButtonSaveConfigClick(Sender : TObject);
+begin
+    ConfigFile_Write(ConfigFile_GetPath);
+    ButtonSaveConfig.Caption := 'SAVED';
+end;
+
+
+procedure TQuickSilkForm.ConfigClick(Sender : TObject);
+begin
+    ButtonSaveConfig.Caption := '&SAVE';
+end;
+
+
+procedure TQuickSilkForm.InputValueChange(Sender : TObject);
+begin
+
+    if IsStringANum(Sender.Text) then
+    begin
+        Sender.Font.Style := 0;
+        Sender.Font.Color := clWindowText;
+        SetButtonEnableStates(True);
+    end
+    else
+    begin
+        Sender.Font.Style := MkSet(fsBold, fsItalic, fsUnderline);
+        Sender.Font.Color := clRed;
+        SetButtonEnableStates(False);
+    end;
+end; { TQuickSilkForm.EditClearanceChange }
+
+
+procedure TQuickSilkForm.LabelVersionClick(Sender : TObject);
+begin
+    About;
+end;
 
 
 procedure TQuickSilkForm.MMmilButtonClick(Sender : TObject);
@@ -2032,61 +2276,52 @@ begin
     EditMaxDistance.Update;
     EditDistance.SetFocus;
     EditDistance.Update;
+
+    ButtonSaveConfig.Caption := '&SAVE';
 end; { TQuickSilkForm.MMmilButtonClick }
 
 
-procedure TQuickSilkForm.ButtonSaveConfigClick(Sender: TObject);
+procedure TQuickSilkForm.PresetButtonClicked(Sender : TObject);
 begin
-    ConfigFile_Write(ConfigFile_GetPath);
-end;
+    // ShowMessage('PresetButtonClicked');
+    if Sender = ButtonPreset1 then EditDistance.Text      := tPreset1.Text
+    else if Sender = ButtonPreset2 then EditDistance.Text := tPreset2.Text
+    else if Sender = ButtonPreset3 then EditDistance.Text := tPreset3.Text
+    else if Sender = ButtonPreset4 then EditDistance.Text := tPreset4.Text
+    else if Sender = ButtonPreset5 then EditDistance.Text := tPreset5.Text
+    else if Sender = ButtonPreset6 then EditDistance.Text := tPreset6.Text
+    else if Sender = ButtonPreset7 then EditDistance.Text := tPreset7.Text
+    else if Sender = ButtonPreset8 then EditDistance.Text := tPreset8.Text;
+    bUserConfirmed := True;
+    QuickSilkForm.Close;
+end; { PresetButtonClicked }
 
 
-procedure TQuickSilkForm.EditClearanceChange(Sender : TObject);
+procedure TQuickSilkForm.PresetValueChange(Sender : TObject);
+var
+    textbox : TEdit;
 begin
-
     if IsStringANum(Sender.Text) then
     begin
+        Sender.Font.Style := 0;
         Sender.Font.Color := clWindowText;
+        EditDistance.Text := Sender.Text;
         SetButtonEnableStates(True);
     end
     else
     begin
+        Sender.Font.Style := MkSet(fsBold, fsItalic, fsUnderline);
         Sender.Font.Color := clRed;
         SetButtonEnableStates(False);
     end;
-end; { TQuickSilkForm.EditClearanceChange }
+
+end; { PresetValueChange }
 
 
-procedure TQuickSilkForm.EditDistanceChange(Sender : TObject);
+procedure TQuickSilkForm.QuickSilkFormCloseQuery(Sender : TObject; var CanClose: Boolean);
 begin
-
-    if IsStringANum(EditDistance.Text) then
-    begin
-        EditDistance.Font.Color := clWindowText;
-        ButtonOK.Enabled        := True;
-    end
-    else
-    begin
-        ButtonOK.Enabled        := False;
-        EditDistance.Font.Color := clRed;
-    end;
-end; { TQuickSilkForm.EditDistanceChange }
-
-
-procedure TQuickSilkForm.EditMaxDistanceChange(Sender : TObject);
-begin
-
-    if IsStringANum(EditMaxDistance.Text) then
-    begin
-        EditMaxDistance.Font.Color  := clWindowText;
-        ButtonAuto.Enabled          := True;
-    end
-    else
-    begin
-        ButtonAuto.Enabled          := False;
-        EditMaxDistance.Font.Color  := clRed;
-    end;
-end; { TQuickSilkForm.EditMaxDistanceChange }
+    if not bUserConfirmed then bAbortScript := True else bAbortScript := False;
+end;
 
 
 procedure TQuickSilkForm.QuickSilkFormShow(Sender : TObject);
@@ -2099,192 +2334,31 @@ begin
     // read presets from file
     // LoadPresetListFromFile(0); // old file format deprecated
     ConfigFile_Read(ConfigFile_GetPath);
+    if not SelectedCheckBox.Enabled then SelectedCheckBox.Checked := False;
 end; { TQuickSilkForm.QuickSilkFormShow }
 
 
-procedure TQuickSilkForm.LabelVersionClick(Sender : TObject);
+{ programmatically, OnKeyPress fires before OnChange event and "catches" the key press }
+procedure TQuickSilkForm.UserKeyPress(Sender : TObject; var Key : Char);
 begin
-    About;
-end;
-
-
-procedure ChangeTextUnits(Units : TUnit);
-var
-    i           : Integer;
-    ControlList : TObjectList;
-    EditControl : TObject;
-    TempString  : String;
-    EditString  : String;
-begin
-    ControlList := CreateObject(TObjectList);
-    ControlList.OwnsObjects := False; // required to not throw invalid pointer errors when list is freed
-
-    ControlList.Add(tPreset1);
-    ControlList.Add(tPreset2);
-    ControlList.Add(tPreset3);
-    ControlList.Add(tPreset4);
-    ControlList.Add(tPreset5);
-    ControlList.Add(tPreset6);
-    ControlList.Add(tPreset7);
-    ControlList.Add(tPreset8);
-    ControlList.Add(tClearanceText);
-    ControlList.Add(tClearanceBody);
-    ControlList.Add(tClearancePad);
-    ControlList.Add(tClearanceCutout);
-    ControlList.Add(tClearanceDefault);
-    ControlList.Add(EditMaxDistance);
-    ControlList.Add(EditDistance);
-
-    EditString := EditDistance.Text;
-
-    for i := 0 to ControlList.Count - 1 do
+    if (Sender = EditMaxDistance) and (ButtonAuto.Enabled) and (Ord(Key) = 13) then
     begin
-        EditControl := ControlList[i];
-        if EditControl = nil then continue;
-
-        // to work around presets triggering EditControl changes
-        if EditControl = EditDistance then EditControl.Text := EditString;
-
-        TempString := EditControl.Text;
-        if (LastDelimiter(',.', TempString) <> 0) then TempString[LastDelimiter(',.', TempString)] := DecimalSeparator;
-
-        if Units = eMetric then
+        Key := #0; // catch and discard key press to avoid beep
+        if ButtonAuto.Enabled then
         begin
-            if IsStringANum(EditControl.Text) then EditControl.Text := CoordToMMs(MilsToCoord(StrToFloat(TempString)));
-        end
-        else
-        begin
-            if IsStringANum(EditControl.Text) then EditControl.Text := CoordToMils(MMsToCoord(StrToFloat(TempString)));
+            bAutoMode := True;
+            bUserConfirmed := True;
+            QuickSilkForm.Close;
         end;
-    end;
-
-end;
-
-
-function ConfigFile_GetPath(dummy : String = ''): String;
-begin
-    result := ClientAPI_SpecialFolder_AltiumApplicationData + '\' + cConfigFileName;
-end;
-
-
-procedure ConfigFile_Write(AFileName : String);
-var
-    IniFile: TIniFile;
-begin
-    IniFile := TIniFile.Create(AFileName);
-    try
-        IniFile.WriteInteger('Window Position', 'Top', QuickSilkForm.Top);
-        IniFile.WriteInteger('Window Position', 'Left', QuickSilkForm.Left);
-
-        IniFile.WriteBool('Config', 'Persistent Placement Mode', CheckBoxPersistent.Checked);
-        IniFile.WriteBool('Config', 'Any-Angle Placement', CheckBoxAnyAngle.Checked);
-        IniFile.WriteInteger('Config', 'Clearance Checking Mode', RadioGroupParentOnly.ItemIndex);
-
-        IniFile.WriteString('Clearance', 'Text Clearance', tClearanceText.Text);
-        IniFile.WriteString('Clearance', 'Component Body Clearance', tClearanceBody.Text);
-        IniFile.WriteString('Clearance', 'Pad Clearance', tClearancePad.Text);
-        IniFile.WriteString('Clearance', 'Cutout Region Clearance', tClearanceCutout.Text);
-        IniFile.WriteString('Clearance', 'Default Clearance', tClearanceDefault.Text);
-
-        IniFile.WriteString('Last Used', 'Units', MMmilButton.Caption);
-        IniFile.WriteBool('Last Used', 'Selected Only', SelectedCheckBox.Checked);
-        IniFile.WriteBool('Last Used', 'Unhide Designators', UnHideDesignatorsCheckBox.Checked);
-        IniFile.WriteBool('Last Used', 'Lazy Offset', LazyAutoMoveCheckBox.Checked);
-        IniFile.WriteString('Last Used', 'Auto Distance', EditMaxDistance.Text);
-        IniFile.WriteString('Last Used', 'Fixed Distance', EditDistance.Text);
-
-        IniFile.WriteString('Presets', 'Preset1', tPreset1.Text);
-        IniFile.WriteString('Presets', 'Preset2', tPreset2.Text);
-        IniFile.WriteString('Presets', 'Preset3', tPreset3.Text);
-        IniFile.WriteString('Presets', 'Preset4', tPreset4.Text);
-        IniFile.WriteString('Presets', 'Preset5', tPreset5.Text);
-        IniFile.WriteString('Presets', 'Preset6', tPreset6.Text);
-        IniFile.WriteString('Presets', 'Preset7', tPreset7.Text);
-        IniFile.WriteString('Presets', 'Preset8', tPreset8.Text);
-
-    finally
-        IniFile.Free;
-    end;
-end;
-
-
-procedure ConfigFile_Read(AFileName : String);
-var
-    IniFile: TIniFile;
-begin
-    // Check for old MoveAPdesignators2 file if the provided file doesn't exist
-    if not FileExists(AFileName) then
+    end
+    else if (Sender <> EditMaxDistance) and (ButtonOK.Enabled) and (Ord(Key) = 13) then
     begin
-        AFileName := ClientAPI_SpecialFolder_AltiumApplicationData + '\MoveAPdesignators2Settings.ini';
-        if not FileExists(AFileName) then
+        Key := #0; // catch and discard key press to avoid beep
+        if ButtonOK.Enabled then
         begin
-            // ini file doesn't exist, try to fall back on even older format file
-            LoadPresetListFromFile(0);
-            exit;
+            bAutoMode := False;
+            bUserConfirmed := True;
+            QuickSilkForm.Close;
         end;
     end;
-
-    IniFile := TIniFile.Create(AFileName);
-    try
-        QuickSilkForm.Top := IniFile.ReadInteger('Window Position', 'Top', QuickSilkForm.Top);
-        QuickSilkForm.Left := IniFile.ReadInteger('Window Position', 'Left', QuickSilkForm.Left);
-
-        tPreset1.Text := IniFile.ReadString('Presets', 'Preset1', tPreset1.Text);
-        tPreset2.Text := IniFile.ReadString('Presets', 'Preset2', tPreset2.Text);
-        tPreset3.Text := IniFile.ReadString('Presets', 'Preset3', tPreset3.Text);
-        tPreset4.Text := IniFile.ReadString('Presets', 'Preset4', tPreset4.Text);
-        tPreset5.Text := IniFile.ReadString('Presets', 'Preset5', tPreset5.Text);
-        tPreset6.Text := IniFile.ReadString('Presets', 'Preset6', tPreset6.Text);
-        tPreset7.Text := IniFile.ReadString('Presets', 'Preset7', tPreset7.Text);
-        tPreset8.Text := IniFile.ReadString('Presets', 'Preset8', tPreset8.Text);
-
-        CheckBoxPersistent.Checked := IniFile.ReadBool('Config', 'Persistent Placement Mode', CheckBoxPersistent.Checked);
-        CheckBoxAnyAngle.Checked := IniFile.ReadBool('Config', 'Any-Angle Placement', CheckBoxAnyAngle.Checked);
-        RadioGroupParentOnly.ItemIndex := IniFile.ReadInteger('Config', 'Clearance Checking Mode', RadioGroupParentOnly.ItemIndex);
-
-        tClearanceText.Text := IniFile.ReadString('Clearance', 'Text Clearance', tClearanceText.Text);
-        tClearanceBody.Text := IniFile.ReadString('Clearance', 'Component Body Clearance', tClearanceBody.Text);
-        tClearancePad.Text := IniFile.ReadString('Clearance', 'Pad Clearance', tClearancePad.Text);
-        tClearanceCutout.Text := IniFile.ReadString('Clearance', 'Cutout Region Clearance', tClearanceCutout.Text);
-        tClearanceDefault.Text := IniFile.ReadString('Clearance', 'Default Clearance', tClearanceDefault.Text);
-
-        MMmilButton.Caption                 := IniFile.ReadString('Last Used', 'Units', MMmilButton.Caption);
-        SelectedCheckBox.Checked            := IniFile.ReadBool('Last Used', 'Selected Only', SelectedCheckBox.Checked);
-        UnHideDesignatorsCheckBox.Checked   := IniFile.ReadBool('Last Used', 'Unhide Designators', UnHideDesignatorsCheckBox.Checked);
-        LazyAutoMoveCheckBox.Checked        := IniFile.ReadBool('Last Used', 'Lazy Offset', LazyAutoMoveCheckBox.Checked);
-        EditMaxDistance.Text                := IniFile.ReadString('Last Used', 'Auto Distance', EditMaxDistance.Text);
-
-        // Main input field needs to be set last because changing some other values trigger it
-        EditDistance.Text                   := IniFile.ReadString('Last Used', 'Fixed Distance', EditDistance.Text);
-
-        bPersistentMode := CheckBoxPersistent.Checked;
-        bEnableAnyAngle := CheckBoxAnyAngle.Checked;
-        iClearanceMode := RadioGroupParentOnly.ItemIndex;
-
-        case MMmilButton.Caption of
-            'mil':
-            begin
-                StringToCoordUnit(tClearanceText.Text, TEXTEXPANSION, eImperial);
-                StringToCoordUnit(tClearanceBody.Text, BODYEXPANSION, eImperial);
-                StringToCoordUnit(tClearancePad.Text, PADEXPANSION, eImperial);
-                StringToCoordUnit(tClearanceCutout.Text, CUTOUTEXPANSION, eImperial);
-                StringToCoordUnit(tClearanceDefault.Text, DEFAULTEXPANSION, eImperial);
-            end;
-            'mm':
-            begin
-                StringToCoordUnit(tClearanceText.Text, TEXTEXPANSION, eMetric);
-                StringToCoordUnit(tClearanceBody.Text, BODYEXPANSION, eMetric);
-                StringToCoordUnit(tClearancePad.Text, PADEXPANSION, eMetric);
-                StringToCoordUnit(tClearanceCutout.Text, CUTOUTEXPANSION, eMetric);
-                StringToCoordUnit(tClearanceDefault.Text, DEFAULTEXPANSION, eMetric);
-            end;
-            else
-            begin
-                // invalid
-            end;
-        end;
-
-    finally
-        IniFile.Free;
-    end;
-end;
+end; { UserKeyPress }

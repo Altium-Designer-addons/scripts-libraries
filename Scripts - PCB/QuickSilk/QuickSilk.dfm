@@ -1,7 +1,7 @@
 object QuickSilkForm: TQuickSilkForm
   Left = 313
   Top = 139
-  BorderIcons = []
+  BorderIcons = [biSystemMenu]
   BorderStyle = bsSingle
   Caption = 'QuickSilk Silkscreen Helper Script'
   ClientHeight = 547
@@ -13,6 +13,7 @@ object QuickSilkForm: TQuickSilkForm
   Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
+  OnCloseQuery = QuickSilkFormCloseQuery
   OnShow = QuickSilkFormShow
   PixelsPerInch = 96
   TextHeight = 13
@@ -43,7 +44,7 @@ object QuickSilkForm: TQuickSilkForm
     Width = 88
     Height = 80
   end
-  object Label1: TLabel
+  object LabelUnits: TLabel
     Left = 5
     Top = 45
     Width = 32
@@ -55,6 +56,7 @@ object QuickSilkForm: TQuickSilkForm
     Font.Name = 'Tahoma'
     Font.Style = [fsBold]
     ParentFont = False
+    OnClick = MMmilButtonClick
   end
   object Label2: TLabel
     Left = 104
@@ -63,7 +65,7 @@ object QuickSilkForm: TQuickSilkForm
     Height = 13
     Alignment = taCenter
     AutoSize = False
-    Caption = 'MAX OFFSET'
+    Caption = 'MAX MOVE'
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
     Font.Height = -11
@@ -78,7 +80,7 @@ object QuickSilkForm: TQuickSilkForm
     Height = 13
     Alignment = taCenter
     AutoSize = False
-    Caption = 'FIXED OFFSET'
+    Caption = 'FIXED MOVE'
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
     Font.Height = -11
@@ -270,15 +272,28 @@ object QuickSilkForm: TQuickSilkForm
     Font.Style = [fsBold]
     ParentFont = False
   end
+  object Label9: TLabel
+    Left = 7
+    Top = 269
+    Width = 169
+    Height = 13
+    Caption = 'NOTE: does not support Any-Angle'
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -11
+    Font.Name = 'Tahoma'
+    Font.Style = [fsItalic]
+    ParentFont = False
+  end
   object SelectedCheckBox: TCheckBox
     Left = 19
-    Top = 322
+    Top = 290
     Width = 117
     Height = 17
-    Caption = '&Selected Parts Only'
+    Caption = 'Selecte&d Parts Only'
     Checked = True
     State = cbChecked
-    TabOrder = 11
+    TabOrder = 14
   end
   object ButtonOK: TButton
     Left = 16
@@ -289,7 +304,7 @@ object QuickSilkForm: TQuickSilkForm
     Caption = 'OK'
     ParentShowHint = False
     ShowHint = True
-    TabOrder = 14
+    TabOrder = 2
     OnClick = ButtonOKClick
   end
   object EditDistance: TEdit
@@ -304,7 +319,7 @@ object QuickSilkForm: TQuickSilkForm
     TabOrder = 0
     Text = '20'
     TextHint = 'fixed offset'
-    OnChange = EditDistanceChange
+    OnChange = InputValueChange
     OnKeyPress = UserKeyPress
   end
   object MMmilButton: TButton
@@ -316,18 +331,16 @@ object QuickSilkForm: TQuickSilkForm
     Caption = 'mil'
     ParentShowHint = False
     ShowHint = True
-    TabOrder = 10
+    TabOrder = 13
     OnClick = MMmilButtonClick
   end
   object UnHideDesignatorsCheckBox: TCheckBox
     Left = 19
-    Top = 346
+    Top = 314
     Width = 117
     Height = 17
-    Caption = 'UnHide &Designators'
-    Checked = True
-    State = cbChecked
-    TabOrder = 12
+    Caption = 'Un&Hide Designators'
+    TabOrder = 15
   end
   object ButtonCancel: TButton
     Left = 8
@@ -339,7 +352,7 @@ object QuickSilkForm: TQuickSilkForm
     Caption = 'Cancel'
     ParentShowHint = False
     ShowHint = True
-    TabOrder = 16
+    TabOrder = 4
     OnClick = ButtonCancelClick
   end
   object ButtonPreset1: TButton
@@ -348,7 +361,7 @@ object QuickSilkForm: TQuickSilkForm
     Width = 64
     Height = 25
     Caption = 'Preset &1'
-    TabOrder = 17
+    TabOrder = 29
     TabStop = False
     OnClick = PresetButtonClicked
   end
@@ -363,10 +376,10 @@ object QuickSilkForm: TQuickSilkForm
     OEMConvert = True
     ParentShowHint = False
     ShowHint = True
-    TabOrder = 2
+    TabOrder = 5
     Text = '4'
     TextHint = 'Enter value for fixed offset'
-    OnChange = ValidateOnChange
+    OnChange = PresetValueChange
     OnKeyPress = UserKeyPress
   end
   object ButtonPreset2: TButton
@@ -375,7 +388,7 @@ object QuickSilkForm: TQuickSilkForm
     Width = 64
     Height = 25
     Caption = 'Preset &2'
-    TabOrder = 18
+    TabOrder = 30
     TabStop = False
     OnClick = PresetButtonClicked
   end
@@ -390,10 +403,10 @@ object QuickSilkForm: TQuickSilkForm
     OEMConvert = True
     ParentShowHint = False
     ShowHint = True
-    TabOrder = 3
+    TabOrder = 6
     Text = '5'
     TextHint = 'Enter value for fixed offset'
-    OnChange = ValidateOnChange
+    OnChange = PresetValueChange
     OnKeyPress = UserKeyPress
   end
   object ButtonPreset3: TButton
@@ -402,7 +415,7 @@ object QuickSilkForm: TQuickSilkForm
     Width = 64
     Height = 25
     Caption = 'Preset &3'
-    TabOrder = 19
+    TabOrder = 31
     TabStop = False
     OnClick = PresetButtonClicked
   end
@@ -417,10 +430,10 @@ object QuickSilkForm: TQuickSilkForm
     OEMConvert = True
     ParentShowHint = False
     ShowHint = True
-    TabOrder = 4
+    TabOrder = 7
     Text = '6'
     TextHint = 'Enter value for fixed offset'
-    OnChange = ValidateOnChange
+    OnChange = PresetValueChange
     OnKeyPress = UserKeyPress
   end
   object ButtonPreset4: TButton
@@ -429,7 +442,7 @@ object QuickSilkForm: TQuickSilkForm
     Width = 64
     Height = 25
     Caption = 'Preset &4'
-    TabOrder = 20
+    TabOrder = 32
     TabStop = False
     OnClick = PresetButtonClicked
   end
@@ -444,10 +457,10 @@ object QuickSilkForm: TQuickSilkForm
     OEMConvert = True
     ParentShowHint = False
     ShowHint = True
-    TabOrder = 5
+    TabOrder = 8
     Text = '8'
     TextHint = 'Enter value for fixed offset'
-    OnChange = ValidateOnChange
+    OnChange = PresetValueChange
     OnKeyPress = UserKeyPress
   end
   object ButtonPreset5: TButton
@@ -456,7 +469,7 @@ object QuickSilkForm: TQuickSilkForm
     Width = 64
     Height = 25
     Caption = 'Preset &5'
-    TabOrder = 21
+    TabOrder = 33
     TabStop = False
     OnClick = PresetButtonClicked
   end
@@ -471,10 +484,10 @@ object QuickSilkForm: TQuickSilkForm
     OEMConvert = True
     ParentShowHint = False
     ShowHint = True
-    TabOrder = 6
+    TabOrder = 9
     Text = '10'
     TextHint = 'Enter value for fixed offset'
-    OnChange = ValidateOnChange
+    OnChange = PresetValueChange
     OnKeyPress = UserKeyPress
   end
   object ButtonPreset6: TButton
@@ -483,7 +496,7 @@ object QuickSilkForm: TQuickSilkForm
     Width = 64
     Height = 25
     Caption = 'Preset &6'
-    TabOrder = 22
+    TabOrder = 34
     TabStop = False
     OnClick = PresetButtonClicked
   end
@@ -498,10 +511,10 @@ object QuickSilkForm: TQuickSilkForm
     OEMConvert = True
     ParentShowHint = False
     ShowHint = True
-    TabOrder = 7
+    TabOrder = 10
     Text = '16'
     TextHint = 'Enter value for fixed offset'
-    OnChange = ValidateOnChange
+    OnChange = PresetValueChange
     OnKeyPress = UserKeyPress
   end
   object ButtonPreset7: TButton
@@ -510,7 +523,7 @@ object QuickSilkForm: TQuickSilkForm
     Width = 64
     Height = 25
     Caption = 'Preset &7'
-    TabOrder = 23
+    TabOrder = 35
     TabStop = False
     OnClick = PresetButtonClicked
   end
@@ -525,10 +538,10 @@ object QuickSilkForm: TQuickSilkForm
     OEMConvert = True
     ParentShowHint = False
     ShowHint = True
-    TabOrder = 8
+    TabOrder = 11
     Text = '20'
     TextHint = 'Enter value for fixed offset'
-    OnChange = ValidateOnChange
+    OnChange = PresetValueChange
     OnKeyPress = UserKeyPress
   end
   object ButtonPreset8: TButton
@@ -537,7 +550,7 @@ object QuickSilkForm: TQuickSilkForm
     Width = 64
     Height = 25
     Caption = 'Preset &8'
-    TabOrder = 24
+    TabOrder = 36
     TabStop = False
     OnClick = PresetButtonClicked
   end
@@ -552,10 +565,10 @@ object QuickSilkForm: TQuickSilkForm
     OEMConvert = True
     ParentShowHint = False
     ShowHint = True
-    TabOrder = 9
+    TabOrder = 12
     Text = '30'
     TextHint = 'Enter value for fixed offset'
-    OnChange = ValidateOnChange
+    OnChange = PresetValueChange
     OnKeyPress = UserKeyPress
   end
   object ButtonAuto: TButton
@@ -567,7 +580,7 @@ object QuickSilkForm: TQuickSilkForm
     Caption = 'AUTO'
     ParentShowHint = False
     ShowHint = True
-    TabOrder = 15
+    TabOrder = 3
     OnClick = ButtonAutoClick
   end
   object EditMaxDistance: TEdit
@@ -582,18 +595,18 @@ object QuickSilkForm: TQuickSilkForm
     TabOrder = 1
     Text = '120'
     TextHint = 'max offset'
-    OnChange = EditMaxDistanceChange
+    OnChange = InputValueChange
     OnKeyPress = UserKeyPress
   end
   object LazyAutoMoveCheckBox: TCheckBox
     Left = 19
-    Top = 370
+    Top = 338
     Width = 165
     Height = 17
-    Caption = 'La&zy Offset (AUTO only)'
+    Caption = 'La&zy Move (AUTO only)'
     ParentShowHint = False
     ShowHint = True
-    TabOrder = 13
+    TabOrder = 16
   end
   object ButtonInteractiveStart: TButton
     Left = 152
@@ -603,10 +616,10 @@ object QuickSilkForm: TQuickSilkForm
     Hint = 
       'Will prevent SpaceNavigator from panning if launched from this b' +
       'utton'
-    Caption = 'Interactive Placement Tool'
+    Caption = 'Interactive Placement &Tool'
     ParentShowHint = False
     ShowHint = True
-    TabOrder = 25
+    TabOrder = 28
     OnClick = ButtonInteractiveStartClick
   end
   object CheckBoxPersistent: TCheckBox
@@ -618,29 +631,31 @@ object QuickSilkForm: TQuickSilkForm
       'ENABLED: right-click after silkscreen placement to exit location' +
       ' picking; DISABLED: automatically ready for next component after' +
       ' placement of silkscreen.'
-    Caption = 'Persistent Mode'
+    Caption = '&Persistent Mode'
     ParentShowHint = False
     ShowHint = True
-    TabOrder = 26
+    TabOrder = 23
+    OnClick = ConfigClick
   end
   object CheckBoxAnyAngle: TCheckBox
     Left = 8
-    Top = 112
+    Top = 104
     Width = 120
     Height = 17
     Hint = 'ENABLED: angles that aren'#39't 0/90 degrees are supported'
-    Caption = 'Any-Angle Placement'
+    Caption = '&Any-Angle Placement'
     Checked = True
     ParentShowHint = False
     ShowHint = True
     State = cbChecked
-    TabOrder = 27
+    TabOrder = 24
+    OnClick = ConfigClick
   end
   object RadioGroupParentOnly: TRadioGroup
     Left = 8
-    Top = 136
+    Top = 144
     Width = 120
-    Height = 88
+    Height = 80
     Hint = 
       'Default behavior is to avoid only objects in parent component; P' +
       'ress CTRL to temporarily avoid all objects'
@@ -652,13 +667,14 @@ object QuickSilkForm: TQuickSilkForm
     Font.Style = []
     ItemIndex = 0
     Items.Strings = (
-      'Use CTRL Key'
-      'Parent Only'
-      'All Objects')
+      'Use &CTRL Key'
+      'Parent &Only'
+      'All O&bjects')
     ParentFont = False
     ParentShowHint = False
     ShowHint = True
-    TabOrder = 28
+    TabOrder = 26
+    OnClick = ConfigClick
   end
   object tClearanceText: TEdit
     Left = 272
@@ -674,10 +690,10 @@ object QuickSilkForm: TQuickSilkForm
     Font.Style = []
     OEMConvert = True
     ParentFont = False
-    TabOrder = 29
+    TabOrder = 18
     Text = '5'
     TextHint = 'Text object clearance'
-    OnChange = EditClearanceChange
+    OnChange = InputValueChange
   end
   object tClearanceBody: TEdit
     Left = 272
@@ -693,10 +709,10 @@ object QuickSilkForm: TQuickSilkForm
     Font.Style = []
     OEMConvert = True
     ParentFont = False
-    TabOrder = 30
+    TabOrder = 19
     Text = '8'
     TextHint = 'Component Body Clearance'
-    OnChange = EditClearanceChange
+    OnChange = InputValueChange
   end
   object tClearancePad: TEdit
     Left = 272
@@ -712,10 +728,10 @@ object QuickSilkForm: TQuickSilkForm
     Font.Style = []
     OEMConvert = True
     ParentFont = False
-    TabOrder = 31
+    TabOrder = 20
     Text = '8'
     TextHint = 'Pad object clearance'
-    OnChange = EditClearanceChange
+    OnChange = InputValueChange
   end
   object tClearanceCutout: TEdit
     Left = 272
@@ -731,10 +747,10 @@ object QuickSilkForm: TQuickSilkForm
     Font.Style = []
     OEMConvert = True
     ParentFont = False
-    TabOrder = 32
+    TabOrder = 21
     Text = '0'
     TextHint = 'Silkscreen cutout region clearance'
-    OnChange = EditClearanceChange
+    OnChange = InputValueChange
   end
   object tClearanceDefault: TEdit
     Left = 272
@@ -750,10 +766,10 @@ object QuickSilkForm: TQuickSilkForm
     Font.Style = []
     OEMConvert = True
     ParentFont = False
-    TabOrder = 33
+    TabOrder = 22
     Text = '6'
     TextHint = 'Default clearance'
-    OnChange = EditClearanceChange
+    OnChange = InputValueChange
   end
   object ButtonSaveConfig: TButton
     Left = 272
@@ -761,10 +777,37 @@ object QuickSilkForm: TQuickSilkForm
     Width = 64
     Height = 24
     Hint = 'Click to save all current values'
-    Caption = 'SAVE'
+    Caption = '&SAVE'
     ParentShowHint = False
     ShowHint = True
-    TabOrder = 34
+    TabOrder = 27
     OnClick = ButtonSaveConfigClick
+  end
+  object CheckBoxExtraOffsets: TCheckBox
+    Left = 8
+    Top = 120
+    Width = 120
+    Height = 17
+    Hint = 
+      'ENABLED: (time consuming) when avoiding all objects, will try ap' +
+      'proaching parent from every offset'
+    Caption = 'Try &Extra Offsets'
+    ParentShowHint = False
+    ShowHint = True
+    TabOrder = 25
+    OnClick = ConfigClick
+  end
+  object CheckBoxAutoParentOnly: TCheckBox
+    Left = 19
+    Top = 362
+    Width = 165
+    Height = 17
+    Hint = 'ENABLED: AutoMove only avoids parent component'#39's objects'
+    Caption = 'Pa&rent Only (AUTO only)'
+    Checked = True
+    ParentShowHint = False
+    ShowHint = True
+    State = cbChecked
+    TabOrder = 17
   end
 end
