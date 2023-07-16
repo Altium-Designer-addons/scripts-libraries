@@ -2062,8 +2062,6 @@ begin
         QuickSilkForm.ShowModal; // Show the settings dialogue (and resume script here after closed)
         if bAbortScript then Exit;
 
-        // Notify the pcbserver that we will make changes (Start undo)
-        PCBServer.PreProcess;
         ComponentIteratorHandle := Board.BoardIterator_Create;
         ComponentIteratorHandle.AddFilter_ObjectSet(MkSet(eComponentObject));
         ComponentIteratorHandle.AddFilter_IPCB_LayerSet(LayerSet.AllLayers);
@@ -2080,7 +2078,7 @@ begin
         if QuickSilkForm.SelectedCheckBox.Checked then
             while (Component <> Nil) do
                 if not Component.Selected then Component := ComponentIteratorHandle.NextPCBObject
-                else break; // Find the first selected comp if select only checked
+                else break; // Find the first selected comp if "selected only" checked
 
         // Set the move distance to DB units converted from mils or mm
         if QuickSilkForm.MMmilButton.Caption = 'mm' then MoveDistance := MMsToCoord(QuickSilkForm.EditDistance.Text)
@@ -2091,6 +2089,9 @@ begin
             if QuickSilkForm.MMmilButton.Caption = 'mm' then MaxDistance := MMsToCoord(QuickSilkForm.EditMaxDistance.Text)
             else MaxDistance := MilsToCoord(QuickSilkForm.EditMaxDistance.Text);
         end;
+
+        // Notify the pcbserver that we will make changes (Start undo)
+        PCBServer.PreProcess;
 
         while (Component <> Nil) do
         begin
@@ -2150,7 +2151,7 @@ begin
             if QuickSilkForm.SelectedCheckBox.Checked then
                 while (Component <> Nil) do
                     if not Component.Selected then Component := ComponentIteratorHandle.NextPCBObject
-                    else break; // Find the next selected comp if select only checked
+                    else break; // Find the next selected comp if "selected only" checked
 
 
         end; // end while
@@ -2333,6 +2334,7 @@ begin
     // read presets from file
     // LoadPresetListFromFile(0); // old file format deprecated
     ConfigFile_Read(ConfigFile_GetPath);
+    if not SelectedCheckBox.Enabled then SelectedCheckBox.Checked := False;
 end; { TQuickSilkForm.QuickSilkFormShow }
 
 
