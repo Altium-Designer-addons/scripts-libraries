@@ -361,7 +361,7 @@ object QuickSilkForm: TQuickSilkForm
     Width = 64
     Height = 25
     Caption = 'Preset &1'
-    TabOrder = 29
+    TabOrder = 30
     TabStop = False
     OnClick = PresetButtonClicked
   end
@@ -388,7 +388,7 @@ object QuickSilkForm: TQuickSilkForm
     Width = 64
     Height = 25
     Caption = 'Preset &2'
-    TabOrder = 30
+    TabOrder = 31
     TabStop = False
     OnClick = PresetButtonClicked
   end
@@ -415,7 +415,7 @@ object QuickSilkForm: TQuickSilkForm
     Width = 64
     Height = 25
     Caption = 'Preset &3'
-    TabOrder = 31
+    TabOrder = 32
     TabStop = False
     OnClick = PresetButtonClicked
   end
@@ -442,7 +442,7 @@ object QuickSilkForm: TQuickSilkForm
     Width = 64
     Height = 25
     Caption = 'Preset &4'
-    TabOrder = 32
+    TabOrder = 33
     TabStop = False
     OnClick = PresetButtonClicked
   end
@@ -469,7 +469,7 @@ object QuickSilkForm: TQuickSilkForm
     Width = 64
     Height = 25
     Caption = 'Preset &5'
-    TabOrder = 33
+    TabOrder = 34
     TabStop = False
     OnClick = PresetButtonClicked
   end
@@ -496,7 +496,7 @@ object QuickSilkForm: TQuickSilkForm
     Width = 64
     Height = 25
     Caption = 'Preset &6'
-    TabOrder = 34
+    TabOrder = 35
     TabStop = False
     OnClick = PresetButtonClicked
   end
@@ -523,7 +523,7 @@ object QuickSilkForm: TQuickSilkForm
     Width = 64
     Height = 25
     Caption = 'Preset &7'
-    TabOrder = 35
+    TabOrder = 36
     TabStop = False
     OnClick = PresetButtonClicked
   end
@@ -550,7 +550,7 @@ object QuickSilkForm: TQuickSilkForm
     Width = 64
     Height = 25
     Caption = 'Preset &8'
-    TabOrder = 36
+    TabOrder = 37
     TabStop = False
     OnClick = PresetButtonClicked
   end
@@ -619,7 +619,7 @@ object QuickSilkForm: TQuickSilkForm
     Caption = 'Interactive Placement &Tool'
     ParentShowHint = False
     ShowHint = True
-    TabOrder = 28
+    TabOrder = 29
     OnClick = ButtonInteractiveStartClick
   end
   object CheckBoxPersistent: TCheckBox
@@ -780,7 +780,7 @@ object QuickSilkForm: TQuickSilkForm
     Caption = '&SAVE'
     ParentShowHint = False
     ShowHint = True
-    TabOrder = 27
+    TabOrder = 28
     OnClick = ButtonSaveConfigClick
   end
   object CheckBoxExtraOffsets: TCheckBox
@@ -809,5 +809,17 @@ object QuickSilkForm: TQuickSilkForm
     ShowHint = True
     State = cbChecked
     TabOrder = 17
+  end
+  object CheckBoxLocalSettings: TCheckBox
+    Left = 8
+    Top = 18
+    Width = 128
+    Height = 17
+    Hint = 'ENABLED: Save configuration settings in script folder'
+    Caption = '&Local Settings'
+    ParentShowHint = False
+    ShowHint = True
+    TabOrder = 27
+    OnClick = CheckBoxLocalSettingsClick
   end
 end
