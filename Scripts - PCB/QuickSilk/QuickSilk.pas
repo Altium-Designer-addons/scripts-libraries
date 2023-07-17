@@ -9,7 +9,7 @@ const
     cCtrlKey            = 3; // available for use during component and location selection
     cConfigFileName     = 'QuickSilkSettings.ini';
     cScriptTitle        = 'QuickSilk';
-    cScriptVersion      = '1.01';
+    cScriptVersion      = '1.02';
     cDEBUGLEVEL         = 0;
 
 var
@@ -23,6 +23,8 @@ var
     bLazyAutoMove                   : Boolean;
     bUnHideDesignators              : Boolean;
     bUserConfirmed                  : Boolean;
+    bIgnoreCBChange                 : Boolean;
+    bForbidLocalSettings            : Boolean;
     PresetFilePath                  : String;
     PresetList                      : TStringList;
     bPersistentMode                 : Boolean;
@@ -52,6 +54,7 @@ function DebugContourInfo(contour : IPCB_Contour) : TStringList; forward;
 function DebugGeometricPolygonInfo(poly : IPCB_GeometricPolygon) : TStringList; forward;
 function DebugLevelStr(dummy : String = '') : String; forward;
 procedure DebugMessage(const ShowLevel : Integer; const msg : WideString; const Caption : String = 'Confirm or Cancel Debug'); forward;
+function FolderIsReadOnly(const AFolderPath : String) : Boolean; forward;
 function GetComponentAreaMils(Comp : IPCB_Component) : Int64; forward;
 function GetComponentAtCursor(const sPrompt : TString) : IPCB_Primitive; forward;
 function GetComponentBodyLargest(Comp : IPCB_Component) : IPCB_ComponentBody; forward;
@@ -80,6 +83,7 @@ procedure TQuickSilkForm.ButtonCancelClick(Sender : TObject); forward;
 procedure TQuickSilkForm.ButtonInteractiveStartClick(Sender : TObject); forward;
 procedure TQuickSilkForm.ButtonOKClick(Sender : TObject); forward;
 procedure TQuickSilkForm.ButtonSaveConfigClick(Sender : TObject); forward;
+procedure TQuickSilkForm.CheckBoxLocalSettingsClick(Sender: TObject); forward;
 procedure TQuickSilkForm.ConfigClick(Sender : TObject); forward;
 procedure TQuickSilkForm.InputValueChange(Sender : TObject); forward;
 procedure TQuickSilkForm.LabelVersionClick(Sender : TObject); forward;
@@ -680,14 +684,36 @@ end;
 
 function ConfigFile_GetPath(dummy : String = '') : String;
 begin
-    result := SpecialFolder_AltiumApplicationData + '\' + cConfigFileName;
+    Result := ExtractFilePath(GetRunningScriptProjectName) + cConfigFileName;
+    if (not FileExists(Result)) or bForbidLocalSettings then Result := IncludeTrailingPathDelimiter(SpecialFolder_AltiumApplicationData) + cConfigFileName;
 end;
 
 
 procedure ConfigFile_Read(AFileName : String);
 var
     IniFile: TIniFile;
+    LocalSettingsFile : String;
 begin
+    LocalSettingsFile := ExtractFilePath(GetRunningScriptProjectName) + cConfigFileName;
+
+    // set CheckBoxLocalSettings.Checked to true if local settings file exists
+    if FileExists(LocalSettingsFile) then
+    begin
+        // FileIsReadOnly doesn't seem to work correctly
+        if FileIsReadOnly(LocalSettingsFile) or bForbidLocalSettings then
+        begin
+            ShowWarning('Local settings file or script folder is read-only:' + sLineBreak + LocalSettingsFile);
+            bForbidLocalSettings := True;
+            CheckBoxLocalSettings.Enabled := False;
+        end
+        else
+        begin
+            bForbidLocalSettings := False;
+            bIgnoreCBChange := True;
+            CheckBoxLocalSettings.Checked := True;
+        end;
+    end;
+
     // Check for old MoveAPdesignators2 file if the provided file doesn't exist
     if not FileExists(AFileName) then
     begin
@@ -896,6 +922,23 @@ begin
         // if user clicks on Cancel, downgrade the debug level by 1 until it reaches 0
         if ConfirmOKCancelWithCaption(Caption, msg) = False then
             iDebugLevel := Max(iDebugLevel - 1, 0);
+    end;
+end;
+
+
+function FolderIsReadOnly(const AFolderPath : String) : Boolean;
+var
+    TempFile: String;
+    FileHandle: Integer;
+begin
+    Result := True;
+    TempFile := IncludeTrailingPathDelimiter(AFolderPath) + 'temp.tmp';
+    FileHandle := FileCreate(TempFile);
+    if FileHandle > 0 then
+    begin
+        FileClose(FileHandle);
+        DeleteFile(TempFile);
+        Result := False;
     end;
 end;
 
@@ -1954,6 +1997,8 @@ begin
     ButtonSaveConfig.Enabled        := EnableState;
     MMmilButton.Enabled             := EnableState;
 
+    if bForbidLocalSettings then CheckBoxLocalSettings.Enabled := False else CheckBoxLocalSettings.Enabled := EnableState;
+
     ButtonSaveConfig.Caption := '&SAVE';
 end;
 
@@ -2231,6 +2276,66 @@ begin
 end;
 
 
+procedure TQuickSilkForm.CheckBoxLocalSettingsClick(Sender: TObject);
+var
+    LocalSettingsFile : String;
+begin
+    // to avoid re-triggering
+    if bIgnoreCBChange then
+    begin
+        bIgnoreCBChange := False;
+        exit;
+    end;
+
+    LocalSettingsFile := ExtractFilePath(GetRunningScriptProjectName) + cConfigFileName;
+
+    if Sender.Checked then
+    begin
+        if FolderIsReadOnly(ExtractFilePath(GetRunningScriptProjectName)) then
+        begin
+            ShowError('Unable to use local settings. No write access to script folder:' + sLineBreak + ExtractFilePath(GetRunningScriptProjectName));
+
+            bForbidLocalSettings := True;
+            bIgnoreCBChange := True;
+            Sender.Checked := False;
+            Sender.Enabled := False;
+            exit;
+        end;
+
+        if ConfirmOKCancel('Current configuration settings will be saved to:' + sLineBreak + LocalSettingsFile + sLineBreak + '') then
+        begin
+            if LocalSettingsFile = ConfigFile_GetPath then DeleteFile(LocalSettingsFile);
+            ConfigFile_Write(LocalSettingsFile);
+        end
+        else
+        begin
+            bIgnoreCBChange := True;
+            Sender.Checked := False;
+        end;
+    end
+    else
+    begin
+        if ConfirmOKCancel('Local configuration settings will be moved to:' + sLineBreak + SpecialFolder_AltiumApplicationData + '\' + cConfigFileName) then
+        begin
+            if LocalSettingsFile = ConfigFile_GetPath then DeleteFile(LocalSettingsFile);
+            if FileExists(LocalSettingsFile) then
+            begin
+                ShowError('Unable to delete local settings file:' + sLineBreak + LocalSettingsFile + sLineBreak + 'Local settings will be loaded next time script is started as long as local settings still exist.');
+                bForbidLocalSettings := True;
+                Sender.Enabled := False;
+            end;
+
+            ConfigFile_Write(ConfigFile_GetPath);
+        end
+        else
+        begin
+            bIgnoreCBChange := True;
+            Sender.Checked := True;
+        end;
+    end;
+end;
+
+
 procedure TQuickSilkForm.ConfigClick(Sender : TObject);
 begin
     ButtonSaveConfig.Caption := '&SAVE';
@@ -2333,7 +2438,18 @@ begin
         'NOTE: AutoMove procedure is internally limited to 120 mil search range.';
     // read presets from file
     // LoadPresetListFromFile(0); // old file format deprecated
+
     ConfigFile_Read(ConfigFile_GetPath);
+
+    // put after initial config read so we can load local settings file if it exists, but then force non-local save location
+    if FolderIsReadOnly(ExtractFilePath(GetRunningScriptProjectName)) then
+    begin
+        bForbidLocalSettings := True;
+        CheckBoxLocalSettings.Enabled := False;
+        CheckBoxLocalSettings.Caption := 'Local Config Read-only';
+    end
+    else bForbidLocalSettings := False;
+
     if not SelectedCheckBox.Enabled then SelectedCheckBox.Checked := False;
 end; { TQuickSilkForm.QuickSilkFormShow }
 
