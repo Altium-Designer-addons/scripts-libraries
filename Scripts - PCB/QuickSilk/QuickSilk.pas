@@ -9,7 +9,7 @@ const
     cCtrlKey            = 3; // available for use during component and location selection
     cConfigFileName     = 'QuickSilkSettings.ini';
     cScriptTitle        = 'QuickSilk';
-    cScriptVersion      = '1.02';
+    cScriptVersion      = '1.03';
     cDEBUGLEVEL         = 0;
 
 var
@@ -20,17 +20,17 @@ var
     CompKeySet                      : TObjectSet; // keyboard modifiers used during component selection
     bAbortScript                    : Boolean;
     bAutoMode                       : Boolean;
-    bLazyAutoMove                   : Boolean;
-    bUnHideDesignators              : Boolean;
-    bUserConfirmed                  : Boolean;
-    bIgnoreCBChange                 : Boolean;
-    bForbidLocalSettings            : Boolean;
-    PresetFilePath                  : String;
-    PresetList                      : TStringList;
-    bPersistentMode                 : Boolean;
     bEnableAnyAngle                 : Boolean;
     bExtraOffsets                   : Boolean;
+    bForbidLocalSettings            : Boolean;
+    bIgnoreCBChange                 : Boolean;
+    bLazyAutoMove                   : Boolean;
+    bPersistentMode                 : Boolean;
+    bUnHideDesignators              : Boolean;
+    bUserConfirmed                  : Boolean;
     iClearanceMode                  : Integer;
+    PresetFilePath                  : String;
+    PresetList                      : TStringList;
     TEXTEXPANSION, BODYEXPANSION    : TCoord;
     PADEXPANSION, CUTOUTEXPANSION   : TCoord;
     DEFAULTEXPANSION                : TCoord;
@@ -693,6 +693,8 @@ procedure ConfigFile_Read(AFileName : String);
 var
     IniFile: TIniFile;
     LocalSettingsFile : String;
+    SettingsDebugFile : String;
+    SettingsDebugList : TStringList;
 begin
     LocalSettingsFile := ExtractFilePath(GetRunningScriptProjectName) + cConfigFileName;
 
@@ -789,6 +791,18 @@ begin
             end;
         end;
 
+        if iDebugLevel > 0 then
+        begin
+            SettingsDebugFile := ChangeFileExt(ConfigFile_GetPath,'.ini') + '_debug.ini';
+            ConfigFile_Write(SettingsDebugFile);
+
+            SettingsDebugList := CreateObject(TStringList);
+            SettingsDebugList.LoadFromFile(SettingsDebugFile);
+
+            DeleteFile(SettingsDebugFile);
+            DebugMessage(1, SettingsDebugList.Text, 'Settings read from file or defaults');
+        end;
+
     finally
         IniFile.Free;
     end;
@@ -803,6 +817,15 @@ begin
     try
         IniFile.WriteInteger('Window Position', 'Top', QuickSilkForm.Top);
         IniFile.WriteInteger('Window Position', 'Left', QuickSilkForm.Left);
+
+        IniFile.WriteString('Presets', 'Preset1', tPreset1.Text);
+        IniFile.WriteString('Presets', 'Preset2', tPreset2.Text);
+        IniFile.WriteString('Presets', 'Preset3', tPreset3.Text);
+        IniFile.WriteString('Presets', 'Preset4', tPreset4.Text);
+        IniFile.WriteString('Presets', 'Preset5', tPreset5.Text);
+        IniFile.WriteString('Presets', 'Preset6', tPreset6.Text);
+        IniFile.WriteString('Presets', 'Preset7', tPreset7.Text);
+        IniFile.WriteString('Presets', 'Preset8', tPreset8.Text);
 
         IniFile.WriteBool('Config', 'Persistent Placement Mode', CheckBoxPersistent.Checked);
         IniFile.WriteBool('Config', 'Any-Angle Placement', CheckBoxAnyAngle.Checked);
@@ -822,15 +845,6 @@ begin
         IniFile.WriteBool('Last Used', 'Parent-Only AutoMove', CheckBoxAutoParentOnly.Checked);
         IniFile.WriteString('Last Used', 'Auto Distance', EditMaxDistance.Text);
         IniFile.WriteString('Last Used', 'Fixed Distance', EditDistance.Text);
-
-        IniFile.WriteString('Presets', 'Preset1', tPreset1.Text);
-        IniFile.WriteString('Presets', 'Preset2', tPreset2.Text);
-        IniFile.WriteString('Presets', 'Preset3', tPreset3.Text);
-        IniFile.WriteString('Presets', 'Preset4', tPreset4.Text);
-        IniFile.WriteString('Presets', 'Preset5', tPreset5.Text);
-        IniFile.WriteString('Presets', 'Preset6', tPreset6.Text);
-        IniFile.WriteString('Presets', 'Preset7', tPreset7.Text);
-        IniFile.WriteString('Presets', 'Preset8', tPreset8.Text);
 
     finally
         IniFile.Free;
@@ -1405,8 +1419,9 @@ begin
         if not Assigned(Comp) then
         begin
             bLocationFlag := False;
+            if bEnableAnyAngle then sPrompt := '(ANY-ANGLE MODE ON) ' else sPrompt := '(ANY-ANGLE MODE OFF) ';
             repeat
-                Comp := GetComponentAtCursor('Choose Source Component (Hold CTRL to position Comment instead of Designator)');
+                Comp := GetComponentAtCursor(sPrompt + 'Choose Source Component (Hold CTRL to position Comment instead of Designator)');
                 if ControlKeyDown then CompKeySet := MkSet(cCtrlKey); // CTRL key held down during component pick
             until Assigned(Comp) or (Comp = cEsc);
 
@@ -1962,15 +1977,15 @@ begin
     begin
         if not Comp.NameOn then Comp.NameOn := True;
         Comp.ChangeNameAutoposition(tc_Autopos);
-        // after using autoposition, set to manual
-        Comp.ChangeNameAutoposition(eAutoPos_Manual);
+        // after using autoposition, set to manual if any-angle mode is enabled
+        if bEnableAnyAngle then Comp.ChangeNameAutoposition(eAutoPos_Manual);
     end
     else
     begin
         if not Comp.CommentOn then Comp.CommentOn := True;
         Comp.ChangeCommentAutoposition(tc_Autopos);
-        // after using autoposition, set to manual
-        Comp.ChangeCommentAutoposition(eAutoPos_Manual);
+        // after using autoposition, set to manual if any-angle mode is enabled
+        if bEnableAnyAngle then Comp.ChangeCommentAutoposition(eAutoPos_Manual);
     end;
 
     // restore original rotation
