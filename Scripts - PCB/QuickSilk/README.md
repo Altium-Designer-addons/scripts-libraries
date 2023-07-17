@@ -99,3 +99,4 @@ For example:
     - added quicker nudging routine when avoiding all objects (exhaustive search fallback is available as "Try Extra Offsets" config option)
     - added separate clearance mode option for mass AutoMove
     - GUI polish
+- 2023-07-17 - QuickSilk Ver 1.02 : added ability to save settings to script folder
