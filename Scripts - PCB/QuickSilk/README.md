@@ -100,3 +100,4 @@ For example:
     - added separate clearance mode option for mass AutoMove
     - GUI polish
 - 2023-07-17 - QuickSilk Ver 1.02 : added ability to save settings to script folder
+- 2023-07-17 - QuickSilk Ver 1.03 : fixed bug in v1.00 that broke Any-Angle OFF placement
