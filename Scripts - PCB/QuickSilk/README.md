@@ -7,7 +7,7 @@ Click on the component, then click in the octants around the component to place 
 Designator or Comment will be automatically moved closer to the parent component according to configured clearance settings.
 
 Script can also change existing auto-positioned designators (original MoveAPdesignators function with some enhancements) to manual and move them by a user-defined or automatic amount toward their owner component. Will operate on all or selected components.\
-The direction of the movement depends on the current autoposition status.
+The direction of the movement depends on the current autoposition status (Manual and Center autopositions will do nothing).
 
 # Usage Tips
 - Script uses status bar to communicate keybindings and what is being modified, I recommend enabling it (View » Status Bar) and making it wider by dragging the separator
@@ -113,3 +113,4 @@ For example:
 - 2023-07-17 - QuickSilk Ver 1.02 : added ability to save settings to script folder
 - 2023-07-17 - QuickSilk Ver 1.03 : fixed bug in v1.00 that broke Any-Angle OFF placement
 - 2023-07-18 - QuickSilk Ver 1.04 : added ability to center and hide Designator/Comment with ALT+RMB; attempted to improve picker responsiveness
+- 2023-07-18 - QuickSilk Ver 1.05 : removed "selected only" from saved settings and instead default to it any time GUI is launched with components selected; added messages when components are skipped because their autopositions are not eligible for moving
