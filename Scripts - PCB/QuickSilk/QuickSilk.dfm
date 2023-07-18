@@ -285,16 +285,6 @@ object QuickSilkForm: TQuickSilkForm
     Font.Style = [fsItalic]
     ParentFont = False
   end
-  object SelectedCheckBox: TCheckBox
-    Left = 19
-    Top = 290
-    Width = 117
-    Height = 17
-    Caption = 'Selecte&d Parts Only'
-    Checked = True
-    State = cbChecked
-    TabOrder = 14
-  end
   object ButtonOK: TButton
     Left = 16
     Top = 448
@@ -335,12 +325,12 @@ object QuickSilkForm: TQuickSilkForm
     OnClick = MMmilButtonClick
   end
   object UnHideDesignatorsCheckBox: TCheckBox
-    Left = 19
-    Top = 314
+    Left = 16
+    Top = 286
     Width = 117
     Height = 17
     Caption = 'Un&Hide Designators'
-    TabOrder = 15
+    TabOrder = 14
   end
   object ButtonCancel: TButton
     Left = 8
@@ -599,14 +589,14 @@ object QuickSilkForm: TQuickSilkForm
     OnKeyPress = UserKeyPress
   end
   object LazyAutoMoveCheckBox: TCheckBox
-    Left = 19
-    Top = 338
+    Left = 16
+    Top = 302
     Width = 165
     Height = 17
     Caption = 'La&zy Move (AUTO only)'
     ParentShowHint = False
     ShowHint = True
-    TabOrder = 16
+    TabOrder = 15
   end
   object ButtonInteractiveStart: TButton
     Left = 152
@@ -623,7 +613,7 @@ object QuickSilkForm: TQuickSilkForm
     OnClick = ButtonInteractiveStartClick
   end
   object CheckBoxPersistent: TCheckBox
-    Left = 8
+    Left = 16
     Top = 88
     Width = 97
     Height = 17
@@ -638,7 +628,7 @@ object QuickSilkForm: TQuickSilkForm
     OnClick = ConfigClick
   end
   object CheckBoxAnyAngle: TCheckBox
-    Left = 8
+    Left = 16
     Top = 104
     Width = 120
     Height = 17
@@ -784,7 +774,7 @@ object QuickSilkForm: TQuickSilkForm
     OnClick = ButtonSaveConfigClick
   end
   object CheckBoxExtraOffsets: TCheckBox
-    Left = 8
+    Left = 16
     Top = 120
     Width = 120
     Height = 17
@@ -798,8 +788,8 @@ object QuickSilkForm: TQuickSilkForm
     OnClick = ConfigClick
   end
   object CheckBoxAutoParentOnly: TCheckBox
-    Left = 19
-    Top = 362
+    Left = 16
+    Top = 318
     Width = 165
     Height = 17
     Hint = 'ENABLED: AutoMove only avoids parent component'#39's objects'
@@ -808,7 +798,7 @@ object QuickSilkForm: TQuickSilkForm
     ParentShowHint = False
     ShowHint = True
     State = cbChecked
-    TabOrder = 17
+    TabOrder = 16
   end
   object CheckBoxLocalSettings: TCheckBox
     Left = 8
@@ -821,5 +811,26 @@ object QuickSilkForm: TQuickSilkForm
     ShowHint = True
     TabOrder = 27
     OnClick = CheckBoxLocalSettingsClick
+  end
+  object RadioGroupSelectionScope: TRadioGroup
+    Left = 8
+    Top = 337
+    Width = 184
+    Height = 56
+    Caption = 'Selection Scope'
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -11
+    Font.Name = 'Tahoma'
+    Font.Style = []
+    ItemIndex = 0
+    Items.Strings = (
+      'A&LL Components'
+      'Selecte&d Components')
+    ParentFont = False
+    ParentShowHint = False
+    ShowHint = True
+    TabOrder = 17
+    OnClick = ConfigClick
   end
 end
