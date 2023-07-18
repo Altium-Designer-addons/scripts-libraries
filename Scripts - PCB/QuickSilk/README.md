@@ -10,6 +10,7 @@ Script can also change existing auto-positioned designators (original MoveAPdesi
 The direction of the movement depends on the current autoposition status.
 
 # Usage Tips
+- Script uses status bar to communicate keybindings and what is being modified, I recommend enabling it (View » Status Bar) and making it wider by dragging the separator
 - During interactive placement, wait for cursor to change to the pointer finger before picking a component, then wait for it to change to the cross before picking a position.
     - Do not click while the cursor is the hourglass/busy cursor
     - Turning off objects in the selection filter can help avoid hasty clicks "doing" anything
@@ -57,6 +58,7 @@ For example:
         - In this mode, AutoMove will attempt up to 30 mils (in 5mil steps) of nudging in each perpendicular direction to try to find a passing solution
         - Enable modifier key or lock behavior through GUI (will persist even when not launched from GUI)
     - Hold ALT to place the Designator/Comment at 90° rotation instead.
+    - Hold ALT and Right-Click to center and hide the Designator/Comment
     - CTRL and ALT can be combined
 ## Any-Angle Autopositioning
 - Enable or Disable through GUI (will persist even when not launched from GUI)
@@ -109,3 +111,4 @@ For example:
     - GUI polish
 - 2023-07-17 - QuickSilk Ver 1.02 : added ability to save settings to script folder
 - 2023-07-17 - QuickSilk Ver 1.03 : fixed bug in v1.00 that broke Any-Angle OFF placement
+- 2023-07-18 - QuickSilk Ver 1.04 : added ability to center and hide Designator/Comment with ALT+RMB; attempted to improve picker responsiveness
