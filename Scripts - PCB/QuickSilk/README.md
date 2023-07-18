@@ -9,6 +9,14 @@ Designator or Comment will be automatically moved closer to the parent component
 Script can also change existing auto-positioned designators (original MoveAPdesignators function with some enhancements) to manual and move them by a user-defined or automatic amount toward their owner component. Will operate on all or selected components.\
 The direction of the movement depends on the current autoposition status.
 
+# Usage Tips
+- During interactive placement, wait for cursor to change to the pointer finger before picking a component, then wait for it to change to the cross before picking a position.
+    - Do not click while the cursor is the hourglass/busy cursor
+    - Turning off objects in the selection filter can help avoid hasty clicks "doing" anything
+    - Not waiting for the cursor to change/status bar to prompt for next step will likely waste more time than responding to the cursor
+    - Automove takes a variable amount of time depending on the surrounding objects it has to check against, so a faster rhythm may fail where a slower rhythm works.
+    - Cursor stuck on the hourglass while status is prompting you to select a component means you went too fast
+
 ### Configuration/Mass Editing GUI
 ![GUI Screenshot](QuickSilk_GUI.png)
 
