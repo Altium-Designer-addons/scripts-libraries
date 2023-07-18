@@ -28,6 +28,7 @@ The direction of the movement depends on the current autoposition status.
 - by Ryan Rutledge
 - Credit to Mattias Ericson & Tony Chilco for the original *MoveAPdesignators* script I started from
 - Credit to Stephen Thompson (@coffeenmusic) for the object overlap code I took from the AutoPlaceSilkscreen script to get AutoMove working
+- Credit to Petar Perisin and Brett Miller for object picking routine I modified from FormatCopy script
 
 ## How to install and use
 _Step 1_: [DOWNLOAD](https://altium-designer-addons.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Scripts%20-%20PCB/QuickSilk) script
