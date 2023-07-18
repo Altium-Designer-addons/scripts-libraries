@@ -2162,7 +2162,7 @@ begin
 
                 AddMessage('APS Status',
                     Format('%d of %d silkscreens placed (%f%%) in %d Second(s)',
-                            [PlaceCnt, Get_Iterator_Count(Iterator), PlaceCnt / Get_Iterator_Count(Iterator) * 100, Trunc((Now() - StartTime) * 86400)]));
+                            [PlaceCnt, ProgressBar1.Max, PlaceCnt / ProgressBar1.Max * 100, Trunc((Now() - StartTime) * 86400)]));
 
                 if Place_Selected and (Count >= NumSelected) then break;
             end;
