@@ -9,7 +9,7 @@ const
     cCtrlKey            = 3; // available for use during component and location selection
     cConfigFileName     = 'QuickSilkSettings.ini';
     cScriptTitle        = 'QuickSilk';
-    cScriptVersion      = '1.04';
+    cScriptVersion      = '1.05';
     cDEBUGLEVEL         = 0;
 
 var
@@ -755,7 +755,6 @@ begin
         tClearanceDefault.Text := IniFile.ReadString('Clearance', 'Default Clearance', tClearanceDefault.Text);
 
         MMmilButton.Caption                 := IniFile.ReadString('Last Used', 'Units', MMmilButton.Caption);
-        SelectedCheckBox.Checked            := IniFile.ReadBool('Last Used', 'Selected Only', SelectedCheckBox.Checked);
         UnHideDesignatorsCheckBox.Checked   := IniFile.ReadBool('Last Used', 'Unhide Designators', UnHideDesignatorsCheckBox.Checked);
         LazyAutoMoveCheckBox.Checked        := IniFile.ReadBool('Last Used', 'Lazy Offset', LazyAutoMoveCheckBox.Checked);
         CheckBoxAutoParentOnly.Checked      := IniFile.ReadBool('Last Used', 'Parent-Only AutoMove', CheckBoxAutoParentOnly.Checked);
@@ -851,7 +850,6 @@ begin
         IniFile.WriteString('Clearance', 'Default Clearance', tClearanceDefault.Text);
 
         IniFile.WriteString('Last Used', 'Units', MMmilButton.Caption);
-        IniFile.WriteBool('Last Used', 'Selected Only', SelectedCheckBox.Checked);
         IniFile.WriteBool('Last Used', 'Unhide Designators', UnHideDesignatorsCheckBox.Checked);
         IniFile.WriteBool('Last Used', 'Lazy Offset', LazyAutoMoveCheckBox.Checked);
         IniFile.WriteBool('Last Used', 'Parent-Only AutoMove', CheckBoxAutoParentOnly.Checked);
@@ -1789,7 +1787,7 @@ begin
         tPreset7.Text                     := PresetList[7];
         tPreset8.Text                     := PresetList[8];
         MMmilButton.Caption               := PresetList[9];
-        SelectedCheckBox.Checked          := PresetList[10];
+        //SelectedCheckBox.Checked          := PresetList[10];
         UnHideDesignatorsCheckBox.Checked := PresetList[11];
         EditDistance.Text                 := PresetList[0]; // Main input field needs to be set last because setting each preset updates it
     end
@@ -2122,8 +2120,12 @@ var
     RotatedAutoPos          : Boolean;
     status, i               : Integer;
     bEnableSelected         : Boolean;
-
+    SelectionCount          : Integer;
+    ProcessedCount          : Integer;
+    SkippedCount            : Integer;
 begin
+    ProcessedCount := 0;
+    SkippedCount := 0;
     iDebugLevel := cDEBUGLEVEL;
     // set version label
     LabelVersion.Caption := 'About v' + cScriptVersion;
@@ -2132,6 +2134,27 @@ begin
     if (GetBuildNumberPart(Client.GetProductVersion, 0) >= 19) then IsAtLeastAD19 := True else IsAtLeastAD19 := False;
 
     if SelectCompAndDesignators then bEnableSelected := True else bEnableSelected := False;
+
+    if bEnableSelected then RadioGroupSelectionScope.ItemIndex := 1 else RadioGroupSelectionScope.ItemIndex := 0;
+
+    // deselect everything but components
+    for i := Board.SelectecObjectCount - 1 downto 0 do
+    begin
+    	if Board.SelectecObject[i].ObjectId <> eComponentObject then Board.SelectecObject[i].Selected := False;
+    end;
+    SelectionCount := Board.SelectecObjectCount;
+
+    // now deselect components that can't be manipulated because they are manual or center autopositions
+    for i := Board.SelectecObjectCount - 1 downto 0 do
+    begin
+    	if InSet(Board.SelectecObject[i].NameAutoPosition, MkSet(eAutoPos_Manual, eAutoPos_CenterCenter)) then Board.SelectecObject[i].Selected := False;
+    end;
+
+    // warn the user if some selected components were ineligible
+    if (SelectionCount > 0) and (SelectionCount <> Board.SelectecObjectCount) then
+    begin
+        ShowWarning(IntToStr(SelectionCount - Board.SelectecObjectCount) + ' components deselected because they have Manual or Center autoposition settings.');
+    end;
 
     // Disables Online DRC during designator movement to improve speed
     PCBSystemOptions := PCBServer.SystemOptions;
@@ -2142,7 +2165,7 @@ begin
     PCBSystemOptions.DoOnlineDRC := False;
     try
         bAbortScript := False;
-        if not bEnableSelected then SelectedCheckBox.Enabled := False;
+
         QuickSilkForm.ShowModal; // Show the settings dialogue (and resume script here after closed)
         if bAbortScript then Exit;
 
@@ -2159,7 +2182,7 @@ begin
 
         Component := ComponentIteratorHandle.FirstPCBObject;
 
-        if QuickSilkForm.SelectedCheckBox.Checked then
+        if QuickSilkForm.RadioGroupSelectionScope.ItemIndex = 1 then
             while (Component <> Nil) do
                 if not Component.Selected then Component := ComponentIteratorHandle.NextPCBObject
                 else break; // Find the first selected comp if "selected only" checked
@@ -2179,6 +2202,20 @@ begin
 
         while (Component <> Nil) do
         begin
+            // if processing all components
+            if RadioGroupSelectionScope.ItemIndex = 0 then
+            begin
+                // if component is ineligible because autoposition is manual or center, skip it
+                if InSet(Component.NameAutoPosition, MkSet(eAutoPos_Manual, eAutoPos_CenterCenter)) then
+                begin
+                    Inc(SkippedCount);
+                    Component := ComponentIteratorHandle.NextPCBObject;
+                    continue;
+                end;
+
+                Inc(ProcessedCount);
+            end;
+
             Component.BeginModify;
 
             // Show hidden designators?
@@ -2232,7 +2269,7 @@ begin
 
             // Get the next component handle
             Component := ComponentIteratorHandle.NextPCBObject;
-            if QuickSilkForm.SelectedCheckBox.Checked then
+            if QuickSilkForm.RadioGroupSelectionScope.ItemIndex = 1 then
                 while (Component <> Nil) do
                     if not Component.Selected then Component := ComponentIteratorHandle.NextPCBObject
                     else break; // Find the next selected comp if "selected only" checked
@@ -2243,6 +2280,8 @@ begin
         // Notify the pcbserver that all changes have been made (Stop undo)
         PCBServer.PostProcess;
 
+        if SkippedCount > 0 then ShowInfo('Skipped ' + IntToStr(SkippedCount) + ' components whose designator was not autopositioned to a side');
+
         // Refresh the screen (not needed with .GraphicallyInvalidate?)
         Client.SendMessage('PCB:Zoom', 'Action=Redraw' , 255, Client.CurrentView);
 
@@ -2252,15 +2291,7 @@ begin
         // save last-used values and presets
         ConfigFile_Write(ConfigFile_GetPath);
 
-        // deselect designators
-        for i := Board.SelectecObjectCount - 1 downto 0 do
-        begin
-            Designator := Board.SelectecObject[i];
-            if (Designator.ObjectId <> eComponentObject) then Designator.SetState_Selected(False);
-        end;
-
         Client.SendMessage('PCB:Zoom', 'Action=Redraw' , 255, Client.CurrentView);
-
 
     finally
         // Restore DRC setting
@@ -2489,7 +2520,7 @@ begin
     end
     else bForbidLocalSettings := False;
 
-    if not SelectedCheckBox.Enabled then SelectedCheckBox.Checked := False;
+    RadioGroupSelectionScope.Items[1] := 'Selecte&d Components (' + IntToStr(Board.SelectecObjectCount) + ')';
 end; { TQuickSilkForm.QuickSilkFormShow }
 
 
