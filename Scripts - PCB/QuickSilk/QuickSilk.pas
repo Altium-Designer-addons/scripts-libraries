@@ -2180,13 +2180,6 @@ begin
         if QuickSilkForm.LazyAutoMoveCheckBox.Checked then bLazyAutoMove := True
         else bLazyAutoMove := False;
 
-        Component := ComponentIteratorHandle.FirstPCBObject;
-
-        if QuickSilkForm.RadioGroupSelectionScope.ItemIndex = 1 then
-            while (Component <> Nil) do
-                if not Component.Selected then Component := ComponentIteratorHandle.NextPCBObject
-                else break; // Find the first selected comp if "selected only" checked
-
         // Set the move distance to DB units converted from mils or mm
         if QuickSilkForm.MMmilButton.Caption = 'mm' then MoveDistance := MMsToCoord(QuickSilkForm.EditDistance.Text)
         else MoveDistance := MilsToCoord(QuickSilkForm.EditDistance.Text);
@@ -2196,6 +2189,13 @@ begin
             if QuickSilkForm.MMmilButton.Caption = 'mm' then MaxDistance := MMsToCoord(QuickSilkForm.EditMaxDistance.Text)
             else MaxDistance := MilsToCoord(QuickSilkForm.EditMaxDistance.Text);
         end;
+
+        Component := ComponentIteratorHandle.FirstPCBObject;
+
+        if QuickSilkForm.RadioGroupSelectionScope.ItemIndex = 1 then
+            while (Component <> Nil) do
+                if not Component.Selected then Component := ComponentIteratorHandle.NextPCBObject
+                else break; // Find the first selected comp if "selected only" checked
 
         // Notify the pcbserver that we will make changes (Start undo)
         PCBServer.PreProcess;
