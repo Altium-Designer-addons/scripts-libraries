@@ -9,7 +9,7 @@ const
     cCtrlKey            = 3; // available for use during component and location selection
     cConfigFileName     = 'QuickSilkSettings.ini';
     cScriptTitle        = 'QuickSilk';
-    cScriptVersion      = '1.03';
+    cScriptVersion      = '1.04';
     cDEBUGLEVEL         = 0;
 
 var
@@ -691,10 +691,11 @@ end;
 
 procedure ConfigFile_Read(AFileName : String);
 var
-    IniFile: TIniFile;
-    LocalSettingsFile : String;
-    SettingsDebugFile : String;
-    SettingsDebugList : TStringList;
+    IniFile             : TIniFile;
+    LocalSettingsFile   : String;
+    ConfigDebugCaption  : String;
+    SettingsDebugFile   : String;
+    SettingsDebugList   : TStringList;
 begin
     LocalSettingsFile := ExtractFilePath(GetRunningScriptProjectName) + cConfigFileName;
 
@@ -793,14 +794,25 @@ begin
 
         if iDebugLevel > 0 then
         begin
+            SettingsDebugList := CreateObject(TStringList);
+
+            if FileExists(AFileName) then
+            begin
+                SettingsDebugList.LoadFromFile(AFileName);
+                ConfigDebugCaption := 'Confirm Settings read from file';
+                SettingsDebugList.Insert(0, AFileName);
+                DebugMessage(1, SettingsDebugList.Text, ConfigDebugCaption);
+            end
+            else DebugMessage(1, 'No settings file located. Defaults used.');
+
             SettingsDebugFile := ChangeFileExt(ConfigFile_GetPath,'.ini') + '_debug.ini';
             ConfigFile_Write(SettingsDebugFile);
-
-            SettingsDebugList := CreateObject(TStringList);
             SettingsDebugList.LoadFromFile(SettingsDebugFile);
-
             DeleteFile(SettingsDebugFile);
-            DebugMessage(1, SettingsDebugList.Text, 'Settings read from file or defaults');
+
+            ConfigDebugCaption := 'Confirm Settings used in operation';
+            DebugMessage(1, SettingsDebugList.Text, ConfigDebugCaption);
+
         end;
 
     finally
@@ -982,18 +994,18 @@ begin
     CompKeySet := MkSet();
     Result := eNoObject;
 
-    Application.ProcessMessages;
+    VisibleLayerSet := MkSet();
+    if Board.LayerIsDisplayed(eTopLayer) then VisibleLayerSet := SetUnion(VisibleLayerSet, MkSet(eTopLayer));
+    if Board.LayerIsDisplayed(eBottomLayer) then VisibleLayerSet := SetUnion(VisibleLayerSet, MkSet(eBottomLayer));
+
+    //Application.ProcessMessages; // doesn't appear to be necessary
     Screen.Cursor := crHandPoint;
     try
         if Board.ChooseLocation(x, y, sPrompt) then  // false = ESC Key is pressed or right-clicked to cancel
         begin
             //   read modifier keys just as/after the "pick" mouse click
-            if ShiftKeyDown   then CompKeySet := MkSet(cShiftKey);
-            if ControlKeyDown then CompKeySet := SetUnion(CompKeySet, MkSet(cCtrlKey));
-
-            VisibleLayerSet := MkSet();
-            if Board.LayerIsDisplayed(eTopLayer) then VisibleLayerSet := SetUnion(VisibleLayerSet, MkSet(eTopLayer));
-            if Board.LayerIsDisplayed(eBottomLayer) then VisibleLayerSet := SetUnion(VisibleLayerSet, MkSet(eBottomLayer));
+            if ControlKeyDown then CompKeySet := MkSet(cCtrlKey);
+            //if ShiftKeyDown   then CompKeySet := SetUnion(CompKeySet, MkSet(cShiftKey));
 
             Result := Board.GetObjectAtXYAskUserIfAmbiguous(x, y, MkSet(eComponentObject), VisibleLayerSet, eEditAction_Focus);         // eEditAction_DontCare
             if (Result = Nil) then Result := eNoObject;
@@ -1380,7 +1392,7 @@ begin
             bLocationFlag := False; // clear location flag to allow picking a new location
 
             PCBServer.PostProcess;
-            Application.ProcessMessages;
+            Application.ProcessMessages; // appears to be the only necessary flush for cursor lag? Maybe just calling this once per loop is enough to keep things performant?
             Board.ViewManager_FullUpdate;
         end;
 
@@ -1390,27 +1402,40 @@ begin
             if InSet(cCtrlKey, CompKeySet) then bDesignator := False else bDesignator := True; // hold CTRL to autoposition Comment instead
 
             if bPersistentMode then sPrompt := 'PERSISTENT MODE ON ' else sPrompt := '';
-            if bDesignator then sPrompt := sPrompt + 'Choose location for Designator around ' else sPrompt := sPrompt + 'Choose location for Comment around ';
+            if bDesignator then sPrompt := sPrompt + 'Place Designator around ' else sPrompt := sPrompt + 'Place Comment around ';
 
-            if iClearanceMode = 1 then sPrompt := sPrompt + Comp.Name.Text + ' (Objects outside parent component will be ignored (locked by config); Hold ALT for orthogonal placement)'
-            else if iClearanceMode = 2 then sPrompt := sPrompt + Comp.Name.Text + ' (Objects outside parent component will be avoided (locked by config); Hold ALT for orthogonal placement)'
-            else sPrompt := sPrompt + Comp.Name.Text + ' (Hold CTRL to avoid things outside parent component, Hold ALT for orthogonal placement)';
+            if iClearanceMode = 1 then sPrompt := sPrompt + Comp.Name.Text + ' (Parent objects avoided (locked by config); ALT to rotate; ALT+RightClick to hide)'
+            else if iClearanceMode = 2 then sPrompt := sPrompt + Comp.Name.Text + ' (All objects avoided (locked by config); ALT to rotate; ALT+RightClick to hide)'
+            else sPrompt := sPrompt + Comp.Name.Text + ' (ALT to rotate; CTRL to avoid all objects; ALT + Right-Click to hide)';
 
-            Application.ProcessMessages;
+            // PERFORMANCE: any mouse movement between selecting component and this point will not move the cursor. Application.ProcessMessages forces an update
+            //Application.ProcessMessages; // doesn't appear to be necessary on my machine, but might be performance-based on the machine running script
             Screen.Cursor := crCross;
             try
+                //Board.ViewManager_FullUpdate;
                 if Board.ChooseLocation(x, y, sPrompt) then  // false = ESC Key is pressed or right-clicked to cancel
                 begin
                     LocKeySet := MkSet(); // clear modifier keyset
                     // read modifier keys just as/after the "pick" mouse click
-                    if AltKeyDown   then LocKeySet := MkSet(cAltKey);  // Plan: hold ALT to rotate orthogonally
+                    if AltKeyDown     then LocKeySet := MkSet(cAltKey);  // Plan: hold ALT to rotate orthogonally
                     //if ShiftKeyDown then LocKeySet := SetUnion(LocKeySet, MkSet(cShiftKey));
                     if ControlKeyDown then LocKeySet := SetUnion(LocKeySet, MkSet(cCtrlKey)); // Plan: hold CTRL to stop ignoring outside objects
 
                     bLocationFlag := True;
-
                 end
-                else Comp := Nil;    // user canceled picking location, time to get a new source component
+                else
+                begin
+                    // if user held ALT when they canceled location pick with RMB, center and hide text
+                    if AltKeyDown then
+                    begin
+                        SetAutopositionLocation(Comp, eAutoPos_CenterCenter, bDesignator);
+                        Comp.BeginModify;
+                        if bDesignator then Comp.NameOn := False else Comp.CommentOn := False;
+                        Comp.EndModify;
+                        Comp.GraphicallyInvalidate;
+                    end;
+                    Comp := Nil;    // user canceled picking location, time to get a new source component
+                end;
             finally
                 Screen.Cursor := crDefault;
             end;
@@ -1424,7 +1449,6 @@ begin
                 Comp := GetComponentAtCursor(sPrompt + 'Choose Source Component (Hold CTRL to position Comment instead of Designator)');
                 if ControlKeyDown then CompKeySet := MkSet(cCtrlKey); // CTRL key held down during component pick
             until Assigned(Comp) or (Comp = cEsc);
-
         end;
     until (Comp = cESC);
 
