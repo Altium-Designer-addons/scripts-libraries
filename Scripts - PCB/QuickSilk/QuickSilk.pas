@@ -1459,12 +1459,6 @@ end;
 
 // Checks if text object overlaps other object
 function IsOverlapping(Text: IPCB_ObjectClass; Obj2: IPCB_ObjectClass) : Boolean;
-const
-    BODYEXPANSION       = 8; // [mils] Expansion for component bodies
-    TEXTEXPANSION       = 5; // [mils] Expansion for other text objects
-    PADEXPANSION        = 8; // [mils] Expansion for pads
-    CUTOUTEXPANSION     = 0; // [mils] Expansion for cutout regions
-    DEFAULTEXPANSION    = 6; // [mils] Expansion for everything else
 var
     TextPoly, ObjPoly: IPCB_GeometricPolygon;
     Expansion: TCoord;
