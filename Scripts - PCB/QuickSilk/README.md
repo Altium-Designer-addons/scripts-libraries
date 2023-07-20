@@ -71,7 +71,7 @@ The `Any-Angle Placement` configuration option affects whether these octants are
 
 ### Interactive Placement Examples
 The following are comparisons of default Autoposition placements for a 1206 capacitor footprint rotated at 0° and 30° CW, compared to how QuickSilk places the Designators with `Any-Angle Placement` enabled or disabled:
-![QuickSilk Designator Placement Examples](QuickSilk_Examples.png)
+![QuickSilk Placement Examples](QuickSilk_Examples.png)
 
 ## Any-Angle Autopositioning
 - Enable or Disable through GUI (will persist even when not launched from GUI)
