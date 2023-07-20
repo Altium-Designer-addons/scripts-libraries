@@ -38,6 +38,7 @@ If you are a newcomer to Altium scripts, [please read the "how to" wiki page](ht
 
 ## Known Issues
 - **ALTIUM BUG**: When a component is flipped to the other side of the board, autopositioning initially still orients as if it is on the original side. Closing and re-opening the PcbDoc will make the autoposition work properly.
+- Placing both designator and comment in the same octant does not currently work because autoposition of the second text ignores the no-longer-autopositioned first text.
 - An unlocked component on a different board layer will be picked over a locked component on the current layer due to priority order.
 - SpaceNavigator will not work during interactive placement mode if it was started from the GUI.
 - Clicking too quickly can register as double-click, script is not mouse-gesture responsive
