@@ -787,7 +787,7 @@ begin
 
         //Iterator.AddFilter_LayerSet(Get_LayerSet(Slk.Layer, ObjID));
         if (ObjID = eComponentBodyObject and (CmpOutlineLayerID = 0)) then Iterator.AddFilter_LayerSet(GetComponentBodyLayerSet(Slk.Component))
-        else Iterator.AddFilter_LayerSet(GetLayerSet(Slk.Layer, ObjID));
+        else Iterator.AddFilter_LayerSet(Get_LayerSet(Slk.Layer, ObjID));
 
         Iterator.AddFilter_Area(RectL, RectB, RectR, RectT);
         RegIter := False;
