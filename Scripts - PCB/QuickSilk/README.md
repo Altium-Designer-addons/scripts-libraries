@@ -129,5 +129,7 @@ The following are comparisons of default Autoposition placements for a 1206 capa
 - 2023-07-18 - QuickSilk Ver 1.05 : removed "selected only" from saved settings and instead default to it any time GUI is launched with components selected; added messages when components are skipped because their autopositions are not eligible for moving
 
 ### Planned for QuickSilk Ver 1.06
-- Rather than having to specify AutoMove search range and having hard-coded limit of 120 mils, automatically derive search range from bounding box of parent component (full auto)
+- ~Rather than having to specify AutoMove search range and having hard-coded limit of 120 mils, automatically derive search range from bounding box of parent component (full auto)~ **DONE**
 - If initial placement of designator or comment interferes with the other (and text justification implies that it was interactively positioned), infer that both are trying to be autopositioned in the same octant and autoposition both before moving each
+- Support any-angle placement on mass edit by taking current autoposition, mapping to an octant, then running positioning using that
+- Should I get rid of Any-Angle Placement OFF support?
