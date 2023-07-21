@@ -54,7 +54,7 @@ If you are a newcomer to Altium scripts, [please read the "how to" wiki page](ht
 For example: 
     - clicking in the upper-right octant (~45°) will set autoposition to "Right-Above"
     - clicking in the bottom octant (~270°) will set autoposition to "Center-Below"
-- After clicking the position location, script will automatically move the Designator/Comment toward the component (within 120 mil) as close as it can while clearing silkscreen, pads, component bodies, etc.
+- After clicking the position location, script will automatically move the Designator/Comment toward the component as close as it can while clearing silkscreen, pads, component bodies, etc.
     - Default behavior is to place Designator/Comment with 0° rotation *relative to the component orientation*, only taking objects in the parent component into account. Free silkscreen and other components' designators and pads will be ignored.
     - **CLEARANCE MODE:** Hold CTRL while clicking the location to NOT ignore objects outside the parent component
         - In this mode, AutoMove will attempt up to 30 mils (in 5mil steps) of nudging in each perpendicular direction to try to find a passing solution
@@ -66,7 +66,7 @@ For example:
 ### Interactive Placement Octants
 After launching the interactive placement tool and selecting a component, you must click in one of the octants around the chosen component. These octants are 45° wedges arranged around the component that correspond to the general direction of autopositioned designators for a component at 0° rotation.\
 The `Any-Angle Placement` configuration option affects whether these octants are at a fixed rotation or whether they match the rotation of the chosen component.
-- If `Any-Angle Placement` is **OFF**, the octants have a fixed rotation regardless of component rotation. This will behave closest to the default autoposition behavior, but moving the Designator/Comment text closer to the component if it is within 120mils of the autopositioned location.
+- If `Any-Angle Placement` is **OFF**, the octants have a fixed rotation regardless of component rotation. This will behave closest to the default autoposition behavior, but moving the Designator/Comment text closer to the component.
 - If `Any-Angle Placement` is **ON**, the octants are relative to the rotation of the component, and the Designator/Comment will be placed at the same relative rotation and moved closer to the component. This behaves most like rotating the component to 0°, using autoposition, manually moving the text close to the component, then returning the component to its original rotation and normalizing the text direction to be right-reading.
 ![QuickSilk Octants Orientation](QuickSilk_Octants.png)
 
@@ -127,3 +127,7 @@ The following are comparisons of default Autoposition placements for a 1206 capa
 - 2023-07-17 - QuickSilk Ver 1.03 : fixed bug in v1.00 that broke Any-Angle OFF placement
 - 2023-07-18 - QuickSilk Ver 1.04 : added ability to center and hide Designator/Comment with ALT+RMB; attempted to improve picker responsiveness
 - 2023-07-18 - QuickSilk Ver 1.05 : removed "selected only" from saved settings and instead default to it any time GUI is launched with components selected; added messages when components are skipped because their autopositions are not eligible for moving
+
+### Planned for QuickSilk Ver 1.06
+- Rather than having to specify AutoMove search range and having hard-coded limit of 120 mils, automatically derive search range from bounding box of parent component (full auto)
+- If initial placement of designator or comment interferes with the other (and text justification implies that it was interactively positioned), infer that both are trying to be autopositioned in the same octant and autoposition both before moving each
