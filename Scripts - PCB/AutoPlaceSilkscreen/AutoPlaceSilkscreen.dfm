@@ -34,9 +34,9 @@ object Form_PlaceSilk: TForm_PlaceSilk
   object PositionDeltaLbl: TLabel
     Left = 226
     Top = 328
-    Width = 65
+    Width = 216
     Height = 13
-    Caption = 'Position Delta'
+    Caption = 'Position Delta (toward comp before iterating)'
   end
   object Label2: TLabel
     Left = 226
@@ -74,7 +74,8 @@ object Form_PlaceSilk: TForm_PlaceSilk
     ItemIndex = 0
     Items.Strings = (
       'Center Over Components'
-      'Place Off Board (Bottom Left)')
+      'Place Off Board (Bottom Left)'
+      'Restore Original')
     TabOrder = 2
   end
   object GB_AllowUnder: TGroupBox
@@ -138,12 +139,13 @@ object Form_PlaceSilk: TForm_PlaceSilk
     Style = csDropDownList
     ItemIndex = 5
     TabOrder = 7
-    Text = 'KLC Style'
+    Text = 'Along Pins'
     Items.Strings = (
       'Component Rotation'
       'Horizontal Rotation'
+      'Vertical Rotation'
       'Along Side'
-      'Along Axel'
+      'Along Axis'
       'Along Pins'
       'KLC Style')
   end
@@ -211,9 +213,9 @@ object Form_PlaceSilk: TForm_PlaceSilk
   object TryAlteredRotationChk: TCheckBox
     Left = 16
     Top = 296
-    Width = 120
+    Width = 128
     Height = 17
-    Caption = 'Try Altered Rotation'
+    Caption = 'Try Alternate Rotation'
     Checked = True
     State = cbChecked
     TabOrder = 14
