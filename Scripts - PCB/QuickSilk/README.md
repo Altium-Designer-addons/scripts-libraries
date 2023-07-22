@@ -1,7 +1,8 @@
 ### [DOWNLOAD](https://altium-designer-addons.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Scripts%20-%20PCB/QuickSilk)
 
 # QuickSilk
-### (formerly MoveAPdesignators2)
+***(formerly MoveAPdesignators2)***
+
 This script is a tool to quickly place silkscreen designators and comments around components.\
 Click on the component, then click in the octants around the component to place the designator or comment on that side of the part, following autoposition rules.\
 Designator or Comment will be automatically moved closer to the parent component according to configured clearance settings.
@@ -44,7 +45,8 @@ If you are a newcomer to Altium scripts, [please read the "how to" wiki page](ht
 - Clicking too quickly can register as double-click, script is not mouse-gesture responsive
 
 # Features
-## Interactive Designator and Comment placement (no GUI, works in 2D and 3D mode)
+## Interactive Designator and Comment placement
+- **no GUI, works in 2D and 3D mode**
 - Accessed by launching `_QuickSilk` or `InteractivelyAutoposition` script procedure
 - Shows instructions in status bar
 - After launching, prompts user to click on a component
@@ -87,7 +89,7 @@ From the GUI, you may click on the clearance labels to select all visible design
 - For example, clicking on "Component Bodies" with a clearance value of 8 mils will select all designators or comments that are within 8 mils of any component body outline (does not follow actual CAD contours, just overall model bounding rectangle)
 - Clearance mode is always "All Objects"
 
-## Mass modification of Autopositioned Designators and Configuration of AutoMove Clearance (GUI)
+## Mass Modification and Configuration GUI
 - Accessed by launching `_GUI` or `TweakDesignators` script procedure
 - Moves by a fixed or automatically-determined movement amount toward the owner component. Automatic movement works by moving it in the autoposition-derived direction until it hits (with some hard-coded clearance constants) a pad, silkscreen line, component body, etc.
 
