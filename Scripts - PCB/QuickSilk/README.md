@@ -27,7 +27,7 @@ The direction of the movement depends on the current autoposition status (Manual
 ## Credits
 - by Ryan Rutledge
 - Credit to Mattias Ericson & Tony Chilco for the original *MoveAPdesignators* script I started from
-- Credit to Stephen Thompson (@coffeenmusic) for the object overlap code I took from the AutoPlaceSilkscreen script to get AutoMove working
+- Credit to Stephen Thompson (@coffeenmusic) for the excellently-done AutoPlaceSilkscreen script, from which I took the message panel update function and the object overlap code I adapted to get AutoMove working
 - Credit to Petar Perisin and Brett Miller for object picking routine I modified from FormatCopy script
 
 ## How to install and use
@@ -54,7 +54,7 @@ If you are a newcomer to Altium scripts, [please read the "how to" wiki page](ht
 For example: 
     - clicking in the upper-right octant (~45°) will set autoposition to "Right-Above"
     - clicking in the bottom octant (~270°) will set autoposition to "Center-Below"
-- After clicking the position location, script will automatically move the Designator/Comment toward the component (within 120 mil) as close as it can while clearing silkscreen, pads, component bodies, etc.
+- After clicking the position location, script will automatically move the Designator/Comment toward the component as close as it can while clearing silkscreen, pads, component bodies, etc.
     - Default behavior is to place Designator/Comment with 0° rotation *relative to the component orientation*, only taking objects in the parent component into account. Free silkscreen and other components' designators and pads will be ignored.
     - **CLEARANCE MODE:** Hold CTRL while clicking the location to NOT ignore objects outside the parent component
         - In this mode, AutoMove will attempt up to 30 mils (in 5mil steps) of nudging in each perpendicular direction to try to find a passing solution
@@ -66,7 +66,7 @@ For example:
 ### Interactive Placement Octants
 After launching the interactive placement tool and selecting a component, you must click in one of the octants around the chosen component. These octants are 45° wedges arranged around the component that correspond to the general direction of autopositioned designators for a component at 0° rotation.\
 The `Any-Angle Placement` configuration option affects whether these octants are at a fixed rotation or whether they match the rotation of the chosen component.
-- If `Any-Angle Placement` is **OFF**, the octants have a fixed rotation regardless of component rotation. This will behave closest to the default autoposition behavior, but moving the Designator/Comment text closer to the component if it is within 120mils of the autopositioned location.
+- If `Any-Angle Placement` is **OFF**, the octants have a fixed rotation regardless of component rotation. This will behave closest to the default autoposition behavior, but moving the Designator/Comment text closer to the component.
 - If `Any-Angle Placement` is **ON**, the octants are relative to the rotation of the component, and the Designator/Comment will be placed at the same relative rotation and moved closer to the component. This behaves most like rotating the component to 0°, using autoposition, manually moving the text close to the component, then returning the component to its original rotation and normalizing the text direction to be right-reading.
 ![QuickSilk Octants Orientation](QuickSilk_Octants.png)
 
@@ -81,6 +81,12 @@ The following are comparisons of default Autoposition placements for a 1206 capa
 - "Normal" placement will orient the text at 0° relative to the component's zero orientation
 - "Orthogonal" placement (ALT key) will orient the text at 90° relative to the component's zero orientation
 - Designator/Comment will be normalized to be right-reading after it is manipulated
+
+## Select Violating Designators and Comments
+From the GUI, you may click on the clearance labels to select all visible designators or comments that currently violate the configured clearance. Clearance checking behavior is the same as is used for AutoMove
+- For example, clicking on "Component Bodies" with a clearance value of 8 mils will select all designators or comments that are within 8 mils of any component body outline (does not follow actual CAD contours, just overall model bounding rectangle)
+- Clearance mode is always "All Objects"
+
 ## Mass modification of Autopositioned Designators and Configuration of AutoMove Clearance (GUI)
 - Accessed by launching `_GUI` or `TweakDesignators` script procedure
 - Moves by a fixed or automatically-determined movement amount toward the owner component. Automatic movement works by moving it in the autoposition-derived direction until it hits (with some hard-coded clearance constants) a pad, silkscreen line, component body, etc.
@@ -93,6 +99,7 @@ The following are comparisons of default Autoposition placements for a 1206 capa
 - Works in AD 19+
 - Added Automatic movement amount detection
 - Added Interactive designator and comment placement tool
+- Added ability to select designators or comments under component bodies, etc.
 
 # Changelog
 - 2022-11-28 - MoveAPdesignators2 Ver 2.0 : Initial release based on MoveAPdesignators scrip Ver 1.2; uses new string justification settings and fixed bug with designator not actually moving coords; added presets and restore last used values
@@ -127,3 +134,9 @@ The following are comparisons of default Autoposition placements for a 1206 capa
 - 2023-07-17 - QuickSilk Ver 1.03 : fixed bug in v1.00 that broke Any-Angle OFF placement
 - 2023-07-18 - QuickSilk Ver 1.04 : added ability to center and hide Designator/Comment with ALT+RMB; attempted to improve picker responsiveness
 - 2023-07-18 - QuickSilk Ver 1.05 : removed "selected only" from saved settings and instead default to it any time GUI is launched with components selected; added messages when components are skipped because their autopositions are not eligible for moving
+- 2023-07-22 - QuickSilk Ver 1.06 : (GUI enhancement) added ability to select any Designators or Comments that violate a clearance rule; (performance) made AutoMove even more automatic by adjusting search range according to component size
+
+### Planned features?
+- If initial placement of designator or comment interferes with the other (and text justification implies that it was interactively positioned), infer that both are trying to be autopositioned in the same octant and autoposition both before moving each
+- Support any-angle placement on mass edit by taking current autoposition, mapping to an octant, then running positioning using that
+- Should I get rid of Any-Angle Placement OFF support?

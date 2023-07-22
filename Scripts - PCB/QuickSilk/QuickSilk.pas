@@ -9,7 +9,7 @@ const
     cCtrlKey            = 3; // available for use during component and location selection
     cConfigFileName     = 'QuickSilkSettings.ini';
     cScriptTitle        = 'QuickSilk';
-    cScriptVersion      = '1.05';
+    cScriptVersion      = '1.06';
     cDEBUGLEVEL         = 0;
 
 var
@@ -39,7 +39,9 @@ var
 procedure _GUI; forward;
 procedure _QuickSilk; forward;
 procedure About; forward;
-function AutoMove(var NameOrComment : IPCB_Text; SearchDist : TCoord = 1200000; ParentOnly : Boolean = True; StartDist : TCoord = 400000; ForceAutoPos : TTextAutoposition = eAutoPos_Manual) : TCoord; forward;
+procedure AddMessage(MessageClass, MessageText: String); forward;
+function AutoMove(var NameOrComment : IPCB_Text; ParentOnly : Boolean = True; StartDist : TCoord = 200000; ForceAutoPos : TTextAutoposition = eAutoPos_Manual) : TCoord; forward;
+function AutoPosDeltaGetMax(var NameOrComment : IPCB_Text; autoPos : TTextAutoposition; bAnyAngleFlag : Boolean = False) : TCoord; forward;
 procedure AutoPosDeltaAdjust(var NameOrComment : IPCB_Text; MoveDistance : TCoord; autoPos : TTextAutoposition; bAnyAngleFlag : Boolean = False; SideOffset : Integer = 0); forward;
 function AutopositionJustify(var NameOrComment : IPCB_Text; const tc_AutoPos : TTextAutoposition) : TTextAutoposition; forward;
 procedure BothInitialCheck(var status : Integer); forward;
@@ -59,15 +61,17 @@ function GetComponentAreaMils(Comp : IPCB_Component) : Int64; forward;
 function GetComponentAtCursor(const sPrompt : TString) : IPCB_Primitive; forward;
 function GetComponentBodyLargest(Comp : IPCB_Component) : IPCB_ComponentBody; forward;
 function GetComponentBodyLayerSet(Comp : IPCB_Component) : TV6_LayerSet; forward;
+function GetIteratorCount(Iterator : IPCB_BoardIterator) : Integer; forward;
 function GetLayerSet(SlkLayer: Integer; ObjID: Integer) : TV6_LayerSet; forward;
 function GetMinDesignatorClearance(var Comp : IPCB_Component) : TCoord; forward;
 function GetObjPoly(Obj: IPCB_ObjectClass, Expansion: TCoord = 0) : IPCB_GeometricPolygon; forward;
 function GetRelativeAutoposition(var Comp : IPCB_Component; const loc_x, loc_y : TCoord) : TTextAutoposition; forward;
 procedure InteractivelyAutoposition; forward;
-function IsOverlapping(Text: IPCB_ObjectClass; Obj2: IPCB_ObjectClass) : Boolean; forward;
+function IsOverlapping(Text: IPCB_ObjectClass; Obj2: IPCB_ObjectClass; ObjID : Integer = eNoObject) : Boolean; forward;
+procedure IsRuleViolation(ObjectIDSet : TObjectSet; RuleNameStr : String; Clearance : TCoord); forward;
 function IsSameSide(Obj1: IPCB_ObjectClass; Obj2: IPCB_ObjectClass) : Boolean; forward;
 function IsStringANum(Text : string) : Boolean; forward;
-function IsTextOverObj(Text: IPCB_Text; ObjID: Integer; Filter_Size: Integer; ParentOnly: Boolean = False) : Boolean; forward;
+function IsTextOverObj(Text : IPCB_Text; ObjID : Integer; Filter_Size : Integer; ParentOnly : Boolean = False; StrictRegions : Boolean = False) : Boolean; forward;
 function IsValidPlacement(Silkscreen : IPCB_Text; ParentOnly : Boolean = False) : Boolean; forward;
 procedure LoadPresetListFromFile(const dummy : Integer); forward;
 function NormalizeText(var Text : IPCB_Text) : Boolean; forward;
@@ -75,8 +79,10 @@ function RotateTextToAngle(var Text : IPCB_Text; const Angle : Double; const Nor
 function SelectCompAndDesignators(dummy : Boolean = False) : Boolean; forward;
 procedure SetAutopositionLocation(var Comp : IPCB_Component; const tc_Autopos : TTextAutoposition; bDesignator : Boolean = True); forward;
 procedure SetButtonEnableStates(EnableState : Boolean); forward;
+function SilkViolatesRule(Silkscreen : IPCB_Text; ObjectIDSet : TObjectSet) : Boolean; forward;
 function StrFromAutoPos(eAutoPos: TTextAutoposition) : String; forward;
 function StrFromObjectId(ObjectId: TObjectId) : String; forward;
+function StrFromObjectIdSet(ObjectIdSet : TObjectSet) : String; forward;
 procedure TweakDesignators; forward;
 procedure TQuickSilkForm.ButtonAutoClick(Sender : TObject); forward;
 procedure TQuickSilkForm.ButtonCancelClick(Sender : TObject); forward;
@@ -86,12 +92,15 @@ procedure TQuickSilkForm.ButtonSaveConfigClick(Sender : TObject); forward;
 procedure TQuickSilkForm.CheckBoxLocalSettingsClick(Sender: TObject); forward;
 procedure TQuickSilkForm.ConfigClick(Sender : TObject); forward;
 procedure TQuickSilkForm.InputValueChange(Sender : TObject); forward;
+procedure TQuickSilkForm.LabelClearanceMouseEnter(Sender: TObject); forward;
+procedure TQuickSilkForm.LabelClearanceMouseLeave(Sender: TObject); forward;
 procedure TQuickSilkForm.LabelVersionClick(Sender : TObject); forward;
 procedure TQuickSilkForm.MMmilButtonClick(Sender : TObject); forward;
 procedure TQuickSilkForm.PresetButtonClicked(Sender : TObject); forward;
 procedure TQuickSilkForm.PresetValueChange(Sender : TObject); forward;
 procedure TQuickSilkForm.QuickSilkFormCloseQuery(Sender : TObject; var CanClose: Boolean); forward;
 procedure TQuickSilkForm.QuickSilkFormShow(Sender : TObject); forward;
+procedure TQuickSilkForm.RuleCheckClick(Sender : TObject); forward;
 procedure TQuickSilkForm.UserKeyPress(Sender : TObject; var Key : Char); forward;
 
 
@@ -130,13 +139,25 @@ begin
 end; { About }
 
 
-function AutoMove(var NameOrComment : IPCB_Text; SearchDist : TCoord = 1200000; ParentOnly : Boolean = True; StartDist : TCoord = 400000; ForceAutoPos : TTextAutoposition = eAutoPos_Manual) : TCoord;
+procedure AddMessage(MessageClass, MessageText: String);
+begin
+    // https://www.altium.com/ru/documentation/altium-nexus/wsm-api-types-and-constants/#Image%20Index%20Table
+    // [!!!] 66 index for debug info
+    GetWorkspace.DM_MessagesManager.BeginUpdate();
+    GetWorkspace.DM_MessagesManager.AddMessage(MessageClass, MessageText, 'QuickSilk Script', GetWorkspace.DM_FocusedDocument.DM_FileName, '', '', 75, MessageClass = 'QuickSilk Status');
+    GetWorkspace.DM_MessagesManager.EndUpdate();
+    GetWorkspace.DM_MessagesManager.UpdateWindow();
+end;
+
+
+function AutoMove(var NameOrComment : IPCB_Text; ParentOnly : Boolean = True; StartDist : TCoord = 200000; ForceAutoPos : TTextAutoposition = eAutoPos_Manual) : TCoord;
 const
-    cSEARCHDIST         = 1200000; // don't make this too big or it leaves room to jump into valid placement on other side of part
-    cMINSEARCHDIST      = 50000;
+    //cSEARCHDIST         = 1200000; // not used since `AutoPosDeltaGetMax` // don't make this too big or it leaves room to jump into valid placement on other side of part
+    cMINSEARCHDIST      = 50000; // [coords] 5 mils min distance step to try when searching for open area
 var
     MoveDist, TotalDist : TCoord;
     NameOrCommentAP     : TTextAutoposition;
+    SearchDist          : TCoord;
     CurSearchDist       : TCoord;
     bFirstPass          : Boolean;
     bRunoff             : Boolean;
@@ -150,20 +171,16 @@ var
     LastOffsetIndex     : Integer;
     MinDist             : TCoord;
 begin
-    MinDist := 5000; // [Coord] 0.5mil
-    SearchDist := MIN(SearchDist, cSEARCHDIST);
-    StartDist := MIN(StartDist, cMINSEARCHDIST * 8);
-    CurSearchDist := SearchDist;
+    MinDist := 5000; // [Coord] 0.5mil min distance step to try when fine tuning
+    //SearchDist := MIN(SearchDist, cSEARCHDIST);
     bFirstPass := False;
     bRunoff := False;
     bValidPlacement := False;
     bDefaultValid := True;
-    bAnyAngleFlag := (ForceAutoPos <> eAutoPos_Manual) and bEnableAnyAngle;
+
     SideOffsets := [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6]; // excessive number of offsets will increase time to fail dramatically
     OffsetIndex := 0;
     LastOffsetIndex := 12;
-
-    BeginHourGlass;
 
     if not (NameOrComment <> nil and NameOrComment.InComponent) then
     begin
@@ -172,11 +189,13 @@ begin
     end;
     TotalDist := 0;
 
+    bAnyAngleFlag := (ForceAutoPos <> eAutoPos_Manual) and bEnableAnyAngle;
+
     if bAnyAngleFlag then NameOrCommentAP := ForceAutoPos
     else if NameOrComment.IsDesignator then NameOrCommentAP := NameOrComment.Component.NameAutoPosition
     else NameOrCommentAP := NameOrComment.Component.CommentAutoPosition;
 
-    if NameOrCommentAP = eAutoPos_Manual then
+    if (NameOrCommentAP = eAutoPos_Manual) or (NameOrCommentAP = eAutoPos_CenterCenter) then
     begin
         if NameOrComment.IsDesignator then TextTypeStr := 'Designator' else TextTypeStr := 'Comment';
         DebugMessage(1, TextTypeStr + ' for component ' + NameOrComment.Component.Name.Text + ' is not Autopositioned. Automove canceled.');
@@ -184,13 +203,23 @@ begin
         Exit;
     end;
 
+    // TODO: based on autoposition and bAnyAngleFlag, derive SearchDist from component bounding box ((size * 0.65) rounded up to the nearest 10 mils)
+    // since this will indicate the farthest you could possibly move without coming out the other side (easier with bAnyAngleFlag TRUE)
+
+    // get max search distance from context
+    SearchDist := AutoPosDeltaGetMax(NameOrComment, NameOrCommentAP, bAnyAngleFlag);
+    StartDist := MIN(StartDist, cMINSEARCHDIST * 8);
+    CurSearchDist := SearchDist;
+
+    BeginHourGlass;
+
     // special case when avoiding objects outside parent: try moving up to parent ignoring others first, and see if that passes
     if not ParentOnly then
     begin
         EndHourGlass; // end before recursive call
 
         // call AutoMove recursively but only avoiding parent objects
-        Result := AutoMove(NameOrComment, SearchDist, True, StartDist, ForceAutoPos);
+        Result := AutoMove(NameOrComment, True, StartDist, ForceAutoPos);
 
         if (Result > 0) and IsValidPlacement(NameOrComment, ParentOnly) then
         begin
@@ -199,6 +228,11 @@ begin
         end
         else if Result > 0 then
         begin
+            // if there was a parent-only solution, we can reduce the search space (say, at least 5 mils larger and a multiple of 10 mils)
+            SearchDist := ((Result + 50000 + 99999) div 100000) * 100000;
+            CurSearchDist := SearchDist;
+            DebugMessage(2, 'Adjusted search range to ' + CoordToStr(CurSearchDist));
+
             // if result is positive but there is not a complete solution, try offset nudging against parent comp (note that this is a gamble)
             BeginHourGlass; // resume hourglass after recursive call if didn't exit
             repeat
@@ -249,7 +283,8 @@ begin
     begin
         bDefaultValid := False;
         StartDist := cMINSEARCHDIST * 4;
-        DebugMessage(1, 'Initial placement interferes. Starting move distance at ' + CoordToStr(StartDist));
+        DebugMessage(1, 'Initial placement interferes. Starting move distance at ' + CoordToStr(StartDist) + sLineBreak +
+                'CurSearchDist=' + CoordToStr(CurSearchDist));
     end;
 
     DebugMessage(2, 'Starting automove with Ignore other components = ' + BoolToStr(ParentOnly, True));
@@ -269,11 +304,13 @@ begin
                 TotalDist := 0;
                 if iDebugLevel >= 2 then NameOrComment.GraphicallyInvalidate;
                 if iDebugLevel >= 2 then Application.ProcessMessages;
-                CurSearchDist := SearchDist div 2;
+                //CurSearchDist := SearchDist div 2; // runoff shouldn't be a problem with SearchDist derived from bounding rectangle
                 MoveDist := cMINSEARCHDIST * 2;
                 DebugMessage(2, 'Runaway detected. Resetting to start position.' + sLineBreak +
                         'New MoveDist=' + CoordToStr(MoveDist) + sLineBreak +
+                        'CurSearchDist=' + CoordToStr(CurSearchDist) + sLineBreak +
                         'bFirstPass=' + BoolToStr(bFirstPass, True) + sLineBreak +
+                        'ParentOnly=' + BoolToStr(ParentOnly, True) + sLineBreak +
                         'bRunuff=' + BoolToStr(bRunoff, True) + sLineBreak +
                         'SideOffset=' + IntToStr(SideOffsets[OffsetIndex]) + sLineBreak +
                         'Valid Placement=' + BoolToStr(bDefaultValid, True));
@@ -301,7 +338,9 @@ begin
             end;
             DebugMessage(2, 'Total move distance=' + CoordToStr(TotalDist) + sLineBreak +
                     'Moved by MoveDist=' + CoordToStr(MoveDist) + sLineBreak +
+                    'CurSearchDist=' + CoordToStr(CurSearchDist) + sLineBreak +
                     'bFirstPass=' + BoolToStr(bFirstPass, True) + sLineBreak +
+                    'ParentOnly=' + BoolToStr(ParentOnly, True) + sLineBreak +
                     'bRunuff=' + BoolToStr(bRunoff, True) + sLineBreak +
                     'SideOffset=' + IntToStr(SideOffsets[OffsetIndex]) + sLineBreak +
                     'Valid Placement=True');
@@ -311,7 +350,9 @@ begin
         begin
             DebugMessage(2, 'Total move distance=' + CoordToStr(TotalDist) + sLineBreak +
                     'Failed move by MoveDist=' + CoordToStr(MoveDist) + sLineBreak +
+                    'CurSearchDist=' + CoordToStr(CurSearchDist) + sLineBreak +
                     'bFirstPass=' + BoolToStr(bFirstPass, True) + sLineBreak +
+                    'ParentOnly=' + BoolToStr(ParentOnly, True) + sLineBreak +
                     'bRunuff=' + BoolToStr(bRunoff, True) + sLineBreak +
                     'SideOffset=' + IntToStr(SideOffsets[OffsetIndex]) + sLineBreak +
                     'Valid Placement=False');
@@ -383,6 +424,68 @@ begin
 end;
 
 
+function AutoPosDeltaGetMax(var NameOrComment : IPCB_Text; autoPos : TTextAutoposition; bAnyAngleFlag : Boolean = False) : TCoord;
+var
+    BRdX, BRdY : TCoord;
+    rect : TCoordRect;
+    taller : Boolean;
+    TempRotation : Double;
+    Comp : IPCB_Component;
+    CompBRect : TCoordRect;
+begin
+    Result := 0;
+    Comp := NameOrComment.Component;
+    if Comp = nil then exit;
+
+    TempRotation := Comp.Rotation;
+
+    if bAnyAngleFlag and (TempRotation <> 0) then
+    begin
+        Comp.BeginModify;
+        Comp.Rotation := 0;
+        Comp.EndModify;
+    end;
+
+    // Top|Bottom Left|Right autopos behaves differently for strings that are height>width
+    rect := NameOrComment.BoundingRectangle;
+    taller := (rect.Top - rect.Bottom) > (rect.Right - rect.Left);
+
+    CompBRect := Comp.BoundingRectangleNoNameComment;
+    BRdX := CompBRect.Right - CompBRect.Left;
+    BRdY := CompBRect.Top - CompBRect.Bottom;
+    DebugMessage(2, 'Parent component ' + Comp.Name.Text + ' BoundingRectangleNoNameComment' + sLineBreak +
+            'Left: ' + CoordToX(CompBRect.Left) + sLineBreak +
+            'Right: ' + CoordToX(CompBRect.Right) + sLineBreak +
+            'Top: ' + CoordToY(CompBRect.Top) + sLineBreak +
+            'Bottom: ' + CoordToY(CompBRect.Bottom) + sLineBreak +
+            'Width: ' + CoordToStr(BRdX) + sLineBreak +
+            'Height: ' + CoordToStr(BRdY));
+
+    Case autoPos of
+        eAutoPos_CenterRight:   Result := BRdX;
+        eAutoPos_TopCenter:     Result := BRdY;
+        eAutoPos_CenterLeft:    Result := BRdX;
+        eAutoPos_BottomCenter:  Result := BRdY;
+        eAutoPos_TopLeft:       if taller then Result := BRdX else Result := BRdY;
+        eAutoPos_TopRight:      if taller then Result := BRdX else Result := BRdY;
+        eAutoPos_BottomLeft:    if taller then Result := BRdX else Result := BRdY;
+        eAutoPos_BottomRight:   if taller then Result := BRdX else Result := BRdY;
+    end;
+
+    if bAnyAngleFlag and (TempRotation <> 0) then
+    begin
+        Comp.BeginModify;
+        Comp.Rotation := TempRotation;
+        Comp.EndModify;
+    end;
+
+    // round up to multiple of 10 mils, plus add the 20 mils that autoposition stands off the bounding rectangle
+    // PERFORMANCE: Note that this assumes text could traverse all the way across the bounding rectangle before hitting something
+    // but that should only be possible if the footprint's primitives are offset from the bounding rectangle (an edge connector, for example)
+    Result := (((Result + 99999) div 100000) * 100000) + 200000;
+end;
+
+
 procedure AutoPosDeltaAdjust(var NameOrComment : IPCB_Text; MoveDistance : TCoord; autoPos : TTextAutoposition; bAnyAngleFlag : Boolean = False; SideOffset : Integer = 0);
 const
     cOFFSET = 50000; // [coords] 5 mils might be finer than necessary but is conservative
@@ -392,16 +495,16 @@ var
     rect : TCoordRect;
     taller : Boolean;
     TempRotation : Double;
-    ParentComp : IPCB_Component;
+    Comp : IPCB_Component;
 begin
     if bAnyAngleFlag then
     begin
-        ParentComp := NameOrComment.Component;
-        TempRotation := ParentComp.Rotation;
+        Comp := NameOrComment.Component;
+        TempRotation := Comp.Rotation;
 
-        ParentComp.BeginModify;
-        ParentComp.Rotation := 0;
-        ParentComp.EndModify;
+        Comp.BeginModify;
+        Comp.Rotation := 0;
+        Comp.EndModify;
     end;
 
     d := MoveDistance;
@@ -478,9 +581,9 @@ begin
         NameOrComment.MoveByXY(dx, dy);
         NameOrComment.EndModify;
 
-        ParentComp.BeginModify;
-        ParentComp.Rotation := TempRotation;
-        ParentComp.EndModify;
+        Comp.BeginModify;
+        Comp.Rotation := TempRotation;
+        Comp.EndModify;
     end
     else
     begin
@@ -489,6 +592,7 @@ begin
         NameOrComment.EndModify;
     end;
 end;
+
 
 { function to transform text justification based on IPCB_Text autoposition and rotation }
 function AutopositionJustify(var NameOrComment : IPCB_Text; const tc_AutoPos : TTextAutoposition) : TTextAutoposition;
@@ -853,7 +957,7 @@ begin
         IniFile.WriteBool('Last Used', 'Unhide Designators', UnHideDesignatorsCheckBox.Checked);
         IniFile.WriteBool('Last Used', 'Lazy Offset', LazyAutoMoveCheckBox.Checked);
         IniFile.WriteBool('Last Used', 'Parent-Only AutoMove', CheckBoxAutoParentOnly.Checked);
-        IniFile.WriteString('Last Used', 'Auto Distance', EditMaxDistance.Text);
+        //IniFile.WriteString('Last Used', 'Auto Distance', EditMaxDistance.Text);
         IniFile.WriteString('Last Used', 'Fixed Distance', EditDistance.Text);
 
     finally
@@ -1100,6 +1204,23 @@ begin
 end;
 
 
+function GetIteratorCount(Iterator : IPCB_BoardIterator) : Integer;
+var
+    count : Integer;
+    Comp  : IPCB_ObjectClass;
+begin
+    count := 0;
+
+    Comp := Iterator.FirstPCBObject;
+    while Comp <> nil do
+    begin
+        Inc(count);
+        Comp := Iterator.NextPCBObject;
+    end;
+    result := count;
+end;
+
+
 // Returns correct layer set given an ObjectId
 function GetLayerSet(SlkLayer: Integer; ObjID: Integer) : TV6_LayerSet;
 var
@@ -1205,6 +1326,11 @@ begin
         Poly := PCBServer.PCBContourMaker.MakeContour(Obj, Expansion, Obj.Layer);
     end
     else if Obj.ObjectId = eRegionObject then
+    begin
+        // Function  MakeContour(APrim : IPCB_Primitive; AExpansion : Integer; ALayer : TV6_Layer) : IPCB_GeometricPolygon;
+        Poly := PCBServer.PCBContourMaker.MakeContour(Obj, Expansion, Obj.Layer);
+    end
+    else if Obj.ObjectId = eFillObject then
     begin
         // Function  MakeContour(APrim : IPCB_Primitive; AExpansion : Integer; ALayer : TV6_Layer) : IPCB_GeometricPolygon;
         Poly := PCBServer.PCBContourMaker.MakeContour(Obj, Expansion, Obj.Layer);
@@ -1364,11 +1490,22 @@ begin
             else if InSet(cCtrlKey, LocKeySet) then ParentOnly := False else ParentOnly := True; // hold CTRL to also avoid things that are outside parent component
             DebugMessage(3, 'Begin: IsValidPlacement=' + BoolToStr(IsValidPlacement(NameOrComment, ParentOnly), True));
 
-            MoveDist := AutoMove(NameOrComment, 1200000, ParentOnly, 400000, tc_Autopos);
+            MoveDist := AutoMove(NameOrComment, ParentOnly, 200000, tc_Autopos);
 
             NormalizeText(NameOrComment);
 
             NameOrComment.GraphicallyInvalidate;
+
+            // TODO: to implement simultaneous placement of designator and comment in the same octant, I'm out of hotkeys
+            // possibility 1: add separate command, but then user is forced to start and stop script for different situations. Not great.
+            // possibility 2: if the other one (comment or designator) is visible, initially hide it and place the current text. After success, unhide and see if they overlap
+            // and have the same justification, implying that they were both placed in the same octant. In that case, unhide and autoposition both in that octant before trying to
+            // Automove them both again since they will be offset to not interfere. eAutoPos_CenterLeft, eAutoPos_TopCenter, eAutoPos_BottomCenter, eAutoPos_CenterRight
+            // (depending on aspect ratio) need special handling to nudge them together to be TEXTEXPANSION apart. All other autopositions need
+            // to move the one that's closer to the component first, then second can be moved with reduced search area.
+            // QUESTION: should order that user positions them affect which is closer to the parent component, or do we just follow autoposition behavior of
+            // always placing  Designator above Comment?
+            // QUESTION: what about cases where they overlap but aren't placed in the same octant? Just nudge as usual? Native autoposition only cares if they are in the same autoposition.
 
             if MoveDist > 0 then
             begin
@@ -1458,7 +1595,7 @@ end;
 
 
 // Checks if text object overlaps other object
-function IsOverlapping(Text: IPCB_ObjectClass; Obj2: IPCB_ObjectClass) : Boolean;
+function IsOverlapping(Text: IPCB_ObjectClass; Obj2: IPCB_ObjectClass; ObjID : Integer = eNoObject) : Boolean;
 var
     TextPoly, ObjPoly: IPCB_GeometricPolygon;
     Expansion: TCoord;
@@ -1492,6 +1629,11 @@ begin
         eRegionObject:      if Obj2.Kind = eRegionKind_Cutout then Expansion := CUTOUTEXPANSION;
     end;
 
+    // special handling to handle cutouts in strict regions mode because I decided to make those their own rules
+    // to allow different clearances and actions have consequences
+    if (ObjID = eConnectionObject) and (Obj2.ObjectId = eRegionObject) and (Obj2.Kind <> eRegionKind_Cutout) then exit
+    else if (ObjID = eRegionObject) and (Obj2.ObjectId = eRegionObject) and (Obj2.Kind = eRegionKind_Cutout) then exit;
+
     // Get geometric polygons for both objects
     TextPoly := GetObjPoly(Text);
     ObjPoly := GetObjPoly(Obj2, Expansion);
@@ -1501,6 +1643,77 @@ begin
 
     // IPCB_ContourUtilities Function  GeometricPolygonsTouch(AGeometricPolygon : IPCB_GeometricPolygon; BGeometricPolygon : IPCB_GeometricPolygon) : Boolean;
     result := PCBServer.PCBContourUtilities.GeometricPolygonsTouch(TextPoly, ObjPoly);
+end;
+
+
+procedure IsRuleViolation(ObjectIDSet : TObjectSet; RuleNameStr : String; Clearance : TCoord);
+var
+    Text            : IPCB_Component;
+    TextIter        : IPCB_BoardIterator;
+    Designator      : IPCB_Text;
+    ProcessedCount  : Integer;
+    TotalCount      : Integer;
+    ClearanceString : String;
+    ProgressInt     : Integer;
+
+begin
+    ProcessedCount := 0;
+    ProgressInt := 0;
+
+    Client.SendMessage('PCB:DeSelect', 'Scope=All' , 255, Client.CurrentView);
+
+    TextIter := Board.BoardIterator_Create;
+    TextIter.AddFilter_ObjectSet(MkSet(eTextObject));
+    TextIter.AddFilter_LayerSet(MkSet(eTopOverlay, eBottomOverlay));
+    TextIter.AddFilter_Method(eProcessAll);
+
+    TotalCount := GetIteratorCount(TextIter);
+
+    Text := TextIter.FirstPCBObject;
+
+    BeginHourGlass;
+
+    GetWorkspace.DM_MessagesManager.ClearMessages();
+    GetWorkspace.DM_ShowMessageView();
+
+    AddMessage('QuickSilk Clearance Check', 'Started clearance check against ' + RuleNameStr);
+    AddMessage('QuickSilk Status', Format('%d of %d text objects processed (%0.1f%%)', [ProcessedCount, TotalCount, (ProcessedCount / TotalCount) * 100]));
+
+    while (Text <> Nil) do
+    begin
+        Inc(ProcessedCount);
+        // skip text that isn't a designator or comment
+        if not (Text.IsDesignator or Text.IsComment) then
+        begin
+            Text := TextIter.NextPCBObject;
+            continue;
+        end;
+
+        if SilkViolatesRule(Text, ObjectIDSet) then
+        begin
+            Text.Selected := True;
+            Text.GraphicallyInvalidate;
+        end;
+
+        Text := TextIter.NextPCBObject;
+
+        // throttle updates for performance
+        if ((ProcessedCount / TotalCount) * 100) >= (ProgressInt + 1) then
+        begin
+            Inc(ProgressInt);
+            AddMessage('QuickSilk Status', Format('%d of %d text objects processed (%d%%)', [ProcessedCount, TotalCount, ProgressInt]));
+        end;
+
+    end;
+
+    Board.BoardIterator_Destroy(TextIter);
+
+    Client.SendMessage('PCB:Zoom', 'Action=Selected' , 255, Client.CurrentView);  // zoom on the selected text
+
+    if Clearance > 0 then ClearanceString := ' within ' + CoordToStr(Clearance) + ' of ' else ClearanceString := ' within configured clearance of ';
+    ShowInfo('Selected ' + IntToStr(Board.SelectecObjectCount) +  ' text objects' + ClearanceString + RuleNameStr);
+
+    EndHourGlass;
 end;
 
 
@@ -1581,16 +1794,29 @@ end; { IsStringANum }
 
 
 // search area for objects of given ObjectId and check to see if Text is too close
-function IsTextOverObj(Text: IPCB_Text; ObjID: Integer; Filter_Size: Integer; ParentOnly: Boolean = False) : Boolean;
+function IsTextOverObj(Text : IPCB_Text; ObjID : Integer; Filter_Size : Integer; ParentOnly : Boolean = False; StrictRegions : Boolean = False) : Boolean;
 var
-    Iterator: IPCB_SpatialIterator;
-    Obj: IPCB_ObjectClass;
-    Rect: TCoordRect;
-    RectL, RectR, RectB, RectT: TCoord;
-    RegIter: Boolean; // Regular Iterator
-    Name: TPCBString;
-    DebugString: WideString;
+    Iterator : IPCB_SpatialIterator;
+    Obj : IPCB_ObjectClass;
+    Rect : TCoordRect;
+    RectL, RectR, RectB, RectT : TCoord;
+    RegIter : Boolean; // Regular Iterator
+    Name : TPCBString;
+    DebugString : WideString;
+    StrictObjID : Integer;
 begin
+    // hack to flag cutout regions differently without adding yet another argument (use eConnectionObject because it'll never be used normally)
+    StrictObjID := eNoObject;
+    if StrictRegions then
+    begin
+        case ObjID of
+            eConnectionObject   : StrictObjID := ObjID;
+            eRegionObject       : StrictObjID := ObjID;
+        end;
+    end;
+
+    if ObjID = eConnectionObject then ObjID := eRegionObject; // always convert
+
     // Spatial Iterators only work with Primitive Objects and not group objects like eComponentObject and dimensions
     if (ObjID = eComponentObject) then
     begin
@@ -1621,6 +1847,9 @@ begin
         Iterator.AddFilter_Area(RectL, RectB, RectR, RectT);
         RegIter := False;
     end;
+
+    // reset to StrictObjID now that we've used iterator
+    ObjID := StrictObjID;
 
     // Iterate through components or pads or silkscreen etc. Depends on which object is passed in.
     Obj := Iterator.FirstPCBObject;
@@ -1675,8 +1904,8 @@ begin
         end;
 
         try
-            // Check if Silkscreen is overlapping with other object (component/pad/silk)
-            if IsOverlapping(Text, Obj) then
+            // check clearances (if ObjID is anything but `eNoObject`, strict regions is implied
+            if IsOverlapping(Text, Obj, ObjID) then
             begin
                 result := True;
                 Exit;
@@ -2034,6 +2263,78 @@ begin
 end;
 
 
+{ function to check if silkscreen violates a set of object types }
+function SilkViolatesRule(Silkscreen : IPCB_Text; ObjectIDSet : TObjectSet) : Boolean;
+const
+    FILTERSIZE = 200000;
+var
+    ValidObjectSet  : TObjectSet;
+begin
+    Result := True;
+
+    ValidObjectSet := MkSet(eTextObject, eComponentBodyObject, ePadObject, eConnectionObject, eArcObject, eTrackObject, eFillObject, eRegionObject);
+
+    if not SubSet(ObjectIDSet, ValidObjectSet) then
+    begin
+        ShowError(StrFromObjectIdSet(SetDifference(ObjectIDSet, ValidObjectSet)) + ' ObjectId(s) not supported.' + sLineBreak +
+                'Valid objects: ' + StrFromObjectIdSet(ValidObjectSet) + sLineBreak +
+                'Note that "eConnectionObject" actually means cutout region in this script.');
+        Result := False;
+        exit;
+    end;
+
+    // Overlap Detection
+    if InSet(eTextObject, ObjectIDSet) and IsTextOverObj(Silkscreen, eTextObject, FILTERSIZE) then
+    begin
+        DebugMessage(3, 'FAIL' + sLineBreak + Silkscreen.Text + ' is within ' + CoordToStr(TEXTEXPANSION) + ' of other text.');
+        Exit;
+    end
+    else if InSet(eComponentBodyObject, ObjectIDSet) and IsTextOverObj(Silkscreen, eComponentBodyObject, FILTERSIZE) then
+    begin
+        DebugMessage(3, 'FAIL' + sLineBreak + Silkscreen.Text + ' is within ' + CoordToStr(BODYEXPANSION) + ' of a component body.');
+        Exit;
+    end
+    else if InSet(ePadObject, ObjectIDSet) and IsTextOverObj(Silkscreen, ePadObject, FILTERSIZE) then
+    begin
+        DebugMessage(3, 'FAIL' + sLineBreak + Silkscreen.Text + ' is within ' + CoordToStr(PADEXPANSION) + ' of a pad.');
+        Exit;
+    end
+    // note that `eConnectionObject` actually means a cutout region (hack to distinguish from non-cutout regions downstream)
+    else if InSet(eConnectionObject, ObjectIDSet) and IsTextOverObj(Silkscreen, eConnectionObject, FILTERSIZE, False, True) then
+    begin
+        DebugMessage(3, 'FAIL' + sLineBreak + Silkscreen.Text + ' is within ' + CoordToStr(CUTOUTEXPANSION) + ' of a cutout region.');
+        Exit;
+    end
+    else if InSet(eRegionObject, ObjectIDSet) and IsTextOverObj(Silkscreen, eRegionObject, FILTERSIZE, False, True) then
+    begin
+        DebugMessage(3, 'FAIL' + sLineBreak + Silkscreen.Text + ' is within ' + CoordToStr(DEFAULTEXPANSION) + ' of a regular region.');
+        Exit;
+    end
+    else if InSet(eArcObject, ObjectIDSet) and IsTextOverObj(Silkscreen, eArcObject, FILTERSIZE) then
+    begin
+        DebugMessage(3, 'FAIL' + sLineBreak + Silkscreen.Text + ' is within ' + CoordToStr(DEFAULTEXPANSION) + ' of an arc.');
+        Exit;
+    end
+    else if InSet(eTrackObject, ObjectIDSet) and IsTextOverObj(Silkscreen, eTrackObject, FILTERSIZE) then
+    begin
+        DebugMessage(3, 'FAIL' + sLineBreak + Silkscreen.Text + ' is within ' + CoordToStr(DEFAULTEXPANSION) + ' of a track.');
+        Exit;
+    end
+    else if InSet(eFillObject, ObjectIDSet) and IsTextOverObj(Silkscreen, eFillObject, FILTERSIZE) then
+    begin
+        DebugMessage(3, 'FAIL' + sLineBreak + Silkscreen.Text + ' is within ' + CoordToStr(DEFAULTEXPANSION) + ' of a fill.');
+        Exit;
+    end
+    // none of the previous checks failed
+    else
+    begin
+        DebugMessage(3, 'PASS' + sLineBreak + Silkscreen.Text + ' is NOT within ' + CoordToStr(BODYEXPANSION) + ' of component body.');
+        Result := False;
+    end;
+
+end;
+
+
 function StrFromAutoPos(eAutoPos: TTextAutoposition) : String;
 begin
     { TTextAutoposition = ( eAutoPos_Manual,
@@ -2099,6 +2400,25 @@ begin
 end;
 
 
+function StrFromObjectIdSet(ObjectIdSet : TObjectSet) : String;
+var
+    ObjectId : Integer;
+    ObjectIdList : TStringList;
+begin
+    Result := '';
+    if ObjectIdSet = MkSet() then exit;
+
+    ObjectIdList := CreateObject(TStringList);
+
+    for ObjectId := 0 to 26 do
+    begin
+        if InSet(ObjectId, ObjectIdSet) then ObjectIdList.Add(StrFromObjectId(ObjectId));
+    end;
+
+    Result := ObjectIdList.DelimitedText;
+end;
+
+
 { Main procedure }
 procedure TweakDesignators;
 var
@@ -2134,14 +2454,14 @@ begin
     // deselect everything but components
     for i := Board.SelectecObjectCount - 1 downto 0 do
     begin
-    	if Board.SelectecObject[i].ObjectId <> eComponentObject then Board.SelectecObject[i].Selected := False;
+        if Board.SelectecObject[i].ObjectId <> eComponentObject then Board.SelectecObject[i].Selected := False;
     end;
     SelectionCount := Board.SelectecObjectCount;
 
     // now deselect components that can't be manipulated because they are manual or center autopositions
     for i := Board.SelectecObjectCount - 1 downto 0 do
     begin
-    	if InSet(Board.SelectecObject[i].NameAutoPosition, MkSet(eAutoPos_Manual, eAutoPos_CenterCenter)) then Board.SelectecObject[i].Selected := False;
+        if InSet(Board.SelectecObject[i].NameAutoPosition, MkSet(eAutoPos_Manual, eAutoPos_CenterCenter)) then Board.SelectecObject[i].Selected := False;
     end;
 
     // warn the user if some selected components were ineligible
@@ -2231,7 +2551,7 @@ begin
 
             if bAutoMode then
             begin
-                AutoMoveResult := AutoMove(Designator, MaxDistance, CheckBoxAutoParentOnly.Checked);
+                AutoMoveResult := AutoMove(Designator, CheckBoxAutoParentOnly.Checked);
 
                 if AutoMoveResult > 0 then
                 begin
@@ -2424,6 +2744,18 @@ begin
 end; { TQuickSilkForm.EditClearanceChange }
 
 
+procedure TQuickSilkForm.LabelClearanceMouseEnter(Sender: TObject);
+begin
+    if Sender = LabelClearanceAll then Sender.Font.Style := MkSet(fsBold, fsUnderline) else Sender.Font.Style := MkSet(fsUnderline);
+end;
+
+
+procedure TQuickSilkForm.LabelClearanceMouseLeave(Sender: TObject);
+begin
+    if Sender = LabelClearanceAll then Sender.Font.Style := MkSet(fsBold) else Sender.Font.Style := 0;
+end;
+
+
 procedure TQuickSilkForm.LabelVersionClick(Sender : TObject);
 begin
     About;
@@ -2516,6 +2848,28 @@ begin
 
     RadioGroupSelectionScope.Items[1] := 'Selecte&d Components (' + IntToStr(Board.SelectecObjectCount) + ')';
 end; { TQuickSilkForm.QuickSilkFormShow }
+
+
+procedure TQuickSilkForm.RuleCheckClick(Sender : TObject);
+var
+    RuleIndex : Integer;
+begin
+    if      Sender = LabelClearanceAll      then RuleIndex := 0
+    else if Sender = LabelClearanceText     then RuleIndex := 1
+    else if Sender = LabelClearanceBody     then RuleIndex := 2
+    else if Sender = LabelClearancePad      then RuleIndex := 3
+    else if Sender = LabelClearanceCutout   then RuleIndex := 4
+    else if Sender = LabelClearanceDefault  then RuleIndex := 5;
+
+    case RuleIndex of
+        0 : IsRuleViolation(MkSet(eTextObject, eComponentBodyObject, ePadObject, eConnectionObject, eArcObject, eTrackObject, eFillObject, eRegionObject), 'any object', 0);
+        1 : IsRuleViolation(MkSet(eTextObject), Sender.Caption, TEXTEXPANSION);
+        2 : IsRuleViolation(MkSet(eComponentBodyObject), Sender.Caption, BODYEXPANSION);
+        3 : IsRuleViolation(MkSet(ePadObject), Sender.Caption, PADEXPANSION);
+        4 : IsRuleViolation(MkSet(eConnectionObject), Sender.Caption, CUTOUTEXPANSION);
+        5 : IsRuleViolation(MkSet(eArcObject, eTrackObject, eFillObject, eRegionObject), Sender.Caption, DEFAULTEXPANSION);
+    end;
+end;
 
 
 { programmatically, OnKeyPress fires before OnChange event and "catches" the key press }

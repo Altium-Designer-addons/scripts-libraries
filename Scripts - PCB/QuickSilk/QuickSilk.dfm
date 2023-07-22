@@ -166,96 +166,108 @@ object QuickSilkForm: TQuickSilkForm
     ShowHint = True
   end
   object LabelClearanceText: TLabel
-    Left = 152
+    Left = 161
     Top = 92
-    Width = 112
-    Height = 14
-    Hint = 'Clearance to other text objects'
+    Width = 103
+    Height = 13
+    Hint = 'Clearance to other text objects. Click to select violations.'
     Alignment = taRightJustify
-    AutoSize = False
     Caption = 'Other Silkscreen Text'
     Font.Charset = DEFAULT_CHARSET
-    Font.Color = clWindowText
+    Font.Color = clBlue
     Font.Height = -11
     Font.Name = 'Tahoma'
     Font.Style = []
     ParentFont = False
     ParentShowHint = False
     ShowHint = True
+    OnClick = RuleCheckClick
+    OnMouseEnter = LabelClearanceMouseEnter
+    OnMouseLeave = LabelClearanceMouseLeave
   end
   object LabelClearanceBody: TLabel
-    Left = 160
+    Left = 175
     Top = 116
-    Width = 104
-    Height = 14
+    Width = 89
+    Height = 13
     Hint = 
       'Clearance to component bodies (bounding rectangle, not detailed ' +
-      'contours)'
+      'contours). Click to select violations.'
     Alignment = taRightJustify
-    AutoSize = False
     Caption = 'Component Bodies'
     Font.Charset = DEFAULT_CHARSET
-    Font.Color = clWindowText
+    Font.Color = clBlue
     Font.Height = -11
     Font.Name = 'Tahoma'
     Font.Style = []
     ParentFont = False
     ParentShowHint = False
     ShowHint = True
+    OnClick = RuleCheckClick
+    OnMouseEnter = LabelClearanceMouseEnter
+    OnMouseLeave = LabelClearanceMouseLeave
   end
   object LabelClearancePad: TLabel
-    Left = 152
+    Left = 241
     Top = 140
-    Width = 112
-    Height = 14
-    Hint = 'Clearance to pads'
+    Width = 23
+    Height = 13
+    Hint = 'Clearance to pads. Click to select violations.'
     Alignment = taRightJustify
-    AutoSize = False
     Caption = 'Pads'
     Font.Charset = DEFAULT_CHARSET
-    Font.Color = clWindowText
+    Font.Color = clBlue
     Font.Height = -11
     Font.Name = 'Tahoma'
     Font.Style = []
     ParentFont = False
     ParentShowHint = False
     ShowHint = True
+    OnClick = RuleCheckClick
+    OnMouseEnter = LabelClearanceMouseEnter
+    OnMouseLeave = LabelClearanceMouseLeave
   end
   object LabelClearanceCutout: TLabel
-    Left = 152
+    Left = 190
     Top = 164
-    Width = 112
-    Height = 14
-    Hint = 'Clearance to cutout regions'
+    Width = 74
+    Height = 13
+    Hint = 'Clearance to cutout regions. Click to select violations.'
     Alignment = taRightJustify
-    AutoSize = False
     Caption = 'Cutout Regions'
     Font.Charset = DEFAULT_CHARSET
-    Font.Color = clWindowText
+    Font.Color = clBlue
     Font.Height = -11
     Font.Name = 'Tahoma'
     Font.Style = []
     ParentFont = False
     ParentShowHint = False
     ShowHint = True
+    OnClick = RuleCheckClick
+    OnMouseEnter = LabelClearanceMouseEnter
+    OnMouseLeave = LabelClearanceMouseLeave
   end
   object LabelClearanceDefault: TLabel
-    Left = 152
+    Left = 196
     Top = 188
-    Width = 112
-    Height = 14
-    Hint = 'Clearance to other objects (arcs, tracks, fills, regions)'
+    Width = 68
+    Height = 13
+    Hint = 
+      'Clearance to other objects (arcs, tracks, fills, regions). Click' +
+      ' to select violations.'
     Alignment = taRightJustify
-    AutoSize = False
     Caption = 'Other Objects'
     Font.Charset = DEFAULT_CHARSET
-    Font.Color = clWindowText
+    Font.Color = clBlue
     Font.Height = -11
     Font.Name = 'Tahoma'
     Font.Style = []
     ParentFont = False
     ParentShowHint = False
     ShowHint = True
+    OnClick = RuleCheckClick
+    OnMouseEnter = LabelClearanceMouseEnter
+    OnMouseLeave = LabelClearanceMouseLeave
   end
   object Label8: TLabel
     Left = 16
@@ -284,6 +296,26 @@ object QuickSilkForm: TQuickSilkForm
     Font.Name = 'Tahoma'
     Font.Style = [fsItalic]
     ParentFont = False
+  end
+  object LabelClearanceAll: TLabel
+    Left = 157
+    Top = 68
+    Width = 107
+    Height = 13
+    Hint = 'Click to select all violating text'
+    Alignment = taRightJustify
+    Caption = ' Select All Violating'
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clBlue
+    Font.Height = -11
+    Font.Name = 'Tahoma'
+    Font.Style = [fsBold]
+    ParentFont = False
+    ParentShowHint = False
+    ShowHint = True
+    OnClick = RuleCheckClick
+    OnMouseEnter = LabelClearanceMouseEnter
+    OnMouseLeave = LabelClearanceMouseLeave
   end
   object ButtonOK: TButton
     Left = 16
@@ -580,11 +612,13 @@ object QuickSilkForm: TQuickSilkForm
     Height = 21
     Hint = 'Attempt move WITHIN max offset'
     Alignment = taCenter
+    Enabled = False
     ParentShowHint = False
     ShowHint = True
     TabOrder = 1
-    Text = '120'
+    Text = '9999'
     TextHint = 'max offset'
+    Visible = False
     OnChange = InputValueChange
     OnKeyPress = UserKeyPress
   end
@@ -806,7 +840,7 @@ object QuickSilkForm: TQuickSilkForm
     Width = 128
     Height = 17
     Hint = 'ENABLED: Save configuration settings in script folder'
-    Caption = '&Local Settings'
+    Caption = 'Local Setti&ngs'
     ParentShowHint = False
     ShowHint = True
     TabOrder = 27
