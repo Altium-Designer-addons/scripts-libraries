@@ -38,6 +38,7 @@ If you are a newcomer to Altium scripts, [please read the "how to" wiki page](ht
 
 ## Known Issues
 - **ALTIUM BUG**: When a component is flipped to the other side of the board, autopositioning initially still orients as if it is on the original side. Closing and re-opening the PcbDoc will make the autoposition work properly.
+- Placing both designator and comment in the same octant does not currently work because autoposition of the second text ignores the no-longer-autopositioned first text.
 - An unlocked component on a different board layer will be picked over a locked component on the current layer due to priority order.
 - SpaceNavigator will not work during interactive placement mode if it was started from the GUI.
 - Clicking too quickly can register as double-click, script is not mouse-gesture responsive
@@ -61,6 +62,18 @@ For example:
     - Hold ALT to place the Designator/Comment at 90° rotation instead.
     - Hold ALT and Right-Click to center and hide the Designator/Comment
     - CTRL and ALT can be combined
+    
+### Interactive Placement Octants
+After launching the interactive placement tool and selecting a component, you must click in one of the octants around the chosen component. These octants are 45° wedges arranged around the component that correspond to the general direction of autopositioned designators for a component at 0° rotation.\
+The `Any-Angle Placement` configuration option affects whether these octants are at a fixed rotation or whether they match the rotation of the chosen component.
+- If `Any-Angle Placement` is **OFF**, the octants have a fixed rotation regardless of component rotation. This will behave closest to the default autoposition behavior, but moving the Designator/Comment text closer to the component if it is within 120mils of the autopositioned location.
+- If `Any-Angle Placement` is **ON**, the octants are relative to the rotation of the component, and the Designator/Comment will be placed at the same relative rotation and moved closer to the component. This behaves most like rotating the component to 0°, using autoposition, manually moving the text close to the component, then returning the component to its original rotation and normalizing the text direction to be right-reading.
+![QuickSilk Octants Orientation](QuickSilk_Octants.png)
+
+### Interactive Placement Examples
+The following are comparisons of default Autoposition placements for a 1206 capacitor footprint rotated at 0° and 30° CW, compared to how QuickSilk places the Designators with `Any-Angle Placement` enabled or disabled:
+![QuickSilk Placement Examples](QuickSilk_Examples.png)
+
 ## Any-Angle Autopositioning
 - Enable or Disable through GUI (will persist even when not launched from GUI)
 - Only applies to Interactive placement command
