@@ -9,7 +9,7 @@ const
     cCtrlKey            = 3; // available for use during component and location selection
     cConfigFileName     = 'QuickSilkSettings.ini';
     cScriptTitle        = 'QuickSilk';
-    cScriptVersion      = '1.06';
+    cScriptVersion      = '1.07';
     cDEBUGLEVEL         = 0;
 
 var
@@ -84,6 +84,7 @@ function StrFromAutoPos(eAutoPos: TTextAutoposition) : String; forward;
 function StrFromObjectId(ObjectId: TObjectId) : String; forward;
 function StrFromObjectIdSet(ObjectIdSet : TObjectSet) : String; forward;
 procedure TweakDesignators; forward;
+procedure UpdateConstants(dummy : Boolean = False); forward;
 procedure TQuickSilkForm.ButtonAutoClick(Sender : TObject); forward;
 procedure TQuickSilkForm.ButtonCancelClick(Sender : TObject); forward;
 procedure TQuickSilkForm.ButtonInteractiveStartClick(Sender : TObject); forward;
@@ -872,28 +873,7 @@ begin
         bExtraOffsets := CheckBoxExtraOffsets.Checked;
         iClearanceMode := RadioGroupParentOnly.ItemIndex;
 
-        case MMmilButton.Caption of
-            'mil':
-            begin
-                StringToCoordUnit(tClearanceText.Text, TEXTEXPANSION, eImperial);
-                StringToCoordUnit(tClearanceBody.Text, BODYEXPANSION, eImperial);
-                StringToCoordUnit(tClearancePad.Text, PADEXPANSION, eImperial);
-                StringToCoordUnit(tClearanceCutout.Text, CUTOUTEXPANSION, eImperial);
-                StringToCoordUnit(tClearanceDefault.Text, DEFAULTEXPANSION, eImperial);
-            end;
-            'mm':
-            begin
-                StringToCoordUnit(tClearanceText.Text, TEXTEXPANSION, eMetric);
-                StringToCoordUnit(tClearanceBody.Text, BODYEXPANSION, eMetric);
-                StringToCoordUnit(tClearancePad.Text, PADEXPANSION, eMetric);
-                StringToCoordUnit(tClearanceCutout.Text, CUTOUTEXPANSION, eMetric);
-                StringToCoordUnit(tClearanceDefault.Text, DEFAULTEXPANSION, eMetric);
-            end;
-            else
-            begin
-                // invalid
-            end;
-        end;
+        UpdateConstants;
 
         if iDebugLevel > 0 then
         begin
@@ -2614,6 +2594,33 @@ begin
 end; { TweakDesignators }
 
 
+procedure UpdateConstants(dummy : Boolean = False);
+begin
+    case MMmilButton.Caption of
+        'mil':
+        begin
+            StringToCoordUnit(tClearanceText.Text, TEXTEXPANSION, eImperial);
+            StringToCoordUnit(tClearanceBody.Text, BODYEXPANSION, eImperial);
+            StringToCoordUnit(tClearancePad.Text, PADEXPANSION, eImperial);
+            StringToCoordUnit(tClearanceCutout.Text, CUTOUTEXPANSION, eImperial);
+            StringToCoordUnit(tClearanceDefault.Text, DEFAULTEXPANSION, eImperial);
+        end;
+        'mm':
+        begin
+            StringToCoordUnit(tClearanceText.Text, TEXTEXPANSION, eMetric);
+            StringToCoordUnit(tClearanceBody.Text, BODYEXPANSION, eMetric);
+            StringToCoordUnit(tClearancePad.Text, PADEXPANSION, eMetric);
+            StringToCoordUnit(tClearanceCutout.Text, CUTOUTEXPANSION, eMetric);
+            StringToCoordUnit(tClearanceDefault.Text, DEFAULTEXPANSION, eMetric);
+        end;
+        else
+        begin
+            // invalid
+        end;
+    end;
+end;
+
+
 procedure TQuickSilkForm.ButtonAutoClick(Sender : TObject);
 begin
     bAutoMode := True;
@@ -2734,6 +2741,7 @@ begin
         Sender.Font.Style := 0;
         Sender.Font.Color := clWindowText;
         SetButtonEnableStates(True);
+        UpdateConstants;
     end
     else
     begin
