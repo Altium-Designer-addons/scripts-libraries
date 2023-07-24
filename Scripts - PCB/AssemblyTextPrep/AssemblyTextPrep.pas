@@ -191,8 +191,8 @@ begin
         NewTextObj.TTFInvertedTextJustify   := eAutoPos_CenterCenter;
         NewTextObj.SnapPointX               := Comp.x;
         NewTextObj.SnapPointY               := Comp.y;
+        NewTextObj.Layer                    := AssyLayer;
         NewTextObj.UnderlyingString         := '.Designator';
-
 
         if Comp.Layer = eTopLayer then NewTextObj.MirrorFlag := False
         else NewTextObj.MirrorFlag := True;
@@ -1987,7 +1987,7 @@ begin
 end;
 
 
-{ rotates IPCB_Text object to specific angle, optionally normalizing it to be right-reading, optionally rotating 90° CW }
+{ rotates IPCB_Text object to specific angle, optionally normalizing it to be right-reading, optionally rotating 90Â° CW }
 function RotateTextToAngle(var Text : IPCB_Text; const Angle : Double; const Normalize : Boolean = False; const Ortho : Boolean = False) : Double;
 begin
     if Ortho then Angle := Angle + 270;
