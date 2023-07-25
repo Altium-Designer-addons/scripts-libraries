@@ -1,4 +1,11 @@
-# Select Assembly Designators Script
+# Deprecated. See [AssemblyTextPrep](https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Scripts%20-%20PCB/AssemblyTextPrep) script instead
+-
+-
+-
+-
+-
+-
+### Select Assembly Designators Script
 
 ## What is it
 This script is a utility tool to quickly switch between components and a *.Designator* special string belonging to their footprint.
