@@ -11,7 +11,8 @@
                   Changed Board.LayerStack. to Board.LayerStack_V7.
  09/04/2021 v4.0  BLM  Added support for AD19+ mech layers & some refactoring.
  25/04/2021 v4.1  BLM  Minor tweaks to UI text & stringlist handling.
-.................................................................................}
+ 2023-07-12 v4.2  BLM eliminate V7 stack interfaces for AD19+ 
+ .................................................................................}
 
 const
     AD19VersionMajor  = 19;
@@ -22,8 +23,8 @@ var
     VerMajor        : WideString;
     LegacyMLS       : boolean;
     Board           : IPCB_Board;
-    LayerStack      : IPCB_LayerStack_V7;
-    LayerObj        : IPCB_LayerObject_V7;
+    LayerStack      : IPCB_MasterLayerStack;
+    LayerObj        : IPCB_LayerObject;
     MechLayer1      : IPCB_MechanicalLayer;
     MechLayer2      : IPCB_MechanicalLayer;
     MechPair        : TMechanicalPair;       // IPCB_MechanicalLayerPairs.LayerPair(MechPairIdx)
@@ -33,6 +34,7 @@ var
     slMechSingles   : TStringList;
 
 function Version(const dummy : boolean) : TStringList; forward;
+function GetMechLayerObject(LS: IPCB_MasterLayerStack, i : integer, var MLID : TLayer) : IPCB_MechanicalLayer; forward;
 
 procedure TFormMechLayerDesignators.ButtonCancelClick(Sender: TObject);
 begin
@@ -47,7 +49,7 @@ var
     i, j            : Integer;
 
 begin
-    LayerStack := Board.LayerStack_V7;
+    LayerStack := Board.MasterLayerStack;
     MechLayerPairs  := Board.MechanicalPairs;
 
 // are any layer pairs defined ?..
@@ -63,8 +65,7 @@ begin
 
     for i := 1 to MaxMechLayers do
     begin
-        ML1 := LayerUtils.MechanicalLayer(i);
-        MechLayer1 := LayerStack.LayerObject_V7(ML1);
+        MechLayer1 := GetMechLayerObject(LayerStack, i, ML1);
 
         if MechLayer1.MechanicalLayerEnabled then
         begin
@@ -74,8 +75,8 @@ begin
             begin
                 for j := (i + 1) to MaxMechLayers do
                 begin
-                    ML2 := LayerUtils.MechanicalLayer(j);
-                    MechLayer2 := LayerStack.LayerObject_V7(ML2);
+                    MechLayer2 := GetMechLayerObject(LayerStack, j, ML2);
+
                     if MechLayer2.MechanicalLayerEnabled then
                     if MechLayerPairs.PairDefined(ML1, ML2) then
                     begin
@@ -185,12 +186,9 @@ var
    NewPrims        : TObjectList;
 begin
    // This is the main one. This was hard to set up.
-    LayerStack := Board.LayerStack_V7;
-
     for i := 1 to MaxMechLayers do
     begin
-        ML1 := LayerUtils.MechanicalLayer(i);
-        MechLayer1 := LayerStack.LayerObject_V7[ML1];
+        MechLayer1 := GetMechLayerObject(LayerStack, i, ML1);
 
         if RadioButtonPair.Checked then
         begin
@@ -213,7 +211,8 @@ begin
 
    // Cycle through all components, or only selected ones, and
    // copy designators etc to the mech layers defined.
-    ASetOfLayers := LayerSetUtils.SignalLayers;
+    ASetOfLayers := LayerSetUtils.CreateLayerSet;
+    ASetOfLayers.IncludeSignalLayers;
     CompIterator := Board.BoardIterator_Create;
     CompIterator.AddFilter_ObjectSet(MkSet(eComponentObject));
     CompIterator.AddFilter_IPCB_LayerSet(ASetOfLayers);
@@ -223,7 +222,7 @@ begin
     While (Component <> Nil) Do
     Begin
 //   No selected components - make it for all components
-        if (not RadioButtonSelected.Checked) or (RadioButtonSelected.Checked and Component.Selected) then
+        if (RadioButtonAll.Checked) or (RadioButtonSelected.Checked and Component.Selected) then
         begin
 
             NewPrim := Component.Name.Replicate;
@@ -298,13 +297,14 @@ end;
 
 Procedure Start;
 begin
-   Board := PCBServer.GetCurrentPCBBoard;
-   if Board = nil then
-   begin
+    Board := PCBServer.GetCurrentPCBBoard;
+    if Board = nil then
+    begin
         ShowMessage('Focused Doc Not a .PcbDoc ');
         exit;
-   end;
+    end;
 
+    LayerStack := Board.MasterLayerStack;
     VerMajor := Version(true).Strings(0);
 
     MaxMechLayers := AD17MaxMechLayers;
@@ -325,6 +325,20 @@ begin
 end;
 
 {.......................................................................................}
+                                                            // cardinal      V7 LayerID
+function GetMechLayerObject(LS: IPCB_MasterLayerStack, i : integer, var MLID : TLayer) : IPCB_MechanicalLayer;
+begin
+    if LegacyMLS then
+    begin
+        MLID := LayerUtils.MechanicalLayer(i);
+        Result := LS.LayerObject_V7(MLID)
+    end else
+    begin
+        Result := LS.GetMechanicalLayer(i);
+        MLID := Result.V7_LayerID.ID;       // .LayerID returns zero for dielectric
+    end;
+end;
+
 function Version(const dummy : boolean) : TStringList;
 begin
     Result               := TStringList.Create;

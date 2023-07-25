@@ -3,13 +3,14 @@ object FormAdjustDesignators: TFormAdjustDesignators
   Top = 0
   Caption = 'Adjust Designators'
   ClientHeight = 464
-  ClientWidth = 273
+  ClientWidth = 311
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
+  FormStyle = fsStayOnTop
   OldCreateOrder = False
   OnShow = FormAdjustDesignatorsShow
   PixelsPerInch = 96
@@ -17,21 +18,21 @@ object FormAdjustDesignators: TFormAdjustDesignators
   object GroupBoxOptions: TGroupBox
     Left = 16
     Top = 16
-    Width = 240
+    Width = 280
     Height = 128
     Caption = 'General Options:'
     TabOrder = 0
     object Label1: TLabel
       Left = 104
       Top = 98
-      Width = 82
+      Width = 91
       Height = 13
       Caption = 'Maximum Height:'
     end
     object Label2: TLabel
       Left = 104
       Top = 74
-      Width = 81
+      Width = 92
       Height = 13
       Caption = 'Minimum Height: '
     end
@@ -53,7 +54,7 @@ object FormAdjustDesignators: TFormAdjustDesignators
       Text = '1'
     end
     object CheckBoxUnhide: TCheckBox
-      Left = 8
+      Left = 16
       Top = 24
       Width = 120
       Height = 17
@@ -61,7 +62,7 @@ object FormAdjustDesignators: TFormAdjustDesignators
       TabOrder = 2
     end
     object CheckBoxLock: TCheckBox
-      Left = 8
+      Left = 16
       Top = 48
       Width = 97
       Height = 17
@@ -87,7 +88,7 @@ object FormAdjustDesignators: TFormAdjustDesignators
       TabStop = True
     end
     object cbxUseStrokeFonts: TCheckBox
-      Left = 143
+      Left = 159
       Top = 24
       Width = 97
       Height = 17
@@ -96,16 +97,24 @@ object FormAdjustDesignators: TFormAdjustDesignators
       State = cbChecked
       TabOrder = 6
     end
+    object cbxUseMultiLine: TCheckBox
+      Left = 160
+      Top = 48
+      Width = 97
+      Height = 17
+      Caption = 'Use Multi-Line'
+      TabOrder = 7
+    end
   end
   object GroupBox1: TGroupBox
     Left = 16
     Top = 296
-    Width = 240
+    Width = 280
     Height = 128
     Caption = 'Designators to include'
     TabOrder = 1
     object CheckBoxOverlay: TCheckBox
-      Left = 8
+      Left = 16
       Top = 24
       Width = 208
       Height = 17
@@ -113,7 +122,7 @@ object FormAdjustDesignators: TFormAdjustDesignators
       TabOrder = 0
     end
     object CheckBoxMech: TCheckBox
-      Left = 8
+      Left = 16
       Top = 48
       Width = 224
       Height = 17
@@ -144,9 +153,9 @@ object FormAdjustDesignators: TFormAdjustDesignators
       OnClick = RadioButtonPairClick
     end
     object ComboBoxDesignators: TComboBox
-      Left = 32
+      Left = 16
       Top = 96
-      Width = 184
+      Width = 248
       Height = 21
       TabOrder = 4
       Text = 'ComboBoxDesignators'
@@ -173,7 +182,7 @@ object FormAdjustDesignators: TFormAdjustDesignators
   object GroupBox2: TGroupBox
     Left = 16
     Top = 152
-    Width = 240
+    Width = 280
     Height = 128
     Caption = 'Layer Options:'
     TabOrder = 4
@@ -217,9 +226,9 @@ object FormAdjustDesignators: TFormAdjustDesignators
       OnClick = RadioButtonLayerSingleClick
     end
     object ComboBoxLayers: TComboBox
-      Left = 32
+      Left = 16
       Top = 99
-      Width = 184
+      Width = 248
       Height = 21
       Enabled = False
       TabOrder = 4

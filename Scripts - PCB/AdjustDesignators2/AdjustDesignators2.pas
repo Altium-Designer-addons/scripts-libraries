@@ -8,11 +8,14 @@
     The extra designators may be part of the library footprints or added by a
      script CopyDesignatorsToMechLayerPair.pas
 
- Created by:     Mattias Ericson                                                       
- Reviewed by:    Petar Perisin                                                         
+ Created by:     Mattias Ericson
+ Reviewed by:    Petar Perisin
  Improvements:   Miroslav Dobrev, Stanislav Popelka, Brett Miller
 
- Update 28/09/2021 - Resize text bounding box before move() to fix multi-line text offsets. 
+
+ 2023-07-19  v2.12   avoid V7 layerstack methods
+                     further hacking to add rotation around XY..
+ Update 28/09/2021 - Resize text bounding box before move() to fix multi-line text offsets.
  Update 05/05/2021 - Stop Comment moving with Designator AutoCenter.
                      Support AD19+ mech layers, handle existing multiline text
                      Add constants for text widths for overlay & non-overlay
@@ -26,7 +29,7 @@
   - Other small fixes
 
 Note:  Method uses Designator auto-centre to calculate mechanical designator position.
-       It does not handle TTF very well.  
+       It does not handle TTF very well.
 
 ..........................................................................................}
 
@@ -37,13 +40,15 @@ const
 
     cSilkTextWidthRatio = 5;      // ratio of text width to height for Overlay/silk layers
     cTextWidthRatio     = 10;     // for non-Overlay text
-
+    cTopSide            = 'Top';
+    cBottomSide         = 'Bottom';
+    cSeparator          = ' <---> ';
 var
     VerMajor        : WideString;
     LegacyMLS       : boolean;
     Board           : IPCB_Board;
-    LayerStack      : IPCB_LayerStack_V7;
-    LayerObj        : IPCB_LayerObject_V7;
+    LayerStack      : IPCB_MasterLayerStack;
+    LayerObj        : IPCB_LayerObject;
     MechLayer1      : IPCB_MechanicalLayer;
     MechLayer2      : IPCB_MechanicalLayer;
     MechLayerPairs  : IPCB_MechanicalLayerPairs;
@@ -52,29 +57,28 @@ var
     slMechPairs     : TStringList;
     slMechSingles   : TStringList;
 
-function Version(const dummy : boolean) : TStringList;         forward;
-function GetFirstLayerName(Pair : String) : String;            forward;
-function GetSecondLayerName(Pair : String) : String;           forward;
-function Version(const dummy : boolean) : TStringList;         forward;
-function IsStringANum(Tekst : String) : Boolean;               forward;
-function CalculateSize (Size : Integer, S : String) : Integer; forward;
+function Version(const dummy : boolean) : TStringList;                                  forward;
+function GetFirstLayerName(Pair : String) : String;                                     forward;
+function GetSecondLayerName(Pair : String) : String;                                    forward;
+function Version(const dummy : boolean) : TStringList;                                  forward;
+function IsStringANum(Tekst : String) : Boolean;                                        forward;
+function CalculateSize (Size : Integer, S : String, UseStrokeFont : boolean) : Integer; forward;
+function GetMechLayerObject(LS: IPCB_MasterLayerStack, i : integer, var MLID : TLayer) : IPCB_MechanicalLayer; forward;
 
 procedure TFormAdjustDesignators.ButtonCancelClick(Sender: TObject);
 begin
-    Close;
+    FormAdjustDesignators.Close;
     slMechPairs.Clear;
     slMechSingles.Clear;
 end;
 
 procedure TFormAdjustDesignators.FormAdjustDesignatorsShow(Sender: TObject);
 var
-    i, j            : Integer;
+    i, j         : Integer;
 
 begin
     ComboBoxLayers.Clear;
     ComboBoxDesignators.Clear;
-
-    LayerStack := Board.LayerStack_V7;
 
 // are any layer pairs defined ?..
     if MechLayerPairs.Count = 0 then
@@ -88,8 +92,7 @@ begin
 
     for i := 1 to MaxMechLayers do
     begin
-        ML1 := LayerUtils.MechanicalLayer(i);
-        MechLayer1 := LayerStack.LayerObject_V7(ML1);
+        MechLayer1 := GetMechLayerObject(LayerStack, i, ML1);
 
         if MechLayer1.MechanicalLayerEnabled then
         begin
@@ -99,19 +102,22 @@ begin
             begin
                 for j := (i + 1) to MaxMechLayers do
                 begin
-                    ML2 := LayerUtils.MechanicalLayer(j);
-                    MechLayer2 := LayerStack.LayerObject_V7(ML2);
+                    MechLayer2 := GetMechLayerObject(LayerStack, j, ML2);
+
                     if MechLayer2.MechanicalLayerEnabled then
                     if MechLayerPairs.PairDefined(ML1, ML2) then
                     begin
-                        slMechPairs.Add(Board.LayerName(ML1) + ' <----> ' + Board.LayerName(ML2));
-                        ComboBoxLayers.Items.Add(Board.LayerName(ML1) + ' <----> ' + Board.LayerName(ML2));
-                        if ComboBoxLayers.Items.Count = 1 then
-                            ComboBoxLayers.Text := ComboBoxLayers.Items[0];
+                        If (ansipos(cBottomSide, Board.LayerName(ML1)) > 0) or
+                           (ansipos(cTopSide, Board.LayerName(ML2)) > 0) then IntSwap(ML1, ML2);
 
-                        ComboBoxDesignators.Items.Add(Board.LayerName(ML1) + ' <----> ' + Board.LayerName(ML2));
+                        slMechPairs.Add(Board.LayerName(ML1) + cSeparator + Board.LayerName(ML2));
+                        ComboBoxLayers.Items.Add(Board.LayerName(ML1) + cSeparator + Board.LayerName(ML2));
+                        if ComboBoxLayers.Items.Count = 1 then
+                            ComboBoxLayers.Text := ComboBoxLayers.Items(0);
+
+                        ComboBoxDesignators.Items.Add(Board.LayerName(ML1) + cSeparator + Board.LayerName(ML2));
                         if ComboBoxDesignators.Items.Count = 1 then
-                            ComboBoxDesignators.Text := ComboBoxDesignators.Items[0];
+                            ComboBoxDesignators.Text := ComboBoxDesignators.Items(0);
                     end;
                 end;  // j
             end else
@@ -119,10 +125,10 @@ begin
 // single layer radio button ticked/checked.
                 ComboBoxLayers.Items.Add(Board.LayerName(ML1));
                 if ComboBoxLayers.Items.Count = 1 then
-                    ComboBoxLayers.Text := ComboBoxLayers.Items[0];
+                    ComboBoxLayers.Text := ComboBoxLayers.Items(0);
                 ComboBoxDesignators.Items.Add(Board.LayerName(ML1));
                 if ComboBoxDesignators.Items.Count = 1 then
-                    ComboBoxDesignators.Text := ComboBoxDesignators.Items[0];
+                    ComboBoxDesignators.Text := ComboBoxDesignators.Items(0);
 
             end;
         end;
@@ -133,7 +139,6 @@ procedure TFormAdjustDesignators.RadioButtonSingleClick(Sender: TObject);
 var
     i : Integer;
 begin
-
     ComboBoxDesignators.Clear;
 
     for i := 0 to (slMechSingles.Count - 1) do
@@ -148,7 +153,6 @@ procedure TFormAdjustDesignators.RadioButtonPairClick(Sender: TObject);
 var
     i : integer;
 begin
-
     ComboBoxDesignators.Clear;
 
     for i := 0 to (slMechPairs.Count - 1) do
@@ -163,7 +167,6 @@ procedure TFormAdjustDesignators.RadioButtonLayerPairClick(Sender: TObject);
 var
     i : integer;
 begin
-
     ComboBoxLayers.Clear;
 
     for i := 0 to (slMechPairs.Count - 1) do
@@ -178,7 +181,6 @@ procedure TFormAdjustDesignators.RadioButtonLayerSingleClick(Sender: TObject);
 var
     i : Integer;
 begin
-
     ComboBoxLayers.Clear;
 
     for i := 0 to (slMechSingles.Count - 1) do
@@ -207,38 +209,49 @@ Var
     Size                    : Integer;
     Designator              : IPCB_Text;
 
-    OldSize                 : Integer;
-    OldWidth                : Integer;
-    OldUseTTFonts           : Boolean;
-    OldItalic               : Boolean;
-    OldBold                 : Boolean;
-    OldInverted             : Boolean;
-    OldFontName             : String;
-    OldFontID               : TFontID;
-    OldRotation             : Float;
-    OldXLocation            : Integer;
-    OldYLocation            : Integer;
-    OldAutoPosition         : TTextAutoposition;
-    OldVisibility           : Boolean;
-    OldAutoPosComment       : TTextAutoposition;
+    DesSize                 : Integer;
+    DesWidth                : Integer;
+    DesUseTTFonts           : Boolean;
+    DesItalic               : Boolean;
+    DesBold                 : Boolean;
+    DesInverted             : Boolean;
+    DesFontName             : String;
+    DesFontID               : TFontID;
+    DesRotation             : Float;
+    DesXLocation            : Integer;
+    DesYLocation            : Integer;
+    DesAutoPosition         : TTextAutoposition;
+    DesVisibility           : Boolean;
+    DesAutoPosComment       : TTextAutoposition;
 
-    OldMultiline            : boolean;
-    OldMultilineTH          : TCoord;
-    OldMultilineTW          : TCoord;
-    OldMultilineResizeEnabled : boolean;
-    OldMultilineAuto        : TTextAutoposition;
+    DesMultiline            : boolean;
+    DesMultilineTH          : TCoord;
+    DesMultilineTW          : TCoord;
+//    DesMultilineResizeEnabled : boolean;
+    DesMultilineAuto        : TTextAutoposition;
 
     MechDesignator          : IPCB_Text;
+    MechDesMultiline        : boolean;
+    MechDesMultilineTH      : TCoord;
+    MechDesMultilineTW      : TCoord;
+    MechDesMultilineAuto    : TTextAutoposition;
+    MechDesRotation         : Float;
+
     PCBSystemOptions        : IPCB_SystemOptions;
     DRCSetting              : boolean;
+    BRC                     : TPoint;
     BR                      : TCoordRect;
     i                       : integer;
 
-    MaximumHeight           : TCoord;   // UI mils to tcoord
-    MinimumHeight           : TCoord;   // 
-    UnHideDesignators       : Boolean; // Unhides all designators
-    LockStrings             : Boolean; // Lock all strings
-    BoundingLayers          : Boolean; // Look for bounding rectangle in selected layers
+    MaximumHeight           : TCoord;    // UI mils to tcoord
+    MinimumHeight           : TCoord;     
+    UnHideDesignators       : Boolean;   // Unhides all designators
+    LockStrings             : Boolean;   // Lock all strings
+    UseStrokeFont           : boolean;
+    ModOverLayText          : boolean;
+    ModMechText             : boolean;
+    UseMultiLine            : boolean;
+    BoundingLayers          : Boolean;   // Look for bounding rectangle in selected layers
     Layer1                  : TLayer;
     Layer2                  : TLayer;    // Change this to the layer/layers that best represent the component
     Layer3                  : Integer;   // In many cases eTopOverlay OR eBottomOverLay will be used
@@ -246,12 +259,13 @@ Var
     MDLayer3                : integer;   // mech designator layers
     MDLayer4                : Integer;
     ShowOnce                : Boolean;   // Only display the To many characters errors one time
+
 begin
-    // Here we will read various stuff from form
+    Board := PCBServer.GetCurrentPCBBoard;
+    if Board = nil then exit;
+    LayerStack := Board.MasterLayerStack;
 
-    LayerStack := Board.LayerStack_V7;
-
-    // User defined Minimum Stroke Font Width in Mils
+    // User defined Minimum Stroke Font Width in (mils)
     if RadioButtonMM.Checked then
     begin
         MaximumHeight := MMsToCoord(StrToFloat(EditMaxHeight.Text));
@@ -268,7 +282,19 @@ begin
     if CheckBoxLock.Checked then LockStrings := True
     else                         LockStrings := False;
 
-    if CheckBoxOverlayPrimitives.Checked or CheckBoxMechPrimitives.Checked then BoundingLayers := True
+    if cbxUseStrokeFonts.Checked then UseStrokefont := true
+    else                              UseStrokefont := false;
+
+    if cbxUseMultiLine.Checked then UseMultiLine := true
+    else                            UseMultiLine := false;
+
+    if CheckBoxOverlay.Checked then ModOverLayText := true
+    else                            ModOverLayText := false;
+
+    if CheckBoxMech.Checked then ModMechText := true
+    else                         ModMechText := false;
+
+    if (CheckBoxOverlayPrimitives.Checked or CheckBoxMechPrimitives.Checked) then BoundingLayers := True
     else                                                                        BoundingLayers := False;
 
     if CheckBoxOverlayPrimitives.Checked then
@@ -281,7 +307,7 @@ begin
         Layer2 := false;
     end;
 
-    // Disables Online DRC during designator movement to improve speed
+    // Disable Online DRC during designator movement to improve speed
     PCBSystemOptions := PCBServer.SystemOptions;
     If PCBSystemOptions <> Nil Then
     begin
@@ -294,8 +320,7 @@ begin
 
     for i := 1 to MaxMechLayers do
     begin
-        ML1 := LayerUtils.MechanicalLayer(i);
-        MechLayer1 := LayerStack.LayerObject_V7[ML1];
+        MechLayer1 := GetMechLayerObject(LayerStack, i, ML1);
 
         if CheckBoxMechPrimitives.Checked then
         begin
@@ -315,7 +340,7 @@ begin
             end;
         end;
 
-        if CheckBoxMech.Checked then
+        if ModMechText then
         begin
             if RadioButtonPair.Checked then
             begin
@@ -349,20 +374,20 @@ begin
     begin
         MaxX:= kMinCoord;
         MinX:= kMaxCoord; 
-        
+
         MaxY:= kMinCoord;
         MinY:= kMaxCoord;
-        
+
         TrackCount := 0;
         
         // Save designator visibility and unhide
         Component.BeginModify;
-        OldVisibility := Component.NameOn;
+        DesVisibility := Component.NameOn;
         Component.NameOn := true;
         // Lock all strings?
         if LockStrings = true then
             Component.LockStrings := true;
-        
+
         ASetOfLayers := LayerSetUtils.EmptySet;
         if Layer1 <> 0 then ASetOfLayers.Include(Layer1);
         if Layer2 <> 0 then ASetOfLayers.Include(Layer2);
@@ -370,7 +395,7 @@ begin
         if Layer4 <> 0 then ASetOfLayers.Include(Layer4);
         GroupIterator := Component.GroupIterator_Create;
         GroupIterator.AddFilter_ObjectSet(MkSet(eTrackObject));
-        GroupIterator.AddFilter_IPCB_LayerSet(ASetOfLayers);  // Group filter DNW
+        GroupIterator.AddFilter_IPCB_LayerSet(ASetOfLayers);     // Group filter DNW
 
         Track := GroupIterator.FirstPCBObject;
         while (Track <> Nil) Do
@@ -411,40 +436,40 @@ begin
         end;
 
         Designator        := Component.Name;
-        OldSize           := Designator.Size;
-        OldWidth          := Designator.Width;
-        OldUseTTFonts     := Designator.UseTTFonts;
-        OldItalic         := Designator.Italic;
-        OldBold           := Designator.Bold;
-        OldInverted       := Designator.Inverted;
-        OldFontName       := Designator.FontName;
-        OldFontID         := Designator.FontID;
-        OldRotation       := Designator.Rotation;
-        OldXLocation      := Designator.XLocation;
-        OldYLocation      := Designator.YLocation;
-        OldAutoPosition   := Component.GetState_NameAutoPos;
-        OldAutoPosComment := Component.GetState_CommentAutoPos;
+        DesSize           := Designator.Size;
+        DesWidth          := Designator.Width;
+        DesUseTTFonts     := Designator.UseTTFonts;
+        DesItalic         := Designator.Italic;
+        DesBold           := Designator.Bold;
+        DesInverted       := Designator.Inverted;
+        DesFontName       := Designator.FontName;
+        DesFontID         := Designator.FontID;
+        DesRotation       := Designator.Rotation;
+        DesXLocation      := Designator.XLocation;
+        DesYLocation      := Designator.YLocation;
+        DesAutoPosition   := Component.GetState_NameAutoPos;
+        DesAutoPosComment := Component.GetState_CommentAutoPos;
 
-        OldMultiline      := Designator.Multiline;
-        OldMultilineTH    := Designator.MultilineTextHeight;
-        OldMultilineTW    := Designator.MultilineTextWidth;
-        OldMultilineResizeEnabled := Designator.MultilineTextResizeEnabled;
-        OldMultilineAuto  := Designator.MultilineTextAutoPosition;
+        DesMultiline      := Designator.Multiline;
+        DesMultilineTH    := Designator.MultilineTextHeight;
+        DesMultilineTW    := Designator.MultilineTextWidth;
+//        DesMultilineResizeEnabled := Designator.MultilineTextResizeEnabled;
+        DesMultilineAuto  := Designator.MultilineTextAutoPosition;
 
         // Find text length so choose equation for size calculation
         S := Designator.GetDesignatorDisplayString;
         if Y >= X then
         begin
-            Size := CalculateSize(Y, S);
+            Size := CalculateSize(Y, S, UseStrokeFont);
             if Size >= X then
-                Size := CalculateSize(X, S);
+                Size := CalculateSize(X, S, UseStrokeFont);
         end else
         begin
-            Size := CalculateSize(X, S);
+            Size := CalculateSize(X, S, UseStrokeFont);
             if Size >= Y then
-                Size := CalculateSize(Y, S);
+                Size := CalculateSize(Y, S, UseStrokeFont);
         end;
-        
+
         if ((Size = -1) AND (ShowOnce = False)) then
         begin
             ShowMessage('To many characters in one or more components such as (' + Component.Name.Text + '). More than 7 characters are not supported and these components will be ommited.');
@@ -464,26 +489,15 @@ begin
             Designator.Inverted   := False;
             Designator.FontName   := 'Microsoft Sans Serif';
             Designator.Size       := Size;
+//            Designator.Rotation   := Component.Rotation;
 
-            If (cbxUseStrokeFonts.Checked = True) then
+            If (UseStrokeFont) then
             begin
                 Designator.UseTTFonts := False;
                 Designator.Width := Designator.Size / cTextWidthRatio;
                 // Thicker strokes for Overlay text
                 if (Designator.Layer = eTopOverlay) or (Designator.Layer = eBottomOverlay) then
                     Designator.Width := Designator.Size / cSilkTextWidthRatio;
-            end;
-
-            // Rotate the designator to increase the readability
-            if Y > X then
-            begin
-                if Designator.Layer = eTopOverlay then
-                    Designator.Rotation := 90
-                else
-                    Designator.Rotation := 270;
-            end else
-            begin
-                Designator.Rotation := 0;
             end;
 
             // Trim down designator if its size is bigger than the MaximumHeight constant
@@ -496,21 +510,25 @@ begin
             if Size <  MinimumHeight then
                 Size := MinimumHeight;
 
-
-            // Set the Designator AutoPosition to the center-center but stop comment being moved.
-            Designator.SetState_MultilineTextAutoPosition(eAutoPos_CenterLeft);
-            Designator.SetState_Multiline(false);
-
             Designator.Size := Size;
+
+            Designator.SetState_Multiline(true);
+            Designator.MultilineTextHeight := 0;
+            Designator.MultilineTextWidth  := 0;
+            Designator.SetState_Multiline(true);
+            Designator.SetState_MultilineTextAutoPosition(eAutoPos_CenterCenter);   // CenterLeft
+//            Designator.UpdateTextPosition;
+
             Designator.SetState_XSizeYSize;
             Designator.GraphicallyInvalidate;
             Component.Name.EndModify;
 
+//     Set the Designator AutoPosition to the center-center but stop comment being moved.
             Component.ChangeCommentAutoposition( eAutoPos_Manual );
             Component.ChangeNameAutoposition(eAutoPos_CenterCenter);
             Component.SetState_NameAutoPos(eAutoPos_CenterCenter);
 
-            if CheckBoxMech.Checked then
+            if (ModMechText) then
             begin
                 // group iterate for all text object on specific mech layers
                 ASetOfLayers := LayerSetUtils.EmptySet;
@@ -528,26 +546,65 @@ begin
                      if ASetOfLayers.Contains(MechDesignator.Layer) then
                      if ((LowerCase(MechDesignator.GetState_UnderlyingString) = '.designator' ) or (MechDesignator.GetState_ConvertedString = Designator.GetState_ConvertedString)) then
                      begin
-                         MechDesignator.SetState_Multiline(Designator.Multiline);
-                         MechDesignator.MultilineTextAutoPosition := Designator.MultilineTextAutoPosition;
+// MechDes maybe using Multiline but actual Designator is not.
+
+                         MechDesMultiline      := MechDesignator.Multiline;
+                         MechDesMultilineAuto  := MechDesignator.MultilineTextAutoPosition;
+
+                         MechDesignator.SetState_Multiline(true);
+                         MechDesignator.SetState_MultilineTextAutoPosition(eAutoPos_CenterCenter);
                          MechDesignator.TTFInvertedTextJustify := Designator.TTFInvertedTextJustify;
-                         MechDesignator.Size       := Designator.Size;
+                         MechDesignator.Size                   := Designator.Size;
+                         MechDesignator.MultilineTextHeight    := 0;
+                         MechDesignator.MultilineTextWidth     := 0;
+                         MechDesignator.SetState_Multiline(true);
+
                          MechDesignator.UseTTFonts := Designator.UseTTFonts;
                          MechDesignator.Italic     := Designator.Italic;
                          MechDesignator.Bold       := Designator.Bold;
                          MechDesignator.Inverted   := Designator.Inverted;
                          MechDesignator.FontName   := Designator.FontName;
                          MechDesignator.Rotation   := Designator.Rotation;
-                         MechDesignator.MoveToXY(Designator.XLocation, Designator.YLocation);
-                         If (cbxUseStrokeFonts.Checked = True) then
+                         MechDesRotation := 0;
+
+                         If (UseStrokeFont) then
                          begin
                              MechDesignator.UseTTFonts := False;
-                             MechDesignator.Width := MechDesignator.Size / cTextWidthRatio;
+                             MechDesignator.Width      := MechDesignator.Size / cTextWidthRatio;
                              // Thicker strokes for Overlay text
                              if (MechDesignator.Layer = eTopOverlay) or (MechDesignator.Layer = eBottomOverlay) then
                                  MechDesignator.Width := MechDesignator.Size / cSilkTextWidthRatio;
                         end;
+
                         MechDesignator.SetState_XSizeYSize;
+                        MechDesignator.MoveToXY(Designator.XLocation, Designator.YLocation);
+                        BR  := MechDesignator.BoundingRectangle;
+                        BRC := Point(BR.X1 + RectWidth(BR)/2, BR.Y1 + RectHeight(BR)/2 );
+
+                        if (UseMultiLine) then
+                            MechDesignator.SetState_Multiline(true)
+                        else
+                            MechDesignator.SetState_Multiline(MechDesMultiline);
+
+                   // Rotate the designator to increase the readability
+                        if Y > X then
+                        begin
+                            if Designator.Layer = eTopOverlay then
+                                MechDesRotation := MechDesRotation + 90
+                            else
+                                MechDesRotation := MechDesRotation + 270;
+                        end;
+
+
+//                        MechDesRotation := MechDesRotation + Component.Rotation - (90 * (int((Component.Rotation+45) / 90)) -45 );
+//                        if (MechDesRotation > 225) and (MechDesRotation <= 315) then MechDesRotation := MechDesRotation - 270;
+//                        if (MechDesRotation > 45)  and (MechDesRotation <= 135) then MechDesRotation := MechDesRotation - 90;
+
+                        if (MechDesRotation > 135) and (MechDesRotation <= 225) then MechDesRotation := MechDesRotation - 180;
+
+                        MechDesRotation := MechDesRotation - MechDesignator.Rotation;
+                        MechDesignator.RotateAroundXY(BRC.X, BRC.Y, MechDesRotation);
+
                         MechDesignator.GraphicallyInvalidate;
                      end;
 
@@ -558,46 +615,52 @@ begin
             end;
 
 //    Having copyied the position etc of Designator, return to original state
-            if not CheckBoxOverlay.Checked then
+            if (not ModOverLayText) then
             begin
                 Component.Name.BeginModify;
-                Designator.Width      := OldWidth;
-                Designator.Size       := OldSize;
-                Designator.UseTTFonts := OldUseTTFonts;
-                Designator.Italic     := OldItalic;
-                Designator.Bold       := OldBold;
-                Designator.Inverted   := OldInverted;
-                Designator.FontName   := OldFontName;
-                Designator.FontID     := OldFontID;
-                Designator.Rotation   := OldRotation;
-                Component.SetState_NameAutoPos(OldAutoPosition);
-//                Component.ChangeNameAutoposition(OldAutoPosition);
+                Designator.Width      := DesWidth;
+                Designator.Size       := DesSize;
+                Designator.UseTTFonts := DesUseTTFonts;
+                Designator.Italic     := DesItalic;
+                Designator.Bold       := DesBold;
+                Designator.Inverted   := DesInverted;
+                Designator.FontName   := DesFontName;
+                Designator.FontID     := DesFontID;
+                Designator.Rotation   := DesRotation;
+                Component.SetState_NameAutoPos(DesAutoPosition);
 
-                Designator.MultilineTextHeight := OldMultilineTH;
-                Designator.MultilineTextWidth  := OldMultilineTW;
-                Designator.SetState_Multiline(OldMultiline);
-                Designator.SetState_MultilineTextAutoPosition(OldMultilineAuto);
+                Designator.MultilineTextHeight := DesMultilineTH;
+                Designator.MultilineTextWidth  := DesMultilineTW;
+                Designator.SetState_Multiline(DesMultiline);
+                Designator.SetState_MultilineTextAutoPosition(DesMultilineAuto);
 
-//                if (OldMultilineResizeEnabled) then
-//                begin
-//                    Designator.MultilineTextHeight := 0;
-//                    Designator.MultilineTextWidth  := 0;
-//                end;
-
-// size of bounding box effects the move location.
+//   size of bounding box effects the move location.
                 Designator.SetState_XSizeYSize;
-                Designator.MoveToXY(OldXLocation, OldYLocation);
+                Designator.MoveToXY(DesXLocation, DesYLocation);
 
                 Designator.GraphicallyInvalidate;
                 Component.Name.EndModify;
+            end else
+            begin
+      // Rotate the designator to increase the readability
+                if Y > X then
+                begin
+                    if Designator.Layer = eTopOverlay then
+                        Designator.Rotation := 90
+                    else
+                        Designator.Rotation := 270;
+                end else
+                begin
+                    Designator.Rotation := 0;
+                end;
             end;
-            Component.ChangeCommentAutoposition(OldAutoPosComment);
+            Component.ChangeCommentAutoposition(DesAutoPosComment);
 
         end;
 
         // Restoring designator visibility
         if UnHideDesignators = false then
-            Component.NameOn := OldVisibility;
+            Component.NameOn := DesVisibility;
 
         Component.Comment.EndModify;
         Component.EndModify;
@@ -618,7 +681,7 @@ begin
     // Restore DRC setting
     If PCBSystemOptions <> Nil Then
         PCBSystemOptions.DoOnlineDRC := DRCSetting;
-    Close;
+//    Close;
 end;
 
 procedure TFormAdjustDesignators.CheckBoxMechClick(Sender: TObject);
@@ -694,6 +757,7 @@ begin
         exit;
     end;
 
+    LayerStack := Board.MasterLayerStack;
 //  Check AD version for layer stack version
     VerMajor := Version(true).Strings(0);
     MaxMechLayers := AD17MaxMechLayers;
@@ -708,7 +772,8 @@ begin
     slMechSingles  := TStringList.Create;
     MechLayerPairs := Board.MechanicalPairs;
 
-    FormAdjustDesignators.ShowModal;
+    FormAdjustDesignators.FormStyle := fsStayOnTop;
+    FormAdjustDesignators.Show;
 end;
 
 {.......................................................................................}
@@ -736,7 +801,7 @@ begin
 end;
 
 //Calculate the height of the true type text to best fit for Microsoft Serif
-function CalculateSize (Size : Integer, S : String) : Integer;
+function CalculateSize (Size : Integer, S : String, UseStrokeFont : boolean) : Integer;
 var
     TextLength : Integer;
 begin
@@ -752,9 +817,22 @@ begin
         7 : Result := MMsToCoord(0.1957*CoordToMMs(Size)-0.2201);
     end;
     // Use Stroke Fonts
-    If (cbxUseStrokeFonts.Checked = True) then
+    If (UseStrokeFont) then
     begin
         Result := Result * 0.4;    //Scaled Result for Stroked Fonts
+    end;
+end;
+                                                    // cardinal      V7 LayerID
+function GetMechLayerObject(LS: IPCB_MasterLayerStack, i : integer, var MLID : TLayer) : IPCB_MechanicalLayer;
+begin
+    if LegacyMLS then
+    begin
+        MLID := LayerUtils.MechanicalLayer(i);
+        Result := LS.LayerObject_V7(MLID)
+    end else
+    begin
+        Result := LS.GetMechanicalLayer(i);
+        MLID := Result.LayerID;
     end;
 end;
 
@@ -762,7 +840,7 @@ function GetFirstLayerName(Pair : String) : String;
 var
    pos : Integer;
 begin
-   Pos := AnsiPos(' <----> ', Pair);
+   Pos := AnsiPos(cSeparator, Pair);
    if Pos <> 0 then
       SetLength(Pair, Pos - 1);
 
@@ -773,8 +851,8 @@ function GetSecondLayerName(Pair : String) : String;
 var
    pos : Integer;
 begin
-   Pos := AnsiPos(' <----> ', Pair);
-   Delete(Pair, 1, Pos + 7);
+   Pos := AnsiPos(cSeparator, Pair);
+   Delete(Pair, 1, Pos + StrLen(cSeparator) - 1);
 
    Result := Pair;
 end;
