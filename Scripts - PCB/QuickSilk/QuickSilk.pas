@@ -9,7 +9,7 @@ const
     cCtrlKey            = 3; // available for use during component and location selection
     cConfigFileName     = 'QuickSilkSettings.ini';
     cScriptTitle        = 'QuickSilk';
-    cScriptVersion      = '1.07';
+    cScriptVersion      = '1.08';
     cDEBUGLEVEL         = 0;
 
 var
@@ -28,81 +28,91 @@ var
     bPersistentMode                 : Boolean;
     bUnHideDesignators              : Boolean;
     bUserConfirmed                  : Boolean;
+    ESTOP                           ; Boolean;
     iClearanceMode                  : Integer;
+    iViaClearanceMode               : Integer;
     PresetFilePath                  : String;
     PresetList                      : TStringList;
     TEXTEXPANSION, BODYEXPANSION    : TCoord;
     PADEXPANSION, CUTOUTEXPANSION   : TCoord;
-    DEFAULTEXPANSION                : TCoord;
+    VIAEXPANSION, DEFAULTEXPANSION  : TCoord;
 
 
-procedure _GUI; forward;
-procedure _QuickSilk; forward;
-procedure About; forward;
-procedure AddMessage(MessageClass, MessageText: String); forward;
-function AutoMove(var NameOrComment : IPCB_Text; ParentOnly : Boolean = True; StartDist : TCoord = 200000; ForceAutoPos : TTextAutoposition = eAutoPos_Manual) : TCoord; forward;
-function AutoPosDeltaGetMax(var NameOrComment : IPCB_Text; autoPos : TTextAutoposition; bAnyAngleFlag : Boolean = False) : TCoord; forward;
-procedure AutoPosDeltaAdjust(var NameOrComment : IPCB_Text; MoveDistance : TCoord; autoPos : TTextAutoposition; bAnyAngleFlag : Boolean = False; SideOffset : Integer = 0); forward;
-function AutopositionJustify(var NameOrComment : IPCB_Text; const tc_AutoPos : TTextAutoposition) : TTextAutoposition; forward;
-procedure BothInitialCheck(var status : Integer); forward;
-procedure ChangeTextUnits(Units : TUnit); forward;
-function ConfigFile_GetPath(dummy : String = '') : String; forward;
-procedure ConfigFile_Read(AFileName : String); forward;
-procedure ConfigFile_Write(AFileName : String); forward;
-function CoordToStr(Coords : TCoord) : String; forward;
-function CoordToX(Coords : TCoord) : String; forward;
-function CoordToY(Coords : TCoord) : String; forward;
-function DebugContourInfo(contour : IPCB_Contour) : TStringList; forward;
-function DebugGeometricPolygonInfo(poly : IPCB_GeometricPolygon) : TStringList; forward;
-function DebugLevelStr(dummy : String = '') : String; forward;
-procedure DebugMessage(const ShowLevel : Integer; const msg : WideString; const Caption : String = 'Confirm or Cancel Debug'); forward;
-function FolderIsReadOnly(const AFolderPath : String) : Boolean; forward;
-function GetComponentAreaMils(Comp : IPCB_Component) : Int64; forward;
-function GetComponentAtCursor(const sPrompt : TString) : IPCB_Primitive; forward;
-function GetComponentBodyLargest(Comp : IPCB_Component) : IPCB_ComponentBody; forward;
-function GetComponentBodyLayerSet(Comp : IPCB_Component) : TV6_LayerSet; forward;
-function GetIteratorCount(Iterator : IPCB_BoardIterator) : Integer; forward;
-function GetLayerSet(SlkLayer: Integer; ObjID: Integer) : TV6_LayerSet; forward;
-function GetMinDesignatorClearance(var Comp : IPCB_Component) : TCoord; forward;
-function GetObjPoly(Obj: IPCB_ObjectClass, Expansion: TCoord = 0) : IPCB_GeometricPolygon; forward;
-function GetRelativeAutoposition(var Comp : IPCB_Component; const loc_x, loc_y : TCoord) : TTextAutoposition; forward;
-procedure InteractivelyAutoposition; forward;
-function IsOverlapping(Text: IPCB_ObjectClass; Obj2: IPCB_ObjectClass; ObjID : Integer = eNoObject) : Boolean; forward;
-procedure IsRuleViolation(ObjectIDSet : TObjectSet; RuleNameStr : String; Clearance : TCoord); forward;
-function IsSameSide(Obj1: IPCB_ObjectClass; Obj2: IPCB_ObjectClass) : Boolean; forward;
-function IsStringANum(Text : string) : Boolean; forward;
-function IsTextOverObj(Text : IPCB_Text; ObjID : Integer; Filter_Size : Integer; ParentOnly : Boolean = False; StrictRegions : Boolean = False) : Boolean; forward;
-function IsValidPlacement(Silkscreen : IPCB_Text; ParentOnly : Boolean = False) : Boolean; forward;
-procedure LoadPresetListFromFile(const dummy : Integer); forward;
-function NormalizeText(var Text : IPCB_Text) : Boolean; forward;
-function RotateTextToAngle(var Text : IPCB_Text; const Angle : Double; const Normalize : Boolean = False; const Ortho : Boolean = False) : Double; forward;
-function SelectCompAndDesignators(dummy : Boolean = False) : Boolean; forward;
-procedure SetAutopositionLocation(var Comp : IPCB_Component; const tc_Autopos : TTextAutoposition; bDesignator : Boolean = True); forward;
-procedure SetButtonEnableStates(EnableState : Boolean); forward;
-function SilkViolatesRule(Silkscreen : IPCB_Text; ObjectIDSet : TObjectSet) : Boolean; forward;
-function StrFromAutoPos(eAutoPos: TTextAutoposition) : String; forward;
-function StrFromObjectId(ObjectId: TObjectId) : String; forward;
-function StrFromObjectIdSet(ObjectIdSet : TObjectSet) : String; forward;
-procedure TweakDesignators; forward;
-procedure UpdateConstants(dummy : Boolean = False); forward;
-procedure TQuickSilkForm.ButtonAutoClick(Sender : TObject); forward;
-procedure TQuickSilkForm.ButtonCancelClick(Sender : TObject); forward;
-procedure TQuickSilkForm.ButtonInteractiveStartClick(Sender : TObject); forward;
-procedure TQuickSilkForm.ButtonOKClick(Sender : TObject); forward;
-procedure TQuickSilkForm.ButtonSaveConfigClick(Sender : TObject); forward;
-procedure TQuickSilkForm.CheckBoxLocalSettingsClick(Sender: TObject); forward;
-procedure TQuickSilkForm.ConfigClick(Sender : TObject); forward;
-procedure TQuickSilkForm.InputValueChange(Sender : TObject); forward;
-procedure TQuickSilkForm.LabelClearanceMouseEnter(Sender: TObject); forward;
-procedure TQuickSilkForm.LabelClearanceMouseLeave(Sender: TObject); forward;
-procedure TQuickSilkForm.LabelVersionClick(Sender : TObject); forward;
-procedure TQuickSilkForm.MMmilButtonClick(Sender : TObject); forward;
-procedure TQuickSilkForm.PresetButtonClicked(Sender : TObject); forward;
-procedure TQuickSilkForm.PresetValueChange(Sender : TObject); forward;
-procedure TQuickSilkForm.QuickSilkFormCloseQuery(Sender : TObject; var CanClose: Boolean); forward;
-procedure TQuickSilkForm.QuickSilkFormShow(Sender : TObject); forward;
-procedure TQuickSilkForm.RuleCheckClick(Sender : TObject); forward;
-procedure TQuickSilkForm.UserKeyPress(Sender : TObject; var Key : Char); forward;
+procedure   _GUI; forward;
+procedure   _QuickSilk; forward;
+procedure   About; forward;
+procedure   AddMessage(MessageClass, MessageText: String); forward;
+function    AutoMove(var NameOrComment : IPCB_Text; ParentOnly : Boolean = True; StartDist : TCoord = 200000; ForceAutoPos : TTextAutoposition = eAutoPos_Manual) : TCoord; forward;
+procedure   AutoPosDeltaAdjust(var NameOrComment : IPCB_Text; MoveDistance : TCoord; autoPos : TTextAutoposition; bAnyAngleFlag : Boolean = False; SideOffset : Integer = 0); forward;
+function    AutoPosDeltaGetMax(var NameOrComment : IPCB_Text; autoPos : TTextAutoposition; bAnyAngleFlag : Boolean = False) : TCoord; forward;
+function    AutopositionJustify(var NameOrComment : IPCB_Text; const tc_AutoPos : TTextAutoposition) : TTextAutoposition; forward;
+procedure   BothInitialCheck(var status : Integer); forward;
+procedure   ChangeTextUnits(Units : TUnit); forward;
+function    ConfigFile_GetPath(dummy : String = '') : String; forward;
+procedure   ConfigFile_Read(AFileName : String); forward;
+procedure   ConfigFile_Write(AFileName : String); forward;
+function    CoordToStr(Coords : TCoord) : String; forward;
+function    CoordToX(Coords : TCoord) : String; forward;
+function    CoordToY(Coords : TCoord) : String; forward;
+function    DebugContourInfo(contour : IPCB_Contour) : TStringList; forward;
+function    DebugGeometricPolygonInfo(poly : IPCB_GeometricPolygon) : TStringList; forward;
+function    DebugLevelStr(dummy : String = '') : String; forward;
+procedure   DebugMessage(const ShowLevel : Integer; const msg : WideString; const Caption : String = 'Confirm or Cancel Debug'); forward;
+function    ESTOP_Assert(dummy : Boolean = False); forward;
+function    ESTOP_ReadAndClear(dummy : Boolean = False) : Boolean; forward;
+function    FolderIsReadOnly(const AFolderPath : String) : Boolean; forward;
+function    GetComponentAreaMils(Comp : IPCB_Component) : Int64; forward;
+function    GetComponentAtCursor(const sPrompt : TString) : IPCB_Primitive; forward;
+function    GetComponentBodyLargest(Comp : IPCB_Component) : IPCB_ComponentBody; forward;
+function    GetComponentBodyLayerSet(Comp : IPCB_Component) : TV6_LayerSet; forward;
+function    GetIteratorCount(Iterator : IPCB_BoardIterator) : Integer; forward;
+function    GetLayerSet(SlkLayer: Integer; ObjID: Integer) : TV6_LayerSet; forward;
+function    GetMinDesignatorClearance(var Comp : IPCB_Component) : TCoord; forward;
+function    GetObjPoly(Obj: IPCB_ObjectClass; Expansion: TCoord = 0; ALayer : TV7_Layer = eNoLayer) : IPCB_GeometricPolygon; forward;
+function    GetRelativeAutoposition(var Comp : IPCB_Component; const loc_x, loc_y : TCoord) : TTextAutoposition; forward;
+procedure   InteractivelyAutoposition; forward;
+function    IsForbiddenVia(Silk : IPCB_Text; ViaObj : IPCB_ObjectClass) : Boolean; forward;
+function    IsOverlapping(Text: IPCB_ObjectClass; Obj2: IPCB_ObjectClass; ObjID : Integer = eNoObject) : Boolean; forward;
+procedure   IsRuleViolation(ObjectIDSet : TObjectSet; RuleNameStr : String; Clearance : TCoord); forward;
+function    IsSameSide(Obj1: IPCB_ObjectClass; Obj2: IPCB_ObjectClass) : Boolean; forward;
+function    IsStringANum(Text : string) : Boolean; forward;
+function    IsTextOverObj(Text : IPCB_Text; ObjID : Integer; Filter_Size : Integer; ParentOnly : Boolean = False; StrictRegions : Boolean = False) : Boolean; forward;
+function    IsValidPlacement(Silkscreen : IPCB_Text; ParentOnly : Boolean = False) : Boolean; forward;
+function    IsViaOnBottomSide(ViaObj : IPCB_Via) : Boolean; forward;
+function    IsViaOnTopSide(ViaObj : IPCB_Via) : Boolean; forward;
+function    IsViaTentedForSilk(Silk : IPCB_Text; ViaObj : IPCB_Via) : Boolean; forward;
+procedure   LoadPresetListFromFile(const dummy : Integer); forward;
+function    NormalizeText(var Text : IPCB_Text) : Boolean; forward;
+function    RotateTextToAngle(var Text : IPCB_Text; const Angle : Double; const Normalize : Boolean = False; const Ortho : Boolean = False) : Double; forward;
+function    SelectCompAndDesignators(dummy : Boolean = False) : Boolean; forward;
+procedure   SetAutopositionLocation(var Comp : IPCB_Component; const tc_Autopos : TTextAutoposition; bDesignator : Boolean = True); forward;
+procedure   SetButtonEnableStates(EnableState : Boolean); forward;
+function    SilkViolatesRule(Silkscreen : IPCB_Text; ObjectIDSet : TObjectSet) : Boolean; forward;
+function    StrFromAutoPos(eAutoPos: TTextAutoposition) : String; forward;
+function    StrFromObjectId(ObjectId: TObjectId) : String; forward;
+function    StrFromObjectIdSet(ObjectIdSet : TObjectSet) : String; forward;
+procedure   TQuickSilkForm.ButtonAutoClick(Sender : TObject); forward;
+procedure   TQuickSilkForm.ButtonCancelClick(Sender : TObject); forward;
+procedure   TQuickSilkForm.ButtonInteractiveStartClick(Sender : TObject); forward;
+procedure   TQuickSilkForm.ButtonOKClick(Sender : TObject); forward;
+procedure   TQuickSilkForm.ButtonSaveConfigClick(Sender : TObject); forward;
+procedure   TQuickSilkForm.CheckBoxLocalSettingsClick(Sender: TObject); forward;
+procedure   TQuickSilkForm.ClearanceEnterKey(Sender : TObject; var Key : Char); forward;
+procedure   TQuickSilkForm.ConfigClick(Sender : TObject); forward;
+procedure   TQuickSilkForm.InputValueChange(Sender : TObject); forward;
+procedure   TQuickSilkForm.LabelClearanceMouseEnter(Sender: TObject); forward;
+procedure   TQuickSilkForm.LabelClearanceMouseLeave(Sender: TObject); forward;
+procedure   TQuickSilkForm.LabelVersionClick(Sender : TObject); forward;
+procedure   TQuickSilkForm.MMmilButtonClick(Sender : TObject); forward;
+procedure   TQuickSilkForm.PresetButtonClicked(Sender : TObject); forward;
+procedure   TQuickSilkForm.PresetValueChange(Sender : TObject); forward;
+procedure   TQuickSilkForm.QuickSilkFormCloseQuery(Sender : TObject; var CanClose: Boolean); forward;
+procedure   TQuickSilkForm.QuickSilkFormShow(Sender : TObject); forward;
+procedure   TQuickSilkForm.RuleCheckClick(Sender : TObject); forward;
+procedure   TQuickSilkForm.UserKeyPress(Sender : TObject; var Key : Char); forward;
+procedure   TweakDesignators; forward;
+procedure   UpdateConstants(dummy : Boolean = False); forward;
+procedure   UpdateViaRule(dummy : Boolean = False); forward;
 
 
 { wrapper for TweakDesignators that sorts at the top of the list }
@@ -757,6 +767,7 @@ begin
     ControlList.Add(tClearanceBody);
     ControlList.Add(tClearancePad);
     ControlList.Add(tClearanceCutout);
+    ControlList.Add(tClearanceVia);
     ControlList.Add(tClearanceDefault);
     ControlList.Add(EditMaxDistance);
     ControlList.Add(EditDistance);
@@ -852,11 +863,13 @@ begin
         CheckBoxAnyAngle.Checked := IniFile.ReadBool('Config', 'Any-Angle Placement', CheckBoxAnyAngle.Checked);
         CheckBoxExtraOffsets.Checked := IniFile.ReadBool('Config', 'Try Extra Offsets', CheckBoxExtraOffsets.Checked);
         RadioGroupParentOnly.ItemIndex := IniFile.ReadInteger('Config', 'Clearance Checking Mode', RadioGroupParentOnly.ItemIndex);
+        ComboBoxViaRule.ItemIndex := IniFile.ReadInteger('Config', 'Via Clearance Mode', ComboBoxViaRule.ItemIndex);
 
         tClearanceText.Text := IniFile.ReadString('Clearance', 'Text Clearance', tClearanceText.Text);
         tClearanceBody.Text := IniFile.ReadString('Clearance', 'Component Body Clearance', tClearanceBody.Text);
         tClearancePad.Text := IniFile.ReadString('Clearance', 'Pad Clearance', tClearancePad.Text);
         tClearanceCutout.Text := IniFile.ReadString('Clearance', 'Cutout Region Clearance', tClearanceCutout.Text);
+        tClearanceVia.Text := IniFile.ReadString('Clearance', 'Via Clearance', tClearanceVia.Text);
         tClearanceDefault.Text := IniFile.ReadString('Clearance', 'Default Clearance', tClearanceDefault.Text);
 
         MMmilButton.Caption                 := IniFile.ReadString('Last Used', 'Units', MMmilButton.Caption);
@@ -872,8 +885,11 @@ begin
         bEnableAnyAngle := CheckBoxAnyAngle.Checked;
         bExtraOffsets := CheckBoxExtraOffsets.Checked;
         iClearanceMode := RadioGroupParentOnly.ItemIndex;
+        //iViaClearanceMode := ComboBoxViaRule.ItemIndex; // done in UpdateViaRule instead
 
-        UpdateConstants;
+        UpdateViaRule; // update display of via clearance UI depending on selection
+
+        UpdateConstants; // update all clearance constants based on units
 
         if iDebugLevel > 0 then
         begin
@@ -926,11 +942,13 @@ begin
         IniFile.WriteBool('Config', 'Any-Angle Placement', CheckBoxAnyAngle.Checked);
         IniFile.WriteBool('Config', 'Try Extra Offsets', CheckBoxExtraOffsets.Checked);
         IniFile.WriteInteger('Config', 'Clearance Checking Mode', RadioGroupParentOnly.ItemIndex);
+        IniFile.WriteInteger('Config', 'Via Clearance Mode', ComboBoxViaRule.ItemIndex);
 
         IniFile.WriteString('Clearance', 'Text Clearance', tClearanceText.Text);
         IniFile.WriteString('Clearance', 'Component Body Clearance', tClearanceBody.Text);
         IniFile.WriteString('Clearance', 'Pad Clearance', tClearancePad.Text);
         IniFile.WriteString('Clearance', 'Cutout Region Clearance', tClearanceCutout.Text);
+        IniFile.WriteString('Clearance', 'Via Clearance', tClearanceVia.Text);
         IniFile.WriteString('Clearance', 'Default Clearance', tClearanceDefault.Text);
 
         IniFile.WriteString('Last Used', 'Units', MMmilButton.Caption);
@@ -954,7 +972,10 @@ begin
     if Coords < MININT then Coords := MININT
     else if Coords > MAXINT then Coords := MAXINT;
 
-    result := CoordUnitToString(Coords, Board.DisplayUnit xor 1);
+    //result := CoordUnitToString(Coords, Board.DisplayUnit xor 1); // only uses 2 digits of precision for metric
+
+    if (Board.DisplayUnit xor 1) = eImperial then Result := FloatToStr(CoordToMils(Coords)) + 'mil'
+    else Result := FloatToStr(CoordToMMs(Coords)) + 'mm'
 end;
 
 
@@ -1031,6 +1052,19 @@ begin
         if ConfirmOKCancelWithCaption(Caption, msg) = False then
             iDebugLevel := Max(iDebugLevel - 1, 0);
     end;
+end;
+
+
+function ESTOP_Assert(dummy : Boolean = False);
+begin
+    ESTOP := True;
+end;
+
+
+function ESTOP_ReadAndClear(dummy : Boolean = False) : Boolean;
+begin
+    Result := ESTOP;
+    ESTOP := False;
 end;
 
 
@@ -1278,11 +1312,12 @@ end;
 
 
 // Get GeometricPolygon using PCBServer.PCBContourMaker
-function GetObjPoly(Obj: IPCB_ObjectClass, Expansion: TCoord = 0) : IPCB_GeometricPolygon;
+function GetObjPoly(Obj: IPCB_ObjectClass; Expansion: TCoord = 0; ALayer : TV7_Layer = eNoLayer) : IPCB_GeometricPolygon;
 var
-    Poly: IPCB_GeometricPolygon;
-    OldRect: TCoordRect;
-    NewContour: IPCB_Contour;
+    Poly : IPCB_GeometricPolygon;
+    OldRect : TCoordRect;
+    NewContour : IPCB_Contour;
+    ViaExpansion : TCoord;
 begin
     if Obj.ObjectId = eBoardObject then
     begin
@@ -1320,6 +1355,21 @@ begin
         // Function  MakeContour(APrim : IPCB_Primitive; AExpansion : Integer; ALayer : TV6_Layer) : IPCB_GeometricPolygon;
         if Obj.UseTTFonts then Poly := PCBServer.PCBContourMaker.MakeContour(Obj, Expansion, Obj.Layer)
         else Poly := PCBServer.PCBContourMaker.MakeContour(Obj, Expansion - (Obj.Width / 2), Obj.Layer);
+    end
+    else if Obj.ObjectId = eViaObject then
+    begin
+        // Function  MakeContour(APrim : IPCB_Primitive; AExpansion : Integer; ALayer : TV6_Layer) : IPCB_GeometricPolygon;
+        if ALayer <> eNoLayer then
+        begin
+            ViaExpansion := MAX(Expansion, -(Obj.SizeOnLayer(ALayer) / 2)); // could possibly leave a tiny dot if doesn't round to zero
+        end
+        else
+        begin
+            ALayer := Obj.Layer;
+            ViaExpansion := Expansion;
+        end;
+
+        Poly := PCBServer.PCBContourMaker.MakeContour(Obj, ViaExpansion, ALayer);
     end
     else if Obj.ObjectId = ePadObject then
     begin
@@ -1601,11 +1651,19 @@ begin
         Exit; // Continue
     end;
 
+    // Continue if allowed via
+    if (Obj2.ObjectId = eViaObject) and not IsForbiddenVia(Text, Obj2) then
+    begin
+        result := False;
+        Exit;
+    end;
+
     Expansion := DEFAULTEXPANSION;
     case Obj2.ObjectId of
         eComponentObject:   Expansion := BODYEXPANSION;
         eTextObject:        Expansion := TEXTEXPANSION;
         ePadObject:         Expansion := PADEXPANSION;
+        eViaObject:         Expansion := VIAEXPANSION;
         eRegionObject:      if Obj2.Kind = eRegionKind_Cutout then Expansion := CUTOUTEXPANSION;
     end;
 
@@ -1616,7 +1674,14 @@ begin
 
     // Get geometric polygons for both objects
     TextPoly := GetObjPoly(Text);
-    ObjPoly := GetObjPoly(Obj2, Expansion);
+    if Obj2.ObjectId = eViaObject then
+    begin
+        if Text.Layer = eTopOverlay then ObjPoly := GetObjPoly(Obj2, Expansion, eTopLayer)
+        else if Text.Layer = eBottomOverlay then ObjPoly := GetObjPoly(Obj2, Expansion, eBottomLayer)
+        else ObjPoly := GetObjPoly(Obj2, Expansion); // should not get here
+    end
+    else ObjPoly := GetObjPoly(Obj2, Expansion);
+
 
     DebugMessage(3, 'TextPoly Contours' + sLineBreak + DebugGeometricPolygonInfo(TextPoly).Text);
     DebugMessage(3, Obj2.Identifier + sLineBreak + 'ObjPoly Contours' + sLineBreak + DebugGeometricPolygonInfo(ObjPoly).Text);
@@ -1659,7 +1724,8 @@ begin
     AddMessage('QuickSilk Clearance Check', 'Started clearance check against ' + RuleNameStr);
     AddMessage('QuickSilk Status', Format('%d of %d text objects processed (%0.1f%%)', [ProcessedCount, TotalCount, (ProcessedCount / TotalCount) * 100]));
 
-    while (Text <> Nil) do
+    ESTOP_ReadAndClear; // clear E-STOP before starting
+    while (Text <> Nil) and not ESTOP_ReadAndClear do
     begin
         Inc(ProcessedCount);
         // skip text that isn't a designator or comment
@@ -1954,6 +2020,12 @@ begin
         DebugMessage(3, 'ePadObject check failed');
         Exit;
     end
+    // same-side via overlap detection
+    else if IsTextOverObj(Silkscreen, eViaObject, FILTERSIZE, ParentOnly) then
+    begin
+        DebugMessage(3, 'eViaObject check failed');
+        Exit;
+    end
     // Component Overlap Detection
     else if IsTextOverObj(Silkscreen, eComponentBodyObject, FILTERSIZE, ParentOnly) then
     begin
@@ -1967,6 +2039,54 @@ begin
         Result := True;
     end;
 
+end;
+
+
+function IsViaOnBottomSide(ViaObj : IPCB_Via) : Boolean;
+begin
+    if ViaObj = nil then exit;
+    Result := (ViaObj.LowLayer = eTopLayer) or (ViaObj.HighLayer = eTopLayer);
+end;
+
+
+function IsViaOnTopSide(ViaObj : IPCB_Via) : Boolean;
+begin
+    if ViaObj = nil then exit;
+    Result := (ViaObj.LowLayer = eTopLayer) or (ViaObj.HighLayer = eTopLayer);
+end;
+
+
+function IsViaTentedForSilk(Silk : IPCB_Text; ViaObj : IPCB_Via) : Boolean;
+begin
+    if ViaObj = nil then exit;
+    if ViaObj.ObjectId <> eViaObject then exit;
+    Result := False;
+
+    // Check if Silk is on TopOverlay and ViaObj is tented on top
+    if (Silk.Layer = eTopOverlay) and IsViaOnTopSide(ViaObj) and ViaObj.IsTenting_Top then
+        Result := True;
+
+    // Check if Silk is on BottomOverlay and ViaObj is tented on bottom
+    if (Silk.Layer = eBottomOverlay) and IsViaOnBottomSide(ViaObj) and ViaObj.IsTenting_Bottom then
+        Result := True;
+end;
+
+
+function IsForbiddenVia(Silk : IPCB_Text; ViaObj : IPCB_ObjectClass) : Boolean;
+begin
+    Result := False;
+    if ViaObj = nil then exit;
+    if ViaObj.ObjectId <> eViaObject then exit;
+
+    // ignore vias that aren't present under silkscreen at all
+    if (Silk.Layer = eTopOverlay) and not IsViaOnTopSide(ViaObj) then exit;
+    if (Silk.Layer = eBottomOverlay) and not IsViaOnBottomSide(ViaObj) then exit;
+
+    // 0 = Allow All; 1 = Allow Tented; 2 = Allow None
+    if iViaClearanceMode = 0 then exit
+    else if iViaClearanceMode = 1 then if IsViaTentedForSilk(Silk, ViaObj) then exit;
+
+    Result := True;
 end;
 
 
@@ -2252,7 +2372,7 @@ var
 begin
     Result := True;
 
-    ValidObjectSet := MkSet(eTextObject, eComponentBodyObject, ePadObject, eConnectionObject, eArcObject, eTrackObject, eFillObject, eRegionObject);
+    ValidObjectSet := MkSet(eTextObject, eComponentBodyObject, ePadObject, eConnectionObject, eViaObject, eArcObject, eTrackObject, eFillObject, eRegionObject);
 
     if not SubSet(ObjectIDSet, ValidObjectSet) then
     begin
@@ -2260,6 +2380,7 @@ begin
                 'Valid objects: ' + StrFromObjectIdSet(ValidObjectSet) + sLineBreak +
                 'Note that "eConnectionObject" actually means cutout region in this script.');
         Result := False;
+        ESTOP_Assert;
         exit;
     end;
 
@@ -2283,6 +2404,11 @@ begin
     else if InSet(eConnectionObject, ObjectIDSet) and IsTextOverObj(Silkscreen, eConnectionObject, FILTERSIZE, False, True) then
     begin
         DebugMessage(3, 'FAIL' + sLineBreak + Silkscreen.Text + ' is within ' + CoordToStr(CUTOUTEXPANSION) + ' of a cutout region.');
+        Exit;
+    end
+    else if InSet(eViaObject, ObjectIDSet) and IsTextOverObj(Silkscreen, eViaObject, FILTERSIZE) then
+    begin
+        DebugMessage(3, 'FAIL' + sLineBreak + Silkscreen.Text + ' is within ' + CoordToStr(VIAEXPANSION) + ' of a via.');
         Exit;
     end
     else if InSet(eRegionObject, ObjectIDSet) and IsTextOverObj(Silkscreen, eRegionObject, FILTERSIZE, False, True) then
@@ -2603,6 +2729,7 @@ begin
             StringToCoordUnit(tClearanceBody.Text, BODYEXPANSION, eImperial);
             StringToCoordUnit(tClearancePad.Text, PADEXPANSION, eImperial);
             StringToCoordUnit(tClearanceCutout.Text, CUTOUTEXPANSION, eImperial);
+            StringToCoordUnit(tClearanceVia.Text, VIAEXPANSION, eImperial);
             StringToCoordUnit(tClearanceDefault.Text, DEFAULTEXPANSION, eImperial);
         end;
         'mm':
@@ -2611,11 +2738,37 @@ begin
             StringToCoordUnit(tClearanceBody.Text, BODYEXPANSION, eMetric);
             StringToCoordUnit(tClearancePad.Text, PADEXPANSION, eMetric);
             StringToCoordUnit(tClearanceCutout.Text, CUTOUTEXPANSION, eMetric);
+            StringToCoordUnit(tClearanceVia.Text, VIAEXPANSION, eMetric);
             StringToCoordUnit(tClearanceDefault.Text, DEFAULTEXPANSION, eMetric);
         end;
         else
         begin
             // invalid
+        end;
+    end;
+end;
+
+
+procedure UpdateViaRule(dummy : Boolean = False);
+begin
+    iViaClearanceMode := ComboBoxViaRule.ItemIndex;
+
+    // 0 = Allow All; 1 = Allow Tented; 2 = Allow None
+    case iViaClearanceMode of
+        0: begin
+            tClearanceVia.Enabled := False;
+            LabelClearanceVia.Font.Color := clWindowText;
+            LabelClearanceVia.Enabled := False;
+        end;
+        1: begin
+            tClearanceVia.Enabled := True;
+            LabelClearanceVia.Enabled := True;
+            LabelClearanceVia.Font.Color := clBlue;
+        end;
+        2: begin
+            tClearanceVia.Enabled := True;
+            LabelClearanceVia.Enabled := True;
+            LabelClearanceVia.Font.Color := clBlue;
         end;
     end;
 end;
@@ -2727,9 +2880,22 @@ begin
 end;
 
 
+procedure TQuickSilkForm.ClearanceEnterKey(Sender : TObject; var Key : Char);
+begin
+    if (Ord(Key) = 13) then
+    begin
+        Key := #0; // eat the enter keypress to avoid beep
+        QuickSilkForm.ActiveControl := ButtonSaveConfig; // jump to save button
+    end;
+end;
+
+
 procedure TQuickSilkForm.ConfigClick(Sender : TObject);
+var
+    cbItem : Integer;
 begin
     ButtonSaveConfig.Caption := '&SAVE';
+    if Sender = ComboBoxViaRule then UpdateViaRule;
 end;
 
 
@@ -2754,6 +2920,7 @@ end; { TQuickSilkForm.EditClearanceChange }
 
 procedure TQuickSilkForm.LabelClearanceMouseEnter(Sender: TObject);
 begin
+    if Sender.Enabled = False then exit;
     if Sender = LabelClearanceAll then Sender.Font.Style := MkSet(fsBold, fsUnderline) else Sender.Font.Style := MkSet(fsUnderline);
 end;
 
@@ -2835,6 +3002,19 @@ end;
 
 procedure TQuickSilkForm.QuickSilkFormShow(Sender : TObject);
 begin
+    // Checks if current document is a PCB kind if not, exit.
+    Board := PCBServer.GetCurrentPCBBoard;
+    if Board = nil then
+    begin
+        ShowError('This script must be run from a PCB document.');
+        exit;
+    end;
+
+    iDebugLevel := cDEBUGLEVEL;
+
+    // set AD build flag
+    if (GetBuildNumberPart(Client.GetProductVersion, 0) >= 19) then IsAtLeastAD19 := True else IsAtLeastAD19 := False;
+
     // Set direction control hint
     Application.HintHidePause := 12000; // extend hint show time
     LazyAutoMoveCheckBox.Hint := 'ENABLED: if AutoMove REACHES Max offset without detecting an obstacle, will treat as fixed offset.' + sLineBreak +
@@ -2867,7 +3047,12 @@ begin
     else if Sender = LabelClearanceBody     then RuleIndex := 2
     else if Sender = LabelClearancePad      then RuleIndex := 3
     else if Sender = LabelClearanceCutout   then RuleIndex := 4
-    else if Sender = LabelClearanceDefault  then RuleIndex := 5;
+    else if Sender = LabelClearanceVia      then RuleIndex := 5
+    else if Sender = LabelClearanceDefault  then RuleIndex := 6;
+
+    // uncomment to save config when running clearance checks, but it seems like manual save would be preferred so you can experiment
+    //ConfigFile_Write(ConfigFile_GetPath);
+    //ButtonSaveConfig.Caption := 'SAVED';
 
     case RuleIndex of
         0 : IsRuleViolation(MkSet(eTextObject, eComponentBodyObject, ePadObject, eConnectionObject, eArcObject, eTrackObject, eFillObject, eRegionObject), 'any object', 0);
@@ -2875,7 +3060,8 @@ begin
         2 : IsRuleViolation(MkSet(eComponentBodyObject), Sender.Caption, BODYEXPANSION);
         3 : IsRuleViolation(MkSet(ePadObject), Sender.Caption, PADEXPANSION);
         4 : IsRuleViolation(MkSet(eConnectionObject), Sender.Caption, CUTOUTEXPANSION);
-        5 : IsRuleViolation(MkSet(eArcObject, eTrackObject, eFillObject, eRegionObject), Sender.Caption, DEFAULTEXPANSION);
+        5 : IsRuleViolation(MkSet(eViaObject), Sender.Caption, VIAEXPANSION);
+        6 : IsRuleViolation(MkSet(eArcObject, eTrackObject, eFillObject, eRegionObject), Sender.Caption, DEFAULTEXPANSION);
     end;
 end;
 
