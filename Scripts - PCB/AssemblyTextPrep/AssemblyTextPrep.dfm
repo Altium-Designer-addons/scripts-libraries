@@ -4,7 +4,7 @@ object AssemblyTextPrepForm: TAssemblyTextPrepForm
   BorderIcons = [biSystemMenu]
   BorderStyle = bsSingle
   Caption = 'AssemblyTextPrep Helper Script'
-  ClientHeight = 555
+  ClientHeight = 603
   ClientWidth = 346
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -37,13 +37,14 @@ object AssemblyTextPrepForm: TAssemblyTextPrepForm
     Left = 0
     Top = 392
     Width = 344
-    Height = 160
+    Height = 208
   end
   object LabelLimits: TLabel
     Left = 144
     Top = 4
     Width = 192
     Height = 13
+    Hint = 'Size limits are actual height, not Text.Size property'
     Alignment = taCenter
     AutoSize = False
     Caption = 'Designator Size Limits'
@@ -93,7 +94,7 @@ object AssemblyTextPrepForm: TAssemblyTextPrepForm
     Top = 24
     Width = 64
     Height = 17
-    Hint =
+    Hint = 
       'Nominal designator height. Will start tapering off to AbsMax val' +
       'ue after this.'
     Alignment = taCenter
@@ -205,7 +206,7 @@ object AssemblyTextPrepForm: TAssemblyTextPrepForm
     Top = 72
     Width = 75
     Height = 14
-    Hint =
+    Hint = 
       'Layers found to have existing .Designator special strings on the' +
       'm'
     Caption = 'Assy Layers:'
@@ -228,12 +229,11 @@ object AssemblyTextPrepForm: TAssemblyTextPrepForm
     Left = 212
     Top = 212
     Width = 64
-    Height = 17
-    Hint =
+    Height = 13
+    Hint = 
       'Aspect ratio threshold above which Best Fit mode will rotate tex' +
       't orthogonal to part.'
     Alignment = taRightJustify
-    AutoSize = True
     Caption = 'AR Threshold'
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
@@ -280,7 +280,7 @@ object AssemblyTextPrepForm: TAssemblyTextPrepForm
     Top = 258
     Width = 136
     Height = 17
-    Hint = 'ENABLED: resize text to fit within pad boundaries'
+    Hint = 'ENABLED: resize text according to centering strategy'
     TabStop = False
     Caption = 'Resize Text'
     Checked = True
@@ -295,7 +295,7 @@ object AssemblyTextPrepForm: TAssemblyTextPrepForm
     Top = 282
     Width = 136
     Height = 17
-    Hint =
+    Hint = 
       'ENABLED: normalize modified text after placement to be right-rea' +
       'ding'
     TabStop = False
@@ -455,7 +455,7 @@ object AssemblyTextPrepForm: TAssemblyTextPrepForm
     Top = 400
     Width = 104
     Height = 32
-    Hint =
+    Hint = 
       'Reset designator to footprint origin, matching footprint rotatio' +
       'n'
     Caption = 'Reset To Origin'
@@ -476,7 +476,7 @@ object AssemblyTextPrepForm: TAssemblyTextPrepForm
     Top = 400
     Width = 104
     Height = 32
-    Hint =
+    Hint = 
       'Center designator in bounds, orient and resize for best fit, and' +
       ' normalize reading direction'
     Caption = 'Auto Adjust'
@@ -516,7 +516,7 @@ object AssemblyTextPrepForm: TAssemblyTextPrepForm
     Top = 440
     Width = 104
     Height = 32
-    Hint =
+    Hint = 
       'Reset designator to center in bounds, matching footprint rotatio' +
       'n'
     Caption = 'Reset To Center'
@@ -537,7 +537,7 @@ object AssemblyTextPrepForm: TAssemblyTextPrepForm
     Top = 440
     Width = 104
     Height = 32
-    Hint =
+    Hint = 
       'Resize designator without changing position or rotation, avoidin' +
       'g other objects on layer'
     Caption = 'Resize w/o Move'
@@ -558,7 +558,7 @@ object AssemblyTextPrepForm: TAssemblyTextPrepForm
     Top = 440
     Width = 104
     Height = 32
-    Hint =
+    Hint = 
       'Normalize any text to be right-reading while translating justifi' +
       'cation'
     Caption = 'Normalize Any Text'
@@ -576,7 +576,7 @@ object AssemblyTextPrepForm: TAssemblyTextPrepForm
   end
   object ButtonZoomSelected: TButton
     Left = 8
-    Top = 472
+    Top = 480
     Width = 104
     Height = 32
     Hint = 'Zoom PCB window to selected items'
@@ -595,7 +595,7 @@ object AssemblyTextPrepForm: TAssemblyTextPrepForm
   end
   object ButtonSelectMissing: TButton
     Left = 120
-    Top = 472
+    Top = 480
     Width = 88
     Height = 32
     Hint = 'Select components that are missing an assembly designator'
@@ -614,10 +614,10 @@ object AssemblyTextPrepForm: TAssemblyTextPrepForm
   end
   object ButtonAddDesignators: TButton
     Left = 232
-    Top = 472
+    Top = 480
     Width = 104
     Height = 32
-    Hint =
+    Hint = 
       'Add designators to selected components if needed, using existing' +
       ' components to determine assembly layer'
     Caption = 'Add Designators'
@@ -660,7 +660,7 @@ object AssemblyTextPrepForm: TAssemblyTextPrepForm
   end
   object ButtonSelectComponents: TButton
     Left = 8
-    Top = 512
+    Top = 520
     Width = 104
     Height = 32
     Hint = 'Select components of any selected .Designator special strings'
@@ -679,10 +679,10 @@ object AssemblyTextPrepForm: TAssemblyTextPrepForm
   end
   object ButtonSelectBoth: TButton
     Left = 136
-    Top = 512
+    Top = 520
     Width = 72
     Height = 32
-    Hint =
+    Hint = 
       'Select components and .Designator specials strings for any selec' +
       'tion of either'
     Caption = 'Select Both'
@@ -700,7 +700,7 @@ object AssemblyTextPrepForm: TAssemblyTextPrepForm
   end
   object ButtonSelectDesignators: TButton
     Left = 232
-    Top = 512
+    Top = 520
     Width = 104
     Height = 32
     Hint = 'Select .Designator special strings of any selected components'
@@ -719,7 +719,7 @@ object AssemblyTextPrepForm: TAssemblyTextPrepForm
   end
   object Panel1: TPanel
     Left = 112
-    Top = 527
+    Top = 535
     Width = 24
     Height = 3
     BevelOuter = bvNone
@@ -731,7 +731,7 @@ object AssemblyTextPrepForm: TAssemblyTextPrepForm
   end
   object Panel2: TPanel
     Left = 208
-    Top = 487
+    Top = 495
     Width = 24
     Height = 3
     BevelOuter = bvNone
@@ -743,7 +743,7 @@ object AssemblyTextPrepForm: TAssemblyTextPrepForm
   end
   object Panel3: TPanel
     Left = 208
-    Top = 527
+    Top = 535
     Width = 24
     Height = 3
     BevelOuter = bvNone
@@ -758,7 +758,7 @@ object AssemblyTextPrepForm: TAssemblyTextPrepForm
     Top = 208
     Width = 56
     Height = 24
-    Hint =
+    Hint = 
       'Bounds height:width ratio exceeding this will rotate orthogonal ' +
       'to footprint'
     Align = alCustom
@@ -777,5 +777,26 @@ object AssemblyTextPrepForm: TAssemblyTextPrepForm
     TextHint = 'Text object clearance'
     OnChange = InputValueChange
     OnKeyPress = UserKeyPress
+  end
+  object ButtonCheckSelected: TButton
+    Left = 8
+    Top = 560
+    Width = 104
+    Height = 32
+    Hint = 
+      'Check selected text and deselect text that does not interfere wi' +
+      'th anything'
+    Caption = 'Check Selected'
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -11
+    Font.Name = 'Tahoma'
+    Font.Style = []
+    ParentFont = False
+    ParentShowHint = False
+    ShowHint = True
+    TabOrder = 29
+    TabStop = False
+    OnClick = ButtonCheckSelectedClick
   end
 end

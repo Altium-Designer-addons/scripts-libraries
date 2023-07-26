@@ -5,8 +5,16 @@ const
     cMaxMechLayers          = 1024;
     cScriptTitle            = 'AssemblyTextPrep';
     cConfigFileName         = 'AssemblyTextPrepConfig.ini';
-    cScriptVersion          = '0.80';
+    cScriptVersion          = '0.81';
     cDEBUGLEVEL             = 0;
+
+    DEBUGEXPANSION          = 0; // leave at -1 to disable
+    // font defaults for hidden settings
+    cSTROKE_RATIO           = 1.1111; // desired ratio of stroke font actual height to `size` parameter. 1.1111 will give stroke width of 1/9th of size (1 + 1/9)
+    cTEXTSTEPIMPERIAL       = 1; // [mils] text size will be rounded to this
+    cTEXTSTEPMETRIC         = 0.025; // [mm] text size will be rounded to this
+    cSTROKEWIDTHSTEP_MIL    = 0.1; // [mils] stroke width will be rounded to this
+    cSTROKEWIDTHSTEP_MM     = 0.01; // [mm] stroke width will be rounded to this
 
 var
     ASSY_LAYER_TOP          : TV7_Layer;
@@ -21,9 +29,14 @@ var
     IsAtLeastAD19           : Boolean;
     MLS                     : IPCB_MasterLayerStack;
     MLP                     : IPCB_MechanicalLayerPairs;
-    TEXTSIZEMAX             : TCoord;
-    TEXTSIZEMIN             : TCoord;
-    TEXTSIZENOM             : TCoord;
+    TEXTHEIGHTMAX           : TCoord;
+    TEXTHEIGHTMIN           : TCoord;
+    TEXTHEIGHTNOM           : TCoord;
+    STROKE_RATIO            : Double;
+    STROKEWIDTHSTEP         : TCoord;
+    TEXTSTEPSIZE            : TCoord;
+    TEXTSTEPIMPERIAL        : TCoord;
+    TEXTSTEPMETRIC          : TCoord;
     ASPECT_RATIO_TOL        : Double; // height:width ratio must exceed this to trigger rotation in Best Fit mode
 
 
@@ -82,7 +95,7 @@ procedure   ResetDesignatorPositions; forward;
 procedure   ResetDesignatorPositionsNorm; forward;
 procedure   ResetDesignatorPositionsNormOrtho; forward;
 procedure   ResetDesignatorPositionsOrtho; forward;
-procedure   ResizeText(var Text : IPCB_Text; const width : TCoord; const height : TCoord); forward;
+procedure   ResizeText(var Text : IPCB_Text; const target_width : TCoord; const target_height : TCoord); forward;
 function    RotateTextToAngle(var Text : IPCB_Text; const Angle : Double; const Normalize : Boolean = False; const Ortho : Boolean = False) : Double; forward;
 function    SelectAllComponents(dummy : Boolean = False) : Integer; forward;
 procedure   SelectBoth; forward;
@@ -95,6 +108,7 @@ procedure   TAssemblyTextPrepForm.AssemblyTextPrepFormShow(Sender : TObject); fo
 procedure   TAssemblyTextPrepForm.ButtonAddDesignatorsClick(Sender: TObject); forward;
 procedure   TAssemblyTextPrepForm.ButtonAutoAdjustClick(Sender : TObject); forward;
 procedure   TAssemblyTextPrepForm.ButtonCancelClick(Sender : TObject); forward;
+procedure   TAssemblyTextPrepForm.ButtonCheckSelectedClick(Sender : TObject); forward;
 procedure   TAssemblyTextPrepForm.ButtonNormalizeAnyTextClick(Sender : TObject); forward;
 procedure   TAssemblyTextPrepForm.ButtonNormalizeDesignatorClick(Sender : TObject); forward;
 procedure   TAssemblyTextPrepForm.ButtonProcessClick(Sender : TObject); forward;
@@ -176,8 +190,8 @@ begin
         NewTextObj.Layer                    := AssyLayer;
         NewTextObj.UnderlyingString         := '.Designator';
         NewTextObj.FontID                   := 2; // Sans Serif stroke font
-        NewTextObj.Size                     := TEXTSIZENOM;   // sets the height of the text.
-        NewTextObj.Width                    := TEXTSIZENOM div 10;
+        NewTextObj.Size                     := TEXTHEIGHTNOM;   // sets the height of the text.
+        NewTextObj.Width                    := TEXTHEIGHTNOM div 10;
 
         if Comp.Layer = eTopLayer then NewTextObj.MirrorFlag := False
         else NewTextObj.MirrorFlag := True;
@@ -299,10 +313,7 @@ begin
 
             if Comp = nil then continue;  // skip if component not found
 
-            if iDebugLevel >= 2 then
-            begin
-                if i < 3 then Inspect_IPCB_Text(Text, 'BEFORE');
-            end;
+            if iDebugLevel >= 2 then Inspect_IPCB_Text(Text, 'BEFORE');
 
             Text.BeginModify;
             // need to turn on AdvanceSnapping (requires AD19+ but I'm not going to bother supporting old versions)
@@ -368,6 +379,7 @@ begin
             begin
                 DebugMessage(1, Comp.Name.Text + ' bounding box info' + sLineBreak + 'box_width: ' + CoordToStr(box_width) + sLineBreak + 'box_height: ' + CoordToStr(box_height));
 
+                // -1 = Don't rotate
                 if OrientationIndex <> -1 then
                 begin
                     // rotate text to match component
@@ -380,9 +392,9 @@ begin
                 else
                 begin
                     BRect := Comp.BoundingRectangleNoNameComment;
-                    box_width := (BRect.Right - BRect.Left) * 0.001;
+                    box_width := (BRect.Right - BRect.Left) * 0.001; // scale down to avoid overflow
                     box_height := (BRect.Top - BRect.Bottom) * 0.001;
-                    box_width := Round(Sqrt(box_width*box_width + box_height*box_height)) * 1000;
+                    box_width := Round(Sqrt(box_width*box_width + box_height*box_height)) * 1000; // use corner dist
                     ResizeText(Text, box_width, box_width);
                 end;
             end
@@ -398,10 +410,7 @@ begin
                 end;
             end;
 
-            if iDebugLevel >= 2 then
-            begin
-                if i < 3 then Inspect_IPCB_Text(Text, 'AFTER');
-            end;
+            if iDebugLevel >= 2 then Inspect_IPCB_Text(Text, 'AFTER');
         end;
     finally
         // Notify the pcbserver that all changes have been made (Stop undo)
@@ -449,31 +458,14 @@ begin
     ControlList := CreateObject(TObjectList);
     ControlList.OwnsObjects := False; // required to not throw invalid pointer errors when list is freed
 
-    ControlList.Add(tPreset1);
-    ControlList.Add(tPreset2);
-    ControlList.Add(tPreset3);
-    ControlList.Add(tPreset4);
-    ControlList.Add(tPreset5);
-    ControlList.Add(tPreset6);
-    ControlList.Add(tPreset7);
-    ControlList.Add(tPreset8);
-    ControlList.Add(tClearanceText);
-    ControlList.Add(tClearanceBody);
-    ControlList.Add(tClearancePad);
-    ControlList.Add(tClearanceCutout);
-    ControlList.Add(tClearanceDefault);
-    ControlList.Add(EditMaxDistance);
-    ControlList.Add(EditDistance);
-
-    EditString := EditDistance.Text;
+    ControlList.Add(EditSizeMin);
+    ControlList.Add(EditSizeNom);
+    ControlList.Add(EditSizeMax);
 
     for i := 0 to ControlList.Count - 1 do
     begin
         EditControl := ControlList[i];
         if EditControl = nil then continue;
-
-        // to work around presets triggering EditControl changes
-        if EditControl = EditDistance then EditControl.Text := EditString;
 
         TempString := EditControl.Text;
         if (LastDelimiter(',.', TempString) <> 0) then TempString[LastDelimiter(',.', TempString)] := DecimalSeparator;
@@ -523,6 +515,7 @@ var
     ConfigDebugCaption  : String;
     SettingsDebugFile   : String;
     SettingsDebugList   : TStringList;
+    TempString          : String;
 begin
     LocalSettingsFile := ExtractFilePath(GetRunningScriptProjectName) + cConfigFileName;
 
@@ -559,6 +552,14 @@ begin
         CheckBoxNormalize.Checked   := IniFile.ReadBool('Config', 'Normalize Text', CheckBoxNormalize.Checked);
         rgCenterStrategy.ItemIndex  := IniFile.ReadInteger('Config', 'Centering Strategy', rgCenterStrategy.ItemIndex);
         rgOrientation.ItemIndex     := IniFile.ReadInteger('Config', 'Designator Orientation', rgOrientation.ItemIndex);
+
+        TempString                  := IniFile.ReadString('Hidden Settings', 'stroke font height ratio', FloatToStr(cSTROKE_RATIO));
+        if IsStringANum(TempString) then STROKE_RATIO := StrToFloat(TempString) else STROKE_RATIO := cSTROKE_RATIO;
+        if STROKE_RATIO < 1.02 then STROKE_RATIO := 1.02; // 1.02 implies 1:50 stroke width:height
+        TempString                  := IniFile.ReadString('Hidden Settings', 'mil unit font size step', FloatToStr(cTEXTSTEPIMPERIAL));
+        if IsStringANum(TempString) then TEXTSTEPIMPERIAL := MilsToCoord(StrToFloat(TempString)) else TEXTSTEPIMPERIAL := MilsToCoord(cTEXTSTEPIMPERIAL);
+        TempString                  := IniFile.ReadString('Hidden Settings', 'mm unit font size step', FloatToStr(cTEXTSTEPMETRIC));
+        if IsStringANum(TempString) then TEXTSTEPMETRIC := MMsToCoord(StrToFloat(TempString)) else TEXTSTEPMETRIC := MilsToCoord(cTEXTSTEPMETRIC);
 
         if iDebugLevel > 0 then
         begin
@@ -606,6 +607,11 @@ begin
         IniFile.WriteBool('Config', 'Normalize Text', CheckBoxNormalize.Checked);
         IniFile.WriteInteger('Config', 'Centering Strategy', rgCenterStrategy.ItemIndex);
         IniFile.WriteInteger('Config', 'Designator Orientation', rgOrientation.ItemIndex);
+
+        IniFile.WriteString('Hidden Settings', 'Warning', 'This section allows customization of things you may want to customize so they aren''t lost if the script updates. Use at own risk.');
+        IniFile.WriteString('Hidden Settings', 'stroke font height ratio', FloatToStr(STROKE_RATIO));
+        IniFile.WriteString('Hidden Settings', 'mil unit font size step', FloatToStr(CoordToMils(TEXTSTEPIMPERIAL)));
+        IniFile.WriteString('Hidden Settings', 'mm unit font size step', FloatToStr(CoordToMMs(TEXTSTEPMETRIC)));
     finally
         IniFile.Free;
     end;
@@ -1587,6 +1593,7 @@ begin
                 Format('%s : %s', ['TextKind',  IntToStr(Text.TextKind)]) + sLineBreak +
                 Format('%s : %s', ['TTFInvertedTextJustify',  IntToStr(Text.TTFInvertedTextJustify)]) + sLineBreak +
                 Format('%s : %s', ['TTFTextWidth',  CoordToStr(Text.TTFTextWidth)]) + sLineBreak +
+                Format('%s : %s', ['TTFTextHeight',  CoordToStr(Text.TTFTextHeight)]) + sLineBreak +
                 Format('%s : %s', ['UseTTFonts',  BoolToStr(Text.UseTTFonts, True)]) + sLineBreak +
                 Format('%s : %s', ['Used',  BoolToStr(Text.Used, True)]) + sLineBreak +
                 Format('%s : %s', ['UserRouted',  BoolToStr(Text.UserRouted, True)]) + sLineBreak +
@@ -1690,7 +1697,7 @@ begin
     Result := False;
     if Text.Component = nil then exit;
 
-    Expansion := Round(Text.Size / 50000) * 10000; // 1/5th text size seems like enough clearance
+    if DEBUGEXPANSION = -1 then Expansion := Round(Text.Size / 50000) * 10000 else Expansion := DEBUGEXPANSION; // 1/5th text size seems like enough clearance
 
     TextPoly := GetObjPoly(Text); // get geometric polygon for text
 
@@ -1757,8 +1764,8 @@ begin
 
     if (Obj <> nil) and (iDebugLevel > 0) then
     begin
-        DebugMessage(2, 'TextPoly Contours' + sLineBreak + DebugGeometricPolygonInfo(TextPoly).Text + sLineBreak + 'Result = ' + BoolToStr(Result, True));
-        DebugMessage(2, Obj.Identifier + sLineBreak + 'ObjPoly Contours' + sLineBreak + DebugGeometricPolygonInfo(ObjPoly).Text);
+        DebugMessage(4, 'TextPoly Contours' + sLineBreak + DebugGeometricPolygonInfo(TextPoly).Text + sLineBreak + 'Result = ' + BoolToStr(Result, True));
+        DebugMessage(4, Obj.Identifier + sLineBreak + 'ObjPoly Contours' + sLineBreak + DebugGeometricPolygonInfo(ObjPoly).Text);
     end;
 
 end;
@@ -1909,79 +1916,109 @@ end;
 
 
 { procedure to scale text to approximately fit within the selected width and height }
-procedure ResizeText(var Text : IPCB_Text; const width : TCoord; const height : TCoord);
+procedure ResizeText(var Text : IPCB_Text; const target_width : TCoord; const target_height : TCoord);
 var
     temp_rotation   : double;
     width_ratio     : double;
-    TTF_ratio       : double;
+    height_ratio    : double;
     planned_height  : TCoord;
     TTF_min_height  : TCoord;
     min_height      : TCoord;
+    nom_height      : TCoord;
     max_height      : TCoord;
+    init_height     : TCoord;
     excess_height   : TCoord;
+    bStrokeFont     : Boolean; // get once to avoid accessing UseTTFonts property so much
 begin
-    height := MIN(height, TEXTSIZEMAX);
-    min_height := TEXTSIZEMIN;
-    max_height := TEXTSIZENOM;
-
+    bStrokeFont := Text.UseTTFonts = False;
+    init_height := TEXTHEIGHTNOM; // set a consistent initial height for initial scale calculations
+    target_height := MIN(target_height, TEXTHEIGHTMAX);
     temp_rotation := Text.Rotation;
     Text.BeginModify;
     Text.Rotation := 0;
-    Text.EndModify;
-
-    if Text.UseTTFonts then width_ratio := width / Text.TTFTextWidth else width_ratio := width / (Text.TTFTextWidth - Text.Width);
-
-    planned_height := Round(Text.Size * width_ratio / 10000) * 10000;
-
-    if planned_height > max_height then
+    Text.Size := init_height;
+    if bStrokeFont then Text.Width := Round(init_height * ((STROKE_RATIO - 1) / STROKEWIDTHSTEP)) * STROKEWIDTHSTEP;
+    if Text.MultiLine then
     begin
-        excess_height := Round((planned_height - max_height) / 20000) * 10000; // scale by 0.5 between MAX and ABSMAX
-        planned_height := max_height + excess_height;
+        Text.MultiLine := False;
+        Text.EndModify;
+        Text.BeginModify;
+        Text.MultiLine := True;
+    end;
+    Text.EndModify;
+    if iDebugLevel >= 2 then Application.ProcessMessages;
+    Text.GraphicallyInvalidate;
+
+    if iDebugLevel >= 2 then Inspect_IPCB_Text(Text, 'Initial setup. Beginning resize.');
+
+    // calculate ratio of target width to current width
+    if bStrokeFont then width_ratio := target_width / (Text.TTFTextWidth - Text.Width) else width_ratio := target_width / Text.TTFTextWidth;;
+
+    // calculate ratio of actual height to Text.Size
+    if bStrokeFont then height_ratio := STROKE_RATIO else height_ratio := Text.TTFTextHeight / Text.Size;;
+
+    min_height := Round((TEXTHEIGHTMIN / height_ratio) / STROKEWIDTHSTEP) * STROKEWIDTHSTEP;   // set min size correcting for actual height (round to STROKEWIDTHSTEP is intentional)
+    nom_height := Round((TEXTHEIGHTNOM / height_ratio) / STROKEWIDTHSTEP) * STROKEWIDTHSTEP;   // set nom size correcting for actual height
+
+    // multiply current size by width ratio to calculate what size would scale to target width (round to step size)
+    planned_height := Round(Text.Size * width_ratio / TEXTSTEPSIZE) * TEXTSTEPSIZE;
+
+    if planned_height > nom_height then
+    begin
+        excess_height := Round((planned_height - nom_height) / (2 * TEXTSTEPSIZE)) * TEXTSTEPSIZE; // scale by 0.5 between MAX and ABSMAX
+        planned_height := nom_height + excess_height;
     end;
 
     Text.BeginModify;
 
-    if Text.UseTTFonts then
-    begin
-        TTF_ratio := Text.TTFTextHeight / Text.Size;
-        if (planned_height * TTF_ratio) > height then planned_height := ((height / TTF_ratio) div 10000) * 10000;
-        TTF_min_height := Round(((min_height * 1.1) / TTF_ratio) div 1000) * 1000;   // round to 0.1mil instead for TTF, and adjust to approximately match stroke font height
-        Text.Size := Max(TTF_min_height, planned_height);  // enforce a minimum height
-    end
-    else
-    begin
-        if planned_height > height then planned_height := ((height / 1.1) div 10000) * 10000;    // scale down assuming stroke width is a tenth of character height
-        Text.Size := Max(min_height, planned_height);  // enforce a minimum height
-        Text.Width := Text.Size div 10;  // set stroke width to a tenth of the character height
-    end;
+    // limit planned height to target height or abs max height, whichever is smaller. (floor to step size)
+    max_height := MIN(Floor((TEXTHEIGHTMAX / height_ratio) / TEXTSTEPSIZE) * TEXTSTEPSIZE, Floor((target_height / height_ratio) / TEXTSTEPSIZE) * TEXTSTEPSIZE);
+    if planned_height > max_height then planned_height := max_height;
 
+    Text.Size := MAX(min_height, planned_height);  // enforce a minimum height
+    if bStrokeFont then Text.Width := Round(Text.Size * ((STROKE_RATIO - 1) / STROKEWIDTHSTEP)) * STROKEWIDTHSTEP;  // set stroke width, rounded to STROKEWIDTHSTEP
     Text.Rotation := temp_rotation; // undo temp rotation before checking clearance
 
     Text.EndModify;
+    Text.GraphicallyInvalidate;
 
-    while IsViolating(Text) do
+    if not IsViolating(Text) then
     begin
-        planned_height := Text.Size - 20000;
+        DebugMessage(2, 'Resized text interferes: ' + BoolToStr(IsViolating(Text), True));
+        exit;
+    end
+    else
+    begin
+        repeat
+            planned_height := planned_height - (2 * TEXTSTEPSIZE); // simple solution is just to brute force 2 steps at a time
 
-        Text.BeginModify;
+            Text.BeginModify;
 
-        if Text.UseTTFonts then
-        begin
-            Text.Size := Max(TTF_min_height, planned_height);
-            if planned_height <= TTF_min_height then break;
-        end
-        else
-        begin
-            Text.Size := Max(min_height, planned_height);  // enforce a minimum height
-            Text.Width := Text.Size div 10;  // set stroke width to a tenth of the character height
-            if planned_height <= min_height then break;
-        end;
+            Text.Size := MAX(min_height, planned_height);  // enforce a minimum height
+            if bStrokeFont then Text.Width := Round(Text.Size * ((STROKE_RATIO - 1) / STROKEWIDTHSTEP)) * STROKEWIDTHSTEP;  // set stroke width, rounded to STROKEWIDTHSTEP
 
-        Text.EndModify;
-        Text.GraphicallyInvalidate;
-        if iDebugLevel >= 2 then Application.ProcessMessages;
-        DebugMessage(2, 'Text.Size = ' + CoordToStr(Text.Size));
+            if Text.MultiLine then
+            begin
+                Text.MultiLine := False;
+                Text.EndModify;
+                Text.BeginModify;
+                Text.MultiLine := True;
+            end;
+
+            Text.EndModify;
+            //Text.GraphicallyInvalidate;
+            if iDebugLevel >= 2 then Application.ProcessMessages;
+            DebugMessage(3, 'Text.Size = ' + CoordToStr(Text.Size));
+
+            if planned_height <= min_height then
+            begin
+                Text.EndModify;
+                //Text.GraphicallyInvalidate;
+                break;
+            end;
+        until (not IsViolating(Text));
     end;
+    //if iDebugLevel >= 2 then Inspect_IPCB_Text(Text, 'After reduction loop.');
 
     DebugMessage(2, 'Resized text interferes: ' + BoolToStr(IsViolating(Text), True));
 end;
@@ -2186,7 +2223,7 @@ begin
     // set AD build flag
     if (GetBuildNumberPart(Client.GetProductVersion, 0) >= 19) then IsAtLeastAD19 := True else IsAtLeastAD19 := False;
 
-    ConfigFile_Read(ConfigFile_GetPath);
+    //ConfigFile_Read(ConfigFile_GetPath);
 end;
 
 
@@ -2201,7 +2238,6 @@ end;
 
 procedure TAssemblyTextPrepForm.AssemblyTextPrepFormShow(Sender : TObject);
 begin
-    UpdateConstants;
 
     LabelVersion.Caption := 'About v' + cScriptVersion;
 
@@ -2214,7 +2250,9 @@ begin
         'Centroid of Pads: center of rectangle that encloses component-layer pads.' + sLineBreak +
         'Footprint Origin: center on component origin. Resize using center of pads.';
 
-    //ConfigFile_Read(ConfigFile_GetPath); // moved to FormCreate
+    ConfigFile_Read(ConfigFile_GetPath); // moved to FormCreate
+
+    UpdateConstants;
 
     // put after initial config read so we can load local settings file if it exists, but then force non-local save location
     if FolderIsReadOnly(ExtractFilePath(GetRunningScriptProjectName)) then
@@ -2285,6 +2323,24 @@ begin
 end; { TAssemblyTextPrepForm.ButtonCancelClick }
 
 
+procedure TAssemblyTextPrepForm.ButtonCheckSelectedClick(Sender : TObject);
+var
+    i   : Integer;
+    Obj : IPCB_ObjectClass;
+begin
+    for i := Board.SelectecObjectCount - 1 downto 0 do
+    begin
+        Obj := Board.SelectecObject[i];
+        //if Obj = nil then continue;
+        if (Obj.ObjectId = eTextObject) and IsViolating(Obj) then continue;
+
+        Obj.Selected := False;
+        Obj.GraphicallyInvalidate;
+    end;
+    if Board.SelectecObjectCount > 0 then ShowWarning(IntToStr(Board.SelectecObjectCount) + ' violating text found');
+end;
+
+
 procedure TAssemblyTextPrepForm.ButtonNormalizeAnyTextClick(Sender : TObject);
 begin
     NormalizeSelectedWithJustification;
@@ -2309,6 +2365,7 @@ var
     mResponse   : Integer;
     status      : Integer;
 begin
+    BeginHourGlass;
     if rgSelectionScope.ItemIndex = 0 then
     begin
         ClientDeselectAll;
@@ -2550,21 +2607,29 @@ begin
     case MMmilButton.Caption of
         'mil':
         begin
-            StringToCoordUnit(EditSizeMin.Text, TEXTSIZEMIN, eImperial);
-            StringToCoordUnit(EditSizeNom.Text, TEXTSIZENOM, eImperial);
-            StringToCoordUnit(EditSizeMax.Text, TEXTSIZEMAX, eImperial);
+            StringToCoordUnit(EditSizeMin.Text, TEXTHEIGHTMIN, eImperial);
+            StringToCoordUnit(EditSizeNom.Text, TEXTHEIGHTNOM, eImperial);
+            StringToCoordUnit(EditSizeMax.Text, TEXTHEIGHTMAX, eImperial);
+            TEXTSTEPSIZE := TEXTSTEPIMPERIAL;
+            STROKEWIDTHSTEP := MilsToCoord(cSTROKEWIDTHSTEP_MIL);
         end;
         'mm':
         begin
-            StringToCoordUnit(EditSizeMin.Text, TEXTSIZEMIN, eMetric);
-            StringToCoordUnit(EditSizeNom.Text, TEXTSIZENOM, eMetric);
-            StringToCoordUnit(EditSizeMax.Text, TEXTSIZEMAX, eMetric);
+            StringToCoordUnit(EditSizeMin.Text, TEXTHEIGHTMIN, eMetric);
+            StringToCoordUnit(EditSizeNom.Text, TEXTHEIGHTNOM, eMetric);
+            StringToCoordUnit(EditSizeMax.Text, TEXTHEIGHTMAX, eMetric);
+            TEXTSTEPSIZE := TEXTSTEPMETRIC;
+            STROKEWIDTHSTEP := MMsToCoord(cSTROKEWIDTHSTEP_MM);
         end;
         else
         begin
             // invalid
         end;
     end;
+
+    TEXTHEIGHTMIN := MAX(10000, TEXTHEIGHTMIN); // protect from invalid input
+    TEXTHEIGHTNOM := MAX(10000, TEXTHEIGHTNOM); // protect from invalid input
+    TEXTHEIGHTMAX := MAX(10000, TEXTHEIGHTMAX); // protect from invalid input
 
     ASPECT_RATIO_TOL := StrToFloat(EditAspectRatioTol.Text);
 end;
