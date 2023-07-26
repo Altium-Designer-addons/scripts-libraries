@@ -67,3 +67,4 @@ There might be some value in adding a function to check that all components *hav
 - 2023-06-21 by Ryan Rutledge : SelectAssyDesignators v1.7 - refactored rotation into its own function to make the code more modular and to steal the function for other scripts
 - 2023-07-05 by Ryan Rutledge : SelectAssyDesignators v1.8 - added command to normalize any selected text while preserving justification
 - 2023-07-24 by Ryan Rutledge : AssemblyTextPrep v0.80 - initial pre-release to hopefully get some feedback before v1.00
+- 2023-07-26 by Ryan Rutledge : AssemblyTextPrep v0.81 - bug fixes and refinement
