@@ -5,16 +5,32 @@ const
     cMaxMechLayers          = 1024;
     cScriptTitle            = 'AssemblyTextPrep';
     cConfigFileName         = 'AssemblyTextPrepConfig.ini';
-    cScriptVersion          = '0.81';
+    cScriptVersion          = '0.82';
     cDEBUGLEVEL             = 0;
 
     DEBUGEXPANSION          = 0; // leave at -1 to disable
     // font defaults for hidden settings
     cSTROKE_RATIO           = 1.1111; // desired ratio of stroke font actual height to `size` parameter. 1.1111 will give stroke width of 1/9th of size (1 + 1/9)
-    cTEXTSTEPIMPERIAL       = 1; // [mils] text size will be rounded to this
-    cTEXTSTEPMETRIC         = 0.025; // [mm] text size will be rounded to this
+    cSIZEMULT_IMPERIAL      = 1; // [mils] text size will be rounded to this
+    cSIZEMULT_METRIC        = 0.025; // [mm] text size will be rounded to this
     cSTROKEWIDTHSTEP_MIL    = 0.1; // [mils] stroke width will be rounded to this
     cSTROKEWIDTHSTEP_MM     = 0.01; // [mm] stroke width will be rounded to this
+    //status bar commands
+    cStatusBar_Panel1               =  1;
+    cStatusBar_Panel2               =  2;
+    cStatusBar_Panel3               =  3;
+    cStatusBar_Panel4               =  4;
+    cStatusBar_SetDefault           = -1;
+    cStatusBar_WindowCaption        = -2;
+    cStatusBar_Push                 = -3;
+    cStatusBar_Pop                  = -4;
+    cStatusBar_ProgressBarStart     = -5;
+    cStatusBar_ProgressBarStop      = -6;
+    cStatusBar_ProgressBarStep      = -7;
+    cStatusBar_ComplexOpBegin       = -8;
+    cStatusBar_ComplexOpEnd         = -9;
+    cStatusBar_UndeterminedOpBegin  = -10;
+    cStatusBar_UndeterminedOpEnd    = -11;
 
 var
     ASSY_LAYER_TOP          : TV7_Layer;
@@ -22,6 +38,8 @@ var
     ASSY_LAYERS_STR         : String;
     bForbidLocalSettings    : Boolean;
     bIgnoreCBChange         : Boolean;
+    bProcessing             : Boolean;
+    bMetricUnits            : Boolean;
     IsTextSelectable        : Boolean;
     IsCompSelectable        : Boolean;
     Board                   : IPCB_Board;
@@ -35,10 +53,13 @@ var
     STROKE_RATIO            : Double;
     STROKEWIDTHSTEP         : TCoord;
     TEXTSTEPSIZE            : TCoord;
-    TEXTSTEPIMPERIAL        : TCoord;
-    TEXTSTEPMETRIC          : TCoord;
+    SIZEMULT_IMPERIAL       : Double;
+    SIZEMULT_METRIC         : Double;
     ASPECT_RATIO_TOL        : Double; // height:width ratio must exceed this to trigger rotation in Best Fit mode
-
+    gvCurrentPercentCount   : Integer;
+    gvTotalPercentCount     : Integer;
+    gvOldPercent            : Integer;
+    gvMarquee               : Boolean;
 
 procedure   _GUI; forward;
 procedure   About; forward;
@@ -67,6 +88,7 @@ procedure   DesignatorAutoAdjust; forward;
 procedure   DesignatorOrthoResize; forward;
 procedure   DesignatorResize; forward;
 function    DocumentIsPCB : Boolean; forward;
+function    FolderIsReadOnly(const AFolderPath : String) : Boolean; forward;
 function    GetAnyDesignator(dummy : Boolean = False) : IPCB_Text; forward;
 function    GetAssyLayer(ALayer : TLayer) : TV7_Layer; forward;
 function    GetBRectOnLayer_Pad(Pad : IPCB_Pad; ALayer : TV7_Layer) : TCoordRect; forward;
@@ -80,6 +102,11 @@ function    GetObjPoly(Obj: IPCB_ObjectClass, Expansion: TCoord = 0) : IPCB_Geom
 function    GetSelectedAssyTextCount(dummy : Boolean = False) : Integer; forward;
 function    GetSelectedComponentCount(dummy : Boolean = False) : Integer; forward;
 function    GetSelectedInvalidCount(dummy : Boolean = False) : Integer; forward;
+procedure   GUI_BeginProcess(dummy : Boolean = False); forward;
+procedure   GUI_EndProcess(dummy : Boolean = False); forward;
+function    GUI_ForLoopStart(StatusMsg : String; LoopCount : Integer) : Integer; forward;
+procedure   GUI_LoopEnd(dummy : Boolean = False); forward;
+procedure   GUI_LoopProgress(StatusMsg : String = ''); forward;
 procedure   InitialCheckGUI(var status : Integer); forward;
 procedure   InitialCheckSelectBoth(var status : Integer); forward;
 procedure   InitialCheckSelectComponents(var status : Integer); forward;
@@ -97,6 +124,8 @@ procedure   ResetDesignatorPositionsNormOrtho; forward;
 procedure   ResetDesignatorPositionsOrtho; forward;
 procedure   ResizeText(var Text : IPCB_Text; const target_width : TCoord; const target_height : TCoord); forward;
 function    RotateTextToAngle(var Text : IPCB_Text; const Angle : Double; const Normalize : Boolean = False; const Ortho : Boolean = False) : Double; forward;
+function    RoundCoordAuto(coords : TCoord) : TCoord; forward;
+function    RoundCoords(coords : TCoord; round_mult : Double; units : TUnit) : TCoord; forward;
 function    SelectAllComponents(dummy : Boolean = False) : Integer; forward;
 procedure   SelectBoth; forward;
 procedure   SelectComponents; forward;
@@ -128,6 +157,22 @@ procedure   TAssemblyTextPrepForm.LabelVersionClick(Sender : TObject); forward;
 procedure   TAssemblyTextPrepForm.MMmilButtonClick(Sender : TObject); forward;
 procedure   TAssemblyTextPrepForm.UserKeyPress(Sender : TObject; var Key : Char); forward;
 procedure   UpdateConstants(dummy : Boolean = False); forward;
+procedure   MyStatusBar_SetStateDefault(dummy : Boolean = False); forward;
+procedure   MyStatusBar_SetState(Index : Integer; const S : WideString); forward;
+procedure   MyStatusBar_PushStatus(dummy : Boolean = False); forward;
+procedure   MyStatusBar_PopStatus(dummy : Boolean = False); forward;
+function    MyStatusBar_GetState(Index : Integer) : Widestring; forward;
+function    MyPercentActive(dummy : Boolean = False) : Boolean; forward;
+procedure   MyPercent_UpdateByNumber(AmountToIncrement : Integer; StatusMsg : String = ''); forward;
+procedure   MyPercent_Update(StatusMsg : String = ''); forward;
+function    MyPercent_GetTotal(dummy : Boolean = False) : Integer; forward;
+procedure   MyPercent_Init(const InitialString : String ; TotalCount : Integer); forward;
+procedure   MyPercent_Finish(dummy : Boolean = False); forward;
+procedure   MyPercent_EndUndeterminedOperation(dummy : Boolean = False); forward;
+procedure   MyPercent_EndComplexOperation(dummy : Boolean = False); forward;
+procedure   MyPercent_BeginUndeterminedOperation(const InitialString : String); forward;
+procedure   MyPercent_BeginComplexOperation(const InitialString : String); forward;
+function    MyMarqueeActive(dummy : Boolean = False) : Boolean; forward;
 
 
 { Main GUI }
@@ -300,8 +345,7 @@ begin
         end;
     end;
 
-    // Notify the pcbserver that we will make changes (Start undo)
-    PCBServer.PreProcess;
+    GUI_ForLoopStart('Processing designators', Board.SelectecObjectCount);
     try
         // at this point we have a selection of text objects
         // For each Text object selected:
@@ -411,16 +455,16 @@ begin
             end;
 
             if iDebugLevel >= 2 then Inspect_IPCB_Text(Text, 'AFTER');
+
+            GUI_LoopProgress(Format('Processing designators', [i, MyPercent_GetTotal]));
         end;
     finally
-        // Notify the pcbserver that all changes have been made (Stop undo)
-        PCBServer.PostProcess;
+        GUI_LoopEnd;
     end;
 
     ClientZoomRedraw;
 
 end;
-
 
 function CalculateCentroid(const contour : IPCB_Contour; out CentroidX : TCoord; out CentroidY : TCoord) : Boolean;
 var
@@ -556,10 +600,14 @@ begin
         TempString                  := IniFile.ReadString('Hidden Settings', 'stroke font height ratio', FloatToStr(cSTROKE_RATIO));
         if IsStringANum(TempString) then STROKE_RATIO := StrToFloat(TempString) else STROKE_RATIO := cSTROKE_RATIO;
         if STROKE_RATIO < 1.02 then STROKE_RATIO := 1.02; // 1.02 implies 1:50 stroke width:height
-        TempString                  := IniFile.ReadString('Hidden Settings', 'mil unit font size step', FloatToStr(cTEXTSTEPIMPERIAL));
-        if IsStringANum(TempString) then TEXTSTEPIMPERIAL := MilsToCoord(StrToFloat(TempString)) else TEXTSTEPIMPERIAL := MilsToCoord(cTEXTSTEPIMPERIAL);
-        TempString                  := IniFile.ReadString('Hidden Settings', 'mm unit font size step', FloatToStr(cTEXTSTEPMETRIC));
-        if IsStringANum(TempString) then TEXTSTEPMETRIC := MMsToCoord(StrToFloat(TempString)) else TEXTSTEPMETRIC := MilsToCoord(cTEXTSTEPMETRIC);
+
+        TempString                  := IniFile.ReadString('Hidden Settings', 'mil units font size step', FloatToStr(cSIZEMULT_IMPERIAL));
+        if IsStringANum(TempString) then SIZEMULT_IMPERIAL := StrToFloat(TempString) else SIZEMULT_IMPERIAL := cSIZEMULT_IMPERIAL;
+        if SIZEMULT_IMPERIAL <= 0 then SIZEMULT_IMPERIAL := cSIZEMULT_IMPERIAL;
+
+        TempString                  := IniFile.ReadString('Hidden Settings', 'mm units font size step', FloatToStr(cSIZEMULT_METRIC));
+        if IsStringANum(TempString) then SIZEMULT_METRIC := StrToFloat(TempString) else SIZEMULT_METRIC := cSIZEMULT_METRIC;
+        if SIZEMULT_METRIC <= 0 then SIZEMULT_METRIC := cSIZEMULT_METRIC;
 
         if iDebugLevel > 0 then
         begin
@@ -610,8 +658,8 @@ begin
 
         IniFile.WriteString('Hidden Settings', 'Warning', 'This section allows customization of things you may want to customize so they aren''t lost if the script updates. Use at own risk.');
         IniFile.WriteString('Hidden Settings', 'stroke font height ratio', FloatToStr(STROKE_RATIO));
-        IniFile.WriteString('Hidden Settings', 'mil unit font size step', FloatToStr(CoordToMils(TEXTSTEPIMPERIAL)));
-        IniFile.WriteString('Hidden Settings', 'mm unit font size step', FloatToStr(CoordToMMs(TEXTSTEPMETRIC)));
+        IniFile.WriteString('Hidden Settings', 'mil units font size step', FloatToStr(SIZEMULT_IMPERIAL));
+        IniFile.WriteString('Hidden Settings', 'mm units font size step', FloatToStr(SIZEMULT_METRIC));
     finally
         IniFile.Free;
     end;
@@ -802,9 +850,9 @@ end;
 function DocumentIsPCB : Boolean;
 begin
     // set AD build flag
-    if (GetBuildNumberPart(Client.GetProductVersion, 0) >= 19) then IsAtLeastAD19 := True else IsAtLeastAD19 := False;
-
-    iDebugLevel := cDEBUGLEVEL;
+    if not Assigned(IsAtLeastAD19) then if (GetBuildNumberPart(Client.GetProductVersion, 0) >= 19) then IsAtLeastAD19 := True else IsAtLeastAD19 := False;
+    if not Assigned(iDebugLevel) then iDebugLevel := cDEBUGLEVEL;
+    if not Assigned(bProcessing) then bProcessing := False;
 
     // Checks if current document is a PCB kind if not, show error and return false.
     Board := PCBServer.GetCurrentPCBBoard;
@@ -814,6 +862,23 @@ begin
         Result := False;
     end
     else Result := True;
+end;
+
+
+function FolderIsReadOnly(const AFolderPath : String) : Boolean;
+var
+    TempFile: String;
+    FileHandle: Integer;
+begin
+    Result := True;
+    TempFile := IncludeTrailingPathDelimiter(AFolderPath) + 'temp.tmp';
+    FileHandle := FileCreate(TempFile);
+    if FileHandle > 0 then
+    begin
+        FileClose(FileHandle);
+        DeleteFile(TempFile);
+        Result := False;
+    end;
 end;
 
 
@@ -1258,6 +1323,50 @@ end;
 function GetSelectedInvalidCount(dummy : Boolean = False) : Integer;
 begin
     Result := GetSelectedComponentCount - GetSelectedAssyTextCount;
+end;
+
+procedure GUI_BeginProcess(dummy : Boolean = False);
+begin
+    if bProcessing = False then
+    begin
+        PCBServer.PreProcess; // start undo
+        SetButtonEnableStates(False);
+        bProcessing := True;
+        BeginHourGlass;
+    end;
+end;
+
+
+procedure GUI_EndProcess(dummy : Boolean = False);
+begin
+    if bProcessing = True then
+    begin
+        EndHourGlass;
+        bProcessing := False;
+        SetButtonEnableStates(True);
+        PCBServer.PostProcess; // end undo
+    end;
+end;
+
+
+function GUI_ForLoopStart(StatusMsg : String; LoopCount : Integer) : Integer;
+begin
+    Result := LoopCount;
+    MyPercent_Init(StatusMsg, LoopCount);
+    GUI_BeginProcess;
+end;
+
+
+procedure GUI_LoopEnd(dummy : Boolean = False);
+begin
+    GUI_EndProcess;
+    MyPercent_Finish;
+end;
+
+
+procedure GUI_LoopProgress(StatusMsg : String = '');
+begin
+    MyPercent_Update(StatusMsg);
 end;
 
 
@@ -1961,19 +2070,19 @@ begin
     nom_height := Round((TEXTHEIGHTNOM / height_ratio) / STROKEWIDTHSTEP) * STROKEWIDTHSTEP;   // set nom size correcting for actual height
 
     // multiply current size by width ratio to calculate what size would scale to target width (round to step size)
-    planned_height := Round(Text.Size * width_ratio / TEXTSTEPSIZE) * TEXTSTEPSIZE;
+    planned_height := RoundCoordAuto(Text.Size * width_ratio);
 
     if planned_height > nom_height then
     begin
         excess_height := Round((planned_height - nom_height) / (2 * TEXTSTEPSIZE)) * TEXTSTEPSIZE; // scale by 0.5 between MAX and ABSMAX
-        planned_height := nom_height + excess_height;
+        planned_height := RoundCoordAuto(nom_height + excess_height);
     end;
 
     Text.BeginModify;
 
     // limit planned height to target height or abs max height, whichever is smaller. (floor to step size)
     max_height := MIN(Floor((TEXTHEIGHTMAX / height_ratio) / TEXTSTEPSIZE) * TEXTSTEPSIZE, Floor((target_height / height_ratio) / TEXTSTEPSIZE) * TEXTSTEPSIZE);
-    if planned_height > max_height then planned_height := max_height;
+    if planned_height > max_height then planned_height := RoundCoordAuto(max_height);
 
     Text.Size := MAX(min_height, planned_height);  // enforce a minimum height
     if bStrokeFont then Text.Width := Round(Text.Size * ((STROKE_RATIO - 1) / STROKEWIDTHSTEP)) * STROKEWIDTHSTEP;  // set stroke width, rounded to STROKEWIDTHSTEP
@@ -1990,7 +2099,7 @@ begin
     else
     begin
         repeat
-            planned_height := planned_height - (2 * TEXTSTEPSIZE); // simple solution is just to brute force 2 steps at a time
+            planned_height := RoundCoordAuto(planned_height - (2 * TEXTSTEPSIZE)); // simple solution is just to brute force 2 steps at a time
 
             Text.BeginModify;
 
@@ -2051,6 +2160,28 @@ begin
     end;
 
     Result := Text.Rotation;
+end;
+
+
+function RoundCoordAuto(coords : TCoord) : TCoord;
+begin
+    if bMetricUnits then Result := RoundCoords(coords, SIZEMULT_METRIC, eMetric)
+    else Result := RoundCoords(coords, SIZEMULT_IMPERIAL, eImperial);
+end;
+
+function RoundCoords(coords : TCoord; round_mult : Double; units : TUnit) : TCoord;
+begin
+    case units of
+        eImperial: begin
+            Result := MilsToCoord(Round(CoordToMils(coords) / round_mult) * round_mult);
+        end;
+        eMetric: begin
+            Result := MMsToCoord(Round(CoordToMMs(coords) / round_mult) * round_mult);
+        end;
+        else begin
+            Result := coords; // invalid
+        end;
+    end;
 end;
 
 
@@ -2200,15 +2331,23 @@ end;
 
 procedure SetButtonEnableStates(EnableState : Boolean);
 begin
-    ButtonAutoAdjust.Enabled            := EnableState;
-    ButtonNormalizeAnyText.Enabled      := EnableState;
-    ButtonNormalizeDesignator.Enabled   := EnableState;
-    ButtonProcess.Enabled               := EnableState;
-    ButtonResetCenter.Enabled           := EnableState;
-    ButtonResetOrigin.Enabled           := EnableState;
-    ButtonResizeNoMove.Enabled          := EnableState;
-    ButtonSaveConfig.Enabled            := EnableState;
-    MMmilButton.Enabled                 := EnableState;
+    ButtonAddDesignators.Enabled            := EnableState;
+    ButtonAutoAdjust.Enabled                := EnableState;
+    ButtonCancel.Enabled                    := EnableState;
+    ButtonCheckSelected.Enabled             := EnableState;
+    ButtonNormalizeAnyText.Enabled          := EnableState;
+    ButtonNormalizeDesignator.Enabled       := EnableState;
+    ButtonProcess.Enabled                   := EnableState;
+    ButtonResetCenter.Enabled               := EnableState;
+    ButtonResetOrigin.Enabled               := EnableState;
+    ButtonResizeNoMove.Enabled              := EnableState;
+    ButtonSaveConfig.Enabled                := EnableState;
+    ButtonSelectBoth.Enabled                := EnableState;
+    ButtonSelectComponents.Enabled          := EnableState;
+    ButtonSelectDesignators.Enabled         := EnableState;
+    ButtonSelectMissing.Enabled             := EnableState;
+    ButtonZoomSelected.Enabled              := EnableState;
+    MMmilButton.Enabled                     := EnableState;
 
     if bForbidLocalSettings then CheckBoxLocalSettings.Enabled := False else CheckBoxLocalSettings.Enabled := EnableState;
 
@@ -2291,23 +2430,23 @@ begin
 
     ClientDeSelectAll;
 
-    PCBServer.PreProcess; // Start undo
-    BeginHourGlass;
-    for i := 0 to TargetList.Count - 1 do
-    begin
-        Comp := TargetList[i];
-        if AddAssyTextToCompFromStyle(Comp, TextTemplate) then TextObj := GetDesignator(Comp);
-        if TextObj <> nil then
+    GUI_BeginProcess;
+    try
+        for i := 0 to TargetList.Count - 1 do
         begin
-            TextObj.Selected := True;
-            TextObj.GraphicallyInvalidate;
+            Comp := TargetList[i];
+            if AddAssyTextToCompFromStyle(Comp, TextTemplate) then TextObj := GetDesignator(Comp);
+            if TextObj <> nil then
+            begin
+                TextObj.Selected := True;
+                TextObj.GraphicallyInvalidate;
+            end;
         end;
+
+        AdjustDesignatorPositions(0, 0, True, True);
+    finally
+        GUI_EndProcess;
     end;
-
-    AdjustDesignatorPositions(0, 0, True, True);
-
-    EndHourGlass;
-    PCBServer.PostProcess;
 end;
 
 
@@ -2328,16 +2467,22 @@ var
     i   : Integer;
     Obj : IPCB_ObjectClass;
 begin
-    for i := Board.SelectecObjectCount - 1 downto 0 do
-    begin
-        Obj := Board.SelectecObject[i];
-        //if Obj = nil then continue;
-        if (Obj.ObjectId = eTextObject) and IsViolating(Obj) then continue;
+    GUI_BeginProcess;
+    try
+        for i := Board.SelectecObjectCount - 1 downto 0 do
+        begin
+            Obj := Board.SelectecObject[i];
+            //if Obj = nil then continue;
+            if (Obj.ObjectId = eTextObject) and IsViolating(Obj) then continue;
 
-        Obj.Selected := False;
-        Obj.GraphicallyInvalidate;
+            Obj.Selected := False;
+            Obj.GraphicallyInvalidate;
+        end;
+        if Board.SelectecObjectCount > 0 then ShowWarning(IntToStr(Board.SelectecObjectCount) + ' violating text found');
+
+    finally
+        GUI_EndProcess;
     end;
-    if Board.SelectecObjectCount > 0 then ShowWarning(IntToStr(Board.SelectecObjectCount) + ' violating text found');
 end;
 
 
@@ -2349,11 +2494,17 @@ end;
 
 procedure TAssemblyTextPrepForm.ButtonNormalizeDesignatorClick(Sender : TObject);
 begin
+    GUI_BeginProcess;
+    try
     SelectBoth;
     DeselectInvalidComponents;
     if not ((GetSelectedComponentCount > 0) and (GetSelectedAssyTextCount > 0)) then exit;
     SelectDesignators;
     NormalizeSelectedWithJustification;
+
+    finally
+        GUI_EndProcess;
+    end;
 end;
 
 
@@ -2365,53 +2516,55 @@ var
     mResponse   : Integer;
     status      : Integer;
 begin
-    BeginHourGlass;
-    if rgSelectionScope.ItemIndex = 0 then
-    begin
-        ClientDeselectAll;
-        SelectAllComponents;
-        ClientZoomSelected;  // zoom on the selected components
-        CompCount := Board.SelectecObjectCount;
-        DeselectInvalidComponents;
-    end
-    else
-    begin
-        InitialCheckSelectBoth(status);
-        if status <> 0 then exit;
-        CompCount := Board.SelectecObjectCount;
-        SelectBoth;
-        SelectComponents;
-        DeselectInvalidComponents;
-    end;
-
-    if Board.SelectecObjectCount < CompCount then
-    begin
-        EndHourGlass;
-        if Board.SelectecObjectCount = 0 then
+    GUI_BeginProcess;
+    try
+        if rgSelectionScope.ItemIndex = 0 then
         begin
-            if ConfirmNoYes('No valid components found. Do you want to select components missing .Designator special strings?') then mResponse := mrNo else mResponse := mrCancel;
+            ClientDeselectAll;
+            SelectAllComponents;
+            ClientZoomSelected;  // zoom on the selected components
+            CompCount := Board.SelectecObjectCount;
+            DeselectInvalidComponents;
         end
-        else mResponse := ConfirmNoYesCancel(IntToStr(CompCount - Board.SelectecObjectCount) +
-                ' components were deselected because they are missing .Designator special strings. Continue?' + sLineBreak +
-                'YES to continue | NO to cancel operation and select invalid components.');
-        case mResponse of
-            mrCancel : exit;
-            mrNo: begin
-                ClientDeSelectAll;
-                BeginHourGlass;
-                SelectAllComponents;
-                DeselectValidComponents;
-                ClientZoomSelected;
-                EndHourGlass;
-                ReportFootprintNames('Footprints missing .Designator special strings:');
-                exit;
+        else
+        begin
+            InitialCheckSelectBoth(status);
+            if status <> 0 then exit;
+            CompCount := Board.SelectecObjectCount;
+            SelectBoth;
+            SelectComponents;
+            DeselectInvalidComponents;
+        end;
+
+        if Board.SelectecObjectCount < CompCount then
+        begin
+            EndHourGlass;
+            if Board.SelectecObjectCount = 0 then
+            begin
+                if ConfirmNoYes('No valid components found. Do you want to select components missing .Designator special strings?') then mResponse := mrNo else mResponse := mrCancel;
+            end
+            else mResponse := ConfirmNoYesCancel(IntToStr(CompCount - Board.SelectecObjectCount) +
+                    ' components were deselected because they are missing .Designator special strings. Continue?' + sLineBreak +
+                    'YES to continue | NO to cancel operation and select invalid components.');
+            case mResponse of
+                mrCancel : exit;
+                mrNo: begin
+                    ClientDeSelectAll;
+                    BeginHourGlass;
+                    SelectAllComponents;
+                    DeselectValidComponents;
+                    ClientZoomSelected;
+                    EndHourGlass;
+                    ReportFootprintNames('Footprints missing .Designator special strings:');
+                    exit;
+                end;
             end;
         end;
+        // process selected components using GUI settings
+        AdjustDesignatorPositions(rgCenterStrategy.ItemIndex, rgOrientation.ItemIndex, CheckBoxResize.Checked, CheckBoxNormalize.Checked);
+    finally
+        GUI_EndProcess;
     end;
-    // process selected components using GUI settings
-    AdjustDesignatorPositions(rgCenterStrategy.ItemIndex, rgOrientation.ItemIndex, CheckBoxResize.Checked, CheckBoxNormalize.Checked);
-
-    EndHourGlass;
 
     ConfigFile_Write(ConfigFile_GetPath);
 end; { TAssemblyTextPrepForm.ButtonProcessClick }
@@ -2453,25 +2606,37 @@ end;
 
 procedure TAssemblyTextPrepForm.ButtonSelectComponentsClick(Sender : TObject);
 begin
-    SelectComponents;
+    GUI_BeginProcess;
+    try
+        SelectComponents;
+    finally
+        GUI_EndProcess;
+    end;
 end;
 
 
 procedure TAssemblyTextPrepForm.ButtonSelectDesignatorsClick(Sender : TObject);
 begin
-    SelectDesignators;
+    GUI_BeginProcess;
+    try
+        SelectDesignators;
+    finally
+        GUI_EndProcess;
+    end;
 end;
 
 
 procedure TAssemblyTextPrepForm.ButtonSelectMissingClick(Sender: TObject);
 begin
-    ClientDeSelectAll;
-    BeginHourGlass;
-    SelectAllComponents;
-    DeselectValidComponents;
-    ClientZoomSelected;
-    EndHourGlass;
-
+    GUI_BeginProcess;
+    try
+        ClientDeSelectAll;
+        SelectAllComponents;
+        DeselectValidComponents;
+        ClientZoomSelected;
+    finally
+        GUI_EndProcess;
+    end;
     if Board.SelectecObjectCount = 0 then ShowInfo('No components missing .Designator strings.')
     else ReportFootprintNames('Footprints missing .Designator special strings:');
 end;
@@ -2610,16 +2775,18 @@ begin
             StringToCoordUnit(EditSizeMin.Text, TEXTHEIGHTMIN, eImperial);
             StringToCoordUnit(EditSizeNom.Text, TEXTHEIGHTNOM, eImperial);
             StringToCoordUnit(EditSizeMax.Text, TEXTHEIGHTMAX, eImperial);
-            TEXTSTEPSIZE := TEXTSTEPIMPERIAL;
+            TEXTSTEPSIZE    := MilsToCoord(SIZEMULT_IMPERIAL);
             STROKEWIDTHSTEP := MilsToCoord(cSTROKEWIDTHSTEP_MIL);
+            bMetricUnits    := False;
         end;
         'mm':
         begin
             StringToCoordUnit(EditSizeMin.Text, TEXTHEIGHTMIN, eMetric);
             StringToCoordUnit(EditSizeNom.Text, TEXTHEIGHTNOM, eMetric);
             StringToCoordUnit(EditSizeMax.Text, TEXTHEIGHTMAX, eMetric);
-            TEXTSTEPSIZE := TEXTSTEPMETRIC;
+            TEXTSTEPSIZE    := MMsToCoord(SIZEMULT_METRIC);
             STROKEWIDTHSTEP := MMsToCoord(cSTROKEWIDTHSTEP_MM);
+            bMetricUnits    := True;
         end;
         else
         begin
@@ -2632,4 +2799,132 @@ begin
     TEXTHEIGHTMAX := MAX(10000, TEXTHEIGHTMAX); // protect from invalid input
 
     ASPECT_RATIO_TOL := StrToFloat(EditAspectRatioTol.Text);
+end;
+
+procedure MyStatusBar_SetState(Index : Integer; const S : WideString);
+begin
+    Client.GUIManager.StatusBarManager.SetState(Index, S);
+end;
+
+function MyStatusBar_GetState(Index : Integer) : Widestring;
+begin
+    Result := Client.GUIManager.StatusBarManager.GetState(Index);
+end;
+
+procedure MyStatusBar_SetStateDefault(dummy : Boolean = False);
+begin
+    Client.GUIManager.StatusBarManager.SetState(cStatusBar_SetDefault,'');
+end;
+
+procedure MyStatusBar_PushStatus(dummy : Boolean = False);
+begin
+    Client.GUIManager.StatusBarManager.SetState(cStatusBar_Push,'');
+end;
+
+procedure MyStatusBar_PopStatus(dummy : Boolean = False);
+begin
+    Client.GUIManager.StatusBarManager.SetState(cStatusBar_Pop,'');
+end;
+
+function MyPercentActive(dummy : Boolean = False) : Boolean;
+begin
+    Result := gvMarquee = False;
+end;
+
+function MyMarqueeActive(dummy : Boolean = False) : Boolean;
+begin
+    Result := gvMarquee;
+end;
+
+function MyPercent_GetTotal(dummy : Boolean = False) : Integer;
+begin
+    Result := -1;
+    if MyPercentActive then
+    begin
+        Result := gvTotalPercentCount;
+    end;
+end;
+
+procedure MyPercent_Init(const InitialString : String ; TotalCount : Integer);
+begin
+    MyStatusBar_PushStatus;
+    MyStatusBar_SetState(cStatusBar_ProgressBarStart, InitialString);
+    gvTotalPercentCount     := TotalCount;
+    gvCurrentPercentCount   := 0;
+    gvOldPercent            := 0;
+    gvMarquee               := False;
+end;
+
+procedure MyPercent_Finish(dummy : Boolean = False);
+begin
+    //if MyPercentActive then
+    //begin
+        //MyStatusBar_SetState(cStatusBar_ProgressBarStop,'');
+        //MyStatusBar_PopStatus;
+    //end;
+
+    MyStatusBar_SetState(cStatusBar_ProgressBarStop,'');
+    MyStatusBar_PopStatus;
+    MyStatusBar_SetState(cStatusBar_SetDefault,'');
+end;
+
+procedure MyPercent_UpdateByNumber(AmountToIncrement : Integer, StatusMsg : String = '');
+begin
+    if MyPercentActive then
+    begin
+        gvCurrentPercentCount := gvCurrentPercentCount + AmountToIncrement - 1;
+        MyPercent_Update(StatusMsg);
+    end;
+end;
+
+procedure MyPercent_Update(StatusMsg : String = '');
+Var
+    ThisPercent  : Integer;
+    i            : Integer;
+begin
+    if MyPercentActive then
+    begin
+        Inc(gvCurrentPercentCount);
+
+        if gvTotalPercentCount = 0 then ThisPercent := 100
+        else
+            ThisPercent := Round( (100.0 * gvCurrentPercentCount) /
+                                  (1.0   * gvTotalPercentCount)  );
+        if ThisPercent > 100 then
+            ThisPercent := 100;
+        for i := gvOldPercent to ThisPercent - 1 do
+        begin
+            if StatusMsg <> '' then MyStatusBar_SetState(cStatusBar_Panel2, Format('%s (%d%%)', [StatusMsg, ThisPercent]));
+            MyStatusBar_SetState(cStatusBar_ProgressBarStep,'');
+        end;
+        gvOldPercent := ThisPercent;
+    end;
+end;
+
+procedure MyPercent_BeginUndeterminedOperation(const InitialString : String);
+begin
+    MyStatusBar_PushStatus;
+    MyStatusBar_SetState(cStatusBar_UndeterminedOpBegin, InitialString);
+
+    gvMarquee := True;
+end;
+
+procedure MyPercent_EndUndeterminedOperation(dummy : Boolean = False);
+begin
+    if MyMarqueeActive then
+    begin
+        MyStatusBar_SetState(cStatusBar_UndeterminedOpEnd, '');
+        MyStatusBar_PopStatus;
+    end;
+end;
+
+procedure MyPercent_BeginComplexOperation(const InitialString : String);
+begin
+    { status bar is not involved, so no need to push/pop percent stack}
+    MyStatusBar_SetState(cStatusBar_ComplexOpBegin, InitialString);
+end;
+
+procedure MyPercent_EndComplexOperation(dummy : Boolean = False);
+begin
+    MyStatusBar_SetState(cStatusBar_ComplexOpEnd, '');
 end;
