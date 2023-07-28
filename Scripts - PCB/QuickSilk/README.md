@@ -144,8 +144,12 @@ From the GUI, you may click on the clearance labels to select all visible design
     - added support for via clearance from holes
     - added progress bar for clearance checks (using hacked together functions based on SDK that may be deprecated but I couldn't figure out how to use the StatusBarManager properly - possibly I just didn't know where to grab the right handle)
     - added other utility functions for future use or reference
+    - added different handling of locked text in clearance checks
+    - fixed All Objects clearance check not including vias
+    - made clearance check zoom to selected optional
 
 ### Planned features?
+- Add violating objects to messages panel with ability to jump to?
 - If initial placement of designator or comment interferes with the other (and text justification implies that it was interactively positioned), infer that both are trying to be autopositioned in the same octant and autoposition both before moving each
 - Support any-angle placement on mass edit by taking current autoposition, mapping to an octant, then running positioning using that
 - Should I get rid of Any-Angle Placement OFF support?
