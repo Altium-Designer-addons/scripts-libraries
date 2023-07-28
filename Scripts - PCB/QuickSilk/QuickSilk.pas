@@ -133,7 +133,6 @@ function    DebugContourInfo(contour : IPCB_Contour) : TStringList; forward;
 function    DebugGeometricPolygonInfo(poly : IPCB_GeometricPolygon) : TStringList; forward;
 function    DebugLevelStr(dummy : String = '') : String; forward;
 procedure   DebugMessage(const ShowLevel : Integer; const msg : WideString; const Caption : String = 'Confirm or Cancel Debug'); forward;
-function    DocumentIsPCB_Utils : Boolean; forward;
 function    FolderIsReadOnly(const AFolderPath : String) : Boolean; forward;
 function    GetComponentAreaMils(Comp : IPCB_Component) : Int64; forward;
 function    GetComponentBodyLargest(Comp : IPCB_Component) : IPCB_ComponentBody; forward;
@@ -2979,22 +2978,6 @@ begin
         if ConfirmOKCancelWithCaption(Caption, msg) = False then
             iDebugLevel := Max(iDebugLevel - 1, 0);
     end;
-end;
-
-function    DocumentIsPCB_Utils : Boolean;
-begin
-    // set AD build flag
-    if not Assigned(IsAtLeastAD19) then if (GetBuildNumberPart(Client.GetProductVersion, 0) >= 19) then IsAtLeastAD19 := True else IsAtLeastAD19 := False;
-    if not Assigned(iDebugLevel) then iDebugLevel := cDEBUGLEVEL;
-
-    // Checks if current document is a PCB kind if not, show error and return false.
-    Board := PCBServer.GetCurrentPCBBoard;
-    if Board = nil then
-    begin
-        ShowError('This script must be run from a PCB document.');
-        Result := False;
-    end
-    else Result := True;
 end;
 
 function    FolderIsReadOnly(const AFolderPath : String) : Boolean;
