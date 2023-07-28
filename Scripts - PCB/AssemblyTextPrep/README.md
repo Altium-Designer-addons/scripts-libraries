@@ -69,3 +69,4 @@ There might be some value in adding a function to check that all components *hav
 - 2023-07-24 by Ryan Rutledge : AssemblyTextPrep v0.80 - initial pre-release to hopefully get some feedback before v1.00
 - 2023-07-26 by Ryan Rutledge : AssemblyTextPrep v0.81 - bug fixes and refinement
 - 2023-07-26 by Ryan Rutledge : AssemblyTextPrep v0.82 - more bug fixes, better metric rounding, progress bar
+- 2023-07-28 by Ryan Rutledge : AssemblyTextPrep v0.83 - added option to protect locked .Designator strings; bug fixes
