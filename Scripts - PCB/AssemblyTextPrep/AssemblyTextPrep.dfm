@@ -277,7 +277,7 @@ object AssemblyTextPrepForm: TAssemblyTextPrepForm
   end
   object CheckBoxResize: TCheckBox
     Left = 16
-    Top = 258
+    Top = 250
     Width = 136
     Height = 17
     Hint = 'ENABLED: resize text according to centering strategy'
@@ -292,7 +292,7 @@ object AssemblyTextPrepForm: TAssemblyTextPrepForm
   end
   object CheckBoxNormalize: TCheckBox
     Left = 16
-    Top = 282
+    Top = 266
     Width = 136
     Height = 17
     Hint = 
@@ -575,8 +575,8 @@ object AssemblyTextPrepForm: TAssemblyTextPrepForm
     OnClick = ButtonNormalizeAnyTextClick
   end
   object ButtonZoomSelected: TButton
-    Left = 8
-    Top = 480
+    Left = 232
+    Top = 560
     Width = 104
     Height = 32
     Hint = 'Zoom PCB window to selected items'
@@ -798,5 +798,39 @@ object AssemblyTextPrepForm: TAssemblyTextPrepForm
     TabOrder = 29
     TabStop = False
     OnClick = ButtonCheckSelectedClick
+  end
+  object CheckBoxProtectLocked: TCheckBox
+    Left = 16
+    Top = 282
+    Width = 136
+    Height = 17
+    Hint = 'ENABLED: skip locked text'
+    TabStop = False
+    Caption = 'Protect Locked Text'
+    Checked = True
+    ParentShowHint = False
+    ShowHint = True
+    State = cbChecked
+    TabOrder = 30
+    OnClick = ConfigClick
+  end
+  object ButtonSelectLocked: TButton
+    Left = 8
+    Top = 480
+    Width = 104
+    Height = 32
+    Hint = 'Select Locked .Designator strings'
+    Caption = 'Select Locked'
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -11
+    Font.Name = 'Tahoma'
+    Font.Style = [fsUnderline]
+    ParentFont = False
+    ParentShowHint = False
+    ShowHint = True
+    TabOrder = 31
+    TabStop = False
+    OnClick = ButtonSelectLockedClick
   end
 end
