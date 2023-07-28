@@ -179,7 +179,6 @@ procedure   MyPercent_EndComplexOperation(dummy : Boolean = False); forward;
 procedure   _GUI;
 begin
     if not DocumentIsPCB then exit;
-    if not DocumentIsPCB_Utils then exit;
     //ProcessMain;
 
     QuickSilkForm.FormStyle := fsStayOnTop;
@@ -579,46 +578,38 @@ begin
     taller := (rect.Top - rect.Bottom) > (rect.Right - rect.Left);
 
     Case autoPos of
-        eAutoPos_CenterRight:
-        begin
+        eAutoPos_CenterRight: begin
             dx := -d * flipx;
             dy := SideOffset * cOFFSET; // offset direction doesn't really matter, this is brute force
-        end
-        eAutoPos_TopCenter:
-        begin
+        end;
+        eAutoPos_TopCenter: begin
             dx := SideOffset * cOFFSET;
             dy := -d;
-        end
-        eAutoPos_CenterLeft:
-        begin
+        end;
+        eAutoPos_CenterLeft: begin
             dx := d * flipx;
             dy := SideOffset * cOFFSET;
-        end
-        eAutoPos_BottomCenter:
-        begin
+        end;
+        eAutoPos_BottomCenter: begin
             dx := SideOffset * cOFFSET;
             dy := d;
-        end
-        eAutoPos_TopLeft:
-        begin
+        end;
+        eAutoPos_TopLeft: begin
             dx := SideOffset * cOFFSET;
             dy := -d;
-        end
-        eAutoPos_TopRight:
-        begin
+        end;
+        eAutoPos_TopRight: begin
             dx := SideOffset * cOFFSET;
             dy := -d;
-        end
-        eAutoPos_BottomLeft:
-        begin
+        end;
+        eAutoPos_BottomLeft: begin
             dx := SideOffset * cOFFSET;
             dy := d;
-        end
-        eAutoPos_BottomRight:
-        begin
+        end;
+        eAutoPos_BottomRight: begin
             dx := SideOffset * cOFFSET;
             dy := d;
-        end
+        end;
     end;
 
     if taller then
@@ -687,62 +678,58 @@ begin
 
     // technically AutoPosition being enabled should coerce to 0,90,180, or 270
     case rotation of
-        0 :
-            begin
-                case tc_AutoPos of
-                    eAutoPos_TopLeft        : Result := eAutoPos_BottomLeft;
-                    eAutoPos_CenterLeft     : Result := eAutoPos_CenterRight;
-                    eAutoPos_BottomLeft     : Result := eAutoPos_TopLeft;
-                    eAutoPos_TopCenter      : Result := eAutoPos_BottomCenter;
-                    eAutoPos_BottomCenter   : Result := eAutoPos_TopCenter;
-                    eAutoPos_TopRight       : Result := eAutoPos_BottomRight;
-                    eAutoPos_CenterRight    : Result := eAutoPos_CenterLeft;
-                    eAutoPos_BottomRight    : Result := eAutoPos_TopRight;
-                    else                      Result := tc_AutoPos;
-                end; { case tc_AutoPos }
-            end;
-        90 :
-            begin
-                case tc_AutoPos of
-                    eAutoPos_TopLeft        : if mirror then Result := eAutoPos_BottomRight else Result := eAutoPos_TopLeft;
-                    eAutoPos_CenterLeft     : if mirror then Result := eAutoPos_TopCenter else Result := eAutoPos_BottomCenter;
-                    eAutoPos_BottomLeft     : if mirror then Result := eAutoPos_BottomLeft else Result := eAutoPos_TopRight;
-                    eAutoPos_TopCenter      : if mirror then Result := eAutoPos_CenterRight else Result := eAutoPos_CenterLeft;
-                    eAutoPos_BottomCenter   : if mirror then Result := eAutoPos_CenterLeft else Result := eAutoPos_CenterRight;
-                    eAutoPos_TopRight       : if mirror then Result := eAutoPos_TopRight else Result := eAutoPos_BottomLeft;
-                    eAutoPos_CenterRight    : if mirror then Result := eAutoPos_BottomCenter else Result := eAutoPos_TopCenter;
-                    eAutoPos_BottomRight    : if mirror then Result := eAutoPos_TopLeft else Result := eAutoPos_BottomRight;
-                    else                      Result := tc_AutoPos;
-                end; { case tc_AutoPos }
-            end;
-        180 :
-            begin
-                case tc_AutoPos of
-                    eAutoPos_TopLeft        : Result := eAutoPos_TopRight;
-                    eAutoPos_CenterLeft     : Result := eAutoPos_CenterLeft;
-                    eAutoPos_BottomLeft     : Result := eAutoPos_BottomRight;
-                    eAutoPos_TopCenter      : Result := eAutoPos_TopCenter;
-                    eAutoPos_BottomCenter   : Result := eAutoPos_BottomCenter;
-                    eAutoPos_TopRight       : Result := eAutoPos_TopLeft;
-                    eAutoPos_CenterRight    : Result := eAutoPos_CenterRight;
-                    eAutoPos_BottomRight    : Result := eAutoPos_BottomLeft;
-                    else                      Result := tc_AutoPos;
-                end; { case tc_AutoPos }
-            end;
-        270 :
-            begin
-                case tc_AutoPos of
-                    eAutoPos_TopLeft        : if mirror then Result := eAutoPos_TopLeft else Result := eAutoPos_BottomRight;
-                    eAutoPos_CenterLeft     : if mirror then Result := eAutoPos_BottomCenter else Result := eAutoPos_TopCenter;
-                    eAutoPos_BottomLeft     : if mirror then Result := eAutoPos_TopRight else Result := eAutoPos_BottomLeft;
-                    eAutoPos_TopCenter      : if mirror then Result := eAutoPos_CenterLeft else Result := eAutoPos_CenterRight;
-                    eAutoPos_BottomCenter   : if mirror then Result := eAutoPos_CenterRight else Result := eAutoPos_CenterLeft;
-                    eAutoPos_TopRight       : if mirror then Result := eAutoPos_BottomLeft else Result := eAutoPos_TopRight;
-                    eAutoPos_CenterRight    : if mirror then Result := eAutoPos_TopCenter else Result := eAutoPos_BottomCenter;
-                    eAutoPos_BottomRight    : if mirror then Result := eAutoPos_BottomRight else Result := eAutoPos_TopLeft;
-                    else                      Result := tc_AutoPos;
-                end; { case tc_AutoPos }
-            end;
+        0: begin
+            case tc_AutoPos of
+                eAutoPos_TopLeft        : Result := eAutoPos_BottomLeft;
+                eAutoPos_CenterLeft     : Result := eAutoPos_CenterRight;
+                eAutoPos_BottomLeft     : Result := eAutoPos_TopLeft;
+                eAutoPos_TopCenter      : Result := eAutoPos_BottomCenter;
+                eAutoPos_BottomCenter   : Result := eAutoPos_TopCenter;
+                eAutoPos_TopRight       : Result := eAutoPos_BottomRight;
+                eAutoPos_CenterRight    : Result := eAutoPos_CenterLeft;
+                eAutoPos_BottomRight    : Result := eAutoPos_TopRight;
+                else                      Result := tc_AutoPos;
+            end; { case tc_AutoPos }
+        end;
+        90: begin
+            case tc_AutoPos of
+                eAutoPos_TopLeft        : if mirror then Result := eAutoPos_BottomRight else Result := eAutoPos_TopLeft;
+                eAutoPos_CenterLeft     : if mirror then Result := eAutoPos_TopCenter else Result := eAutoPos_BottomCenter;
+                eAutoPos_BottomLeft     : if mirror then Result := eAutoPos_BottomLeft else Result := eAutoPos_TopRight;
+                eAutoPos_TopCenter      : if mirror then Result := eAutoPos_CenterRight else Result := eAutoPos_CenterLeft;
+                eAutoPos_BottomCenter   : if mirror then Result := eAutoPos_CenterLeft else Result := eAutoPos_CenterRight;
+                eAutoPos_TopRight       : if mirror then Result := eAutoPos_TopRight else Result := eAutoPos_BottomLeft;
+                eAutoPos_CenterRight    : if mirror then Result := eAutoPos_BottomCenter else Result := eAutoPos_TopCenter;
+                eAutoPos_BottomRight    : if mirror then Result := eAutoPos_TopLeft else Result := eAutoPos_BottomRight;
+                else                      Result := tc_AutoPos;
+            end; { case tc_AutoPos }
+        end;
+        180: begin
+            case tc_AutoPos of
+                eAutoPos_TopLeft        : Result := eAutoPos_TopRight;
+                eAutoPos_CenterLeft     : Result := eAutoPos_CenterLeft;
+                eAutoPos_BottomLeft     : Result := eAutoPos_BottomRight;
+                eAutoPos_TopCenter      : Result := eAutoPos_TopCenter;
+                eAutoPos_BottomCenter   : Result := eAutoPos_BottomCenter;
+                eAutoPos_TopRight       : Result := eAutoPos_TopLeft;
+                eAutoPos_CenterRight    : Result := eAutoPos_CenterRight;
+                eAutoPos_BottomRight    : Result := eAutoPos_BottomLeft;
+                else                      Result := tc_AutoPos;
+            end; { case tc_AutoPos }
+        end;
+        270: begin
+            case tc_AutoPos of
+                eAutoPos_TopLeft        : if mirror then Result := eAutoPos_TopLeft else Result := eAutoPos_BottomRight;
+                eAutoPos_CenterLeft     : if mirror then Result := eAutoPos_BottomCenter else Result := eAutoPos_TopCenter;
+                eAutoPos_BottomLeft     : if mirror then Result := eAutoPos_TopRight else Result := eAutoPos_BottomLeft;
+                eAutoPos_TopCenter      : if mirror then Result := eAutoPos_CenterLeft else Result := eAutoPos_CenterRight;
+                eAutoPos_BottomCenter   : if mirror then Result := eAutoPos_CenterRight else Result := eAutoPos_CenterLeft;
+                eAutoPos_TopRight       : if mirror then Result := eAutoPos_BottomLeft else Result := eAutoPos_TopRight;
+                eAutoPos_CenterRight    : if mirror then Result := eAutoPos_TopCenter else Result := eAutoPos_BottomCenter;
+                eAutoPos_BottomRight    : if mirror then Result := eAutoPos_BottomRight else Result := eAutoPos_TopLeft;
+                else                      Result := tc_AutoPos;
+            end; { case tc_AutoPos }
+        end;
         else Result := tc_AutoPos;
     end; { case rotation }
 
@@ -1658,6 +1645,7 @@ end;
 
 procedure   IsRuleViolation(ObjectIDSet : TObjectSet; RuleNameStr : String; Clearance : TCoord);
 var
+    i               : Integer;
     Text            : IPCB_Component;
     TextIter        : IPCB_BoardIterator;
     Designator      : IPCB_Text;
@@ -1665,12 +1653,13 @@ var
     TotalCount      : Integer;
     ClearanceString : String;
     ProgressInt     : Integer;
-
+    LockedList      : TInterfaceList;
+    mResponse       : Integer;
 begin
     ProcessedCount := 0;
     ProgressInt := 0;
 
-    Client.SendMessage('PCB:DeSelect', 'Scope=All' , 255, Client.CurrentView);
+    ClientDeSelectAll;
 
     TextIter := Board.BoardIterator_Create;
     TextIter.AddFilter_ObjectSet(MkSet(eTextObject));
@@ -1680,6 +1669,8 @@ begin
     TotalCount := GetIteratorCount(TextIter);
 
     Text := TextIter.FirstPCBObject;
+
+    LockedList := CreateObject(TInterfaceList);
 
     BeginHourGlass;
 
@@ -1704,8 +1695,16 @@ begin
 
         if SilkViolatesRule(Text, ObjectIDSet) then
         begin
-            Text.Selected := True;
-            Text.GraphicallyInvalidate;
+            if Text.Moveable then
+            begin
+                Text.Selected := True;
+                Text.GraphicallyInvalidate;
+            end
+            else
+            begin
+                LockedList.Add(Text);
+            end;
+            if (iDebugLevel >= 1) and (Board.SelectecObjectCount <= 3) then Inspect_IPCB_Text(Text);
         end;
 
         Text := TextIter.NextPCBObject;
@@ -1721,12 +1720,46 @@ begin
     Board.BoardIterator_Destroy(TextIter);
     GUI_LoopEnd;
 
-    Client.SendMessage('PCB:Zoom', 'Action=Selected' , 255, Client.CurrentView);  // zoom on the selected text
+    if LockedList.Count > 0 then
+    begin
+        // Clearance = 0 means All Objects
+        if Clearance > 0 then ClearanceString := CoordToDisplayStr(Clearance) else ClearanceString := 'configured clearance';
+        ClearanceString := Format('Selected %d unlocked text objects within %s of %s %s%d locked texts also violate. Do you want to select them exclusively?',
+                [Board.SelectecObjectCount, ClearanceString, RuleNameStr, sLineBreak, LockedList.Count]);
 
-    if Clearance > 0 then ClearanceString := ' within ' + CoordToDisplayStr(Clearance) + ' of ' else ClearanceString := ' within configured clearance of ';
-    ShowInfo('Selected ' + IntToStr(Board.SelectecObjectCount) +  ' text objects' + ClearanceString + RuleNameStr);
+        mResponse := ConfirmNoYesCancel(ClearanceString + sLineBreak + sLineBreak + 'YES: Select only locked text | NO: Select locked and unlocked text | CANCEL: Ignore locked text');
+
+        case mResponse of
+            mrYes: begin
+                ClientDeselectAll;
+                for i :=0 to LockedList.Count - 1 do
+                begin
+                    LockedList[i].Selected := True;
+                    LockedList[i].GraphicallyInvalidate;
+                end;
+            end;
+            mrNo: begin
+                for i := 0 to LockedList.Count - 1 do
+                begin
+                    LockedList[i].Selected := True;
+                    LockedList[i].GraphicallyInvalidate;
+                end;
+            end;
+            mrCancel: begin
+                // nothing
+            end;
+        end;
+
+    end
+    else
+    begin
+        if Clearance > 0 then ClearanceString := ' within ' + CoordToDisplayStr(Clearance) + ' of ' else ClearanceString := ' within configured clearance of ';
+        ShowInfo('Selected ' + IntToStr(Board.SelectecObjectCount) +  ' text objects' + ClearanceString + RuleNameStr);
+    end;
 
     EndHourGlass;
+
+    if ConfirmNoYes('Operation finished. Zoom on selected objects?') then ClientZoomSelected;
 end;
 
 function    IsSelectableCheck(bWarnComp : Boolean = False; bWarnText : Boolean = False) : Boolean;
@@ -2194,7 +2227,7 @@ begin
         // Destroy the component handle
         Board.BoardIterator_Destroy(ComponentIteratorHandle);
 
-        Client.SendMessage('PCB:Zoom', 'Action=Redraw' , 255, Client.CurrentView);
+        ClientZoomRedraw;
 
     finally
         // Restore DRC setting
@@ -2218,22 +2251,20 @@ begin
 
     // rotate text to match Angle, based on how mirrored text reads from the flipside of the board
     case mirror of
-        True :
-            begin
-                // mirrored text should be rotated to match layer flip behavior of text vs components
-                if not Ortho then Angle := (Angle + 180) mod 360;
-                if Normalize and (Angle >= 90) and (Angle < 270) then
-                    Text.Rotation := (Angle + 180) mod 360
-                else
-                    Text.Rotation := Angle;
-            end;
-        False :
-            begin
-                if Normalize and (Angle > 90) and (Angle <= 270) then
-                    Text.Rotation := (Angle + 180) mod 360
-                else
-                    Text.Rotation := Angle;
-            end;
+        True: begin
+            // mirrored text should be rotated to match layer flip behavior of text vs components
+            if not Ortho then Angle := (Angle + 180) mod 360;
+            if Normalize and (Angle >= 90) and (Angle < 270) then
+                Text.Rotation := (Angle + 180) mod 360
+            else
+                Text.Rotation := Angle;
+        end;
+        False: begin
+            if Normalize and (Angle > 90) and (Angle <= 270) then
+                Text.Rotation := (Angle + 180) mod 360
+            else
+                Text.Rotation := Angle;
+        end;
     end;
 
     Result := Text.Rotation;
@@ -2286,7 +2317,7 @@ begin
 
     if not (CompCount > 0) then Result := False;
 
-    Client.SendMessage('PCB:Zoom', 'Action=Redraw' , 255, Client.CurrentView);
+    ClientZoomRedraw;
 
 end;
 
@@ -2377,8 +2408,8 @@ end;
 
 { function to check if silkscreen violates a set of object types }
 function    SilkViolatesRule(Silkscreen : IPCB_Text; ObjectIDSet : TObjectSet) : Boolean;
-const
-    FILTERSIZE = 200000;
+//const
+    //FILTERSIZE = 200000; // use rule setting instead, else it can miss free primitives over this clearance away
 var
     ValidObjectSet  : TObjectSet;
 begin
@@ -2397,48 +2428,48 @@ begin
     end;
 
     // Overlap Detection
-    if InSet(eTextObject, ObjectIDSet) and IsTextOverObj(Silkscreen, eTextObject, FILTERSIZE) then
+    if InSet(eTextObject, ObjectIDSet) and IsTextOverObj(Silkscreen, eTextObject, TEXTEXPANSION) then
     begin
         DebugMessage(3, 'FAIL' + sLineBreak + Silkscreen.Text + ' is within ' + CoordToDisplayStr(TEXTEXPANSION) + ' of other text.');
         Exit;
     end
-    else if InSet(eComponentBodyObject, ObjectIDSet) and IsTextOverObj(Silkscreen, eComponentBodyObject, FILTERSIZE) then
+    else if InSet(eComponentBodyObject, ObjectIDSet) and IsTextOverObj(Silkscreen, eComponentBodyObject, BODYEXPANSION) then
     begin
         DebugMessage(3, 'FAIL' + sLineBreak + Silkscreen.Text + ' is within ' + CoordToDisplayStr(BODYEXPANSION) + ' of a component body.');
         Exit;
     end
-    else if InSet(ePadObject, ObjectIDSet) and IsTextOverObj(Silkscreen, ePadObject, FILTERSIZE) then
+    else if InSet(ePadObject, ObjectIDSet) and IsTextOverObj(Silkscreen, ePadObject, PADEXPANSION) then
     begin
         DebugMessage(3, 'FAIL' + sLineBreak + Silkscreen.Text + ' is within ' + CoordToDisplayStr(PADEXPANSION) + ' of a pad.');
         Exit;
     end
     // note that `eConnectionObject` actually means a cutout region (hack to distinguish from non-cutout regions downstream)
-    else if InSet(eConnectionObject, ObjectIDSet) and IsTextOverObj(Silkscreen, eConnectionObject, FILTERSIZE, False, True) then
+    else if InSet(eConnectionObject, ObjectIDSet) and IsTextOverObj(Silkscreen, eConnectionObject, CUTOUTEXPANSION, False, True) then
     begin
         DebugMessage(3, 'FAIL' + sLineBreak + Silkscreen.Text + ' is within ' + CoordToDisplayStr(CUTOUTEXPANSION) + ' of a cutout region.');
         Exit;
     end
-    else if InSet(eViaObject, ObjectIDSet) and IsTextOverObj(Silkscreen, eViaObject, FILTERSIZE) then
+    else if InSet(eViaObject, ObjectIDSet) and IsTextOverObj(Silkscreen, eViaObject, VIAEXPANSION) then
     begin
         DebugMessage(3, 'FAIL' + sLineBreak + Silkscreen.Text + ' is within ' + CoordToDisplayStr(VIAEXPANSION) + ' of a via.');
         Exit;
     end
-    else if InSet(eRegionObject, ObjectIDSet) and IsTextOverObj(Silkscreen, eRegionObject, FILTERSIZE, False, True) then
+    else if InSet(eRegionObject, ObjectIDSet) and IsTextOverObj(Silkscreen, eRegionObject, DEFAULTEXPANSION, False, True) then
     begin
         DebugMessage(3, 'FAIL' + sLineBreak + Silkscreen.Text + ' is within ' + CoordToDisplayStr(DEFAULTEXPANSION) + ' of a regular region.');
         Exit;
     end
-    else if InSet(eArcObject, ObjectIDSet) and IsTextOverObj(Silkscreen, eArcObject, FILTERSIZE) then
+    else if InSet(eArcObject, ObjectIDSet) and IsTextOverObj(Silkscreen, eArcObject, DEFAULTEXPANSION) then
     begin
         DebugMessage(3, 'FAIL' + sLineBreak + Silkscreen.Text + ' is within ' + CoordToDisplayStr(DEFAULTEXPANSION) + ' of an arc.');
         Exit;
     end
-    else if InSet(eTrackObject, ObjectIDSet) and IsTextOverObj(Silkscreen, eTrackObject, FILTERSIZE) then
+    else if InSet(eTrackObject, ObjectIDSet) and IsTextOverObj(Silkscreen, eTrackObject, DEFAULTEXPANSION) then
     begin
         DebugMessage(3, 'FAIL' + sLineBreak + Silkscreen.Text + ' is within ' + CoordToDisplayStr(DEFAULTEXPANSION) + ' of a track.');
         Exit;
     end
-    else if InSet(eFillObject, ObjectIDSet) and IsTextOverObj(Silkscreen, eFillObject, FILTERSIZE) then
+    else if InSet(eFillObject, ObjectIDSet) and IsTextOverObj(Silkscreen, eFillObject, DEFAULTEXPANSION) then
     begin
         DebugMessage(3, 'FAIL' + sLineBreak + Silkscreen.Text + ' is within ' + CoordToDisplayStr(DEFAULTEXPANSION) + ' of a fill.');
         Exit;
@@ -2446,7 +2477,7 @@ begin
     // none of the previous checks failed
     else
     begin
-        DebugMessage(3, 'PASS' + sLineBreak + Silkscreen.Text + ' is NOT within ' + CoordToDisplayStr(BODYEXPANSION) + ' of component body.');
+        DebugMessage(3, 'PASS' + sLineBreak + Silkscreen.Text + ' is NOT within clearance distance of any object of interest.');
         Result := False;
     end;
 
@@ -2770,7 +2801,7 @@ begin
     //ButtonSaveConfig.Caption := 'SAVED';
 
     case RuleIndex of
-        0 : IsRuleViolation(MkSet(eTextObject, eComponentBodyObject, ePadObject, eConnectionObject, eArcObject, eTrackObject, eFillObject, eRegionObject), 'any object', 0);
+        0 : IsRuleViolation(MkSet(eTextObject, eComponentBodyObject, ePadObject, eConnectionObject, eViaObject, eArcObject, eTrackObject, eFillObject, eRegionObject), 'any object', 0);
         1 : IsRuleViolation(MkSet(eTextObject), Sender.Caption, TEXTEXPANSION);
         2 : IsRuleViolation(MkSet(eComponentBodyObject), Sender.Caption, BODYEXPANSION);
         3 : IsRuleViolation(MkSet(ePadObject), Sender.Caption, PADEXPANSION);
@@ -3131,6 +3162,7 @@ begin
     ShowInfo('DEBUGGING: ' + MyLabel + sLineBreak +
                 '------------------------------' + sLineBreak +
                 AD19DebugStr + sLineBreak +
+                Format('%s : %s', ['Moveable',  BoolToStr(Text.Moveable, True)]) + sLineBreak +
                 Format('%s : %s', ['AllowGlobalEdit',  BoolToStr(Text.AllowGlobalEdit, True)]) + sLineBreak +
                 Format('%s : %s', ['Descriptor',  Text.Descriptor]) + sLineBreak +
                 Format('%s : %s', ['Detail',  Text.Detail]) + sLineBreak +
