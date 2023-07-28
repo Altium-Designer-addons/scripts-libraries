@@ -4,8 +4,8 @@ object QuickSilkForm: TQuickSilkForm
   BorderIcons = [biSystemMenu]
   BorderStyle = bsSingle
   Caption = 'QuickSilk Silkscreen Helper Script'
-  ClientHeight = 555
-  ClientWidth = 346
+  ClientHeight = 571
+  ClientWidth = 362
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -13,13 +13,12 @@ object QuickSilkForm: TQuickSilkForm
   Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
-  OnCloseQuery = QuickSilkFormCloseQuery
   OnShow = QuickSilkFormShow
   PixelsPerInch = 96
   TextHeight = 13
   object LabelVersion: TLabel
-    Left = 8
-    Top = 4
+    Left = 16
+    Top = 12
     Width = 96
     Height = 16
     AutoSize = False
@@ -33,20 +32,20 @@ object QuickSilkForm: TQuickSilkForm
     OnClick = LabelVersionClick
   end
   object Bevel1: TBevel
-    Left = 104
-    Top = 416
+    Left = 112
+    Top = 424
     Width = 88
     Height = 80
   end
   object Bevel2: TBevel
-    Left = 8
-    Top = 416
+    Left = 16
+    Top = 424
     Width = 88
     Height = 80
   end
   object LabelUnits: TLabel
-    Left = 5
-    Top = 45
+    Left = 13
+    Top = 53
     Width = 32
     Height = 13
     Caption = 'Units:'
@@ -59,8 +58,8 @@ object QuickSilkForm: TQuickSilkForm
     OnClick = MMmilButtonClick
   end
   object Label2: TLabel
-    Left = 104
-    Top = 404
+    Left = 112
+    Top = 412
     Width = 88
     Height = 13
     Alignment = taCenter
@@ -74,8 +73,8 @@ object QuickSilkForm: TQuickSilkForm
     ParentFont = False
   end
   object Label3: TLabel
-    Left = 8
-    Top = 404
+    Left = 16
+    Top = 412
     Width = 88
     Height = 13
     Alignment = taCenter
@@ -89,8 +88,8 @@ object QuickSilkForm: TQuickSilkForm
     ParentFont = False
   end
   object Label4: TLabel
-    Left = 200
-    Top = 276
+    Left = 208
+    Top = 284
     Width = 136
     Height = 13
     Alignment = taCenter
@@ -103,9 +102,9 @@ object QuickSilkForm: TQuickSilkForm
     Font.Style = [fsBold]
     ParentFont = False
   end
-  object Label5: TLabel
-    Left = 8
-    Top = 252
+  object LabelMain: TLabel
+    Left = 16
+    Top = 256
     Width = 328
     Height = 19
     Alignment = taCenter
@@ -119,20 +118,20 @@ object QuickSilkForm: TQuickSilkForm
     ParentFont = False
   end
   object Bevel3: TBevel
-    Left = 1
-    Top = 272
-    Width = 343
+    Left = 8
+    Top = 280
+    Width = 344
     Height = 280
   end
   object Bevel4: TBevel
-    Left = 1
-    Top = 64
-    Width = 343
+    Left = 8
+    Top = 72
+    Width = 344
     Height = 176
   end
   object Label6: TLabel
-    Left = 96
-    Top = 44
+    Left = 104
+    Top = 48
     Width = 152
     Height = 19
     Alignment = taCenter
@@ -146,8 +145,8 @@ object QuickSilkForm: TQuickSilkForm
     ParentFont = False
   end
   object Label7: TLabel
-    Left = 272
-    Top = 68
+    Left = 280
+    Top = 76
     Width = 64
     Height = 13
     Hint = 
@@ -166,8 +165,8 @@ object QuickSilkForm: TQuickSilkForm
     ShowHint = True
   end
   object LabelClearanceText: TLabel
-    Left = 161
-    Top = 92
+    Left = 169
+    Top = 100
     Width = 103
     Height = 13
     Hint = 'Clearance to other text objects. Click to select violations.'
@@ -186,8 +185,8 @@ object QuickSilkForm: TQuickSilkForm
     OnMouseLeave = LabelClearanceMouseLeave
   end
   object LabelClearanceBody: TLabel
-    Left = 175
-    Top = 116
+    Left = 183
+    Top = 124
     Width = 89
     Height = 13
     Hint = 
@@ -208,8 +207,8 @@ object QuickSilkForm: TQuickSilkForm
     OnMouseLeave = LabelClearanceMouseLeave
   end
   object LabelClearancePad: TLabel
-    Left = 241
-    Top = 140
+    Left = 249
+    Top = 148
     Width = 23
     Height = 13
     Hint = 'Clearance to pads. Click to select violations.'
@@ -228,8 +227,8 @@ object QuickSilkForm: TQuickSilkForm
     OnMouseLeave = LabelClearanceMouseLeave
   end
   object LabelClearanceCutout: TLabel
-    Left = 190
-    Top = 164
+    Left = 198
+    Top = 172
     Width = 74
     Height = 13
     Hint = 'Clearance to cutout regions. Click to select violations.'
@@ -248,8 +247,8 @@ object QuickSilkForm: TQuickSilkForm
     OnMouseLeave = LabelClearanceMouseLeave
   end
   object LabelClearanceDefault: TLabel
-    Left = 196
-    Top = 212
+    Left = 204
+    Top = 220
     Width = 68
     Height = 13
     Hint = 
@@ -270,8 +269,8 @@ object QuickSilkForm: TQuickSilkForm
     OnMouseLeave = LabelClearanceMouseLeave
   end
   object Label8: TLabel
-    Left = 16
-    Top = 68
+    Left = 24
+    Top = 76
     Width = 64
     Height = 13
     Alignment = taCenter
@@ -285,8 +284,8 @@ object QuickSilkForm: TQuickSilkForm
     ParentFont = False
   end
   object Label9: TLabel
-    Left = 7
-    Top = 277
+    Left = 15
+    Top = 285
     Width = 169
     Height = 13
     Caption = 'NOTE: does not support Any-Angle'
@@ -298,8 +297,8 @@ object QuickSilkForm: TQuickSilkForm
     ParentFont = False
   end
   object LabelClearanceAll: TLabel
-    Left = 157
-    Top = 68
+    Left = 165
+    Top = 76
     Width = 107
     Height = 13
     Hint = 'Click to select all violating text'
@@ -318,8 +317,8 @@ object QuickSilkForm: TQuickSilkForm
     OnMouseLeave = LabelClearanceMouseLeave
   end
   object LabelClearanceVia: TLabel
-    Left = 245
-    Top = 188
+    Left = 253
+    Top = 196
     Width = 19
     Height = 13
     Hint = 'Clearance to vias. Click to select violations.'
@@ -338,8 +337,8 @@ object QuickSilkForm: TQuickSilkForm
     OnMouseLeave = LabelClearanceMouseLeave
   end
   object ButtonOK: TButton
-    Left = 16
-    Top = 456
+    Left = 24
+    Top = 464
     Width = 72
     Height = 32
     Hint = 'Save settings and apply fixed offset'
@@ -350,8 +349,8 @@ object QuickSilkForm: TQuickSilkForm
     OnClick = ButtonOKClick
   end
   object EditDistance: TEdit
-    Left = 16
-    Top = 424
+    Left = 24
+    Top = 432
     Width = 72
     Height = 21
     Hint = 'Negative values move away'
@@ -365,8 +364,8 @@ object QuickSilkForm: TQuickSilkForm
     OnKeyPress = UserKeyPress
   end
   object MMmilButton: TButton
-    Left = 46
-    Top = 40
+    Left = 54
+    Top = 48
     Width = 42
     Height = 24
     Hint = 'Click to change between mil and mm units'
@@ -377,16 +376,16 @@ object QuickSilkForm: TQuickSilkForm
     OnClick = MMmilButtonClick
   end
   object UnHideDesignatorsCheckBox: TCheckBox
-    Left = 16
-    Top = 294
+    Left = 24
+    Top = 302
     Width = 117
     Height = 17
     Caption = 'Un&Hide Designators'
     TabOrder = 14
   end
   object ButtonCancel: TButton
-    Left = 8
-    Top = 512
+    Left = 16
+    Top = 520
     Width = 184
     Height = 32
     Hint = 'Click to close without saving settings'
@@ -398,8 +397,8 @@ object QuickSilkForm: TQuickSilkForm
     OnClick = ButtonCancelClick
   end
   object ButtonPreset1: TButton
-    Left = 272
-    Top = 294
+    Left = 280
+    Top = 302
     Width = 64
     Height = 25
     Caption = 'Preset &1'
@@ -408,8 +407,8 @@ object QuickSilkForm: TQuickSilkForm
     OnClick = PresetButtonClicked
   end
   object tPreset1: TEdit
-    Left = 200
-    Top = 296
+    Left = 208
+    Top = 304
     Width = 64
     Height = 21
     Hint = 'Presets only apply to fixed offset'
@@ -425,8 +424,8 @@ object QuickSilkForm: TQuickSilkForm
     OnKeyPress = UserKeyPress
   end
   object ButtonPreset2: TButton
-    Left = 272
-    Top = 326
+    Left = 280
+    Top = 334
     Width = 64
     Height = 25
     Caption = 'Preset &2'
@@ -435,8 +434,8 @@ object QuickSilkForm: TQuickSilkForm
     OnClick = PresetButtonClicked
   end
   object tPreset2: TEdit
-    Left = 200
-    Top = 328
+    Left = 208
+    Top = 336
     Width = 64
     Height = 21
     Hint = 'Presets only apply to fixed offset'
@@ -452,8 +451,8 @@ object QuickSilkForm: TQuickSilkForm
     OnKeyPress = UserKeyPress
   end
   object ButtonPreset3: TButton
-    Left = 272
-    Top = 358
+    Left = 280
+    Top = 366
     Width = 64
     Height = 25
     Caption = 'Preset &3'
@@ -462,8 +461,8 @@ object QuickSilkForm: TQuickSilkForm
     OnClick = PresetButtonClicked
   end
   object tPreset3: TEdit
-    Left = 200
-    Top = 360
+    Left = 208
+    Top = 368
     Width = 64
     Height = 21
     Hint = 'Presets only apply to fixed offset'
@@ -479,8 +478,8 @@ object QuickSilkForm: TQuickSilkForm
     OnKeyPress = UserKeyPress
   end
   object ButtonPreset4: TButton
-    Left = 272
-    Top = 390
+    Left = 280
+    Top = 398
     Width = 64
     Height = 25
     Caption = 'Preset &4'
@@ -489,8 +488,8 @@ object QuickSilkForm: TQuickSilkForm
     OnClick = PresetButtonClicked
   end
   object tPreset4: TEdit
-    Left = 200
-    Top = 392
+    Left = 208
+    Top = 400
     Width = 64
     Height = 21
     Hint = 'Presets only apply to fixed offset'
@@ -506,8 +505,8 @@ object QuickSilkForm: TQuickSilkForm
     OnKeyPress = UserKeyPress
   end
   object ButtonPreset5: TButton
-    Left = 272
-    Top = 422
+    Left = 280
+    Top = 430
     Width = 64
     Height = 25
     Caption = 'Preset &5'
@@ -516,8 +515,8 @@ object QuickSilkForm: TQuickSilkForm
     OnClick = PresetButtonClicked
   end
   object tPreset5: TEdit
-    Left = 200
-    Top = 424
+    Left = 208
+    Top = 432
     Width = 64
     Height = 21
     Hint = 'Presets only apply to fixed offset'
@@ -533,8 +532,8 @@ object QuickSilkForm: TQuickSilkForm
     OnKeyPress = UserKeyPress
   end
   object ButtonPreset6: TButton
-    Left = 272
-    Top = 454
+    Left = 280
+    Top = 462
     Width = 64
     Height = 25
     Caption = 'Preset &6'
@@ -543,8 +542,8 @@ object QuickSilkForm: TQuickSilkForm
     OnClick = PresetButtonClicked
   end
   object tPreset6: TEdit
-    Left = 200
-    Top = 456
+    Left = 208
+    Top = 464
     Width = 64
     Height = 21
     Hint = 'Presets only apply to fixed offset'
@@ -560,8 +559,8 @@ object QuickSilkForm: TQuickSilkForm
     OnKeyPress = UserKeyPress
   end
   object ButtonPreset7: TButton
-    Left = 272
-    Top = 486
+    Left = 280
+    Top = 494
     Width = 64
     Height = 25
     Caption = 'Preset &7'
@@ -570,8 +569,8 @@ object QuickSilkForm: TQuickSilkForm
     OnClick = PresetButtonClicked
   end
   object tPreset7: TEdit
-    Left = 200
-    Top = 488
+    Left = 208
+    Top = 496
     Width = 64
     Height = 21
     Hint = 'Presets only apply to fixed offset'
@@ -587,8 +586,8 @@ object QuickSilkForm: TQuickSilkForm
     OnKeyPress = UserKeyPress
   end
   object ButtonPreset8: TButton
-    Left = 272
-    Top = 518
+    Left = 280
+    Top = 526
     Width = 64
     Height = 25
     Caption = 'Preset &8'
@@ -597,8 +596,8 @@ object QuickSilkForm: TQuickSilkForm
     OnClick = PresetButtonClicked
   end
   object tPreset8: TEdit
-    Left = 200
-    Top = 520
+    Left = 208
+    Top = 528
     Width = 64
     Height = 21
     Hint = 'Presets only apply to fixed offset'
@@ -614,8 +613,8 @@ object QuickSilkForm: TQuickSilkForm
     OnKeyPress = UserKeyPress
   end
   object ButtonAuto: TButton
-    Left = 112
-    Top = 456
+    Left = 120
+    Top = 464
     Width = 72
     Height = 32
     Hint = 'Save settings and apply automatic offset'
@@ -626,8 +625,8 @@ object QuickSilkForm: TQuickSilkForm
     OnClick = ButtonAutoClick
   end
   object EditMaxDistance: TEdit
-    Left = 112
-    Top = 424
+    Left = 120
+    Top = 432
     Width = 72
     Height = 21
     Hint = 'Attempt move WITHIN max offset'
@@ -643,8 +642,8 @@ object QuickSilkForm: TQuickSilkForm
     OnKeyPress = UserKeyPress
   end
   object LazyAutoMoveCheckBox: TCheckBox
-    Left = 16
-    Top = 310
+    Left = 24
+    Top = 318
     Width = 165
     Height = 17
     Caption = 'La&zy Move (AUTO only)'
@@ -653,8 +652,8 @@ object QuickSilkForm: TQuickSilkForm
     TabOrder = 15
   end
   object ButtonInteractiveStart: TButton
-    Left = 152
-    Top = 0
+    Left = 160
+    Top = 8
     Width = 184
     Height = 24
     Hint = 
@@ -667,8 +666,8 @@ object QuickSilkForm: TQuickSilkForm
     OnClick = ButtonInteractiveStartClick
   end
   object CheckBoxPersistent: TCheckBox
-    Left = 16
-    Top = 88
+    Left = 24
+    Top = 96
     Width = 97
     Height = 17
     Hint = 
@@ -682,8 +681,8 @@ object QuickSilkForm: TQuickSilkForm
     OnClick = ConfigClick
   end
   object CheckBoxAnyAngle: TCheckBox
-    Left = 16
-    Top = 104
+    Left = 24
+    Top = 112
     Width = 120
     Height = 17
     Hint = 'ENABLED: angles that aren'#39't 0/90 degrees are supported'
@@ -696,9 +695,9 @@ object QuickSilkForm: TQuickSilkForm
     OnClick = ConfigClick
   end
   object RadioGroupParentOnly: TRadioGroup
-    Left = 8
-    Top = 144
-    Width = 120
+    Left = 16
+    Top = 152
+    Width = 104
     Height = 80
     Hint = 
       'Default behavior is to avoid only objects in parent component; P' +
@@ -721,8 +720,8 @@ object QuickSilkForm: TQuickSilkForm
     OnClick = ConfigClick
   end
   object tClearanceText: TEdit
-    Left = 272
-    Top = 88
+    Left = 280
+    Top = 96
     Width = 64
     Height = 24
     Align = alCustom
@@ -741,8 +740,8 @@ object QuickSilkForm: TQuickSilkForm
     OnKeyPress = ClearanceEnterKey
   end
   object tClearanceBody: TEdit
-    Left = 272
-    Top = 112
+    Left = 280
+    Top = 120
     Width = 64
     Height = 24
     Align = alCustom
@@ -761,8 +760,8 @@ object QuickSilkForm: TQuickSilkForm
     OnKeyPress = ClearanceEnterKey
   end
   object tClearancePad: TEdit
-    Left = 272
-    Top = 136
+    Left = 280
+    Top = 144
     Width = 64
     Height = 24
     Align = alCustom
@@ -781,8 +780,8 @@ object QuickSilkForm: TQuickSilkForm
     OnKeyPress = ClearanceEnterKey
   end
   object tClearanceCutout: TEdit
-    Left = 272
-    Top = 160
+    Left = 280
+    Top = 168
     Width = 64
     Height = 24
     Align = alCustom
@@ -801,8 +800,8 @@ object QuickSilkForm: TQuickSilkForm
     OnKeyPress = ClearanceEnterKey
   end
   object tClearanceDefault: TEdit
-    Left = 272
-    Top = 208
+    Left = 280
+    Top = 216
     Width = 64
     Height = 24
     Align = alCustom
@@ -821,8 +820,8 @@ object QuickSilkForm: TQuickSilkForm
     OnKeyPress = ClearanceEnterKey
   end
   object ButtonSaveConfig: TButton
-    Left = 272
-    Top = 40
+    Left = 280
+    Top = 48
     Width = 64
     Height = 24
     Hint = 'Click to save all current values'
@@ -833,8 +832,8 @@ object QuickSilkForm: TQuickSilkForm
     OnClick = ButtonSaveConfigClick
   end
   object CheckBoxExtraOffsets: TCheckBox
-    Left = 16
-    Top = 120
+    Left = 24
+    Top = 128
     Width = 120
     Height = 17
     Hint = 
@@ -847,8 +846,8 @@ object QuickSilkForm: TQuickSilkForm
     OnClick = ConfigClick
   end
   object CheckBoxAutoParentOnly: TCheckBox
-    Left = 16
-    Top = 326
+    Left = 24
+    Top = 334
     Width = 165
     Height = 17
     Hint = 'ENABLED: AutoMove only avoids parent component'#39's objects'
@@ -860,8 +859,8 @@ object QuickSilkForm: TQuickSilkForm
     TabOrder = 16
   end
   object CheckBoxLocalSettings: TCheckBox
-    Left = 8
-    Top = 18
+    Left = 16
+    Top = 26
     Width = 128
     Height = 17
     Hint = 'ENABLED: Save configuration settings in script folder'
@@ -872,8 +871,8 @@ object QuickSilkForm: TQuickSilkForm
     OnClick = CheckBoxLocalSettingsClick
   end
   object RadioGroupSelectionScope: TRadioGroup
-    Left = 8
-    Top = 345
+    Left = 16
+    Top = 353
     Width = 184
     Height = 56
     Caption = 'Selection Scope'
@@ -893,8 +892,8 @@ object QuickSilkForm: TQuickSilkForm
     OnClick = ConfigClick
   end
   object tClearanceVia: TEdit
-    Left = 272
-    Top = 184
+    Left = 280
+    Top = 192
     Width = 64
     Height = 24
     Hint = 
@@ -912,24 +911,34 @@ object QuickSilkForm: TQuickSilkForm
     ParentShowHint = False
     ShowHint = True
     TabOrder = 22
-    Text = '6'
+    Text = '3'
     OnChange = InputValueChange
     OnKeyPress = ClearanceEnterKey
   end
   object ComboBoxViaRule: TComboBox
-    Left = 144
-    Top = 186
-    Width = 89
-    Height = 21
+    Left = 128
+    Top = 192
+    Width = 120
+    Height = 24
     AutoComplete = False
     Style = csDropDownList
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -13
+    Font.Name = 'Arial Narrow'
+    Font.Style = []
     ItemIndex = 1
+    ParentFont = False
+    ParentShowHint = False
+    ShowHint = True
     TabOrder = 24
-    Text = 'Allow Tented'
+    Text = 'Pad (tented OK)'
     OnSelect = ConfigClick
     Items.Strings = (
-      'Allow All'
-      'Allow Tented'
-      'Allow None')
+      'Waived'
+      'Pad (tented OK)'
+      'From Pad'
+      'Hole (tented OK)'
+      'From Hole')
   end
 end
