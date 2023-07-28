@@ -22,6 +22,9 @@ If you are a newcomer to Altium scripts, [please read the "how to" wiki page](ht
 ### Configuration/Editing GUI
 ![GUI Screenshot](AssemblyTextPrep_GUI.png)
 
+### Centering Strategy Example
+![Centering Example](AssemblyTextPrep_Centering.png)
+
 ### **ENABLE BOTH COMPONENTS AND TEXTS IN SELECTION FILTER**
 ### to Select Assembly Designators
 Select one or more components then run the _SelectDesignators_ script procedure to switch your selection to the first .Designator special string in each component.
