@@ -1732,7 +1732,7 @@ begin
         case mResponse of
             mrYes: begin
                 ClientDeselectAll;
-                for i :=0 to LockedList.Count - 1 do
+                for i := 0 to LockedList.Count - 1 do
                 begin
                     LockedList[i].Selected := True;
                     LockedList[i].GraphicallyInvalidate;
@@ -1789,7 +1789,7 @@ begin
         begin
             tempBool := Obj.Selected;
             Obj.Selected := True;
-            if Obj.Selected = True then IsCompSelectable := True;
+            if Obj.Selected = True then IsCompSelectable := True else IsCompSelectable := False;
             Obj.Selected := tempBool;
             checkComp := False;
         end
@@ -1797,7 +1797,7 @@ begin
         begin
             tempBool := Obj.Selected;
             Obj.Selected := True;
-            if Obj.Selected = True then IsTextSelectable := True;
+            if Obj.Selected = True then IsTextSelectable := True else IsTextSelectable := False;
             Obj.Selected := tempBool;
             checkText := False;
         end;
