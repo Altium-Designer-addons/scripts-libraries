@@ -5,10 +5,10 @@ const
     cMaxMechLayers          = 1024;
     cScriptTitle            = 'AssemblyTextPrep';
     cConfigFileName         = 'AssemblyTextPrepConfig.ini';
-    cScriptVersion          = '0.82';
+    cScriptVersion          = '0.83';
     cDEBUGLEVEL             = 0;
 
-    DEBUGEXPANSION          = 0; // leave at -1 to disable
+    DEBUGEXPANSION          = -1; // leave at -1 to disable
     // font defaults for hidden settings
     cSTROKE_RATIO           = 1.1111; // desired ratio of stroke font actual height to `size` parameter. 1.1111 will give stroke width of 1/9th of size (1 + 1/9)
     cSIZEMULT_IMPERIAL      = 1; // [mils] text size will be rounded to this
@@ -113,6 +113,7 @@ procedure   InitialCheckSelectComponents(var status : Integer); forward;
 procedure   InitialCheckSelectDesignators(var status : Integer); forward;
 procedure   Inspect_IPCB_Text(var Text : IPCB_Text3; const MyLabel : string = ''); forward;
 function    IsSelectableCheck(var bCanSelectComp : Boolean; var bCanSelectText : Boolean); forward;
+function    IsSelectableCheckStop(bShowWarning : Boolean = True) : Boolean; forward;
 function    IsStringANum(Text : string) : Boolean; forward;
 function    IsViolating(Text : IPCB_ObjectClass) : Boolean; forward;
 procedure   NormalizeSelectedWithJustification; forward;
@@ -126,7 +127,8 @@ procedure   ResizeText(var Text : IPCB_Text; const target_width : TCoord; const 
 function    RotateTextToAngle(var Text : IPCB_Text; const Angle : Double; const Normalize : Boolean = False; const Ortho : Boolean = False) : Double; forward;
 function    RoundCoordAuto(coords : TCoord) : TCoord; forward;
 function    RoundCoords(coords : TCoord; round_mult : Double; units : TUnit) : TCoord; forward;
-function    SelectAllComponents(dummy : Boolean = False) : Integer; forward;
+function    SelectAllComponents : Integer; forward;
+function    SelectAllLockedDesignators : Integer; forward;
 procedure   SelectBoth; forward;
 procedure   SelectComponents; forward;
 procedure   SelectDesignators; forward;
@@ -148,6 +150,7 @@ procedure   TAssemblyTextPrepForm.ButtonSaveConfigClick(Sender : TObject); forwa
 procedure   TAssemblyTextPrepForm.ButtonSelectBothClick(Sender : TObject); forward;
 procedure   TAssemblyTextPrepForm.ButtonSelectComponentsClick(Sender : TObject); forward;
 procedure   TAssemblyTextPrepForm.ButtonSelectDesignatorsClick(Sender : TObject); forward;
+procedure   TAssemblyTextPrepForm.ButtonSelectLockedClick(Sender: TObject); forward;
 procedure   TAssemblyTextPrepForm.ButtonSelectMissingClick(Sender: TObject); forward;
 procedure   TAssemblyTextPrepForm.ButtonZoomSelectedClick(Sender : TObject); forward;
 procedure   TAssemblyTextPrepForm.CheckBoxLocalSettingsClick(Sender : TObject); forward;
@@ -176,15 +179,12 @@ function    MyMarqueeActive(dummy : Boolean = False) : Boolean; forward;
 
 
 { Main GUI }
-procedure _GUI;
+procedure   _GUI;
 var
     status          : Integer;
 begin
-    status := 0;
-    if not DocumentIsPCB then exit;
-
     InitialCheckGUI(status);
-    //if status <> 0 then exit;
+    if status = 1 then exit;
 
     //AssemblyTextPrepForm.ShowModal; // Show the GUI
     AssemblyTextPrepForm.FormStyle := fsStayOnTop;
@@ -193,7 +193,7 @@ end;
 
 
 { About information }
-procedure About;
+procedure   About;
 var
     MsgText : string;
 begin
@@ -212,7 +212,7 @@ begin
 end; { About }
 
 
-function AddAssyTextToCompFromStyle(var Comp : IPCB_Component; const StyleText : IPCB_Text) : Boolean;
+function    AddAssyTextToCompFromStyle(var Comp : IPCB_Component; const StyleText : IPCB_Text) : Boolean;
 var
     NewTextObj      : IPCB_Text;
     AssyLayer       : TV7_Layer;
@@ -264,7 +264,7 @@ end;
 
 
 // returns false if text is already in a component
-function AddFreeTextToComp(var Comp : IPCB_Component; var Text : IPCB_Text) : Boolean;
+function    AddFreeTextToComp(var Comp : IPCB_Component; var Text : IPCB_Text) : Boolean;
 begin
     Result := False;
     if Text.InComponent then exit;
@@ -277,7 +277,7 @@ end;
 
 
 { Main function to select both components and assembly designators for selected objects, then reset .Designator positions }
-procedure AdjustDesignatorPositions(const CenterStrategyIndex : Integer; const OrientationIndex : Integer; const Resize : Boolean; const Normalize : Boolean);
+procedure   AdjustDesignatorPositions(const CenterStrategyIndex : Integer; const OrientationIndex : Integer; const Resize : Boolean; const Normalize : Boolean);
 var
     i                       : Integer;
     status                  : Integer;
@@ -294,6 +294,9 @@ var
     Ortho                   : Boolean;
     AutoRotate              : Boolean;
     InvalidCount            : Integer;
+    LockedList              : TInterfaceList;
+    MessageString           : String;
+    mResponse               : Integer;
 begin
     SelectBoth;
 
@@ -345,17 +348,28 @@ begin
         end;
     end;
 
+    LockedList := CreateObject(TInterfaceList);
+
     GUI_ForLoopStart('Processing designators', Board.SelectecObjectCount);
     try
         // at this point we have a selection of text objects
         // For each Text object selected:
-        for i := 0 to Board.SelectecObjectCount - 1 do
+        for i := Board.SelectecObjectCount - 1 downto 0 do
         begin
             // use GetComponent to get the owner component followed by its XY position and rotation
             Text := Board.SelectecObject[i];
             Comp := GetComponent(Text);
 
             if Comp = nil then continue;  // skip if component not found
+
+            // deselect and skip locked text if option is enabled
+            if CheckBoxProtectLocked.Checked and not Text.Moveable then
+            begin
+                LockedList.Add(Text);
+                Text.Selected := False;
+                Text.GraphicallyInvalidate;
+                continue;
+            end;
 
             if iDebugLevel >= 2 then Inspect_IPCB_Text(Text, 'BEFORE');
 
@@ -462,11 +476,45 @@ begin
         GUI_LoopEnd;
     end;
 
-    ClientZoomRedraw;
+    //ClientZoomRedraw;
+    if LockedList.Count > 0 then
+    begin
+        MessageString := Format('Processed %d .Designator special strings.%s%d locked designators were skipped. Do you want to select skipped designators exclusively?',
+                [Board.SelectecObjectCount, sLineBreak, LockedList.Count]);
 
+        mResponse := ConfirmNoYesCancel(MessageString + sLineBreak + sLineBreak + 'YES: Select only locked designators | NO: Select locked and unlocked designators | CANCEL: Select only modified designators');
+
+        case mResponse of
+            mrYes: begin
+                ClientDeselectAll;
+                for i := 0 to LockedList.Count - 1 do
+                begin
+                    LockedList[i].Selected := True;
+                    LockedList[i].GraphicallyInvalidate;
+                end;
+            end;
+            mrNo: begin
+                for i := 0 to LockedList.Count - 1 do
+                begin
+                    LockedList[i].Selected := True;
+                    LockedList[i].GraphicallyInvalidate;
+                end;
+            end;
+            mrCancel: begin
+                // nothing
+            end;
+        end;
+
+    end
+    else
+    begin
+        ShowInfo(Format('Processed %d .Designator special strings.', [Board.SelectecObjectCount]));
+    end;
+
+    if ConfirmNoYes('Operation finished. Zoom on selected objects?') then ClientZoomSelected;
 end;
 
-function CalculateCentroid(const contour : IPCB_Contour; out CentroidX : TCoord; out CentroidY : TCoord) : Boolean;
+function    CalculateCentroid(const contour : IPCB_Contour; out CentroidX : TCoord; out CentroidY : TCoord) : Boolean;
 var
     iPoint: Integer;
     xRunningSum, yRunningSum: Double;
@@ -491,7 +539,7 @@ begin
 end;
 
 
-procedure ChangeTextUnits(Units : TUnit);
+procedure   ChangeTextUnits(Units : TUnit);
 var
     i           : Integer;
     ControlList : TObjectList;
@@ -527,32 +575,32 @@ begin
 end;
 
 
-procedure ClientDeSelectAll(dummy : Boolean = False);
+procedure   ClientDeSelectAll(dummy : Boolean = False);
 begin
     Client.SendMessage('PCB:DeSelect', 'Scope=All' , 255, Client.CurrentView);
 end;
 
 
-procedure ClientZoomRedraw(dummy : Boolean = False);
+procedure   ClientZoomRedraw(dummy : Boolean = False);
 begin
     Client.SendMessage('PCB:Zoom', 'Action=Redraw' , 255, Client.CurrentView);
 end;
 
 
-procedure ClientZoomSelected(dummy : Boolean = False);
+procedure   ClientZoomSelected(dummy : Boolean = False);
 begin
     Client.SendMessage('PCB:Zoom', 'Action=Selected' , 255, Client.CurrentView);
 end;
 
 
-function ConfigFile_GetPath(dummy : String = '') : String;
+function    ConfigFile_GetPath(dummy : String = '') : String;
 begin
     Result := ExtractFilePath(GetRunningScriptProjectName) + cConfigFileName;
     if (not FileExists(Result)) or bForbidLocalSettings then Result := IncludeTrailingPathDelimiter(SpecialFolder_AltiumApplicationData) + cConfigFileName;
 end;
 
 
-procedure ConfigFile_Read(AFileName : String);
+procedure   ConfigFile_Read(AFileName : String);
 var
     IniFile             : TIniFile;
     LocalSettingsFile   : String;
@@ -586,16 +634,17 @@ begin
         AssemblyTextPrepForm.Top := IniFile.ReadInteger('Window Position', 'Top', AssemblyTextPrepForm.Top);
         AssemblyTextPrepForm.Left := IniFile.ReadInteger('Window Position', 'Left', AssemblyTextPrepForm.Left);
 
-        EditSizeMin.Text            := IniFile.ReadString('Limits', 'Minimum Height', EditSizeMin.Text);
-        EditSizeNom.Text            := IniFile.ReadString('Limits', 'Nominal Height', EditSizeNom.Text);
-        EditSizeMax.Text            := IniFile.ReadString('Limits', 'Maximum Height', EditSizeMax.Text);
-        EditAspectRatioTol.Text     := IniFile.ReadString('Limits', 'Aspect Ratio Threshold', EditAspectRatioTol.Text);
+        EditSizeMin.Text                := IniFile.ReadString('Limits', 'Minimum Height', EditSizeMin.Text);
+        EditSizeNom.Text                := IniFile.ReadString('Limits', 'Nominal Height', EditSizeNom.Text);
+        EditSizeMax.Text                := IniFile.ReadString('Limits', 'Maximum Height', EditSizeMax.Text);
+        EditAspectRatioTol.Text         := IniFile.ReadString('Limits', 'Aspect Ratio Threshold', EditAspectRatioTol.Text);
 
-        MMmilButton.Caption         := IniFile.ReadString('Config', 'Units', MMmilButton.Caption);
-        CheckBoxResize.Checked      := IniFile.ReadBool('Config', 'Resize Text', CheckBoxResize.Checked);
-        CheckBoxNormalize.Checked   := IniFile.ReadBool('Config', 'Normalize Text', CheckBoxNormalize.Checked);
-        rgCenterStrategy.ItemIndex  := IniFile.ReadInteger('Config', 'Centering Strategy', rgCenterStrategy.ItemIndex);
-        rgOrientation.ItemIndex     := IniFile.ReadInteger('Config', 'Designator Orientation', rgOrientation.ItemIndex);
+        MMmilButton.Caption             := IniFile.ReadString('Config', 'Units', MMmilButton.Caption);
+        CheckBoxResize.Checked          := IniFile.ReadBool('Config', 'Resize Text', CheckBoxResize.Checked);
+        CheckBoxNormalize.Checked       := IniFile.ReadBool('Config', 'Normalize Text', CheckBoxNormalize.Checked);
+        CheckBoxProtectLocked.Checked   := IniFile.ReadBool('Config', 'Protect Locked Text', CheckBoxProtectLocked.Checked);
+        rgCenterStrategy.ItemIndex      := IniFile.ReadInteger('Config', 'Centering Strategy', rgCenterStrategy.ItemIndex);
+        rgOrientation.ItemIndex         := IniFile.ReadInteger('Config', 'Designator Orientation', rgOrientation.ItemIndex);
 
         TempString                  := IniFile.ReadString('Hidden Settings', 'stroke font height ratio', FloatToStr(cSTROKE_RATIO));
         if IsStringANum(TempString) then STROKE_RATIO := StrToFloat(TempString) else STROKE_RATIO := cSTROKE_RATIO;
@@ -636,7 +685,7 @@ begin
 end;
 
 
-procedure ConfigFile_Write(AFileName : String);
+procedure   ConfigFile_Write(AFileName : String);
 var
     IniFile: TIniFile;
 begin
@@ -653,6 +702,7 @@ begin
         IniFile.WriteString('Config', 'Units', MMmilButton.Caption);
         IniFile.WriteBool('Config', 'Resize Text', CheckBoxResize.Checked);
         IniFile.WriteBool('Config', 'Normalize Text', CheckBoxNormalize.Checked);
+        IniFile.WriteBool('Config', 'Protect Locked Text', CheckBoxProtectLocked.Checked);
         IniFile.WriteInteger('Config', 'Centering Strategy', rgCenterStrategy.ItemIndex);
         IniFile.WriteInteger('Config', 'Designator Orientation', rgOrientation.ItemIndex);
 
@@ -666,7 +716,7 @@ begin
 end;
 
 
-function CoordToStr(Coords : TCoord) : String;
+function    CoordToStr(Coords : TCoord) : String;
 const
     MAXINT = 2147483647;
     MININT = -2147483647;
@@ -678,19 +728,19 @@ begin
 end;
 
 
-function CoordToX(Coords : TCoord) : String;
+function    CoordToX(Coords : TCoord) : String;
 begin
     result := CoordUnitToString(Coords - Board.XOrigin, Board.DisplayUnit xor 1);
 end;
 
 
-function CoordToY(Coords : TCoord) : String;
+function    CoordToY(Coords : TCoord) : String;
 begin
     result := CoordUnitToString(Coords - Board.YOrigin, Board.DisplayUnit xor 1);
 end;
 
 
-procedure CopyTextFormatFromTo(SourceText : IPCB_Text; TargetText : IPCB_Text);
+procedure   CopyTextFormatFromTo(SourceText : IPCB_Text; TargetText : IPCB_Text);
 begin
     if SourceText = nil then exit;
     if TargetText = nil then exit;
@@ -728,7 +778,7 @@ begin
 end;
 
 { Initial checks when .Designator strings are ostensibly selected }
-function DebugContourInfo(contour : IPCB_Contour) : TStringList;
+function    DebugContourInfo(contour : IPCB_Contour) : TStringList;
 var
     PointList: TStringList;
     iPoint: Integer;
@@ -748,7 +798,7 @@ begin
 end;
 
 
-function DebugGeometricPolygonInfo(poly : IPCB_GeometricPolygon) : TStringList;
+function    DebugGeometricPolygonInfo(poly : IPCB_GeometricPolygon) : TStringList;
 var
     PointList: TStringList;
     contour: IPCB_Contour;
@@ -773,13 +823,13 @@ begin
 end;
 
 
-function DebugLevelStr(dummy : String = '') : String;
+function    DebugLevelStr(dummy : String = '') : String;
 begin
     Result := '-------------------------  Debug Level: ' + IntToStr(iDebugLevel) + '  -------------------------' + sLineBreak;
 end;
 
 
-procedure DebugMessage(const ShowLevel : Integer; const msg : WideString; const Caption : String = 'Confirm or Cancel Debug');
+procedure   DebugMessage(const ShowLevel : Integer; const msg : WideString; const Caption : String = 'Confirm or Cancel Debug');
 begin
     // iDebugLevel must be an Integer global variable initialized before first call to this procedure
     if iDebugLevel >= ShowLevel then
@@ -792,7 +842,7 @@ begin
 end;
 
 
-procedure DeselectInvalidComponents(dummy : Boolean = False);
+procedure   DeselectInvalidComponents(dummy : Boolean = False);
 var
     i       : Integer;
     Comp    : IPCB_Component;
@@ -809,7 +859,7 @@ begin
 end;
 
 
-procedure DeselectValidComponents(dummy : Boolean = False);
+procedure   DeselectValidComponents(dummy : Boolean = False);
 var
     i       : Integer;
     Comp    : IPCB_Component;
@@ -827,27 +877,27 @@ end;
 
 
 { wrapper call to AdjustDesignatorPositions that will resize text and orient it for best fit}
-procedure DesignatorAutoAdjust;
+procedure   DesignatorAutoAdjust;
 begin
     AdjustDesignatorPositions(0, 0, True, True);
 end;
 
 
 { wrapper call to AdjustDesignatorPositions that will resize text and orient it orthogonal to component rotation}
-procedure DesignatorOrthoResize;
+procedure   DesignatorOrthoResize;
 begin
     AdjustDesignatorPositions(0, 2, True, False);
 end;
 
 
 { wrapper call to AdjustDesignatorPositions that will exactly match component rotation and resize text }
-procedure DesignatorResize;
+procedure   DesignatorResize;
 begin
     AdjustDesignatorPositions(0, 1, True, False);
 end;
 
 
-function DocumentIsPCB : Boolean;
+function    DocumentIsPCB : Boolean;
 begin
     // set AD build flag
     if not Assigned(IsAtLeastAD19) then if (GetBuildNumberPart(Client.GetProductVersion, 0) >= 19) then IsAtLeastAD19 := True else IsAtLeastAD19 := False;
@@ -865,7 +915,7 @@ begin
 end;
 
 
-function FolderIsReadOnly(const AFolderPath : String) : Boolean;
+function    FolderIsReadOnly(const AFolderPath : String) : Boolean;
 var
     TempFile: String;
     FileHandle: Integer;
@@ -882,7 +932,7 @@ begin
 end;
 
 
-function GetAnyDesignator(dummy : Boolean = False) : IPCB_Text;
+function    GetAnyDesignator(dummy : Boolean = False) : IPCB_Text;
 var
     i, count    : Integer;
     Iter        : IPCB_BoardIterator;
@@ -912,7 +962,7 @@ begin
 end;
 
 
-function GetAssyLayer(ALayer : TLayer) : TV7_Layer;
+function    GetAssyLayer(ALayer : TLayer) : TV7_Layer;
 var
     Iter        : IPCB_BoardIterator;
     Comp        : IPCB_Component;
@@ -941,7 +991,7 @@ end;
 
 
 // not a very performance function but I don't know a better way to get a proper on-layer bounding rectangle that rotation doesn't screw up
-function GetBRectOnLayer_Pad(Pad : IPCB_Pad; ALayer : TV7_Layer) : TCoordRect;
+function    GetBRectOnLayer_Pad(Pad : IPCB_Pad; ALayer : TV7_Layer) : TCoordRect;
 var
     contour             : IPCB_Contour;
     iPoint              : Integer;
@@ -981,7 +1031,7 @@ end;
 
 
 { Return the parent component of a text string }
-function GetComponent(var Text : IPCB_Primitive) : IPCB_Component;
+function    GetComponent(var Text : IPCB_Primitive) : IPCB_Component;
 begin
     if (Text = nil) or (not Text.InComponent) then
         Result := nil
@@ -990,7 +1040,7 @@ begin
 end;
 
 
-function GetComponentBodyLargest(Comp : IPCB_Component) : IPCB_ComponentBody;
+function    GetComponentBodyLargest(Comp : IPCB_Component) : IPCB_ComponentBody;
 var
     GIter : IPCB_GroupIterator;
     Prim : IPCB_Primitive;
@@ -1024,7 +1074,7 @@ end;
 
 
 { Function to calculate the bounding box dimensions of a component's largest 3D body. Returns area in square mils. }
-function GetComponentBounds_Body(Comp : IPCB_Component; out CentroidX : TCoord; out CentroidY : TCoord; out box_width : TCoord; out box_height : TCoord) : Tnteger;
+function    GetComponentBounds_Body(Comp : IPCB_Component; out CentroidX : TCoord; out CentroidY : TCoord; out box_width : TCoord; out box_height : TCoord) : Tnteger;
 var
     body                : IPCB_ComponentBody;
     BRect               : TCoordRect;
@@ -1076,7 +1126,7 @@ end;
 
 
 { Function to calculate the bounding box dimensions enclosing a component's pads. Returns area in square mils. }
-function GetComponentBounds_Pads(Comp : IPCB_Component; out CentroidX : TCoord; out CentroidY : TCoord; out box_width : TCoord; out box_height : TCoord) : Tnteger;
+function    GetComponentBounds_Pads(Comp : IPCB_Component; out CentroidX : TCoord; out CentroidY : TCoord; out box_width : TCoord; out box_height : TCoord) : Tnteger;
 var
     Pad                 : IPCB_Pad;
     PadBoundary         : TCoordRect;
@@ -1157,7 +1207,7 @@ end;
 
 
 { Function to calculate the bounding box dimensions of a component's simple bounding rectangle. Returns area in square mils. }
-function GetComponentBounds_Simple(const Comp : IPCB_Component; out CentroidX : TCoord; out CentroidY : TCoord; out box_width : TCoord; out box_height : TCoord) : Integer;
+function    GetComponentBounds_Simple(const Comp : IPCB_Component; out CentroidX : TCoord; out CentroidY : TCoord; out box_width : TCoord; out box_height : TCoord) : Integer;
 var
     Area                : Integer;
     BRect               : TCoordRect;
@@ -1198,7 +1248,7 @@ end;
 
 
 { Return the first .Designator special string associated with a component }
-function GetDesignator(var Comp : IPCB_Component) : IPCB_Primitive;
+function    GetDesignator(var Comp : IPCB_Component) : IPCB_Primitive;
 var
     GIter           : IPCB_GroupIterator;
     Text            : IPCB_Primitive;
@@ -1227,7 +1277,7 @@ begin
 end;
 
 
-function GetObjPoly(Obj: IPCB_ObjectClass, Expansion: TCoord = 0) : IPCB_GeometricPolygon;
+function    GetObjPoly(Obj: IPCB_ObjectClass, Expansion: TCoord = 0) : IPCB_GeometricPolygon;
 var
     Poly: IPCB_GeometricPolygon;
     OldRect: TCoordRect;
@@ -1281,7 +1331,7 @@ begin
         // For uknown types, fall back to a dumb bounding rectangle, but wrapped as IPCB_GeometricPolygon
         OldRect := Obj.BoundingRectangle;
         NewContour := PCBServer.PCBContourFactory;
-        // Procedure AddPoint(x : Integer; y : Integer);
+        // Procedure   AddPoint(x : Integer; y : Integer);
         NewContour.AddPoint(OldRect.Left, OldRect.Bottom);
         NewContour.AddPoint(OldRect.Right, OldRect.Bottom);
         NewContour.AddPoint(OldRect.Right, OldRect.Top);
@@ -1295,7 +1345,7 @@ begin
 end;
 
 
-function GetSelectedAssyTextCount(dummy : Boolean = False) : Integer;
+function    GetSelectedAssyTextCount(dummy : Boolean = False) : Integer;
 var
     i       : Integer;
 begin
@@ -1308,7 +1358,7 @@ begin
 end;
 
 
-function GetSelectedComponentCount(dummy : Boolean = False) : Integer;
+function    GetSelectedComponentCount(dummy : Boolean = False) : Integer;
 var
     i       : Integer;
 begin
@@ -1320,36 +1370,36 @@ begin
 end;
 
 
-function GetSelectedInvalidCount(dummy : Boolean = False) : Integer;
+function    GetSelectedInvalidCount(dummy : Boolean = False) : Integer;
 begin
     Result := GetSelectedComponentCount - GetSelectedAssyTextCount;
 end;
 
-procedure GUI_BeginProcess(dummy : Boolean = False);
+procedure   GUI_BeginProcess(dummy : Boolean = False);
 begin
     if bProcessing = False then
     begin
-        PCBServer.PreProcess; // start undo
         SetButtonEnableStates(False);
+        PCBServer.PreProcess; // start undo
         bProcessing := True;
         BeginHourGlass;
     end;
 end;
 
 
-procedure GUI_EndProcess(dummy : Boolean = False);
+procedure   GUI_EndProcess(dummy : Boolean = False);
 begin
     if bProcessing = True then
     begin
         EndHourGlass;
         bProcessing := False;
-        SetButtonEnableStates(True);
         PCBServer.PostProcess; // end undo
+        SetButtonEnableStates(True);
     end;
 end;
 
 
-function GUI_ForLoopStart(StatusMsg : String; LoopCount : Integer) : Integer;
+function    GUI_ForLoopStart(StatusMsg : String; LoopCount : Integer) : Integer;
 begin
     Result := LoopCount;
     MyPercent_Init(StatusMsg, LoopCount);
@@ -1357,20 +1407,20 @@ begin
 end;
 
 
-procedure GUI_LoopEnd(dummy : Boolean = False);
+procedure   GUI_LoopEnd(dummy : Boolean = False);
 begin
     GUI_EndProcess;
     MyPercent_Finish;
 end;
 
 
-procedure GUI_LoopProgress(StatusMsg : String = '');
+procedure   GUI_LoopProgress(StatusMsg : String = '');
 begin
     MyPercent_Update(StatusMsg);
 end;
 
 
-procedure InitialCheckGUI(var status : Integer);
+procedure   InitialCheckGUI(var status : Integer);
 var
     i               : Integer;
     LayerNameTop    : String;
@@ -1380,7 +1430,7 @@ var
 begin
     status := 0; // clear result status
 
-    if not ((Board <> nil) or DocumentIsPCB) then
+    if not DocumentIsPCB then
     begin
         status := 1;
         exit;
@@ -1389,9 +1439,6 @@ begin
     iDebugLevel := cDEBUGLEVEL;
 
     IsSelectableCheck(IsCompSelectable, IsTextSelectable);
-    if not (IsCompSelectable or IsTextSelectable) then ShowWarning('Components and Texts are not selectable. Make sure both "Components" and "Texts" are enabled in selection filter.')
-    else if not IsCompSelectable then ShowWarning('Components are not selectable. Make sure both "Components" and "Texts" are enabled in selection filter.')
-    else if not IsTextSelectable then ShowWarning('Texts are not selectable. Make sure both "Components" and "Texts" are enabled in selection filter.');
 
     MLS := Board.MasterLayerStack;
     MLP := Board.MechanicalPairs; // only needed if we can't derive assy layers from existing components
@@ -1410,7 +1457,7 @@ begin
     begin
         ShowError('Couldn''t determine any assembly layers from existing components:' + sLineBreak + ASSY_LAYERS_STR);
         ButtonAddDesignators.Enabled := False;
-        status := 1;
+        status := 2;
     end
     else if (ASSY_LAYER_TOP = eNoLayer) then
     begin
@@ -1427,7 +1474,7 @@ begin
         if ASSY_LAYER_TOP = eNoLayer then
         begin
             ShowError('Couldn''t determine top assembly layers from existing components or mech layer pairs:' + sLineBreak + ASSY_LAYERS_STR);
-            status := 1;
+            status := 2;
         end;
     end
     else if (ASSY_LAYER_BOT = eNoLayer) then
@@ -1444,7 +1491,7 @@ begin
         if ASSY_LAYER_BOT = eNoLayer then
         begin
             ShowError('Couldn''t determine top assembly layers from existing components or mech layer pairs:' + sLineBreak + ASSY_LAYERS_STR);
-            status := 1;
+            status := 2;
         end;
     end;
 
@@ -1460,7 +1507,7 @@ end;
 
 
 { Initial checks when a mix of components and .Designator strings are ostensibly selected }
-procedure InitialCheckSelectBoth(var status : Integer);
+procedure   InitialCheckSelectBoth(var status : Integer);
 var
     i                   : Integer;
     Prim1               : IPCB_Primitive;
@@ -1477,14 +1524,9 @@ begin
 
     iDebugLevel := cDEBUGLEVEL;
 
-    IsSelectableCheck(IsCompSelectable, IsTextSelectable);
-    if not (IsCompSelectable or IsTextSelectable) then ShowWarning('Components and Texts are not selectable. Make sure both "Components" and "Texts" are enabled in selection filter.')
-    else if not IsCompSelectable then ShowWarning('Components are not selectable. Make sure both "Components" and "Texts" are enabled in selection filter.')
-    else if not IsTextSelectable then ShowWarning('Texts are not selectable. Make sure both "Components" and "Texts" are enabled in selection filter.');
-
-    if not (IsCompSelectable and IsTextSelectable) then
+    if IsSelectableCheckStop then
     begin
-        setatus := 1;
+        status := 1;
         exit;
     end;
 
@@ -1531,7 +1573,7 @@ begin
 end;
 
 
-procedure InitialCheckSelectComponents(var status : Integer);
+procedure   InitialCheckSelectComponents(var status : Integer);
 var
     i               : Integer;
     Prim1           : IPCB_Primitive;
@@ -1547,14 +1589,9 @@ begin
 
     iDebugLevel := cDEBUGLEVEL;
 
-    IsSelectableCheck(IsCompSelectable, IsTextSelectable);
-    if not (IsCompSelectable or IsTextSelectable) then ShowWarning('Components and Texts are not selectable. Make sure both "Components" and "Texts" are enabled in selection filter.')
-    else if not IsCompSelectable then ShowWarning('Components are not selectable. Make sure both "Components" and "Texts" are enabled in selection filter.')
-    else if not IsTextSelectable then ShowWarning('Texts are not selectable. Make sure both "Components" and "Texts" are enabled in selection filter.');
-
-    if not (IsCompSelectable and IsTextSelectable) then
+    if IsSelectableCheckStop then
     begin
-        setatus := 1;
+        status := 1;
         exit;
     end;
 
@@ -1599,7 +1636,7 @@ end;
 
 
 { Initial checks when components are ostensibly selected }
-procedure InitialCheckSelectDesignators(var status : Integer);
+procedure   InitialCheckSelectDesignators(var status : Integer);
 var
     i                   : Integer;
     Prim1               : IPCB_Primitive;
@@ -1615,14 +1652,9 @@ begin
 
     iDebugLevel := cDEBUGLEVEL;
 
-    IsSelectableCheck(IsCompSelectable, IsTextSelectable);
-    if not (IsCompSelectable or IsTextSelectable) then ShowWarning('Components and Texts are not selectable. Make sure both "Components" and "Texts" are enabled in selection filter.')
-    else if not IsCompSelectable then ShowWarning('Components are not selectable. Make sure both "Components" and "Texts" are enabled in selection filter.')
-    else if not IsTextSelectable then ShowWarning('Texts are not selectable. Make sure both "Components" and "Texts" are enabled in selection filter.');
-
-    if not (IsCompSelectable and IsTextSelectable) then
+    if IsSelectableCheckStop then
     begin
-        setatus := 1;
+        status := 1;
         exit;
     end;
 
@@ -1666,7 +1698,7 @@ end;
 
 
 { IPCB_Text inspector for debugging }
-procedure Inspect_IPCB_Text(var Text : IPCB_Text3; const MyLabel : string = '');
+procedure   Inspect_IPCB_Text(var Text : IPCB_Text3; const MyLabel : string = '');
 var
     AD19DebugStr : String;
 begin
@@ -1677,6 +1709,7 @@ begin
     ShowInfo('DEBUGGING: ' + MyLabel + sLineBreak +
                 '------------------------------' + sLineBreak +
                 AD19DebugStr + sLineBreak +
+                Format('%s : %s', ['Moveable',  BoolToStr(Text.Moveable, True)]) + sLineBreak +
                 Format('%s : %s', ['AllowGlobalEdit',  BoolToStr(Text.AllowGlobalEdit, True)]) + sLineBreak +
                 Format('%s : %s', ['Descriptor',  Text.Descriptor]) + sLineBreak +
                 Format('%s : %s', ['Detail',  Text.Detail]) + sLineBreak +
@@ -1713,7 +1746,7 @@ begin
 end;
 
 
-function IsSelectableCheck(var bCanSelectComp : Boolean; var bCanSelectText : Boolean);
+function    IsSelectableCheck(var bCanSelectComp : Boolean; var bCanSelectText : Boolean);
 var
     checkComp   : Boolean;
     checkText   : Boolean;
@@ -1723,6 +1756,9 @@ var
 begin
     checkComp := True;
     checkText := True;
+
+    if not Assigned(bCanSelectComp) then bCanSelectComp := False;
+    if not Assigned(bCanSelectText) then bCanSelectText := False;
 
     Iter := Board.BoardIterator_Create;
     Iter.AddFilter_ObjectSet(MkSet(eComponentObject, eTextObject));
@@ -1736,7 +1772,7 @@ begin
         begin
             tempBool := Obj.Selected;
             Obj.Selected := True;
-            if Obj.Selected = True then bCanSelectComp := True;
+            if Obj.Selected = True then bCanSelectComp := True else bCanSelectComp := False;
             Obj.Selected := tempBool;
             checkComp := False;
         end
@@ -1744,7 +1780,7 @@ begin
         begin
             tempBool := Obj.Selected;
             Obj.Selected := True;
-            if Obj.Selected = True then bCanSelectText := True;
+            if Obj.Selected = True then bCanSelectText := True else bCanSelectText := False;
             Obj.Selected := tempBool;
             checkText := False;
         end;
@@ -1754,10 +1790,26 @@ begin
         Obj := Iter.NextPCBObject;
     end;
     Board.BoardIterator_Destroy(Iter);
+
 end;
 
 
-function IsStringANum(Text : string) : Boolean;
+function    IsSelectableCheckStop(bShowWarning : Boolean = True) : Boolean;
+begin
+    IsSelectableCheck(IsCompSelectable, IsTextSelectable);
+
+    if bShowWarning then
+    begin
+        if not (IsCompSelectable or IsTextSelectable) then ShowWarning('Components and Texts are not selectable. Make sure both "Components" and "Texts" are enabled in selection filter.')
+        else if not IsCompSelectable then ShowWarning('Components are not selectable. Make sure both "Components" and "Texts" are enabled in selection filter.')
+        else if not IsTextSelectable then ShowWarning('Texts are not selectable. Make sure both "Components" and "Texts" are enabled in selection filter.');
+    end;
+
+    Result := not (IsCompSelectable and IsTextSelectable);
+end;
+
+
+function    IsStringANum(Text : string) : Boolean;
 var
     i        : Integer;
     dotCount : Integer;
@@ -1793,7 +1845,7 @@ end; { IsStringANum }
 
 
 // Checks if text object overlaps other objects on same layer
-function IsViolating(Text : IPCB_ObjectClass) : Boolean;
+function    IsViolating(Text : IPCB_ObjectClass) : Boolean;
 var
     TextPoly, ObjPoly       : IPCB_GeometricPolygon;
     GIter                   : IPCB_GroupIterator;
@@ -1881,7 +1933,7 @@ end;
 
 
 { normalizes selected text objects to be right-reading while preserving their justification }
-procedure NormalizeSelectedWithJustification;
+procedure   NormalizeSelectedWithJustification;
 var
     i       : Integer;
     Prim    : IPCB_Primitive;
@@ -1899,7 +1951,7 @@ end;
 
 
 { normalizes IPCB_Text object to be right-reading }
-function NormalizeText(var Text : IPCB_Text) : Boolean;
+function    NormalizeText(var Text : IPCB_Text) : Boolean;
 var
     OldAngle, NewAngle      : Double;
     OldJustify, NewJustify  : TTextAutoposition;
@@ -1966,7 +2018,7 @@ begin
 end;
 
 
-procedure ReportFootprintNames(header : String = 'Footprint Names:');
+procedure   ReportFootprintNames(header : String = 'Footprint Names:');
 var
     i           : Integer;
     Comp        : IPCB_Component;
@@ -1997,35 +2049,35 @@ end;
 
 
 { wrapper call to AdjustDesignatorPositions that will exactly match component rotation }
-procedure ResetDesignatorPositions;
+procedure   ResetDesignatorPositions;
 begin
     AdjustDesignatorPositions(False, False, False, False);
 end;
 
 
 { wrapper call to AdjustDesignatorPositions that will match component rotation but normalized to be right-reading }
-procedure ResetDesignatorPositionsNorm;
+procedure   ResetDesignatorPositionsNorm;
 begin
     AdjustDesignatorPositions(False, False, False, True);
 end;
 
 
 { wrapper call to AdjustDesignatorPositions that will orient .Designator string orthogonal to component but normalized to be right-reading }
-procedure ResetDesignatorPositionsNormOrtho;
+procedure   ResetDesignatorPositionsNormOrtho;
 begin
     AdjustDesignatorPositions(True, False, False, True);
 end;
 
 
 { wrapper call to AdjustDesignatorPositions that will orient .Designator string orthogonal to component }
-procedure ResetDesignatorPositionsOrtho;
+procedure   ResetDesignatorPositionsOrtho;
 begin
     AdjustDesignatorPositions(True, False, False, False);
 end;
 
 
-{ procedure to scale text to approximately fit within the selected width and height }
-procedure ResizeText(var Text : IPCB_Text; const target_width : TCoord; const target_height : TCoord);
+{ procedure   to scale text to approximately fit within the selected width and height }
+procedure   ResizeText(var Text : IPCB_Text; const target_width : TCoord; const target_height : TCoord);
 var
     temp_rotation   : double;
     width_ratio     : double;
@@ -2134,7 +2186,7 @@ end;
 
 
 { rotates IPCB_Text object to specific angle, optionally normalizing it to be right-reading, optionally rotating 90° CW }
-function RotateTextToAngle(var Text : IPCB_Text; const Angle : Double; const Normalize : Boolean = False; const Ortho : Boolean = False) : Double;
+function    RotateTextToAngle(var Text : IPCB_Text; const Angle : Double; const Normalize : Boolean = False; const Ortho : Boolean = False) : Double;
 begin
     if Ortho then Angle := Angle + 270;
 
@@ -2163,13 +2215,13 @@ begin
 end;
 
 
-function RoundCoordAuto(coords : TCoord) : TCoord;
+function    RoundCoordAuto(coords : TCoord) : TCoord;
 begin
     if bMetricUnits then Result := RoundCoords(coords, SIZEMULT_METRIC, eMetric)
     else Result := RoundCoords(coords, SIZEMULT_IMPERIAL, eImperial);
 end;
 
-function RoundCoords(coords : TCoord; round_mult : Double; units : TUnit) : TCoord;
+function    RoundCoords(coords : TCoord; round_mult : Double; units : TUnit) : TCoord;
 begin
     case units of
         eImperial: begin
@@ -2185,7 +2237,7 @@ begin
 end;
 
 
-function SelectAllComponents(dummy : Boolean = False) : Integer;
+function    SelectAllComponents : Integer;
 var
     Iter        : IPCB_BoardIterator;
     Comp        : IPCB_Component;
@@ -2210,8 +2262,41 @@ begin
 end;
 
 
+function    SelectAllLockedDesignators : Integer;
+var
+    Iter        : IPCB_BoardIterator;
+    Comp        : IPCB_Component;
+    Text        : IPCB_Text;
+begin
+    Result := 0;
+
+    Iter := Board.BoardIterator_Create;
+    Iter.AddFilter_ObjectSet(MkSet(eComponentObject));
+    Iter.AddFilter_LayerSet(AllLayers);
+    Iter.AddFilter_Method(eProcessAll);
+
+    Comp := Iter.FirstPCBObject;
+    while Comp <> nil do
+    begin
+        Text := GetDesignator(Comp);
+        if Text <> nil then
+        begin
+            if not Text.Moveable then
+            begin
+                Text.Selected := True;
+                Text.GraphicallyInvalidate;
+            end;
+        end;
+        Comp := Iter.NextPCBObject;
+    end;
+    Board.BoardIterator_Destroy(Iter);
+
+    Result := Board.SelectecObjectCount;
+end;
+
+
 { Main function to select both components and assembly designators for selected objects }
-procedure SelectBoth;
+procedure   SelectBoth;
 var
     i               : Integer;
     CompCount       : Integer;
@@ -2258,7 +2343,7 @@ end;
 
 
 { Main function to select components for selected assembly designators }
-procedure SelectComponents;
+procedure   SelectComponents;
 var
     i               : Integer;
     status          : Integer;
@@ -2292,7 +2377,7 @@ end;
 
 
 { Main function to select .Designator special strings for components }
-procedure SelectDesignators;
+procedure   SelectDesignators;
 var
     i               : Integer;
     status          : Integer;
@@ -2329,7 +2414,7 @@ begin
 end;
 
 
-procedure SetButtonEnableStates(EnableState : Boolean);
+procedure   SetButtonEnableStates(EnableState : Boolean);
 begin
     ButtonAddDesignators.Enabled            := EnableState;
     ButtonAutoAdjust.Enabled                := EnableState;
@@ -2345,6 +2430,7 @@ begin
     ButtonSelectBoth.Enabled                := EnableState;
     ButtonSelectComponents.Enabled          := EnableState;
     ButtonSelectDesignators.Enabled         := EnableState;
+    ButtonSelectLocked.Enabled              := EnableState;
     ButtonSelectMissing.Enabled             := EnableState;
     ButtonZoomSelected.Enabled              := EnableState;
     MMmilButton.Enabled                     := EnableState;
@@ -2355,7 +2441,7 @@ begin
 end;
 
 
-procedure TAssemblyTextPrepForm.AssemblyTextPrepFormCreate(Sender: TObject);
+procedure   TAssemblyTextPrepForm.AssemblyTextPrepFormCreate(Sender: TObject);
 begin
     iDebugLevel := cDEBUGLEVEL;
 
@@ -2366,7 +2452,7 @@ begin
 end;
 
 
-procedure TAssemblyTextPrepForm.AssemblyTextPrepFormMouseEnter(Sender: TObject);
+procedure   TAssemblyTextPrepForm.AssemblyTextPrepFormMouseEnter(Sender: TObject);
 var
     status : Integer;
 begin
@@ -2375,9 +2461,8 @@ begin
 end;
 
 
-procedure TAssemblyTextPrepForm.AssemblyTextPrepFormShow(Sender : TObject);
+procedure   TAssemblyTextPrepForm.AssemblyTextPrepFormShow(Sender : TObject);
 begin
-
     LabelVersion.Caption := 'About v' + cScriptVersion;
 
     Application.HintHidePause := 12000; // extend hint show time
@@ -2406,7 +2491,7 @@ begin
 end; { TAssemblyTextPrepForm.AssemblyTextPrepFormShow }
 
 
-procedure TAssemblyTextPrepForm.ButtonAddDesignatorsClick(Sender: TObject);
+procedure   TAssemblyTextPrepForm.ButtonAddDesignatorsClick(Sender: TObject);
 var
     i               : Integer;
     TextTemplate    : IPCB_Text;
@@ -2450,19 +2535,19 @@ begin
 end;
 
 
-procedure TAssemblyTextPrepForm.ButtonAutoAdjustClick(Sender : TObject);
+procedure   TAssemblyTextPrepForm.ButtonAutoAdjustClick(Sender : TObject);
 begin
     AdjustDesignatorPositions(0, 0, True, True);
 end;
 
 
-procedure TAssemblyTextPrepForm.ButtonCancelClick(Sender : TObject);
+procedure   TAssemblyTextPrepForm.ButtonCancelClick(Sender : TObject);
 begin
     AssemblyTextPrepForm.Close;
 end; { TAssemblyTextPrepForm.ButtonCancelClick }
 
 
-procedure TAssemblyTextPrepForm.ButtonCheckSelectedClick(Sender : TObject);
+procedure   TAssemblyTextPrepForm.ButtonCheckSelectedClick(Sender : TObject);
 var
     i   : Integer;
     Obj : IPCB_ObjectClass;
@@ -2486,13 +2571,13 @@ begin
 end;
 
 
-procedure TAssemblyTextPrepForm.ButtonNormalizeAnyTextClick(Sender : TObject);
+procedure   TAssemblyTextPrepForm.ButtonNormalizeAnyTextClick(Sender : TObject);
 begin
     NormalizeSelectedWithJustification;
 end;
 
 
-procedure TAssemblyTextPrepForm.ButtonNormalizeDesignatorClick(Sender : TObject);
+procedure   TAssemblyTextPrepForm.ButtonNormalizeDesignatorClick(Sender : TObject);
 begin
     GUI_BeginProcess;
     try
@@ -2508,7 +2593,7 @@ begin
 end;
 
 
-procedure TAssemblyTextPrepForm.ButtonProcessClick(Sender : TObject);
+procedure   TAssemblyTextPrepForm.ButtonProcessClick(Sender : TObject);
 var
     Iter        : IPCB_BoardIterator;
     Comp        : IPCB_Component;
@@ -2571,40 +2656,40 @@ end; { TAssemblyTextPrepForm.ButtonProcessClick }
 
 
 // reset position to automatic center, don't change rotation or resize
-procedure TAssemblyTextPrepForm.ButtonResetCenterClick(Sender : TObject);
+procedure   TAssemblyTextPrepForm.ButtonResetCenterClick(Sender : TObject);
 begin
     AdjustDesignatorPositions(0, -1, False, False);
 end;
 
 
 // reset position to origin, don't change rotation or resize
-procedure TAssemblyTextPrepForm.ButtonResetOriginClick(Sender : TObject);
+procedure   TAssemblyTextPrepForm.ButtonResetOriginClick(Sender : TObject);
 begin
     AdjustDesignatorPositions(4, -1, False, False);
 end;
 
 
 // resize to fit within bounds (in development)
-procedure TAssemblyTextPrepForm.ButtonResizeNoMoveClick(Sender : TObject);
+procedure   TAssemblyTextPrepForm.ButtonResizeNoMoveClick(Sender : TObject);
 begin
     AdjustDesignatorPositions(-1, -1, True, False);
 end;
 
 
-procedure TAssemblyTextPrepForm.ButtonSaveConfigClick(Sender : TObject);
+procedure   TAssemblyTextPrepForm.ButtonSaveConfigClick(Sender : TObject);
 begin
     ConfigFile_Write(ConfigFile_GetPath);
     ButtonSaveConfig.Caption := 'SAVED';
 end;
 
 
-procedure TAssemblyTextPrepForm.ButtonSelectBothClick(Sender : TObject);
+procedure   TAssemblyTextPrepForm.ButtonSelectBothClick(Sender : TObject);
 begin
     SelectBoth;
 end;
 
 
-procedure TAssemblyTextPrepForm.ButtonSelectComponentsClick(Sender : TObject);
+procedure   TAssemblyTextPrepForm.ButtonSelectComponentsClick(Sender : TObject);
 begin
     GUI_BeginProcess;
     try
@@ -2615,7 +2700,7 @@ begin
 end;
 
 
-procedure TAssemblyTextPrepForm.ButtonSelectDesignatorsClick(Sender : TObject);
+procedure   TAssemblyTextPrepForm.ButtonSelectDesignatorsClick(Sender : TObject);
 begin
     GUI_BeginProcess;
     try
@@ -2626,7 +2711,14 @@ begin
 end;
 
 
-procedure TAssemblyTextPrepForm.ButtonSelectMissingClick(Sender: TObject);
+procedure   TAssemblyTextPrepForm.ButtonSelectLockedClick(Sender: TObject);
+begin
+    ClientDeSelectAll;
+    if ConfirmNoYes(IntToStr(SelectAllLockedDesignators) + ' locked designators selected. Zoom to selection?') then ClientZoomSelected;
+end;
+
+
+procedure   TAssemblyTextPrepForm.ButtonSelectMissingClick(Sender: TObject);
 begin
     GUI_BeginProcess;
     try
@@ -2642,13 +2734,13 @@ begin
 end;
 
 
-procedure TAssemblyTextPrepForm.ButtonZoomSelectedClick(Sender : TObject);
+procedure   TAssemblyTextPrepForm.ButtonZoomSelectedClick(Sender : TObject);
 begin
     ClientZoomSelected;  // zoom on the selected components
 end;
 
 
-procedure TAssemblyTextPrepForm.CheckBoxLocalSettingsClick(Sender : TObject);
+procedure   TAssemblyTextPrepForm.CheckBoxLocalSettingsClick(Sender : TObject);
 var
     LocalSettingsFile : String;
 begin
@@ -2708,13 +2800,13 @@ begin
 end;
 
 
-procedure TAssemblyTextPrepForm.ConfigClick(Sender : TObject);
+procedure   TAssemblyTextPrepForm.ConfigClick(Sender : TObject);
 begin
     ButtonSaveConfig.Caption := '&SAVE';
 end;
 
 
-procedure TAssemblyTextPrepForm.InputValueChange(Sender : TObject);
+procedure   TAssemblyTextPrepForm.InputValueChange(Sender : TObject);
 begin
 
     if IsStringANum(Sender.Text) then
@@ -2733,13 +2825,13 @@ begin
 end; { TAssemblyTextPrepForm.InputValueChange }
 
 
-procedure TAssemblyTextPrepForm.LabelVersionClick(Sender : TObject);
+procedure   TAssemblyTextPrepForm.LabelVersionClick(Sender : TObject);
 begin
     About;
 end;
 
 
-procedure TAssemblyTextPrepForm.MMmilButtonClick(Sender : TObject);
+procedure   TAssemblyTextPrepForm.MMmilButtonClick(Sender : TObject);
 begin
     if MMmilButton.Caption = 'mil' then
     begin
@@ -2757,7 +2849,7 @@ end; { TAssemblyTextPrepForm.MMmilButtonClick }
 
 
 { programmatically, OnKeyPress fires before OnChange event and "catches" the key press }
-procedure TAssemblyTextPrepForm.UserKeyPress(Sender : TObject; var Key : Char);
+procedure   TAssemblyTextPrepForm.UserKeyPress(Sender : TObject; var Key : Char);
 begin
     if (Ord(Key) = 13) then
     begin
@@ -2767,7 +2859,7 @@ begin
 end; { UserKeyPress }
 
 
-procedure UpdateConstants(dummy : Boolean = False);
+procedure   UpdateConstants(dummy : Boolean = False);
 begin
     case MMmilButton.Caption of
         'mil':
@@ -2801,42 +2893,42 @@ begin
     ASPECT_RATIO_TOL := StrToFloat(EditAspectRatioTol.Text);
 end;
 
-procedure MyStatusBar_SetState(Index : Integer; const S : WideString);
+procedure   MyStatusBar_SetState(Index : Integer; const S : WideString);
 begin
     Client.GUIManager.StatusBarManager.SetState(Index, S);
 end;
 
-function MyStatusBar_GetState(Index : Integer) : Widestring;
+function    MyStatusBar_GetState(Index : Integer) : Widestring;
 begin
     Result := Client.GUIManager.StatusBarManager.GetState(Index);
 end;
 
-procedure MyStatusBar_SetStateDefault(dummy : Boolean = False);
+procedure   MyStatusBar_SetStateDefault(dummy : Boolean = False);
 begin
     Client.GUIManager.StatusBarManager.SetState(cStatusBar_SetDefault,'');
 end;
 
-procedure MyStatusBar_PushStatus(dummy : Boolean = False);
+procedure   MyStatusBar_PushStatus(dummy : Boolean = False);
 begin
     Client.GUIManager.StatusBarManager.SetState(cStatusBar_Push,'');
 end;
 
-procedure MyStatusBar_PopStatus(dummy : Boolean = False);
+procedure   MyStatusBar_PopStatus(dummy : Boolean = False);
 begin
     Client.GUIManager.StatusBarManager.SetState(cStatusBar_Pop,'');
 end;
 
-function MyPercentActive(dummy : Boolean = False) : Boolean;
+function    MyPercentActive(dummy : Boolean = False) : Boolean;
 begin
     Result := gvMarquee = False;
 end;
 
-function MyMarqueeActive(dummy : Boolean = False) : Boolean;
+function    MyMarqueeActive(dummy : Boolean = False) : Boolean;
 begin
     Result := gvMarquee;
 end;
 
-function MyPercent_GetTotal(dummy : Boolean = False) : Integer;
+function    MyPercent_GetTotal(dummy : Boolean = False) : Integer;
 begin
     Result := -1;
     if MyPercentActive then
@@ -2845,7 +2937,7 @@ begin
     end;
 end;
 
-procedure MyPercent_Init(const InitialString : String ; TotalCount : Integer);
+procedure   MyPercent_Init(const InitialString : String ; TotalCount : Integer);
 begin
     MyStatusBar_PushStatus;
     MyStatusBar_SetState(cStatusBar_ProgressBarStart, InitialString);
@@ -2855,7 +2947,7 @@ begin
     gvMarquee               := False;
 end;
 
-procedure MyPercent_Finish(dummy : Boolean = False);
+procedure   MyPercent_Finish(dummy : Boolean = False);
 begin
     //if MyPercentActive then
     //begin
@@ -2868,7 +2960,7 @@ begin
     MyStatusBar_SetState(cStatusBar_SetDefault,'');
 end;
 
-procedure MyPercent_UpdateByNumber(AmountToIncrement : Integer, StatusMsg : String = '');
+procedure   MyPercent_UpdateByNumber(AmountToIncrement : Integer, StatusMsg : String = '');
 begin
     if MyPercentActive then
     begin
@@ -2877,7 +2969,7 @@ begin
     end;
 end;
 
-procedure MyPercent_Update(StatusMsg : String = '');
+procedure   MyPercent_Update(StatusMsg : String = '');
 Var
     ThisPercent  : Integer;
     i            : Integer;
@@ -2901,7 +2993,7 @@ begin
     end;
 end;
 
-procedure MyPercent_BeginUndeterminedOperation(const InitialString : String);
+procedure   MyPercent_BeginUndeterminedOperation(const InitialString : String);
 begin
     MyStatusBar_PushStatus;
     MyStatusBar_SetState(cStatusBar_UndeterminedOpBegin, InitialString);
@@ -2909,7 +3001,7 @@ begin
     gvMarquee := True;
 end;
 
-procedure MyPercent_EndUndeterminedOperation(dummy : Boolean = False);
+procedure   MyPercent_EndUndeterminedOperation(dummy : Boolean = False);
 begin
     if MyMarqueeActive then
     begin
@@ -2918,13 +3010,13 @@ begin
     end;
 end;
 
-procedure MyPercent_BeginComplexOperation(const InitialString : String);
+procedure   MyPercent_BeginComplexOperation(const InitialString : String);
 begin
     { status bar is not involved, so no need to push/pop percent stack}
     MyStatusBar_SetState(cStatusBar_ComplexOpBegin, InitialString);
 end;
 
-procedure MyPercent_EndComplexOperation(dummy : Boolean = False);
+procedure   MyPercent_EndComplexOperation(dummy : Boolean = False);
 begin
     MyStatusBar_SetState(cStatusBar_ComplexOpEnd, '');
 end;
