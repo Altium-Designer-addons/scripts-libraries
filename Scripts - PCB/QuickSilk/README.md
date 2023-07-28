@@ -139,6 +139,11 @@ From the GUI, you may click on the clearance labels to select all visible design
 - 2023-07-22 - QuickSilk Ver 1.06 : (GUI enhancement) added ability to select any Designators or Comments that violate a clearance rule; (performance) made AutoMove even more automatic by adjusting search range according to component size
 - 2023-07-22 - QuickSilk Ver 1.07 : fixed bug where GUI could run clearance check or automove with stale clearance values from startup
 - 2023-07-24 - QuickSilk Ver 1.08 : added support for avoiding vias with their own clearance rule
+- 2023-07-28 - QuickSilk Ver 1.09 : 
+    - GUI is no longer modal, allowing you to run clearance checks without starting script multiple times (however, see known 3D mouse issue)
+    - added support for via clearance from holes
+    - added progress bar for clearance checks (using hacked together functions based on SDK that may be deprecated but I couldn't figure out how to use the StatusBarManager properly - possibly I just didn't know where to grab the right handle)
+    - added other utility functions for future use or reference
 
 ### Planned features?
 - If initial placement of designator or comment interferes with the other (and text justification implies that it was interactively positioned), infer that both are trying to be autopositioned in the same octant and autoposition both before moving each
