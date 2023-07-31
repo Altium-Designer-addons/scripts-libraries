@@ -2746,6 +2746,8 @@ begin
         exit;
     end;
 
+    QuickSilkForm.Icon.LoadFromFile(ExtractFilePath(GetRunningScriptProjectName) + 'QuickSilk32px.ico');
+
     iDebugLevel := cDEBUGLEVEL;
 
     // set version label
