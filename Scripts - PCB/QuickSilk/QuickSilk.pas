@@ -26,7 +26,7 @@ const
     cCtrlKey            = 3; // available for use during component and location selection
     cConfigFileName     = 'QuickSilkSettings.ini';
     cScriptTitle        = 'QuickSilk';
-    cScriptVersion      = '1.10';
+    cScriptVersion      = '1.11';
     cDEBUGLEVEL         = 0;
 
 var
@@ -3053,12 +3053,12 @@ begin
     GIter := Comp.GroupIterator_Create;
     GIter.AddFilter_ObjectSet(MkSet(eComponentBodyObject));
 
+    Area := -1;
+
     // Try to cast the first element to a primitive
     Prim := GIter.FirstPCBObject;
-
     while (Prim <> nil) do
     begin
-        if not Assigned(Area) then Area := Prim.Area;
         // only return layer of body with largest area, which means we have to check them all
         if Prim.Area > Area then
         begin
