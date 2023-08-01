@@ -26,7 +26,7 @@ const
     cCtrlKey            = 3; // available for use during component and location selection
     cConfigFileName     = 'QuickSilkSettings.ini';
     cScriptTitle        = 'QuickSilk';
-    cScriptVersion      = '1.09';
+    cScriptVersion      = '1.10';
     cDEBUGLEVEL         = 0;
 
 var
@@ -143,6 +143,7 @@ function    GetSelectedAssyTextCount(dummy : Boolean = False) : Integer; forward
 function    GetSelectedComponentCount(dummy : Boolean = False) : Integer; forward;
 procedure   Inspect_IPCB_Text(var Text : IPCB_Text3; const MyLabel : string = ''); forward;
 function    IsSameSide(Obj1: IPCB_ObjectClass; Obj2: IPCB_ObjectClass) : Boolean; forward;
+function    IsSameSideLayer(Layer1 : TLayer; Layer2 : TLayer) : Boolean; forward;
 function    IsStringANum(Text : string) : Boolean; forward;
 function    IsViaOnBottomSide(ViaObj : IPCB_Via) : Boolean; forward;
 function    IsViaOnTopSide(ViaObj : IPCB_Via) : Boolean; forward;
@@ -1129,9 +1130,9 @@ begin
                         if Result <> eNoObject then
                         begin
                             // prioritize component on current layer if previous component is not
-                            if (Comp.Layer = Board.CurrentLayer) and (PrevComp.Layer <> Board.CurrentLayer) then Result := Comp
+                            if IsSameSideLayer(Comp.Layer, Board.CurrentLayer) and not IsSameSideLayer(PrevComp.Layer, Board.CurrentLayer) then Result := Comp
                             // both components are on the same layer, prioritize smaller component
-                            else if (Comp.Layer = PrevComp.Layer) and (Area < PrevArea) then Result := Comp;
+                            else if IsSameSideLayer(Comp.Layer, PrevComp.Layer) and (Area < PrevArea) then Result := Comp;
                         end
                         else
                         begin
@@ -3238,6 +3239,29 @@ begin
     end;
 
     result := False;
+end;
+
+function    IsSameSideLayer(Layer1 : TLayer; Layer2 : TLayer) : Boolean;
+begin
+    Result := False;
+    if (Layer1 = eTopLayer) or (Layer1 = eTopOverlay) then
+    begin
+        if (Layer2 = eTopLayer) or (Layer2 = eTopOverlay) then
+        begin
+            Result := True;
+        end;
+    end
+    else if (Layer1 = eBottomLayer) or (Layer1 = eBottomOverlay) then
+    begin
+        if (Layer2 = eBottomLayer) or (Layer2 = eBottomOverlay) then
+        begin
+            Result := True;
+        end;
+    end
+    else if (Layer1 = eMultiLayer) or (Layer2 = eMultiLayer) then
+    begin
+        Result := True;
+    end;
 end;
 
 function    IsStringANum(Text : string) : Boolean;
