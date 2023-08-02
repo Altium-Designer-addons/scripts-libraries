@@ -5,7 +5,7 @@ const
     cMaxMechLayers          = 1024;
     cScriptTitle            = 'AssemblyTextPrep';
     cConfigFileName         = 'AssemblyTextPrepConfig.ini';
-    cScriptVersion          = '0.83';
+    cScriptVersion          = '0.84';
     cDEBUGLEVEL             = 0;
 
     DEBUGEXPANSION          = -1; // leave at -1 to disable
@@ -851,6 +851,7 @@ begin
     for i := Board.SelectecObjectCount - 1 downto 0 do
     begin
         Comp := Board.SelectecObject[i];
+        if Comp.ObjectId <> eComponentObject then continue;
         Prim1 := GetDesignator(Comp);
         if Prim1 <> nil then continue;
         Comp.Selected := False;
@@ -868,6 +869,7 @@ begin
     for i := Board.SelectecObjectCount - 1 downto 0 do
     begin
         Comp := Board.SelectecObject[i];
+        if Comp.ObjectId <> eComponentObject then continue;
         Prim1 := GetDesignator(Comp);
         if Prim1 = nil then continue;
         Comp.Selected := False;
@@ -2004,6 +2006,7 @@ begin
         else NewJustify := OldJustify;
 
         Text.BeginModify;
+        Text.AdvanceSnapping := True;
         Text.TTFInvertedTextJustify := eAutoPos_CenterCenter; // uses center justification to rotate in place
         Text.Rotation := NewAngle;
         // need to EndModify and BeginModify here to refresh internal Text.Rotation cache, else changing justification will move text
@@ -2573,7 +2576,12 @@ end;
 
 procedure   TAssemblyTextPrepForm.ButtonNormalizeAnyTextClick(Sender : TObject);
 begin
-    NormalizeSelectedWithJustification;
+    GUI_BeginProcess;
+    try
+        NormalizeSelectedWithJustification;
+    finally
+        GUI_EndProcess;
+    end;
 end;
 
 
@@ -2581,11 +2589,11 @@ procedure   TAssemblyTextPrepForm.ButtonNormalizeDesignatorClick(Sender : TObjec
 begin
     GUI_BeginProcess;
     try
-    SelectBoth;
-    DeselectInvalidComponents;
-    if not ((GetSelectedComponentCount > 0) and (GetSelectedAssyTextCount > 0)) then exit;
-    SelectDesignators;
-    NormalizeSelectedWithJustification;
+        SelectBoth;
+        DeselectInvalidComponents;
+        if not ((GetSelectedComponentCount > 0) and (GetSelectedAssyTextCount > 0)) then exit;
+        SelectDesignators;
+        NormalizeSelectedWithJustification;
 
     finally
         GUI_EndProcess;

@@ -73,3 +73,4 @@ There might be some value in adding a function to check that all components *hav
 - 2023-07-26 by Ryan Rutledge : AssemblyTextPrep v0.81 - bug fixes and refinement
 - 2023-07-26 by Ryan Rutledge : AssemblyTextPrep v0.82 - more bug fixes, better metric rounding, progress bar
 - 2023-07-28 by Ryan Rutledge : AssemblyTextPrep v0.83 - added option to protect locked .Designator strings; bug fixes
+- 2023-08-02 by Ryan Rutledge : AssemblyTextPrep v0.84 - fixed AdvanceSnapping missing from string normalization function; fixed undo on normalize any text button; fixed normalize assy text button
