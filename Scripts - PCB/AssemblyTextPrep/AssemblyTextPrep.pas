@@ -5,7 +5,7 @@ const
     cMaxMechLayers          = 1024;
     cScriptTitle            = 'AssemblyTextPrep';
     cConfigFileName         = 'AssemblyTextPrepConfig.ini';
-    cScriptVersion          = '0.84';
+    cScriptVersion          = '0.85';
     cDEBUGLEVEL             = 0;
 
     DEBUGEXPANSION          = -1; // leave at -1 to disable
@@ -133,6 +133,7 @@ procedure   SelectBoth; forward;
 procedure   SelectComponents; forward;
 procedure   SelectDesignators; forward;
 procedure   SetButtonEnableStates(EnableState : Boolean); forward;
+function    StrFromObjectId(ObjectId: TObjectId) : String; forward;
 procedure   TAssemblyTextPrepForm.AssemblyTextPrepFormCreate(Sender: TObject); forward;
 procedure   TAssemblyTextPrepForm.AssemblyTextPrepFormMouseEnter(Sender: TObject); forward;
 procedure   TAssemblyTextPrepForm.AssemblyTextPrepFormShow(Sender : TObject); forward;
@@ -2441,6 +2442,42 @@ begin
     if bForbidLocalSettings then CheckBoxLocalSettings.Enabled := False else CheckBoxLocalSettings.Enabled := EnableState;
 
     ButtonSaveConfig.Caption := '&SAVE';
+end;
+
+
+function    StrFromObjectId(ObjectId: TObjectId) : String;
+begin
+    case ObjectId of
+        0:  Result := 'eNoObject';
+        1:  Result := 'eArcObject';
+        2:  Result := 'ePadObject';
+        3:  Result := 'eViaObject';
+        4:  Result := 'eTrackObject';
+        5:  Result := 'eTextObject';
+        6:  Result := 'eFillObject';
+        7:  Result := 'eConnectionObject';
+        8:  Result := 'eNetObject';
+        9:  Result := 'eComponentObject';
+        10: Result := 'ePolyObject';
+        11: Result := 'eRegionObject';
+        12: Result := 'eComponentBodyObject';
+        13: Result := 'eDimensionObject';
+        14: Result := 'eCoordinateObject';
+        15: Result := 'eClassObject';
+        16: Result := 'eRuleObject';
+        17: Result := 'eFromToObject';
+        18: Result := 'eDifferentialPairObject';
+        19: Result := 'eViolationObject';
+        20: Result := 'eEmbeddedObject';
+        21: Result := 'eEmbeddedBoardObject';
+        22: Result := 'eSplitPlaneObject';
+        23: Result := 'eTraceObject';
+        24: Result := 'eSpareViaObject';
+        25: Result := 'eBoardObject';
+        26: Result := 'eBoardOutlineObject';
+    else
+        Result := 'Invalid object ID';
+    end;
 end;
 
 
