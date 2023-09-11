@@ -5,7 +5,7 @@ const
     cMaxMechLayers          = 1024;
     cScriptTitle            = 'AssemblyTextPrep';
     cConfigFileName         = 'AssemblyTextPrepConfig.ini';
-    cScriptVersion          = '0.85';
+    cScriptVersion          = '0.86';
     cDEBUGLEVEL             = 0;
 
     DEBUGEXPANSION          = -1; // leave at -1 to disable
@@ -246,6 +246,7 @@ begin
     begin
         // copy properties of example assy designator
         CopyTextFormatFromTo(StyleText, NewTextObj);
+        NewTextObj.AdvanceSnapping          := True;
         NewTextObj.XLocation                := Comp.x;
         NewTextObj.YLocation                := Comp.y;
         NewTextObj.TTFInvertedTextJustify   := eAutoPos_CenterCenter;
