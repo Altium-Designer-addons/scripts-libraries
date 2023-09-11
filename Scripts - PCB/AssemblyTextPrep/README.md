@@ -75,3 +75,4 @@ There might be some value in adding a function to check that all components *hav
 - 2023-07-28 by Ryan Rutledge : AssemblyTextPrep v0.83 - added option to protect locked .Designator strings; bug fixes
 - 2023-08-02 by Ryan Rutledge : AssemblyTextPrep v0.84 - fixed AdvanceSnapping missing from string normalization function; fixed undo on normalize any text button; fixed normalize assy text button
 - 2023-08-24 by Ryan Rutledge : AssemblyTextPrep v0.85 - fixed missing debug function throwing error
+- 2023-09-11 by Ryan Rutledge : AssemblyTextPrep v0.86 - fixed possible bug with `AddAssyTextToCompFromStyle` when style template has `.AdvanceSnapping = False`
