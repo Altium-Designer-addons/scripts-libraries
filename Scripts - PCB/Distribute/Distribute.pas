@@ -15,7 +15,7 @@ var
     ViaModeEnabled    : Boolean;
 
 const
-    ScriptVersion = '1.54';
+    ScriptVersion = '1.55';
     ScriptTitle = 'Distribute';
     cConfigFileName = 'MyDistributeConfig.ini';
 
@@ -566,8 +566,8 @@ begin
 
     IniFile := TIniFile.Create(AFileName);
 
-    TweakDesForm.Top    := IniFile.ReadInteger('Window Position', 'Top', TweakDesForm.Top);
-    TweakDesForm.Left   := IniFile.ReadInteger('Window Position', 'Left', TweakDesForm.Left);
+    FormDistribute.Top    := IniFile.ReadInteger('Window Position', 'Top', FormDistribute.Top);
+    FormDistribute.Left   := IniFile.ReadInteger('Window Position', 'Left', FormDistribute.Left);
 
     tPreset1.Text := IniFile.ReadString('Presets', 'Preset1', tPreset1.Text);
     tPreset2.Text := IniFile.ReadString('Presets', 'Preset2', tPreset2.Text);
@@ -603,8 +603,8 @@ var
 begin
     IniFile := TIniFile.Create(AFileName);
 
-    IniFile.WriteInteger('Window Position', 'Top', TweakDesForm.Top);
-    IniFile.WriteInteger('Window Position', 'Left', TweakDesForm.Left);
+    IniFile.WriteInteger('Window Position', 'Top', FormDistribute.Top);
+    IniFile.WriteInteger('Window Position', 'Left', FormDistribute.Left);
 
     IniFile.WriteString('Presets', 'Preset1', tPreset1.Text);
     IniFile.WriteString('Presets', 'Preset2', tPreset2.Text);
