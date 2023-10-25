@@ -5,7 +5,7 @@ var
     Board : IPCB_Board;
 
 const
-    ScriptVersion = '0.3';
+    ScriptVersion = '0.31';
     ScriptTitle = 'PolygonBenchmark';
 
 
@@ -120,11 +120,6 @@ begin
     Board := PCBServer.GetCurrentPCBBoard;
     if Board = nil then Exit;
 
-    // Start undo (might not be fully undoable anyway though)
-    PCBServer.PreProcess;
-
-    if not ConfirmNoYesWithCaption('Warning', 'This will rebuild ALL polygons on the board. This operation cannot be undone!' + sLineBreak + sLineBreak + 'Do you want to continue?') then exit;
-
     PolyList := CreateObject(TInterfaceList);
 
     TotalTimeTaken := 0;
@@ -146,78 +141,95 @@ begin
     // iterate through all polygons to add them to a list and clear unshelved polygons' regions
     while PolyObj <> nil do
     begin
-        if PolyObj.Poured then
-        begin
-            PolyList.Add(PolyObj);
-            ClearPolygonRegions(PolyObj);
-        end
-        else
-        begin
-            PolyList.Add(PolyObj);
-        end;
-
+        PolyList.Add(PolyObj);
         PolyObj := PolyIter.NextPCBObject;
-
     end;
 
     Board.BoardIterator_Destroy(PolyIter);
 
-    Client.SendMessage('PCB:Zoom', 'Action=Redraw' , 255, Client.CurrentView);  // refresh the view so you see the polygons cleared for repouring
-
-    SortPolygonsByPourIndex(PolyList);
-
-    for i := 0 to PolyList.Count - 1 do
+    if PolyList.Count = 0 then
     begin
-        PolyObj := PolyList.items[i];
-        if PolyObj.Poured then
+        ShowInfo('No polygons found. Exiting.');
+        exit;
+    end;
+
+    if not ConfirmNoYesWithCaption('Warning', 'This will rebuild ALL ' + IntToStr(PolyList.Count) + ' polygons on the board. This operation cannot be undone!' + sLineBreak + sLineBreak + 'Do you want to continue?') then exit;
+
+    // Start undo (might not be fully undoable anyway though) - move after prompt else leaves undo hanging
+    PCBServer.PreProcess;
+    try
+        BeginHourGlass;
+        // clear existing poured regions in list
+        for i := 0 to PolyList.Count - 1 do
         begin
-            // Record the start time
-            StartTime := Now;
-
-            // Repour the current polygon
-            PolyObj.BeginModify;
-            PolyObj.Rebuild;
-            PolyObj.EndModify;
-
-            // Record the end time
-            EndTime := Now;
-
-            PolyObj.GraphicallyInvalidate;
-
-            // Calculate the time taken and convert it to seconds
-            TimeTaken := (EndTime - StartTime) * 24 * 60 * 60;
-            TotalTimeTaken := TotalTimeTaken + TimeTaken;   // accumulate time before rounding
-
-            // Add the time taken to the message
-            MessageText.Add(Format('%s (idx%d) : %.2f s', [PolyObj.Name, PolyObj.PourIndex, TimeTaken]));
-
-        end
-        else
-        begin
-            MessageText.Add(Format('%s (idx%d) is shelved', [PolyObj.Name, PolyObj.PourIndex]));
+            PolyObj := PolyList.items[i];
+            if PolyObj.Poured then
+            begin
+                PolyObj.BeginModify;
+                ClearPolygonRegions(PolyObj);
+                PolyObj.EndModify;
+            end;
         end;
 
+        Client.SendMessage('PCB:Zoom', 'Action=Redraw' , 255, Client.CurrentView);  // refresh the view so you see the polygons cleared for repouring
+
+        SortPolygonsByPourIndex(PolyList);
+
+        for i := 0 to PolyList.Count - 1 do
+        begin
+            PolyObj := PolyList.items[i];
+            if PolyObj.Poured then
+            begin
+                // Record the start time
+                StartTime := Now;
+
+                // Repour the current polygon
+                PolyObj.BeginModify;
+                PolyObj.Rebuild;
+                PolyObj.EndModify;
+
+                // Record the end time
+                EndTime := Now;
+
+                PolyObj.GraphicallyInvalidate;
+
+                // Calculate the time taken and convert it to seconds
+                TimeTaken := (EndTime - StartTime) * 24 * 60 * 60;
+                TotalTimeTaken := TotalTimeTaken + TimeTaken;   // accumulate time before rounding
+
+                // Add the time taken to the message
+                MessageText.Add(Format('%s (idx%d) : %.2f s', [PolyObj.Name, PolyObj.PourIndex, TimeTaken]));
+
+            end
+            else
+            begin
+                MessageText.Add(Format('%s (idx%d) is shelved', [PolyObj.Name, PolyObj.PourIndex]));
+            end;
+
+        end;
+
+        Board.ViewManager_FullUpdate;   // doesn't seem to be all it's cracked up to be, or at least it doesn't seem to apply instantaneously
+
+        MessageText.Add('-------------------------');
+        MessageText.Add(Format('Total repour time: %.2f s', [TotalTimeTaken]));
+
+        EndHourGlass;
+
+        // Show the message
+        ShowInfo(MessageText.Text, 'PolygonBenchmark Results');
+
+        // save the results
+        if ConfirmNoYesWithCaption('Update Results String', 'Do you want to update any placed text containing "PolygonBenchmark" and save results to a file named "<PcbDoc>_repourtimes.txt"?') then
+        begin
+            RefreshPolygonBenchmarkResults(MessageText.Text);
+            ResultFile := ChangeFileExt(Board.FileName,'.PcbDoc') + '_repourtimes.txt';
+            MessageText.SaveToFile(ResultFile);
+        end;
+
+    finally
+        // End undo
+        PCBServer.PostProcess;
     end;
-
-
-    Board.ViewManager_FullUpdate;   // doesn't seem to be all it's cracked up to be, or at least it doesn't seem to apply instantaneously
-
-    MessageText.Add('-------------------------');
-    MessageText.Add(Format('Total repour time: %.2f s', [TotalTimeTaken]));
-
-    // Show the message
-    ShowInfo(MessageText.Text, 'PolygonBenchmark Results');
-
-    // save the results
-    if ConfirmNoYesWithCaption('Update Results String', 'Do you want to update any placed text containing "PolygonBenchmark" and save results to a file named "<PcbDoc>_repourtimes.txt"?') then
-    begin
-        RefreshPolygonBenchmarkResults(MessageText.Text);
-        ResultFile := ChangeFileExt(Board.FileName,'.PcbDoc') + '_repourtimes.txt';
-        MessageText.SaveToFile(ResultFile);
-    end;
-
-    // End undo
-    PCBServer.PostProcess;
 
 end;
 {......................................................................................................................}
