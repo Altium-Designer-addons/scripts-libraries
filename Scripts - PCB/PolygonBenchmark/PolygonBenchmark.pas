@@ -5,7 +5,7 @@ var
     Board : IPCB_Board;
 
 const
-    ScriptVersion = '0.31';
+    ScriptVersion = '0.32';
     ScriptTitle = 'PolygonBenchmark';
 
 
@@ -219,10 +219,10 @@ begin
         ShowInfo(MessageText.Text, 'PolygonBenchmark Results');
 
         // save the results
-        if ConfirmNoYesWithCaption('Update Results String', 'Do you want to update any placed text containing "PolygonBenchmark" and save results to a file named "<PcbDoc>_repourtimes.txt"?') then
+        if ConfirmNoYesWithCaption('Update Results String', 'Do you want to update any placed text containing "PolygonBenchmark" and save results to a file named "<PcbDoc>_<ADversion>_repourtimes.txt"?') then
         begin
             RefreshPolygonBenchmarkResults(MessageText.Text);
-            ResultFile := ChangeFileExt(Board.FileName,'.PcbDoc') + '_repourtimes.txt';
+            ResultFile := ChangeFileExt(Board.FileName, '_v' + Client.GetProductVersion + '_repourtimes.txt');
             MessageText.SaveToFile(ResultFile);
         end;
 
