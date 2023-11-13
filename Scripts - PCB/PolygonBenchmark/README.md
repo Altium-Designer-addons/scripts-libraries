@@ -15,7 +15,7 @@ Make a .PcbDoc active and run the _Start_ script procedure.
 
 ## Features
 * ### Can save results to file and string in .PcbDoc
-Results will be saved to a file named "*PcbDoc Name*_repourtimes.txt"\
+Results will be saved to a file named "*PcbDoc Name*_*ADversion*_repourtimes.txt"\
 Place a string on the PcbDoc containing "PolygonBenchmark" to show the results on a layer.\
 **NOTE:** if confirmed, script will replace the contents of the first string it finds that contains "PolygonBenchmark".
 
@@ -29,3 +29,4 @@ Place a string on the PcbDoc containing "PolygonBenchmark" to show the results o
 ## Change log
 - 2023-05-26 by Ryan Rutledge : v0.3 - initial release
 - 2023-10-25 by Ryan Rutledge : v0.31 - fixed hanging undo buffer if script is canceled from initial prompt
+- 2023-11-13 by Ryan Rutledge : v0.32 - changed results file name to include AD version
