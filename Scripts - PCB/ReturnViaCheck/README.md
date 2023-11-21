@@ -1,6 +1,9 @@
-### [DOWNLOAD](https://altium-designer-addons.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Scripts+-+PCB/ReturnViaCheck)
-
 # ReturnViaCheck Script
+
+# DISCLAIMER
+This script is provided "AS IS" in the hopes that it will be useful, but comes with no guarantees or warranties. Use of this script is conditional on accepting it as-is, and the user is responsible for any issues that may arise from its use, including failure to detect a critical problem that results in scrap boards. Please thoroughly verify its fitness for your particular use case.
+
+## [DOWNLOAD](https://altium-designer-addons.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Scripts+-+PCB/ReturnViaCheck)
 
 # INITIAL REQUIREMENTS SPEC
 ## Non-Modal GUI
@@ -26,6 +29,7 @@
   - For an internal signal trace, return via should span layers adjacent to signal layers
   - If reference planes are not on adjacent layers it may accept a via that doesn't span both reference planes
   - contrived example: for a SIG1 <> SIG3 route in a SIG1-GND1-SIG2-SIG3-GND2-SIG4 stackup, a SIG1-SIG3 GND via is insufficient because it does not connect GND1 to GND2
+  - another scenario: stackup above has GND1-GND2 buried via
 ## Do we need to enumerate layers and allow tagging layers as GND references?
 - Much simpler implementation would be to only consider full-stack vias as eligible return vias
 - For complex stackups, only considering full-stack vias could raise false positives (reinforces need for ability to ignore/waive detected failures)
