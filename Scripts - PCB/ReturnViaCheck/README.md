@@ -21,6 +21,14 @@
 ## Drop-Down to filter return vias by Specific Net or by Net Class
 - How to avoid treating return vias outside selected net or net class as signal vias?
 - Should through-hole pads of a suitable net be considered? I'm leaning toward no. User can ignore if desired.
+- Return vias need to *actually* span the relevant reference plane layers
+  - Without getting into actual impedance structure definition, there are some corner cases to watch out for
+  - For an internal signal trace, return via should span layers adjacent to signal layers
+  - If reference planes are not on adjacent layers it may accept a via that doesn't span both reference planes
+  - contrived example: for a SIG1 <> SIG3 route in a SIG1-GND1-SIG2-SIG3-GND2-SIG4 stackup, a SIG1-SIG3 GND via is insufficient because it does not connect GND1 to GND2
+## Do we need to enumerate layers and allow tagging layers as GND references?
+- Much simpler implementation would be to only consider full-stack vias as eligible return vias
+- For complex stackups, only considering full-stack vias could raise false positives (reinforces need for ability to ignore/waive detected failures)
 ## Dedicated list of nets to exclude?
 - Same potential multiselection problem as above
 ## Save states between runs
@@ -35,7 +43,9 @@
 - Clears selection, selects all failing vias, zooms to selection, then clears selection again
 ## "Next" and "Previous" buttons to step through the list of failed vias
 - Only active while list of fails is not empty
-- Should there be a button to "Ignore Selected" that removes via from list of fails as if it were rechecked and passed?
+- There should be a button to "Ignore Selected" that removes via from list of fails as if it were rechecked and passed
+- There should also be a button to "Center" on the current via from the list in case user pans away
+- Would be really handy to display a tooltip by the current via (like the dimensions after a measure command)
 
 
 
