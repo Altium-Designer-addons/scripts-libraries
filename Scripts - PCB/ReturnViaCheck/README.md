@@ -5,6 +5,39 @@ This script is provided "AS IS" in the hopes that it will be useful, but comes w
 
 ## [DOWNLOAD](https://altium-designer-addons.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Scripts+-+PCB/ReturnViaCheck)
 
+# What This Script Is
+This script is a utility tool to help detect non-GND signal vias without a nearby GND return via. Currently limited to detecting full-stack return vias.
+
+## Why?
+When a high-speed (or RF) signal's route changes layers, the reference plane for the signal also changes. Just as the incident signal requires a via to change layers, so too does the "return" signal need a path between reference planes.
+
+## How to install and use
+_Step 1_: [DOWNLOAD](https://altium-designer-addons.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Scripts+-+PCB/ReturnViaCheck) script
+
+_Step 2_: integrate the script into Altium Designer and execute it.\
+If you are a newcomer to Altium scripts, [please read the "how to" wiki page](https://github.com/Altium-Designer-addons/scripts-libraries/wiki/HowTo_execute_scripts).
+
+## Usage guide
+### USE THE GUI
+- Accessed by launching `_GUI` script procedure
+
+### Configuration/Editing GUI
+![GUI Screenshot](ReturnViaCheck_GUI.png)
+
+### **ENABLE VIAS IN SELECTION FILTER**
+
+## Features
+
+### Eligible Objects
+Vias
+
+## Known Issues
+### Return vias must be full-stack
+Script explicitly checks for vias to be between top and bottom layers because intelligently detecting correct reference plane connections in other scenarios is much more complex to program.
+
+## Change log
+- 2023-11-22 by Ryan Rutledge : v0.10 - Initial proof of concept script and requirement musings
+
 # INITIAL REQUIREMENTS SPEC
 ## Non-Modal GUI
 - [x] Non-modal so that findings can be addressed without restarting the script (better UX)
@@ -49,38 +82,3 @@ This script is provided "AS IS" in the hopes that it will be useful, but comes w
 - [x] There should be a button to ignore via that removes via from list of fails as if it were rechecked and passed
 - [x] There should also be a button to "Zoom" on the current via from the list in case user pans away
 - [ ] Would be really handy to display a tooltip by the current via (like the dimensions after a measure command)
- 
- 
- 
-# What This Script Is
-This script is a utility tool to help detect non-GND signal vias without a nearby GND return via. Currently limited to detecting full-stack return vias.
-
-## Why?
-When a high-speed (or RF) signal's route changes layers, the reference plane for the signal also changes. Just as the incident signal requires a via to change layers, so too does the "return" signal need a path between reference planes.
-
-## How to install and use
-_Step 1_: [DOWNLOAD](https://altium-designer-addons.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Scripts+-+PCB/ReturnViaCheck) script
-
-_Step 2_: integrate the script into Altium Designer and execute it.\
-If you are a newcomer to Altium scripts, [please read the "how to" wiki page](https://github.com/Altium-Designer-addons/scripts-libraries/wiki/HowTo_execute_scripts).
-
-## Usage guide
-### USE THE GUI
-- Accessed by launching `_GUI` script procedure
-
-### Configuration/Editing GUI
-![GUI Screenshot](ReturnViaCheck_GUI.png)
-
-### **ENABLE VIAS IN SELECTION FILTER**
-
-## Features
-
-### Eligible Objects
-Vias
-
-## Known Issues
-### Return vias must be full-stack
-Script explicitly checks for vias to be between top and bottom layers because intelligently detecting correct reference plane connections in other scenarios is much more complex to program.
-
-## Change log
-- 2023-11-22 by Ryan Rutledge : v0.10 - Initial proof of concept script and requirement musings
