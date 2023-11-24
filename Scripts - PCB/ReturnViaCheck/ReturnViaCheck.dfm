@@ -129,6 +129,7 @@ object ReturnViaCheckForm: TReturnViaCheckForm
     Top = 560
     Width = 104
     Height = 32
+    Hint = 'Check all signal vias for return via within specified distance'
     Caption = 'Check All'
     ParentShowHint = False
     ShowHint = True
@@ -140,6 +141,7 @@ object ReturnViaCheckForm: TReturnViaCheckForm
     Top = 298
     Width = 96
     Height = 56
+    Hint = 'Net mode selection mode for "Return" net(s)'
     Caption = 'Return Net Mode'
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
@@ -161,7 +163,7 @@ object ReturnViaCheckForm: TReturnViaCheckForm
     Top = 90
     Width = 96
     Height = 76
-    Hint = 'Designator orientation strategy. See AR Threshold for Best Fit.'
+    Hint = 'Net mode selection mode for "Signal" net(s)'
     Caption = 'Signal Net Mode'
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
@@ -184,7 +186,7 @@ object ReturnViaCheckForm: TReturnViaCheckForm
     Top = 32
     Width = 64
     Height = 24
-    Hint = 'Absolute minimum text height'
+    Hint = 'Max distance between via centers'
     Align = alCustom
     Alignment = taCenter
     Font.Charset = DEFAULT_CHARSET
@@ -197,7 +199,7 @@ object ReturnViaCheckForm: TReturnViaCheckForm
     ParentShowHint = False
     ShowHint = True
     TabOrder = 4
-    Text = '10'
+    Text = '50'
     TextHint = 'Text object clearance'
     OnChange = InputValueChange
     OnKeyPress = UserKeyPress
@@ -220,7 +222,7 @@ object ReturnViaCheckForm: TReturnViaCheckForm
     Top = 512
     Width = 72
     Height = 32
-    Hint = 'Normalize designator text to be right-reading'
+    Hint = 'Zoom and select current failed via'
     Caption = 'Zoom'
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
@@ -239,9 +241,7 @@ object ReturnViaCheckForm: TReturnViaCheckForm
     Top = 512
     Width = 72
     Height = 32
-    Hint = 
-      'Normalize any text to be right-reading while translating justifi' +
-      'cation'
+    Hint = 'Go to next failed via'
     Caption = 'Next'
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
@@ -260,7 +260,7 @@ object ReturnViaCheckForm: TReturnViaCheckForm
     Top = 512
     Width = 72
     Height = 32
-    Hint = 'Zoom PCB window to selected items'
+    Hint = 'Go to previous failed via'
     Caption = 'Previous'
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
@@ -293,8 +293,8 @@ object ReturnViaCheckForm: TReturnViaCheckForm
     Width = 104
     Height = 32
     Hint = 
-      'Check selected text and deselect text that does not interfere wi' +
-      'th anything'
+      'Recheck detected failed vias and remove any that now have return' +
+      ' vias'
     Caption = 'Recheck Fails'
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
@@ -327,6 +327,7 @@ object ReturnViaCheckForm: TReturnViaCheckForm
     Top = 112
     Width = 224
     Height = 152
+    Hint = '"Signal" via net classes (allows multi-select)'
     ItemHeight = 13
     MultiSelect = True
     TabOrder = 12
@@ -336,6 +337,7 @@ object ReturnViaCheckForm: TReturnViaCheckForm
     Top = 320
     Width = 224
     Height = 152
+    Hint = '"Return" via net classes (allows multi-select)'
     ItemHeight = 13
     MultiSelect = True
     TabOrder = 13
@@ -345,7 +347,7 @@ object ReturnViaCheckForm: TReturnViaCheckForm
     Top = 512
     Width = 72
     Height = 32
-    Hint = 'Zoom PCB window to selected items'
+    Hint = 'Ignore current via'
     Caption = 'Ignore'
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
