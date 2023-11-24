@@ -37,6 +37,7 @@ Script explicitly checks for vias to be between top and bottom layers because in
 
 ## Change log
 - 2023-11-22 by Ryan Rutledge : v0.10 - Initial proof of concept script and requirement musings
+- 2023-11-24 by Ryan Rutledge : v0.11 - some UI cleanup
 
 # INITIAL REQUIREMENTS SPEC
 ## Non-Modal GUI

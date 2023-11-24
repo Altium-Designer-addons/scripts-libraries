@@ -8,7 +8,7 @@
 const
     cScriptTitle            = 'ReturnViaCheck'; // modified from AssemblyTextPrep script
     cConfigFileName         = 'ReturnViaCheckConfig.ini';
-    cScriptVersion          = '0.10';
+    cScriptVersion          = '0.11';
     cDEBUGLEVEL             = 0;
     DEBUGEXPANSION          = -1; // leave at -1 to disable
     //status bar commands
@@ -355,8 +355,8 @@ begin
     c := Iterator.FirstPCBObject;
     while c <> nil do
     begin
-        if c.MemberKind = eClassMemberKind_Net then
-            ListBox.Items.AddObject(c.Name, c);
+        if (c.MemberKind = eClassMemberKind_Net) and not (c.Name = 'All Nets') then ListBox.Items.AddObject(c.Name, c);
+
         c := Iterator.NextPCBObject;
     end;
 end;
@@ -1185,6 +1185,7 @@ begin
     end;
     ButtonPrevious.Enabled  := FailedViaIndex > 0;
     ButtonNext.Enabled      := (FailedViaIndex < FailedViaList.Count - 1) and (FailedViaList.Count > 0) ;
+    if ButtonNext.Enabled and (FailedViaIndex = -1) then ButtonNext.Caption := 'First' else ButtonNext.Caption := 'Next';
     ButtonIgnore.Enabled    := (FailedViaIndex >= 0) and (FailedViaList.Count > 0);
     ButtonZoom.Enabled      := (FailedViaIndex >= 0) and (FailedViaList.Count > 0);
 end;
