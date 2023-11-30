@@ -200,7 +200,7 @@ object ReturnViaCheckForm: TReturnViaCheckForm
     ShowHint = True
     TabOrder = 4
     Text = '50'
-    TextHint = 'Text object clearance'
+    TextHint = 'Max via pitch'
     OnChange = InputValueChange
     OnKeyPress = UserKeyPress
   end
@@ -223,7 +223,7 @@ object ReturnViaCheckForm: TReturnViaCheckForm
     Width = 72
     Height = 32
     Hint = 'Zoom and select current failed via'
-    Caption = 'Zoom'
+    Caption = 'Select'
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
     Font.Height = -11
