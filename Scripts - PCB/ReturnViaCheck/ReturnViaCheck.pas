@@ -8,7 +8,7 @@
 const
     cScriptTitle            = 'ReturnViaCheck'; // modified from AssemblyTextPrep script
     cConfigFileName         = 'ReturnViaCheckConfig.ini';
-    cScriptVersion          = '0.11';
+    cScriptVersion          = '0.20';
     cDEBUGLEVEL             = 0;
     DEBUGEXPANSION          = -1; // leave at -1 to disable
     //status bar commands
@@ -28,12 +28,16 @@ const
     cStatusBar_UndeterminedOpBegin  = -10;
     cStatusBar_UndeterminedOpEnd    = -11;
 
+    cImageIndexWarning = 163;
+    cImageIndexOrange = 74;
+
 var
     bIgnoreCBChange         : Boolean;
     bProcessing             : Boolean;
     bMetricUnits            : Boolean;
     IsViaSelectable         : Boolean;
     Board                   : IPCB_Board;
+    MessagesManager         : IMessagesManager;
     iDebugLevel             : Integer;
     IsAtLeastAD19           : Boolean;
     MLS                     : IPCB_MasterLayerStack;
@@ -47,8 +51,11 @@ var
     gvOldPercent            : Integer;
     gvMarquee               : Boolean;
 
+
 procedure   _GUI; forward;
 procedure   About; forward;
+procedure   AddMessageToMessagesManager(MessagesManager : IMessagesManager, messageClass : WideString, messageText : WideString, documentName : WideString, imageIndex : Integer, callBackProcess : WideString = '', callBackParameters : WideString = '', messageDetails : IDXPMessageItemDetails = nil); forward;
+procedure   AddMessageCallback_Via(Via : IPCB_Via); forward;
 procedure   ChangeTextUnits(Units : TUnit); forward;
 procedure   ClientDeSelectAll(dummy : Boolean = False); forward;
 procedure   ClientZoomRedraw(dummy : Boolean = False); forward;
@@ -153,6 +160,72 @@ begin
 
     ShowInfo(MsgText, 'About');
 end; { About }
+
+
+procedure   AddMessageToMessagesManager(MessagesManager : IMessagesManager, messageClass : WideString, messageText : WideString, documentName : WideString, imageIndex : Integer, callBackProcess : WideString = '', callBackParameters : WideString = '', messageDetails : IDXPMessageItemDetails = nil);
+begin
+    MessagesManager.BeginUpdate;
+    MessagesManager.AddMessage2({MessageClass                 } messageClass,
+                               {MessageText                  } messageText,
+                               {MessageSource                } cScriptTitle,
+                               {MessageDocument              } documentName,
+                               {MessageCallBackProcess       } callBackProcess,
+                               {MessageCallBackParameters    } callBackParameters,
+                               {ImageIndex                   } imageIndex,
+                               {ReplaceLastMessageIfSameClass} False,
+                               {MessageCallBackProcess2      } '',
+                               {MessageCallBackParameters2   } '',
+                               {Details                      } messageDetails);
+    MessagesManager.EndUpdate;
+end;
+
+
+procedure   AddMessageCallback_Via(Via : IPCB_Via);
+var
+    messageClass : WideString;
+    messageText : WideString;
+    documentName : WideString;
+    documentFullPath : WideString;
+    callBackProcess : WideString;
+    callBackParameters : WideString;
+    imageIndex : Integer;
+    X1, Y1, X2, Y2 : Integer;
+    DX, DY: Integer;
+    OpenDocString : WideString;
+    BoardRefString : WideString;
+    ZoomOnRectString : WideString;
+begin
+    if Via = nil then exit;
+
+    X1 := Via.BoundingRectangle.Left;
+    Y1 := Via.BoundingRectangle.Bottom;
+    X2 := Via.BoundingRectangle.Right;
+    Y2 := Via.BoundingRectangle.Top;
+    DX := X2 - X1;
+    DY := Y2 - Y1;
+
+    X1 := X1 - (4 * DX);
+    Y1 := Y1 - (3 * DY);
+    X2 := X2 + (4 * DX);
+    Y2 := Y2 + (3 * DY);
+
+    OpenDocString := '';
+    //OpenDocString := Format(' Client.ShowDocument(Client.OpenDocument(''PCB'', ''%s'')); ', [Board.FileName]); // not very performant and only serves to switch to the document if it's inactive
+    BoardRefString := Format(' PCB:=PCBServer.GetPCBBoardByPath(''%s''); ', [Board.FileName]);
+    ZoomOnRectString := Format(' PCB.GraphicalView_ZoomOnRect(%d, %d, %d, %d); ', [X1, Y1, X2, Y2]);
+    callBackProcess := 'ScriptingSystem:RunScriptText';
+    callBackParameters := 'Text=var PCB:IPCB_Board; Begin ' + OpenDocString + BoardRefString + 'if PCB=nil then exit;' + ZoomOnRectString + ' end;';
+
+    DebugMessage(3, callBackParameters);
+
+    messageClass := '[WARNING]';
+    messageText :=Format('%s net %s has no return via.', [Via.Net.Name, Via.Descriptor]);
+    documentName := ExtractFileName(Board.FileName);
+    documentFullPath := Board.FileName;
+    imageIndex := cImageIndexOrange;
+
+    AddMessageToMessagesManager(MessagesManager, messageClass, messageText, documentName, imageIndex, callBackProcess, callBackParameters);
+end;
 
 
 procedure   ChangeTextUnits(Units : TUnit);
@@ -552,6 +625,8 @@ begin
 
     MLS := Board.MasterLayerStack;
 
+    MessagesManager := GetWorkSpace.DM_MessagesManager;
+
 end;
 
 
@@ -875,6 +950,7 @@ begin
 
         FailedViaIndex := -1;
         FailedViaList.Clear;
+        MessagesManager.ClearMessages;
 
         ViaIter := Board.BoardIterator_Create;
         ViaIter.AddFilter_ObjectSet(MkSet(eViaObject));
@@ -889,6 +965,7 @@ begin
                 begin
                     FailedViaList.Add(CurrentVia);
                     CurrentVia.Selected := True;
+                    AddMessageCallback_Via(CurrentVia);
                 end;
             end;
             CurrentVia := ViaIter.NextPCBObject;
@@ -977,10 +1054,15 @@ var
 begin
     GUI_BeginProcess;
     try
+        MessagesManager.ClearMessages;
         for i := FailedViaList.Count - 1 downto 0 do
         begin
             CurrentVia := FailedViaList[i];
-            if not HasReturnVia(CurrentVia) then continue;
+            if not HasReturnVia(CurrentVia) then
+            begin
+                AddMessageCallback_Via(CurrentVia);
+                continue;
+            end;
 
             FailedViaList.Delete(i);
             CurrentVia.Selected := False;
