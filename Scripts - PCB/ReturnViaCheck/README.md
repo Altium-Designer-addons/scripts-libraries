@@ -25,6 +25,7 @@ If you are a newcomer to Altium scripts, [please read the "how to" wiki page](ht
 ![GUI Screenshot](ReturnViaCheck_GUI.png)
 
 ### **ENABLE VIAS IN SELECTION FILTER**
+Script will detect if this is not the case.
 
 ## Features
 
@@ -38,6 +39,7 @@ Script explicitly checks for vias to be between top and bottom layers because in
 ## Change log
 - 2023-11-22 by Ryan Rutledge : v0.10 - Initial proof of concept script and requirement musings
 - 2023-11-24 by Ryan Rutledge : v0.11 - some UI cleanup
+- 2023-11-29 by Ryan Rutledge : v0.20 - now adds message to messages panel for each failed via detected
 
 # INITIAL REQUIREMENTS SPEC
 ## Non-Modal GUI
@@ -48,13 +50,12 @@ Script explicitly checks for vias to be between top and bottom layers because in
 - [x] Support either metric or imperial units
 ## Drop-Down to filter signal vias by Specific Net, Net Class, or All Nets
 - [x] Multiselection only for net classes because of likelihood of huge count of individual nets
-- [ ] If signal via selection filter is "All Nets" then how to determine which nets to ignore? 
-- [x] Obviously selected return nets should be ignored
+- [x] Selected return nets are ignored
 - [ ] Ignore any vias without a trace wired up to them?
   - [ ] return vias can have traces wired up to them
   - [ ] vias of both types could have vias in pad without any traces wired
+- [ ] should through-hole pads be considered? I'm leaning toward no but maybe this has value?
 ## Drop-Down to filter return vias by Specific Net or by Net Class
-- [x] Signal net list will exclude any nets that also exist in return net list
 - [ ] Should through-hole pads of a suitable net be considered? I'm leaning toward no. User can ignore if desired.
 ## Issues to do with stackups and drill pairs
 - [ ] Return vias need to *actually* span the relevant reference plane layers
@@ -81,5 +82,4 @@ Script explicitly checks for vias to be between top and bottom layers because in
 ## "Next" and "Previous" buttons to step through the list of failed vias
 - [x] Only active while list of fails is not empty
 - [x] There should be a button to ignore via that removes via from list of fails as if it were rechecked and passed
-- [x] There should also be a button to "Zoom" on the current via from the list in case user pans away
-- [ ] Would be really handy to display a tooltip by the current via (like the dimensions after a measure command)
+- [x] There should also be a button to "Zoom" on and select the current via from the list in case user pans away
