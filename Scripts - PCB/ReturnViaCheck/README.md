@@ -33,13 +33,15 @@ Script will detect if this is not the case.
 Vias
 
 ## Known Issues
-### Return vias must be full-stack
-Script explicitly checks for vias to be between top and bottom layers because intelligently detecting correct reference plane connections in other scenarios is much more complex to program.
+### Return via drill pair eligibility
+- Defaults to full-stack at start, but user can select other drill pairs in the layer stack to consider.
+- Return via drill pair eligibility is not validated i.e. user can select drill pairs that aren't _**actually**_ going to provide a return path - the script will still treat them as valid returns if they are close enough.
 
 ## Change log
 - 2023-11-22 by Ryan Rutledge : v0.10 - Initial proof of concept script and requirement musings
 - 2023-11-24 by Ryan Rutledge : v0.11 - some UI cleanup
 - 2023-11-29 by Ryan Rutledge : v0.20 - now adds message to messages panel for each failed via detected
+- 2023-11-30 by Ryan Rutledge : v0.30 - added ability to select drill pairs other than full-stack
 
 # INITIAL REQUIREMENTS SPEC
 ## Non-Modal GUI
@@ -59,6 +61,7 @@ Script explicitly checks for vias to be between top and bottom layers because in
 - [ ] Should through-hole pads of a suitable net be considered? I'm leaning toward no. User can ignore if desired.
 ## Issues to do with stackups and drill pairs
 - [ ] Return vias need to *actually* span the relevant reference plane layers
+
   - [ ] Without getting into actual impedance structure definition, there are some corner cases to watch out for
   - [ ] For an internal signal trace, return via should span layers adjacent to signal layers
   - [ ] If reference planes are not on adjacent layers it may accept a via that doesn't span both reference planes
@@ -66,6 +69,7 @@ Script explicitly checks for vias to be between top and bottom layers because in
   - [ ] another scenario: stackup above has GND1-GND2 buried via
   - [ ] Do we need to enumerate layers and allow tagging layers as GND references?
 - [x] Much simpler implementation would be to only consider full-stack vias as eligible return vias
+  - [x] Allow user to manually select other allowed drill pairs
   - [ ] For complex stackups, only considering full-stack vias could raise false positives (reinforces need for ability to ignore/waive detected failures)
 ## Dedicated list of nets to exclude?
 - [ ] Same potential multiselection problem as above
