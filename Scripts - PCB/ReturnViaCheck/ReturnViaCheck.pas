@@ -8,7 +8,7 @@
 const
     cScriptTitle            = 'ReturnViaCheck'; // modified from AssemblyTextPrep script
     cConfigFileName         = 'ReturnViaCheckConfig.ini';
-    cScriptVersion          = '0.30';
+    cScriptVersion          = '0.31';
     cDEBUGLEVEL             = 0;
     DEBUGEXPANSION          = -1; // leave at -1 to disable
     //status bar commands
@@ -92,6 +92,7 @@ function    IsReturnVia(SignalVia : IPCB_Via; OtherVia : IPCB_Via) : Boolean; fo
 function    IsSelectableCheck(var bCanSelectVia : Boolean); forward;
 function    IsSelectableCheckStop(bShowWarning : Boolean = True) : Boolean; forward;
 function    IsStringANum(Text : string) : Boolean; forward;
+procedure   RefreshFailedVias(dummy : Boolean = False); forward;
 procedure   SetButtonEnableStates(EnableState : Boolean); forward;
 procedure   SetInitialDrillPairSelections(dummy : Boolean = False); forward;
 procedure   SetInitialNetSelections(dummy : Boolean = False); forward;
@@ -824,6 +825,27 @@ begin
 end; { IsStringANum }
 
 
+procedure   RefreshFailedVias(dummy : Boolean = False);
+var
+    i           : Integer;
+    CurrentVia  : IPCB_Via;
+begin
+    ClientDeselectAll;
+
+    for i := 0 to FailedViaList.Count - 1 do
+    begin
+        CurrentVia := FailedViaList[i];
+        CurrentVia.Selected := True;
+        CurrentVia.GraphicallyInvalidate;
+        AddMessageCallback_Via(CurrentVia);
+    end;
+
+    ClientZoomSelected;
+
+    UpdateStatus;
+    UpdateNavButtonStates;
+end;
+
 procedure   SetButtonEnableStates(EnableState : Boolean);
 begin
     // Reserved for future use
@@ -1005,6 +1027,8 @@ begin
         ClientDeSelectAll;
         FailedViaList.Clear;
         FailedViaIndex := -1;
+        UpdateStatus;
+        UpdateNavButtonStates;
         exit;
     end;
 
@@ -1036,18 +1060,20 @@ begin
                 if not HasReturnVia(CurrentVia) then
                 begin
                     FailedViaList.Add(CurrentVia);
-                    CurrentVia.Selected := True;
-                    AddMessageCallback_Via(CurrentVia);
+                    //CurrentVia.Selected := True;
+                    //AddMessageCallback_Via(CurrentVia);
                 end;
             end;
             CurrentVia := ViaIter.NextPCBObject;
         end;
         Board.BoardIterator_Destroy(ViaIter);
 
-        ClientZoomSelected;
+        RefreshFailedVias;
 
-        UpdateStatus;
-        UpdateNavButtonStates;
+        //ClientZoomSelected;
+
+        //UpdateStatus;
+        //UpdateNavButtonStates;
 
         if FailedViaList.Count > 0 then
         begin
@@ -1132,27 +1158,32 @@ begin
             CurrentVia := FailedViaList[i];
             if not HasReturnVia(CurrentVia) then
             begin
-                AddMessageCallback_Via(CurrentVia);
+                //AddMessageCallback_Via(CurrentVia);
                 continue;
             end;
 
+            FailedViaIndex := -1;
             FailedViaList.Delete(i);
-            CurrentVia.Selected := False;
-            CurrentVia.GraphicallyInvalidate;
+            //CurrentVia.Selected := False;
+            //CurrentVia.GraphicallyInvalidate;
         end;
+
+        RefreshFailedVias;
+
+        //if FailedViaIndex >= FailedViaList.Count then FailedViaIndex := FailedViaList.Count - 1;
+
+        //if FailedViaIndex >= 0 then
+        //begin
+            //ClientDeSelectAll;
+            //FailedViaList[FailedViaIndex].Selected := True;
+            //ClientZoomSelected;
+        //end;
+
+        //UpdateStatus;
+        //UpdateNavButtonStates;
+
         if FailedViaList.Count > 0 then ShowWarning(IntToStr(FailedViaList.Count) + ' violating vias remain');
 
-        if FailedViaIndex >= FailedViaList.Count then FailedViaIndex := FailedViaList.Count - 1;
-
-        if FailedViaIndex >= 0 then
-        begin
-            ClientDeSelectAll;
-            FailedViaList[FailedViaIndex].Selected := True;
-            ClientZoomSelected;
-        end;
-
-        UpdateStatus;
-        UpdateNavButtonStates;
     finally
         GUI_EndProcess;
     end;

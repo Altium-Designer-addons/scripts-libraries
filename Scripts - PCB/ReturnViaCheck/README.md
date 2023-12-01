@@ -42,6 +42,7 @@ Vias
 - 2023-11-24 by Ryan Rutledge : v0.11 - some UI cleanup
 - 2023-11-29 by Ryan Rutledge : v0.20 - now adds message to messages panel for each failed via detected
 - 2023-11-30 by Ryan Rutledge : v0.30 - added ability to select drill pairs other than full-stack
+- 2023-12-01 by Ryan Rutledge : v0.31 - "Recheck Fails" re-selects and zooms all failed vias; harmonized messages and selection behavior between "check all" and "recheck failed"; minor UX tweaks
 
 # INITIAL REQUIREMENTS SPEC
 ## Non-Modal GUI
