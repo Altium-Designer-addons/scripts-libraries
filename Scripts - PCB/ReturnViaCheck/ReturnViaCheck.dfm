@@ -4,7 +4,7 @@ object ReturnViaCheckForm: TReturnViaCheckForm
   BorderIcons = [biSystemMenu]
   BorderStyle = bsSingle
   Caption = 'ReturnViaCheck Helper Script'
-  ClientHeight = 603
+  ClientHeight = 683
   ClientWidth = 346
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -17,6 +17,12 @@ object ReturnViaCheckForm: TReturnViaCheckForm
   OnShow = ReturnViaCheckFormShow
   PixelsPerInch = 96
   TextHeight = 13
+  object Bevel2: TBevel
+    Left = 0
+    Top = 248
+    Width = 344
+    Height = 312
+  end
   object LabelVersion: TLabel
     Left = 8
     Top = 4
@@ -68,7 +74,7 @@ object ReturnViaCheckForm: TReturnViaCheckForm
     Left = 0
     Top = 64
     Width = 344
-    Height = 416
+    Height = 184
   end
   object Bevel3: TBevel
     Left = 112
@@ -94,7 +100,7 @@ object ReturnViaCheckForm: TReturnViaCheckForm
   end
   object Label3: TLabel
     Left = 8
-    Top = 277
+    Top = 253
     Width = 328
     Height = 13
     Alignment = taCenter
@@ -110,7 +116,7 @@ object ReturnViaCheckForm: TReturnViaCheckForm
   end
   object LabelStatus: TLabel
     Left = 8
-    Top = 493
+    Top = 573
     Width = 328
     Height = 13
     Alignment = taCenter
@@ -124,9 +130,25 @@ object ReturnViaCheckForm: TReturnViaCheckForm
     ParentFont = False
     Layout = tlCenter
   end
+  object Label4: TLabel
+    Left = 8
+    Top = 437
+    Width = 328
+    Height = 13
+    Alignment = taCenter
+    AutoSize = False
+    Caption = '< -- Drill Pairs Allowed For Return -- >'
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -11
+    Font.Name = 'Tahoma'
+    Font.Style = [fsBold]
+    ParentFont = False
+    Layout = tlCenter
+  end
   object ButtonCheckAll: TButton
     Left = 8
-    Top = 560
+    Top = 640
     Width = 104
     Height = 32
     Hint = 'Check all signal vias for return via within specified distance'
@@ -138,7 +160,7 @@ object ReturnViaCheckForm: TReturnViaCheckForm
   end
   object rgReturnMode: TRadioGroup
     Left = 8
-    Top = 298
+    Top = 274
     Width = 96
     Height = 56
     Hint = 'Net mode selection mode for "Return" net(s)'
@@ -219,7 +241,7 @@ object ReturnViaCheckForm: TReturnViaCheckForm
   end
   object ButtonZoom: TButton
     Left = 184
-    Top = 512
+    Top = 592
     Width = 72
     Height = 32
     Hint = 'Zoom and select current failed via'
@@ -238,7 +260,7 @@ object ReturnViaCheckForm: TReturnViaCheckForm
   end
   object ButtonNext: TButton
     Left = 264
-    Top = 512
+    Top = 592
     Width = 72
     Height = 32
     Hint = 'Go to next failed via'
@@ -257,7 +279,7 @@ object ReturnViaCheckForm: TReturnViaCheckForm
   end
   object ButtonPrevious: TButton
     Left = 104
-    Top = 512
+    Top = 592
     Width = 72
     Height = 32
     Hint = 'Go to previous failed via'
@@ -276,7 +298,7 @@ object ReturnViaCheckForm: TReturnViaCheckForm
   end
   object ButtonCancel: TButton
     Left = 264
-    Top = 560
+    Top = 640
     Width = 72
     Height = 32
     Hint = 'Click to close without saving settings'
@@ -289,7 +311,7 @@ object ReturnViaCheckForm: TReturnViaCheckForm
   end
   object ButtonRecheck: TButton
     Left = 120
-    Top = 560
+    Top = 640
     Width = 104
     Height = 32
     Hint = 
@@ -317,7 +339,7 @@ object ReturnViaCheckForm: TReturnViaCheckForm
   end
   object ComboBoxReturnNet: TComboBox
     Left = 112
-    Top = 296
+    Top = 272
     Width = 224
     Height = 21
     TabOrder = 11
@@ -326,7 +348,7 @@ object ReturnViaCheckForm: TReturnViaCheckForm
     Left = 112
     Top = 112
     Width = 224
-    Height = 152
+    Height = 128
     Hint = '"Signal" via net classes (allows multi-select)'
     ItemHeight = 13
     MultiSelect = True
@@ -334,9 +356,9 @@ object ReturnViaCheckForm: TReturnViaCheckForm
   end
   object ListBoxReturnNets: TListBox
     Left = 112
-    Top = 320
+    Top = 296
     Width = 224
-    Height = 152
+    Height = 128
     Hint = '"Return" via net classes (allows multi-select)'
     ItemHeight = 13
     MultiSelect = True
@@ -344,7 +366,7 @@ object ReturnViaCheckForm: TReturnViaCheckForm
   end
   object ButtonIgnore: TButton
     Left = 8
-    Top = 512
+    Top = 592
     Width = 72
     Height = 32
     Hint = 'Ignore current via'
@@ -360,5 +382,15 @@ object ReturnViaCheckForm: TReturnViaCheckForm
     TabOrder = 14
     TabStop = False
     OnClick = ButtonIgnoreClick
+  end
+  object ListBoxDrillPairs: TListBox
+    Left = 8
+    Top = 456
+    Width = 328
+    Height = 96
+    Hint = '"Return" via drill pairs (allows multi-select)'
+    ItemHeight = 13
+    MultiSelect = True
+    TabOrder = 15
   end
 end
