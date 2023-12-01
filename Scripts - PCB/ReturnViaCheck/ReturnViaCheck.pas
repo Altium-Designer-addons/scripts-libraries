@@ -8,7 +8,7 @@
 const
     cScriptTitle            = 'ReturnViaCheck'; // modified from AssemblyTextPrep script
     cConfigFileName         = 'ReturnViaCheckConfig.ini';
-    cScriptVersion          = '0.20';
+    cScriptVersion          = '0.30';
     cDEBUGLEVEL             = 0;
     DEBUGEXPANSION          = -1; // leave at -1 to disable
     //status bar commands
@@ -46,6 +46,8 @@ var
     FailedViaList           : TInterfaceList;
     ReturnNetList           : TInterfaceList;
     SignalNetList           : TInterfaceList;
+    DrillPairsList          : TInterfaceList;
+    ReturnViaDrillPairsList : TInterfaceList;
     gvCurrentPercentCount   : Integer;
     gvTotalPercentCount     : Integer;
     gvOldPercent            : Integer;
@@ -69,11 +71,14 @@ function    CoordToY(Coords : TCoord) : String; forward;
 function    DebugLevelStr(dummy : String = '') : String; forward;
 procedure   DebugMessage(const ShowLevel : Integer; const msg : WideString; const Caption : String = 'Confirm or Cancel Debug'); forward;
 function    DocumentIsPCB : Boolean; forward;
+function    FillDrillPairsList(const DrillPairObj : IPCB_DrillLayerPair; var DrillPairsList : TInterfaceList; const Clear : Boolean = False) : Boolean; forward;
+procedure   FillDrillPairsListBox(ListBox : TObject); forward;
 procedure   FillNetClassListBox(ListBox : TObject); forward;
 procedure   FillNetComboBox(ComboBox : TObject); forward;
 function    FillNetListFromClass(const NetClass : IPCB_OBjectClass; var NetList : TInterfaceList; const Clear : Boolean = False) : Boolean; forward;
 function    FillNetListFromSingleNet(const Net : IPCB_Net; var NetList : TInterfaceList; const Clear : Boolean = False) : Boolean; forward;
 function    FolderIsReadOnly(const AFolderPath : String) : Boolean; forward;
+function    GetDrillPairs(const dummy : Integer = 0) : TInterfaceList; forward;
 function    GetNearbyVias(SignalVia : IPCB_Via) : TInterfaceList; forward;
 procedure   GUI_BeginProcess(dummy : Boolean = False); forward;
 procedure   GUI_EndProcess(dummy : Boolean = False); forward;
@@ -81,12 +86,14 @@ function    GUI_ForLoopStart(StatusMsg : String; LoopCount : Integer) : Integer;
 procedure   GUI_LoopEnd(dummy : Boolean = False); forward;
 procedure   GUI_LoopProgress(StatusMsg : String = ''); forward;
 function    HasReturnVia(SignalVia : IPCB_Via) : Boolean; forward;
+function    InAllowedDrillStack(Via : IPCB_Via) : Boolean; forward;
 procedure   InitialCheckGUI(var status : Integer); forward;
 function    IsReturnVia(SignalVia : IPCB_Via; OtherVia : IPCB_Via) : Boolean; forward;
 function    IsSelectableCheck(var bCanSelectVia : Boolean); forward;
 function    IsSelectableCheckStop(bShowWarning : Boolean = True) : Boolean; forward;
 function    IsStringANum(Text : string) : Boolean; forward;
 procedure   SetButtonEnableStates(EnableState : Boolean); forward;
+procedure   SetInitialDrillPairSelections(dummy : Boolean = False); forward;
 procedure   SetInitialNetSelections(dummy : Boolean = False); forward;
 procedure   SetNetModeSignalStates(RadioGroup : TObject); forward;
 procedure   SetNetPickEnableStates(EnableState : Boolean); forward;
@@ -108,6 +115,7 @@ procedure   TReturnViaCheckForm.rgReturnModeClick(Sender: TObject); forward;
 procedure   TReturnViaCheckForm.UserKeyPress(Sender : TObject; var Key : Char); forward;
 procedure   UpdateConstants(dummy : Boolean = False); forward;
 procedure   UpdateStatus(const StatusString : String = ''); forward;
+procedure   UpdateDrillPairsListFromSelections(dummy : Boolean = False); forward;
 procedure   UpdateNavButtonStates(Reset : Boolean = False); forward;
 procedure   UpdateNetListsFromSelections(dummy : Boolean = False); forward;
 procedure   MyStatusBar_SetState(Index : Integer; const S : WideString); forward;
@@ -416,6 +424,36 @@ begin
 end;
 
 
+function    FillDrillPairsList(const DrillPairObj : IPCB_DrillLayerPair; var DrillPairsList : TInterfaceList; const Clear : Boolean = False) : Boolean;
+begin
+    Result := False;
+    if (DrillPairObj = nil) or (DrillPairsList = nil) then exit;
+
+    if Clear then DrillPairsList.Clear;
+
+    DrillPairsList.Add(DrillPairObj);
+
+    Result := (DrillPairsList.Count > 0);
+end;
+
+
+procedure   FillDrillPairsListBox(ListBox : TObject);
+var
+    i               : Integer;
+    DrillPairObj    : IPCB_DrillLayerPair;
+begin
+    GetDrillPairs;
+
+    for i := 0 to DrillPairsList.Count - 1 do
+    begin
+        DrillPairObj := DrillPairsList[i];
+        ListBox.Items.AddObject(DrillPairObj.Description, DrillPairObj);
+    end;
+
+    if ListBox.Items.Count = 0 then ListBox.Items.Add('!!! NO DRILL PAIRS DEFINED !!!');
+end;
+
+
 procedure   FillNetClassListBox(ListBox : TObject);
 var
     Iterator : IPCB_BoardIterator;
@@ -506,6 +544,22 @@ begin
         DeleteFile(TempFile);
         Result := False;
     end;
+end;
+
+
+function    GetDrillPairs(const dummy : Integer = 0) : TInterfaceList;
+var
+    i               : Integer;
+    DrillPairObj    : IPCB_DrillLayerPair;
+begin
+    if not Assigned(DrillPairsList) then DrillPairsList := CreateObject(TInterfaceList) else DrillPairsList.Clear;
+    for i := 0 to Board.DrillLayerPairsCount - 1 do
+    begin
+        DrillPairObj := Board.LayerPair(i);
+        DrillPairsList.Add(DrillPairObj);
+    end;
+
+    Result := DrillPairsList;
 end;
 
 
@@ -607,6 +661,24 @@ begin
 end;
 
 
+function    InAllowedDrillStack(Via : IPCB_Via) : Boolean;
+var
+    i       : Integer;
+begin
+    Result := False;
+    if (Via = nil) or (not Assigned(ReturnViaDrillPairsList)) then exit;
+
+    for i := 0 to ReturnViaDrillPairsList.Count - 1 do
+    begin
+        if (Via.StartLayer = ReturnViaDrillPairsList[i].StartLayer) and (Via.StopLayer = ReturnViaDrillPairsList[i].StopLayer) then
+        begin
+            Result := True;
+            exit;
+        end;
+    end;
+end;
+
+
 procedure   InitialCheckGUI(var status : Integer);
 var
     i               : Integer;
@@ -635,7 +707,7 @@ var
     i                   : Integer;
     distance            : TCoord;
     dX, dY              : TCoord;
-    IsOtherFullStack    : Boolean;
+    IsOtherStackAllowed : Boolean;
     IsOtherInReturnNet  : Boolean;
 begin
     Result := False;
@@ -643,8 +715,9 @@ begin
     if (SignalVia.ObjectId <> eViaObject) or (OtherVia.ObjectId <> eViaObject) then exit;
     if SignalVia.I_ObjectAddress = OtherVia.I_ObjectAddress then exit;
 
-    IsOtherFullStack := ((OtherVia.LowLayer = eBottomLayer) and (OtherVia.HighLayer = eTopLayer)) or ((OtherVia.HighLayer = eBottomLayer) and (OtherVia.LowLayer = eTopLayer));
-    if not IsOtherFullStack then exit;
+    //IsOtherStackAllowed := ((OtherVia.LowLayer = eBottomLayer) and (OtherVia.HighLayer = eTopLayer)) or ((OtherVia.HighLayer = eBottomLayer) and (OtherVia.LowLayer = eTopLayer));
+    IsOtherStackAllowed := InAllowedDrillStack(OtherVia);
+    if not IsOtherStackAllowed then exit;
 
     IsOtherInReturnNet := False;
     for i := 0 to ReturnNetList.Count - 1 do
@@ -753,41 +826,38 @@ end; { IsStringANum }
 
 procedure   SetButtonEnableStates(EnableState : Boolean);
 begin
-    // Configure base operation controls
-
+    // Reserved for future use
     //ButtonCheckAll.Enabled                  := EnableState;
+end;
 
-{    ButtonAddDesignators.Enabled            := EnableState;
-    ButtonAutoAdjust.Enabled                := EnableState;
-    ButtonCancel.Enabled                    := EnableState;
-    ButtonRecheck.Enabled                   := EnableState;
-    ButtonNormalizeAnyText.Enabled          := EnableState;
-    ButtonNormalizeDesignator.Enabled       := EnableState;
-    ButtonCheckAll.Enabled                  := EnableState;
-    ButtonResetCenter.Enabled               := EnableState;
-    ButtonResetOrigin.Enabled               := EnableState;
-    ButtonResizeNoMove.Enabled              := EnableState;
-    ButtonSaveConfig.Enabled                := EnableState;
-    ButtonSelectBoth.Enabled                := EnableState;
-    ButtonSelectComponents.Enabled          := EnableState;
-    ButtonSelectDesignators.Enabled         := EnableState;
-    ButtonSelectLocked.Enabled              := EnableState;
-    ButtonSelectMissing.Enabled             := EnableState;
-    ButtonZoomSelected.Enabled              := EnableState;
-    MMmilButton.Enabled                     := EnableState;
 
-    if bForbidLocalSettings then CheckBoxLocalSettings.Enabled := False else CheckBoxLocalSettings.Enabled := EnableState;
-}
+procedure   SetInitialDrillPairSelections(dummy : Boolean = False);
+var
+    i, SelectIndex  : Integer;
+    DrillPairObj    : IPCB_DrillLayerPair;
+begin
+    SelectIndex := -1;
+
+    // Search for top-bottom drill pair
+    for i := 0 to ListBoxDrillPairs.Items.Count - 1 do
+    begin
+        DrillPairObj := ListBoxDrillPairs.Items.Objects[i];
+        if ((DrillPairObj.LowLayer = eBottomLayer) and (DrillPairObj.HighLayer = eTopLayer)) or ((DrillPairObj.LowLayer = eTopLayer) and (DrillPairObj.HighLayer = eBottomLayer)) then
+        begin
+            SelectIndex := i;
+            Break;
+        end;
+    end;
+
+    if (SelectIndex = -1) then ShowWarning('Unable to find full-stack drill pair') else ListBoxDrillPairs.Selected[SelectIndex] := True;
 end;
 
 
 procedure   SetInitialNetSelections(dummy : Boolean = False);
 var
     i, SelectIndex  : Integer;
-    bFound          : Boolean;
 begin
     SelectIndex := -1;
-    bFound := False;
     if rgReturnMode.ItemIndex = 0 then
     begin
         // Search for exact match 'GND'
@@ -796,7 +866,6 @@ begin
             if SameText(ComboBoxReturnNet.Items[i], 'GND') then
             begin
                 SelectIndex := i;
-                bFound := True;
                 Break;
             end;
         end;
@@ -860,6 +929,7 @@ begin
 
     rgSignalMode.Enabled                    := EnableState;
     rgReturnMode.Enabled                    := EnableState;
+    ListBoxDrillPairs.Enabled               := EnableState;
 
     if EnableState then
     begin
@@ -947,6 +1017,8 @@ begin
         // Populate SignalNetList and ReturnNetList based on GUI selections
 
         UpdateNetListsFromSelections;
+
+        UpdateDrillPairsListFromSelections;
 
         FailedViaIndex := -1;
         FailedViaList.Clear;
@@ -1167,6 +1239,8 @@ begin
     FailedViaList := CreateObject(TInterfaceList);
     ReturnNetList := CreateObject(TInterfaceList);
     SignalNetList := CreateObject(TInterfaceList);
+    DrillPairsList := CreateObject(TInterfaceList);
+    ReturnViaDrillPairsList := CreateObject(TInterfaceList);
 
     FillNetComboBox(ComboBoxSignalNet);
     FillNetClassListBox(ListBoxSignalNets);
@@ -1174,9 +1248,12 @@ begin
     ComboBoxReturnNet.Items.Assign(ComboBoxSignalNet.Items);
     ListBoxReturnNets.Items.Assign(ListBoxSignalNets.Items);
 
+    FillDrillPairsListBox(ListBoxDrillPairs);
+
     ConfigFile_Read(ConfigFile_GetPath); // moved to FormCreate
 
     SetInitialNetSelections;
+    SetInitialDrillPairSelections;
 
     UpdateConstants;
 
@@ -1252,6 +1329,22 @@ begin
     end;
 
     LabelStatus.Caption := Format('Viewing via %d of %d (%s)', [FailedViaIndex + 1, FailedViaList.Count, FailedViaList[FailedViaIndex].Net.Name]);
+end;
+
+
+procedure   UpdateDrillPairsListFromSelections(dummy : Boolean = False);
+var
+    i               : Integer;
+    ReturnNetIndex  : Integer;
+begin
+    ReturnViaDrillPairsList.Clear;
+
+    for i := 0 to ListBoxDrillPairs.Items.Count - 1 do
+    begin
+        if ListBoxDrillPairs.Selected[i] then FillDrillPairsList(ListBoxDrillPairs.Items.Objects[i], ReturnViaDrillPairsList);
+    end;
+
+    DebugMessage(1, Format('%d drill pairs in ReturnViaDrillPairsList', [ReturnViaDrillPairsList.Count]));
 end;
 
 
