@@ -28,6 +28,8 @@ If you are a newcomer to Altium scripts, [please read the "how to" wiki page](ht
 Script will detect if this is not the case.
 
 ## Features
+### Recall Previous Selections
+When GUI is launched, selections from previous check will be restored. Net/Class/Drill Pair names must match exactly else defaults will be used. Works best between checks on the same board.
 
 ### Eligible Objects
 Vias
@@ -43,6 +45,7 @@ Vias
 - 2023-11-29 by Ryan Rutledge : v0.20 - now adds message to messages panel for each failed via detected
 - 2023-11-30 by Ryan Rutledge : v0.30 - added ability to select drill pairs other than full-stack
 - 2023-12-01 by Ryan Rutledge : v0.31 - "Recheck Fails" re-selects and zooms all failed vias; harmonized messages and selection behavior between "check all" and "recheck failed"; minor UX tweaks
+- 2023-12-04 by Ryan Rutledge : v0.40 - recall selections from previous check when launching script, added progress indicators
 
 # INITIAL REQUIREMENTS SPEC
 ## Non-Modal GUI
@@ -73,10 +76,10 @@ Vias
   - [x] Allow user to manually select other allowed drill pairs
   - [ ] For complex stackups, only considering full-stack vias could raise false positives (reinforces need for ability to ignore/waive detected failures)
 ## Dedicated list of nets to exclude?
-- [ ] Same potential multiselection problem as above
+- [ ] Same potential multiselection problem as above (would probably only make sense to allow selecting net classes to excludes)
 ## Save states between runs
-- [ ] Lists of nets/classes could be challenging
-- [ ] Needs to not break if netlist changes (eg. with different board or just a netlist change)
+- [x] Lists of nets/classes could be challenging - looks for exact match from last check
+- [x] Needs to not break if netlist changes (eg. with different board or just a netlist change) - will only restore if all saved values exist
 - [ ] Would be nice to save state for a few "recent" boards, but probably not worth implementation effort
 ## Buttons to Check All, Recheck, and Clear Results
 - [x] Check All button: checks all vias. After clicking, selected filter settings are locked until clear results button is used

@@ -8,7 +8,7 @@
 const
     cScriptTitle            = 'ReturnViaCheck'; // modified from AssemblyTextPrep script
     cConfigFileName         = 'ReturnViaCheckConfig.ini';
-    cScriptVersion          = '0.31';
+    cScriptVersion          = '0.40';
     cDEBUGLEVEL             = 0;
     DEBUGEXPANSION          = -1; // leave at -1 to disable
     //status bar commands
@@ -56,7 +56,8 @@ var
 
 procedure   _GUI; forward;
 procedure   About; forward;
-procedure   AddMessageToMessagesManager(MessagesManager : IMessagesManager, messageClass : WideString, messageText : WideString, documentName : WideString, imageIndex : Integer, callBackProcess : WideString = '', callBackParameters : WideString = '', messageDetails : IDXPMessageItemDetails = nil); forward;
+procedure   AddMessage(MessageClass, MessageText: String); forward;
+procedure   AddMessageAdvanced(MessagesManager : IMessagesManager, messageClass : WideString, messageText : WideString, documentName : WideString, imageIndex : Integer, callBackProcess : WideString = '', callBackParameters : WideString = '', messageDetails : IDXPMessageItemDetails = nil); forward;
 procedure   AddMessageCallback_Via(Via : IPCB_Via); forward;
 procedure   ChangeTextUnits(Units : TUnit); forward;
 procedure   ClientDeSelectAll(dummy : Boolean = False); forward;
@@ -78,7 +79,9 @@ procedure   FillNetComboBox(ComboBox : TObject); forward;
 function    FillNetListFromClass(const NetClass : IPCB_OBjectClass; var NetList : TInterfaceList; const Clear : Boolean = False) : Boolean; forward;
 function    FillNetListFromSingleNet(const Net : IPCB_Net; var NetList : TInterfaceList; const Clear : Boolean = False) : Boolean; forward;
 function    FolderIsReadOnly(const AFolderPath : String) : Boolean; forward;
+function    GetDelimitedListBoxSelections(ListBox : TListBox; MyDelim : String = ';;') : String; forward;
 function    GetDrillPairs(const dummy : Integer = 0) : TInterfaceList; forward;
+function    GetIteratorCount(Iter : IPCB_BoardIterator) : Integer; forward;
 function    GetNearbyVias(SignalVia : IPCB_Via) : TInterfaceList; forward;
 procedure   GUI_BeginProcess(dummy : Boolean = False); forward;
 procedure   GUI_EndProcess(dummy : Boolean = False); forward;
@@ -92,7 +95,10 @@ function    IsReturnVia(SignalVia : IPCB_Via; OtherVia : IPCB_Via) : Boolean; fo
 function    IsSelectableCheck(var bCanSelectVia : Boolean); forward;
 function    IsSelectableCheckStop(bShowWarning : Boolean = True) : Boolean; forward;
 function    IsStringANum(Text : string) : Boolean; forward;
+function    ParseDelimitedString(const DelimitedText : String; const MyDelim : String = ';;') : TStringList; forward;
 procedure   RefreshFailedVias(dummy : Boolean = False); forward;
+function    SelectComboBoxItem(ComboBox : TComboBox; ItemString : String) : Boolean; forward;
+function    SelectListBoxItems(ListBox : TListBox; ListItems : TStringList) : Boolean; forward;
 procedure   SetButtonEnableStates(EnableState : Boolean); forward;
 procedure   SetInitialDrillPairSelections(dummy : Boolean = False); forward;
 procedure   SetInitialNetSelections(dummy : Boolean = False); forward;
@@ -142,12 +148,14 @@ procedure   _GUI;
 var
     status          : Integer;
 begin
+    BeginHourGlass;
     InitialCheckGUI(status);
     if status = 1 then exit;
 
     //ReturnViaCheckForm.ShowModal; // Show the GUI
     ReturnViaCheckForm.FormStyle := fsStayOnTop;
     ReturnViaCheckForm.Show;
+    EndHourGlass;
 end;
 
 
@@ -171,21 +179,35 @@ begin
 end; { About }
 
 
-procedure   AddMessageToMessagesManager(MessagesManager : IMessagesManager, messageClass : WideString, messageText : WideString, documentName : WideString, imageIndex : Integer, callBackProcess : WideString = '', callBackParameters : WideString = '', messageDetails : IDXPMessageItemDetails = nil);
+procedure   AddMessage(MessageClass, MessageText: String);
+begin
+    // https://www.altium.com/ru/documentation/altium-nexus/wsm-api-types-and-constants/#Image%20Index%20Table
+    // [!!!] 66 index for debug info
+    GetWorkspace.DM_MessagesManager.BeginUpdate();
+    GetWorkspace.DM_MessagesManager.AddMessage(MessageClass, MessageText, 'ReturnViaCheck Script', GetWorkspace.DM_FocusedDocument.DM_FileName, '', '', 75, MessageClass = 'ReturnViaCheck Status');
+    GetWorkspace.DM_MessagesManager.EndUpdate();
+    GetWorkspace.DM_MessagesManager.UpdateWindow();
+end;
+
+
+procedure   AddMessageAdvanced(MessagesManager : IMessagesManager, messageClass : WideString, messageText : WideString, documentName : WideString, imageIndex : Integer, callBackProcess : WideString = '', callBackParameters : WideString = '', messageDetails : IDXPMessageItemDetails = nil);
 begin
     MessagesManager.BeginUpdate;
-    MessagesManager.AddMessage2({MessageClass                 } messageClass,
-                               {MessageText                  } messageText,
-                               {MessageSource                } cScriptTitle,
-                               {MessageDocument              } documentName,
-                               {MessageCallBackProcess       } callBackProcess,
-                               {MessageCallBackParameters    } callBackParameters,
-                               {ImageIndex                   } imageIndex,
-                               {ReplaceLastMessageIfSameClass} False,
-                               {MessageCallBackProcess2      } '',
-                               {MessageCallBackParameters2   } '',
-                               {Details                      } messageDetails);
-    MessagesManager.EndUpdate;
+    try
+        MessagesManager.AddMessage2({MessageClass                 } messageClass,
+                                   {MessageText                  } messageText,
+                                   {MessageSource                } cScriptTitle,
+                                   {MessageDocument              } documentName,
+                                   {MessageCallBackProcess       } callBackProcess,
+                                   {MessageCallBackParameters    } callBackParameters,
+                                   {ImageIndex                   } imageIndex,
+                                   {ReplaceLastMessageIfSameClass} False,
+                                   {MessageCallBackProcess2      } '',
+                                   {MessageCallBackParameters2   } '',
+                                   {Details                      } messageDetails);
+    finally
+        MessagesManager.EndUpdate;
+    end;
 end;
 
 
@@ -233,7 +255,7 @@ begin
     documentFullPath := Board.FileName;
     imageIndex := cImageIndexOrange;
 
-    AddMessageToMessagesManager(MessagesManager, messageClass, messageText, documentName, imageIndex, callBackProcess, callBackParameters);
+    AddMessageAdvanced(MessagesManager, messageClass, messageText, documentName, imageIndex, callBackProcess, callBackParameters);
 end;
 
 
@@ -303,6 +325,7 @@ var
     SettingsDebugFile   : String;
     SettingsDebugList   : TStringList;
     TempString          : String;
+    TempList            : TStringList;
 begin
     IniFile := TIniFile.Create(AFileName);
     try
@@ -313,8 +336,26 @@ begin
 
         MMmilButton.Caption := IniFile.ReadString('Config', 'Units', MMmilButton.Caption);
 
-        //rgSignalMode.ItemIndex          := IniFile.ReadInteger('Config', 'Signal Net Filter Mode', rgSignalMode.ItemIndex);
-        //rgReturnMode.ItemIndex          := IniFile.ReadInteger('Config', 'Return Net Filter Mode', rgReturnMode.ItemIndex);
+        rgSignalMode.ItemIndex          := IniFile.ReadInteger('Last Used', 'Signal Net Filter Mode', rgSignalMode.ItemIndex);
+        SetNetModeSignalStates(rgSignalMode);
+
+        rgReturnMode.ItemIndex          := IniFile.ReadInteger('Last Used', 'Return Net Filter Mode', rgReturnMode.ItemIndex);
+        SetNetModeSignalStates(rgReturnMode);
+
+        SelectComboBoxItem(ComboBoxSignalNet, IniFile.ReadString('Last Used', 'Signal Net', ''));
+        SelectComboBoxItem(ComboBoxReturnNet, IniFile.ReadString('Last Used', 'Return Net', ''));
+
+        TempString := IniFile.ReadString('Last Used', 'Signal Net Classes', GetDelimitedListBoxSelections(ListBoxSignalNets));
+        TempList := ParseDelimitedString(TempString);
+        if TempList.Count > 0 then SelectListBoxItems(ListBoxSignalNets, TempList);
+
+        TempString := IniFile.ReadString('Last Used', 'Return Net Classes', GetDelimitedListBoxSelections(ListBoxReturnNets));
+        TempList := ParseDelimitedString(TempString);
+        if TempList.Count > 0 then SelectListBoxItems(ListBoxReturnNets, TempList);
+
+        TempString := IniFile.ReadString('Last Used', 'Drill Pairs', GetDelimitedListBoxSelections(ListBoxDrillPairs));
+        TempList := ParseDelimitedString(TempString);
+        if TempList.Count > 0 then SelectListBoxItems(ListBoxDrillPairs, TempList);
 
         if iDebugLevel > 0 then
         begin
@@ -345,7 +386,9 @@ end;
 
 procedure   ConfigFile_Write(AFileName : String);
 var
-    IniFile: TIniFile;
+    IniFile     : TIniFile;
+    idx         : Integer;
+    TempString  : String;
 begin
     IniFile := TIniFile.Create(AFileName);
     try
@@ -356,8 +399,20 @@ begin
 
         IniFile.WriteString('Config', 'Units', MMmilButton.Caption);
 
-        //IniFile.WriteInteger('Config', 'Signal Net Filter Mode', rgSignalMode.ItemIndex);
-        //IniFile.WriteInteger('Config', 'Return Net Filter Mode', rgReturnMode.ItemIndex);
+        idx := ComboBoxSignalNet.ItemIndex;
+        if idx >= 0 then TempString := ComboBoxSignalNet.Items[idx] else TempString := '';
+        IniFile.WriteString('Last Used', 'Signal Net', TempString);
+
+        idx := ComboBoxReturnNet.ItemIndex;
+        if idx >= 0 then TempString := ComboBoxReturnNet.Items[idx] else TempString := '';
+        IniFile.WriteString('Last Used', 'Return Net', TempString);
+
+        IniFile.WriteString('Last Used', 'Signal Net Classes', GetDelimitedListBoxSelections(ListBoxSignalNets));
+        IniFile.WriteString('Last Used', 'Return Net Classes', GetDelimitedListBoxSelections(ListBoxReturnNets));
+        IniFile.WriteString('Last Used', 'Drill Pairs', GetDelimitedListBoxSelections(ListBoxDrillPairs));
+
+        IniFile.WriteInteger('Last Used', 'Signal Net Filter Mode', rgSignalMode.ItemIndex);
+        IniFile.WriteInteger('Last Used', 'Return Net Filter Mode', rgReturnMode.ItemIndex);
     finally
         IniFile.Free;
     end;
@@ -548,6 +603,27 @@ begin
 end;
 
 
+function    GetDelimitedListBoxSelections(ListBox : TListBox; MyDelim : String = ';;') : String;
+var
+    i               : Integer;
+    SelectedItems   : String;
+begin
+    SelectedItems := '';
+
+    for i := 0 to ListBox.Items.Count - 1 do
+    begin
+        if ListBox.Selected[i] then
+        begin
+            if SelectedItems <> '' then SelectedItems := SelectedItems + MyDelim;
+
+            SelectedItems := SelectedItems + ListBox.Items[i];
+        end;
+    end;
+
+    Result := SelectedItems;
+end;
+
+
 function    GetDrillPairs(const dummy : Integer = 0) : TInterfaceList;
 var
     i               : Integer;
@@ -561,6 +637,23 @@ begin
     end;
 
     Result := DrillPairsList;
+end;
+
+
+function    GetIteratorCount(Iter : IPCB_BoardIterator) : Integer;
+var
+    count : Integer;
+    obj   : IPCB_ObjectClass;
+begin
+    count := 0;
+
+    obj := Iter.FirstPCBObject;
+    while obj <> nil do
+    begin
+        Inc(count);
+        obj := Iter.NextPCBObject;
+    end;
+    result := count;
 end;
 
 
@@ -825,11 +918,44 @@ begin
 end; { IsStringANum }
 
 
+function    ParseDelimitedString(const DelimitedText : String; const MyDelim : String = ';;') : TStringList;
+var
+    DelimPos, MAXINT            : Integer;
+    CurrentItem, SubText        : String;
+    TempList                    : TStringList;
+begin
+    MAXINT := 2147483647;
+    TempList := CreateObject(TStringList);
+    TempList.Clear;
+    Result := TempList;
+
+    if DelimitedText = '' then exit;
+
+    SubText := DelimitedText;
+
+    repeat
+        DelimPos := Pos(MyDelim, SubText);
+        if DelimPos > 0 then
+        begin
+            CurrentItem := Copy(SubText, 1, DelimPos - 1);
+            TempList.Add(CurrentItem);
+            SubText := Copy(SubText, DelimPos + Length(MyDelim), MAXINT);
+        end;
+    until DelimPos = 0;
+
+    // Add the last item if there's any text left
+    if Length(SubText) > 0 then TempList.Add(SubText);
+
+    Result := TempList;
+end;
+
+
 procedure   RefreshFailedVias(dummy : Boolean = False);
 var
     i           : Integer;
     CurrentVia  : IPCB_Via;
 begin
+    GetWorkspace.DM_ShowMessageView;
     ClientDeselectAll;
 
     for i := 0 to FailedViaList.Count - 1 do
@@ -845,6 +971,58 @@ begin
     UpdateStatus;
     UpdateNavButtonStates;
 end;
+
+
+function    SelectComboBoxItem(ComboBox : TComboBox; ItemString : String) : Boolean;
+var
+    idx : Integer;
+begin
+    Result := True;
+
+    if ItemString = '' then exit; // if blank, don't modify
+
+    idx := ComboBox.Items.IndexOf(ItemString);
+    if idx <> -1 then ComboBox.ItemIndex := idx else Result := False;
+end;
+
+
+function    SelectListBoxItems(ListBox : TListBox; ListItems : TStringList) : Boolean;
+var
+    i, idx              : Integer;
+    InitialSelections   : TStringList;
+begin
+    Result := True;
+
+    if ListItems.Count = 0 then exit;
+
+    InitialSelections := CreateObject(TStringList);
+
+    // Remember initial selection state
+    for i := 0 to ListBox.Items.Count - 1 do
+        if ListBox.Selected[i] then InitialSelections.Add('1') else InitialSelections.Add('0');
+
+    ListBox.Items.BeginUpdate;
+    try
+        ListBox.ClearSelection;
+
+        for i := 0 to ListItems.Count - 1 do
+        begin
+            idx := ListBox.Items.IndexOf(ListItems[i]);
+            if idx <> -1 then ListBox.Selected[idx] := True
+            else
+            begin
+                // Something didn't match so rollback to initial selection state and abort
+                for idx := 0 to ListBox.Items.Count - 1 do ListBox.Selected[idx] := (InitialSelections[idx] = '1');
+
+                Result := False;
+                Break;
+            end;
+        end;
+    finally
+        ListBox.Items.EndUpdate;
+    end;
+end;
+
 
 procedure   SetButtonEnableStates(EnableState : Boolean);
 begin
@@ -1016,7 +1194,8 @@ end; { TReturnViaCheckForm.ButtonCancelClick }
 
 procedure   TReturnViaCheckForm.ButtonCheckAllClick(Sender : TObject);
 var
-    i               : Integer;
+    i, TotalCount   : Integer;
+    ProcessedCount, ProgressInt : Integer;
     ViaIter         : IPCB_BoardIterator;
     CurrentVia      : IPCB_Via;
     ReturnNetIndex  : Integer;
@@ -1034,6 +1213,9 @@ begin
 
     GUI_BeginProcess;
     try
+        ProcessedCount := 0;
+        ProgressInt := 0;
+
         SetNetPickEnableStates(False);
 
         ClientDeselectAll;
@@ -1052,6 +1234,10 @@ begin
         ViaIter.AddFilter_ObjectSet(MkSet(eViaObject));
         ViaIter.AddFilter_LayerSet(AllLayers);
         ViaIter.AddFilter_Method(eProcessAll);
+
+        TotalCount := GetIteratorCount(ViaIter);
+        MyPercent_Init('Processing ' + IntToStr(TotalCount) + ' vias', TotalCount);
+
         CurrentVia := ViaIter.FirstPCBObject;
         while CurrentVia <> nil do
         begin
@@ -1064,9 +1250,21 @@ begin
                     //AddMessageCallback_Via(CurrentVia);
                 end;
             end;
+
+            Inc(ProcessedCount);
+            MyPercent_Update(Format('%d of %d vias processed', [ProcessedCount, TotalCount]));
+            // throttle Messages panel updates for performance
+            if ((ProcessedCount / TotalCount) * 100) >= (ProgressInt + 1) then
+            begin
+                Inc(ProgressInt);
+                AddMessage('ReturnViaCheck Status', Format('%d of %d vias processed (%d%%)', [ProcessedCount, TotalCount, ProgressInt]));
+            end;
+
             CurrentVia := ViaIter.NextPCBObject;
         end;
         Board.BoardIterator_Destroy(ViaIter);
+
+        MyPercent_Finish;
 
         RefreshFailedVias;
 
@@ -1147,14 +1345,37 @@ end;
 
 procedure   TReturnViaCheckForm.ButtonRecheckClick(Sender : TObject);
 var
-    i               : Integer;
+    i, TotalCount   : Integer;
+    ProcessedCount, ProgressInt : Integer;
     CurrentVia      : IPCB_Via;
 begin
     GUI_BeginProcess;
     try
+        ProcessedCount := 0;
+        ProgressInt := 0;
+
+        TotalCount := FailedViaList.Count;
+        MyPercent_Init('Rechecking ' + IntToStr(TotalCount) + ' vias', TotalCount);
+
         MessagesManager.ClearMessages;
         for i := FailedViaList.Count - 1 downto 0 do
         begin
+            Inc(ProcessedCount);
+            MyPercent_Update(Format('%d of %d vias processed', [ProcessedCount, TotalCount]));
+            if TotalCount > 100 then
+            begin
+                // throttle Messages panel updates for performance
+                if ((ProcessedCount / TotalCount) * 100) >= (ProgressInt + 1) then
+                begin
+                    Inc(ProgressInt);
+                    AddMessage('ReturnViaCheck Status', Format('%d of %d vias processed (%d%%)', [ProcessedCount, TotalCount, ProgressInt]));
+                end;
+            end
+            else
+            begin
+                AddMessage('ReturnViaCheck Status', Format('%d of %d vias processed (%d%%)', [ProcessedCount, TotalCount, Round((ProcessedCount / TotalCount) * 100)]));
+            end;
+
             CurrentVia := FailedViaList[i];
             if not HasReturnVia(CurrentVia) then
             begin
@@ -1167,6 +1388,8 @@ begin
             //CurrentVia.Selected := False;
             //CurrentVia.GraphicallyInvalidate;
         end;
+
+        MyPercent_Finish;
 
         RefreshFailedVias;
 
@@ -1281,10 +1504,10 @@ begin
 
     FillDrillPairsListBox(ListBoxDrillPairs);
 
-    ConfigFile_Read(ConfigFile_GetPath); // moved to FormCreate
-
     SetInitialNetSelections;
     SetInitialDrillPairSelections;
+
+    ConfigFile_Read(ConfigFile_GetPath);
 
     UpdateConstants;
 
