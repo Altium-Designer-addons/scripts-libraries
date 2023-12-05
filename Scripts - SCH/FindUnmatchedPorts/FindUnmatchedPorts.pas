@@ -68,7 +68,7 @@ begin
         sLineBreak +
         'Updated versions and documentation may be found here:' + sLineBreak +
         'https://github.com/Altium-Designer-addons/scripts-libraries' + sLineBreak +
-        '/tree/master/Scripts - PCB/FindUnmatchedPorts';
+        '/tree/master/Scripts - SCH/FindUnmatchedPorts';
 
     ShowInfo(MsgText, 'About');
 end;
