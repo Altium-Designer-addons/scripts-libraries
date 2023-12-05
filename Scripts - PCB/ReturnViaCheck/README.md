@@ -6,7 +6,7 @@ This script is provided "AS IS" in the hopes that it will be useful, but comes w
 ## [DOWNLOAD](https://altium-designer-addons.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Scripts+-+PCB/ReturnViaCheck)
 
 # What This Script Is
-This script is a utility tool to help detect non-GND signal vias without a nearby GND return via. Currently limited to detecting full-stack return vias.
+This script is a utility tool to help detect high-speed signal vias without a nearby return via.
 
 ## Why?
 When a high-speed (or RF) signal's route changes layers, the reference plane for the signal also changes. Just as the incident signal requires a via to change layers, so too does the "return" signal need a path between reference planes.
