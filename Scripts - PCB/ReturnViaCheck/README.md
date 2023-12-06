@@ -30,6 +30,10 @@ Script will detect if this is not the case.
 ## Features
 ### Recall Previous Selections
 When GUI is launched, selections from previous check will be restored. Net/Class/Drill Pair names must match exactly else defaults will be used. Works best between checks on the same board.
+### Filter Signal & Return Vias
+- Filter signal vias by net or net class
+- Filter return vias by net or net class
+- Filter return vias by Drill Pair
 
 ### Eligible Objects
 Vias
@@ -46,6 +50,7 @@ Vias
 - 2023-11-30 by Ryan Rutledge : v0.30 - added ability to select drill pairs other than full-stack
 - 2023-12-01 by Ryan Rutledge : v0.31 - "Recheck Fails" re-selects and zooms all failed vias; harmonized messages and selection behavior between "check all" and "recheck failed"; minor UX tweaks
 - 2023-12-04 by Ryan Rutledge : v0.40 - recall selections from previous check when launching script, added progress indicators
+- 2023-12-05 by Ryan Rutledge : v0.41 - added button to ignore all failed vias touching an area
 
 # INITIAL REQUIREMENTS SPEC
 ## Non-Modal GUI
@@ -54,26 +59,29 @@ Vias
 - [x] If any eligible return via exists within range, via passes check
 - [x] If no eligible return via exists within range, add signal via to a list of vias that failed check
 - [x] Support either metric or imperial units
-## Drop-Down to filter signal vias by Specific Net, Net Class, or All Nets
+## Other potential filter criteria? - SUBMIT AN ISSUE if you strongly want one of these
+- [ ] Filter by min >< max via hole size?
+- [ ] Filter signal via by separate drill pair list?
+- [ ] Filter by what the via is connected to (track/pad/region)?
+- [ ] Filter by hole type (via/pad)?
+## Filter vias by Specific Net, Net Class, or All Nets
+- [x] Options to signal return vias by All Nets, Specific Net, or Net Class
+- [x] Options to filter return vias by Specific Net or by Net Class (not all nets)
+- [x] Option to filter return vias by Drill Pair
 - [x] Multiselection only for net classes because of likelihood of huge count of individual nets
 - [x] Selected return nets are ignored
 - [ ] Ignore any vias without a trace wired up to them?
   - [ ] return vias can have traces wired up to them
   - [ ] vias of both types could have vias in pad without any traces wired
 - [ ] should through-hole pads be considered? I'm leaning toward no but maybe this has value?
-## Drop-Down to filter return vias by Specific Net or by Net Class
-- [ ] Should through-hole pads of a suitable net be considered? I'm leaning toward no. User can ignore if desired.
 ## Issues to do with stackups and drill pairs
 - [ ] Return vias need to *actually* span the relevant reference plane layers
-
   - [ ] Without getting into actual impedance structure definition, there are some corner cases to watch out for
   - [ ] For an internal signal trace, return via should span layers adjacent to signal layers
   - [ ] If reference planes are not on adjacent layers it may accept a via that doesn't span both reference planes
   - [ ] contrived example: for a SIG1 <> SIG3 route in a SIG1-GND1-SIG2-SIG3-GND2-SIG4 stackup, a SIG1-SIG3 GND via is insufficient because it does not connect GND1 to GND2
   - [ ] another scenario: stackup above has GND1-GND2 buried via
   - [ ] Do we need to enumerate layers and allow tagging layers as GND references?
-- [x] Much simpler implementation would be to only consider full-stack vias as eligible return vias
-  - [x] Allow user to manually select other allowed drill pairs
   - [ ] For complex stackups, only considering full-stack vias could raise false positives (reinforces need for ability to ignore/waive detected failures)
 ## Dedicated list of nets to exclude?
 - [ ] Same potential multiselection problem as above (would probably only make sense to allow selecting net classes to excludes)
