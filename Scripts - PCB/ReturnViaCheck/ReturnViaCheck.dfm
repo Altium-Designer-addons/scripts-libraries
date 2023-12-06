@@ -19,7 +19,7 @@ object ReturnViaCheckForm: TReturnViaCheckForm
   TextHeight = 13
   object Bevel2: TBevel
     Left = 0
-    Top = 248
+    Top = 240
     Width = 344
     Height = 312
   end
@@ -39,8 +39,8 @@ object ReturnViaCheckForm: TReturnViaCheckForm
     OnClick = LabelVersionClick
   end
   object LabelUnits: TLabel
-    Left = 5
-    Top = 37
+    Left = 13
+    Top = 29
     Width = 32
     Height = 13
     Caption = 'Units:'
@@ -53,8 +53,8 @@ object ReturnViaCheckForm: TReturnViaCheckForm
     OnClick = MMmilButtonClick
   end
   object Label1: TLabel
-    Left = 104
-    Top = 16
+    Left = 112
+    Top = 8
     Width = 64
     Height = 17
     Hint = 'Absolute minimum designator height'
@@ -72,7 +72,7 @@ object ReturnViaCheckForm: TReturnViaCheckForm
   end
   object Bevel1: TBevel
     Left = 0
-    Top = 64
+    Top = 56
     Width = 344
     Height = 184
   end
@@ -84,7 +84,7 @@ object ReturnViaCheckForm: TReturnViaCheckForm
   end
   object Label2: TLabel
     Left = 8
-    Top = 69
+    Top = 61
     Width = 328
     Height = 13
     Alignment = taCenter
@@ -100,7 +100,7 @@ object ReturnViaCheckForm: TReturnViaCheckForm
   end
   object Label3: TLabel
     Left = 8
-    Top = 253
+    Top = 245
     Width = 328
     Height = 13
     Alignment = taCenter
@@ -116,7 +116,7 @@ object ReturnViaCheckForm: TReturnViaCheckForm
   end
   object LabelStatus: TLabel
     Left = 8
-    Top = 573
+    Top = 565
     Width = 328
     Height = 13
     Alignment = taCenter
@@ -132,7 +132,7 @@ object ReturnViaCheckForm: TReturnViaCheckForm
   end
   object Label4: TLabel
     Left = 8
-    Top = 437
+    Top = 429
     Width = 328
     Height = 13
     Alignment = taCenter
@@ -160,7 +160,7 @@ object ReturnViaCheckForm: TReturnViaCheckForm
   end
   object rgReturnMode: TRadioGroup
     Left = 8
-    Top = 274
+    Top = 266
     Width = 96
     Height = 56
     Hint = 'Net mode selection mode for "Return" net(s)'
@@ -182,7 +182,7 @@ object ReturnViaCheckForm: TReturnViaCheckForm
   end
   object rgSignalMode: TRadioGroup
     Left = 8
-    Top = 90
+    Top = 82
     Width = 96
     Height = 76
     Hint = 'Net mode selection mode for "Signal" net(s)'
@@ -204,8 +204,8 @@ object ReturnViaCheckForm: TReturnViaCheckForm
     OnClick = rgSignalModeClick
   end
   object EditDistanceMax: TEdit
-    Left = 104
-    Top = 32
+    Left = 112
+    Top = 24
     Width = 64
     Height = 24
     Hint = 'Max distance between via centers'
@@ -227,8 +227,8 @@ object ReturnViaCheckForm: TReturnViaCheckForm
     OnKeyPress = UserKeyPress
   end
   object MMmilButton: TButton
-    Left = 46
-    Top = 32
+    Left = 54
+    Top = 24
     Width = 42
     Height = 24
     Hint = 'Click to change between mil and mm units'
@@ -240,9 +240,9 @@ object ReturnViaCheckForm: TReturnViaCheckForm
     OnClick = MMmilButtonClick
   end
   object ButtonZoom: TButton
-    Left = 184
-    Top = 592
-    Width = 72
+    Left = 216
+    Top = 584
+    Width = 56
     Height = 32
     Hint = 'Zoom and select current failed via'
     Caption = 'Select'
@@ -259,9 +259,9 @@ object ReturnViaCheckForm: TReturnViaCheckForm
     OnClick = ButtonZoomClick
   end
   object ButtonNext: TButton
-    Left = 264
-    Top = 592
-    Width = 72
+    Left = 280
+    Top = 584
+    Width = 56
     Height = 32
     Hint = 'Go to next failed via'
     Caption = 'Next'
@@ -278,9 +278,9 @@ object ReturnViaCheckForm: TReturnViaCheckForm
     OnClick = ButtonNextClick
   end
   object ButtonPrevious: TButton
-    Left = 104
-    Top = 592
-    Width = 72
+    Left = 152
+    Top = 584
+    Width = 56
     Height = 32
     Hint = 'Go to previous failed via'
     Caption = 'Previous'
@@ -332,21 +332,21 @@ object ReturnViaCheckForm: TReturnViaCheckForm
   end
   object ComboBoxSignalNet: TComboBox
     Left = 112
-    Top = 88
+    Top = 80
     Width = 224
     Height = 21
     TabOrder = 10
   end
   object ComboBoxReturnNet: TComboBox
     Left = 112
-    Top = 272
+    Top = 264
     Width = 224
     Height = 21
     TabOrder = 11
   end
   object ListBoxSignalNets: TListBox
     Left = 112
-    Top = 112
+    Top = 104
     Width = 224
     Height = 128
     Hint = '"Signal" via net classes (allows multi-select)'
@@ -356,7 +356,7 @@ object ReturnViaCheckForm: TReturnViaCheckForm
   end
   object ListBoxReturnNets: TListBox
     Left = 112
-    Top = 296
+    Top = 288
     Width = 224
     Height = 128
     Hint = '"Return" via net classes (allows multi-select)'
@@ -365,9 +365,9 @@ object ReturnViaCheckForm: TReturnViaCheckForm
     TabOrder = 13
   end
   object ButtonIgnore: TButton
-    Left = 8
-    Top = 592
-    Width = 72
+    Left = 88
+    Top = 584
+    Width = 56
     Height = 32
     Hint = 'Ignore current via'
     Caption = 'Ignore'
@@ -385,12 +385,31 @@ object ReturnViaCheckForm: TReturnViaCheckForm
   end
   object ListBoxDrillPairs: TListBox
     Left = 8
-    Top = 456
+    Top = 448
     Width = 328
     Height = 96
     Hint = '"Return" via drill pairs (allows multi-select)'
     ItemHeight = 13
     MultiSelect = True
     TabOrder = 15
+  end
+  object ButtonIgnoreArea: TButton
+    Left = 8
+    Top = 584
+    Width = 72
+    Height = 32
+    Hint = 'Ignore all vias touching rectangle'
+    Caption = 'Ignore Area'
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -11
+    Font.Name = 'Tahoma'
+    Font.Style = []
+    ParentFont = False
+    ParentShowHint = False
+    ShowHint = True
+    TabOrder = 16
+    TabStop = False
+    OnClick = ButtonIgnoreAreaClick
   end
 end
