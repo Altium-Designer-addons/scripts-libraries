@@ -8,7 +8,7 @@
 const
     cScriptTitle            = 'ReturnViaCheck'; // modified from AssemblyTextPrep script
     cConfigFileName         = 'ReturnViaCheckConfig.ini';
-    cScriptVersion          = '0.40';
+    cScriptVersion          = '0.41';
     cDEBUGLEVEL             = 0;
     DEBUGEXPANSION          = -1; // leave at -1 to disable
     //status bar commands
@@ -71,7 +71,7 @@ function    CoordToX(Coords : TCoord) : String; forward;
 function    CoordToY(Coords : TCoord) : String; forward;
 function    DebugLevelStr(dummy : String = '') : String; forward;
 procedure   DebugMessage(const ShowLevel : Integer; const msg : WideString; const Caption : String = 'Confirm or Cancel Debug'); forward;
-function    DocumentIsPCB : Boolean; forward;
+function    DocumentIsPCB(dummy : Boolean = False) : Boolean; forward;
 function    FillDrillPairsList(const DrillPairObj : IPCB_DrillLayerPair; var DrillPairsList : TInterfaceList; const Clear : Boolean = False) : Boolean; forward;
 procedure   FillDrillPairsListBox(ListBox : TObject); forward;
 procedure   FillNetClassListBox(ListBox : TObject); forward;
@@ -107,6 +107,7 @@ procedure   SetNetPickEnableStates(EnableState : Boolean); forward;
 function    StrFromObjectId(ObjectId: TObjectId) : String; forward;
 procedure   TReturnViaCheckForm.ButtonCancelClick(Sender : TObject); forward;
 procedure   TReturnViaCheckForm.ButtonCheckAllClick(Sender : TObject); forward;
+procedure   TReturnViaCheckForm.ButtonIgnoreAreaClick(Sender : TObject); forward;
 procedure   TReturnViaCheckForm.ButtonIgnoreClick(Sender : TObject); forward;
 procedure   TReturnViaCheckForm.ButtonNextClick(Sender : TObject); forward;
 procedure   TReturnViaCheckForm.ButtonPreviousClick(Sender : TObject); forward;
@@ -462,7 +463,7 @@ begin
 end;
 
 
-function    DocumentIsPCB : Boolean;
+function    DocumentIsPCB(dummy : Boolean = False) : Boolean;
 begin
     // set AD build flag
     if not Assigned(IsAtLeastAD19) then if (GetBuildNumberPart(Client.GetProductVersion, 0) >= 19) then IsAtLeastAD19 := True else IsAtLeastAD19 := False;
@@ -1122,6 +1123,7 @@ begin
     if EnableState then ButtonCheckAll.Caption := 'Check All' else ButtonCheckAll.Caption := 'Restart';
 
     ButtonIgnore.Enabled                    := not EnableState;
+    ButtonIgnoreArea.Enabled                := not EnableState;
     ButtonNext.Enabled                      := not EnableState;
     ButtonPrevious.Enabled                  := not EnableState;
     ButtonRecheck.Enabled                   := not EnableState;
@@ -1306,6 +1308,54 @@ begin
         ClientZoomSelected;
     end;
 
+    UpdateStatus;
+    UpdateNavButtonStates;
+end;
+
+
+procedure   TReturnViaCheckForm.ButtonIgnoreAreaClick(Sender : TObject);
+var
+    X1, X2, Y1, Y2          : TCoord;
+    ListVia, AreaVia        : IPCB_Via;
+    ListIdx                 : Integer;
+    SIter                   : IPCB_SpatialIterator;
+    SIterLeft, SIterRight   : TCoord;
+    SIterTop, SIterBot      : TCoord;
+begin
+    // The ChooseRectangleByCorners fn is an interactive function where you are prompted to choose two points on a PCB document.
+    if not (Board.ChooseRectangleByCorners( 'Choose first corner (Touching Area)', 'Choose second corner (Touching Area)', X1,Y1,X2,Y2)) then exit;
+
+    // find all vias touching this area using iterator
+    SIterLeft := Min(X1, X2);
+    SIterRight := Max(X1, X2);
+    SIterTop := Max(Y1, Y2);
+    SIterBot := Min(Y1, Y2);
+
+    SIter := Board.SpatialIterator_Create;
+    SIter.AddFilter_ObjectSet(MkSet(eViaObject));
+    SIter.AddFilter_Area(SIterLeft, SIterBot, SIterRight, SIterTop);
+
+    // Loop through vias in the spatial iterator area
+    AreaVia := SIter.FirstPCBObject;
+    while (AreaVia <> nil) do
+    begin
+        // check failed via list for this via and remove
+        for ListIdx := FailedViaList.Count - 1 downto 0 do
+        begin
+            ListVia := FailedViaList[ListIdx];
+            if AreaVia.I_ObjectAddress = ListVia.I_ObjectAddress then
+            begin
+                ListVia.Selected := False;
+                FailedViaList.Delete(ListIdx);
+                break;
+            end;
+        end;
+        AreaVia := SIter.NextPCBObject;
+    end;
+    Board.SpatialIterator_Destroy(SIter);
+
+    // update failure status and buttons
+    FailedViaIndex := Min(FailedViaIndex, FailedViaList.Count - 1);
     UpdateStatus;
     UpdateNavButtonStates;
 end;
@@ -1606,17 +1656,20 @@ procedure   UpdateNavButtonStates(Reset : Boolean = False);
 begin
     if Reset or (FailedViaList.Count = 0) then
     begin
-        ButtonPrevious.Enabled  := False;
-        ButtonNext.Enabled      := False;
-        ButtonIgnore.Enabled    := False;
-        ButtonZoom.Enabled      := False;
+        ButtonPrevious.Enabled      := False;
+        ButtonNext.Enabled          := False;
+        ButtonIgnore.Enabled        := False;
+        ButtonIgnoreArea.Enabled    := False;
+        ButtonZoom.Enabled          := False;
         exit;
     end;
-    ButtonPrevious.Enabled  := FailedViaIndex > 0;
-    ButtonNext.Enabled      := (FailedViaIndex < FailedViaList.Count - 1) and (FailedViaList.Count > 0) ;
+
     if ButtonNext.Enabled and (FailedViaIndex = -1) then ButtonNext.Caption := 'First' else ButtonNext.Caption := 'Next';
-    ButtonIgnore.Enabled    := (FailedViaIndex >= 0) and (FailedViaList.Count > 0);
-    ButtonZoom.Enabled      := (FailedViaIndex >= 0) and (FailedViaList.Count > 0);
+    ButtonPrevious.Enabled      := FailedViaIndex > 0;
+    ButtonNext.Enabled          := (FailedViaIndex < FailedViaList.Count - 1) and (FailedViaList.Count > 0) ;
+    ButtonIgnore.Enabled        := (FailedViaIndex >= 0) and (FailedViaList.Count > 0);
+    ButtonIgnoreArea.Enabled    := (FailedViaList.Count > 0);
+    ButtonZoom.Enabled          := (FailedViaIndex >= 0) and (FailedViaList.Count > 0);
 end;
 
 
