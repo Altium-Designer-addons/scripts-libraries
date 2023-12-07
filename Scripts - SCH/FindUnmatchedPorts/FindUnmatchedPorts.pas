@@ -18,7 +18,7 @@
 {..............................................................................}
 const
     cScriptName = 'FindUnmatchedPorts';
-    cScriptVersion = '1.00';
+    cScriptVersion = '1.10';
     IMG_Error = 4;
     IMG_Port = 17;
     IMG_YellowSquare = 72;
@@ -32,20 +32,26 @@ var
     CurrentDocument : IDocument;
 
     ComponentList : TInterfaceList;
+    GlobalFloatingPortList : TInterfaceList;
     FloatingPortList : TInterfaceList;
     PortList : TInterfaceList;
     SheetSymbolList : TInterfaceList;
     UnmatchedPortNetList : TStringList;
+    MixedPortNameNetlist : TStringList;
 
 
+procedure   _Start; forward;
 procedure   About; forward;
 procedure   AddMessage_FloatingPort(Port : INetItem); forward;
+procedure   AddMessage_MixedPortNames(MixedPortNameList : TInterfaceList); forward;
 procedure   AddMessage_UnmatchedPorts(UnmatchedPortList : TInterfaceList); forward;
 function    Configure(Parameters : String) : String; forward;
 procedure   FillComponentList(Const Dummy : Integer = 0); forward;
 procedure   FillFloatingPortList(Const Dummy : Integer = 0); forward;
+procedure   FillMixedPortNameNetList(const dummy : Integer = 0); forward;
 procedure   FillPortList(Document : IDocument); forward;
 procedure   FillSheetSymbolList(Const Dummy : Integer = 0); forward;
+procedure   FillUnmatchedPortNetList(const dummy : Integer = 0); forward;
 procedure   FindFloatingPorts(ShowMessages : Boolean); forward;
 procedure   FindUnmatchedPorts(ShowMessages : Boolean); forward;
 procedure   Generate(Parameters : String); forward;
@@ -55,7 +61,14 @@ function    GetSheetSymbolNets(SheetSymbol : ISheetSymbol) : TStringList; forwar
 procedure   GlobalInit(dummy : Integer = 0); forward;
 function    PortDirectionString(Port : INetItem) : String; forward;
 function    PredictOutputFileNames(Parameters : String) : String; forward;
+procedure   RemoveFloatingPortsFromUnmatchedList(dummy : Integer = 0); forward;
 procedure   Start; forward;
+
+
+procedure   _Start;
+begin
+    Start;
+end;
 
 
 procedure   About;
@@ -64,7 +77,7 @@ var
 begin
     MsgText := '"' + cScriptName + '" script version ' + cScriptVersion + sLineBreak +
         sLineBreak +
-        'Use "Start" to find unmatched or floating ports within project.' + sLineBreak +
+        'Use "_Start" or "Start" to find unmatched or floating ports within project.' + sLineBreak +
         sLineBreak +
         'Updated versions and documentation may be found here:' + sLineBreak +
         'https://github.com/Altium-Designer-addons/scripts-libraries' + sLineBreak +
@@ -106,6 +119,47 @@ begin
 end;
 
 
+procedure   AddMessage_MixedPortNames(MixedPortNameList : TInterfaceList);
+var
+    Port : INetItem;
+    PortIdx : Integer;
+    //Net : INet;
+    MessageText : String;
+    MessageCallBackProcess : String;
+    MessageCallBackParameters : String;
+    MessageDetails : IDXPMessageItemDetails;
+begin
+    if MixedPortNameList.Count < 1 then exit;
+    Port := MixedPortNameList[0];
+    MessageText := 'Net '+Port.DM_FlattenedNetName+' has ports with different names';
+
+    MessageDetails := GetWorkSpace.DM_MessagesManager.CreateMesssageItemDetails;
+    MessageDetails.RootItem.AddSubItem('Ports in same net with different names', IMG_YellowSquare, '', '');
+    for PortIdx := 0 to MixedPortNameList.Count - 1 do
+    begin
+        Port := MixedPortNameList[PortIdx];
+        MessageCallBackProcess := 'WorkspaceManager:View';
+        MessageCallBackParameters := 'CrossProbeNotifySCH='+Port.DM_FullCrossProbeString+'|SchHandle='+Port.DM_SchHandle+'|Kind=ERCObject|TargetFilename='+Port.DM_OwnerDocumentName+'|FullDocumentPath='+Port.DM_OwnerDocumentFullPath;
+        MessageDetails.RootItem.Item[0].AddSubItem(PortDirectionString(Port)+' '+Port.DM_LongDescriptorString+' on sheet '+Port.DM_OwnerDocumentName+' at '+Port.DM_LocationString, IMG_Port, MessageCallBackProcess, MessageCallBackParameters);
+    end;
+
+    MessagesManager.BeginUpdate;
+    MessagesManager.AddMessage2({MessageClass                 } '[Warning]',
+                               {MessageText                  } MessageText,
+                               {MessageSource                } cScriptName + ' Script',
+                               {MessageDocument              } 'Project',
+                               {MessageCallBackProcess       } MessageCallBackProcess,
+                               {MessageCallBackParameters    } MessageCallBackParameters,
+                               {ImageIndex                   } IMG_YellowSquare,
+                               {ReplaceLastMessageIfSameClass} False,
+                               {MessageCallBackProcess2      } '',
+                               {MessageCallBackParameters2   } '',
+                               {Details                      } MessageDetails);
+
+    MessagesManager.EndUpdate;
+end;
+
+
 procedure   AddMessage_UnmatchedPorts(UnmatchedPortList : TInterfaceList);
 var
     Port : INetItem;
@@ -131,7 +185,7 @@ begin
     end;
 
     MessagesManager.BeginUpdate;
-    MessagesManager.AddMessage2({MessageClass                 } '[Warning]',
+    MessagesManager.AddMessage2({MessageClass                 } '[Error]',
                                {MessageText                  } MessageText,
                                {MessageSource                } cScriptName + ' Script',
                                {MessageDocument              } 'Project',
@@ -237,8 +291,62 @@ begin
         // If no match was found, the Port is floating
         if IsFloating then
         begin
+            GlobalFloatingPortList.Add(Port); // used for global record of floating ports
             FloatingPortList.Add(Port);
         end;
+    end;
+end;
+
+
+procedure   FillMixedPortNameNetList(const dummy : Integer = 0);
+var
+    Port : INetItem;
+    PortIdx : Integer;
+    PortNet : String;
+    NetsWithPorts : TStringList;
+    PortNames : TStringList;
+    NetIdx : Integer;
+    NetName : String;
+    IsValidCombo : Boolean;
+begin
+    if PortList.Count = 0 then exit;
+
+    NetsWithPorts := CreateObject(TStringList);
+    NetsWithPorts.Sorted := True;
+
+    PortNames := CreateObject(TStringList);
+    PortNames.Sorted := True; // needed for duplicate detection
+    PortNames.Duplicates := dupIgnore; // for unique port names per net
+
+    // compile all nets that have ports
+    for PortIdx := 0 to PortList.Count - 1 do
+    begin
+        Port := PortList[PortIdx];
+        PortNet := Port.DM_FlattenedNetName;
+        NetIdx := NetsWithPorts.Indexof(PortNet);
+        if NetIdx = -1 then NetsWithPorts.Add(PortNet);
+    end;
+
+    // for each net with ports, find unique port names
+    for NetIdx := 0 to NetsWithPorts.Count - 1 do
+    begin
+        NetName := NetsWithPorts[NetIdx];
+        IsValidCombo := False;
+        PortNames.Clear;
+
+        // for each port in this net, tally port directions
+        for PortIdx := 0 to PortList.Count - 1 do
+        begin
+            Port := PortList[PortIdx];
+            PortNet := Port.DM_FlattenedNetName;
+            if NetName = PortNet then
+            begin
+                PortNames.Add(Port.DM_PortName)
+            end;
+        end;
+
+        // if net has more than one unique port name, add to list
+        if PortNames.Count > 1 then MixedPortNameNetlist.Add(NetName);
     end;
 end;
 
@@ -340,6 +448,7 @@ var
     PortIdx : Integer;
 begin
     NumFloatingPorts := 0;
+    GlobalFloatingPortList.Clear;
 
     // Find all floating ports for all schematic sheets in project
     for DocIdx := 0 to Workspace.DM_FocusedProject.DM_PhysicalDocumentCount - 1 do
@@ -390,16 +499,11 @@ var
     PortIdx : Integer;
     NetName : String;
     NetIdx : Integer;
-    NumProblemNets : Integer;
-    UnmatchedPortList : TInterfaceList;
+    LocalPortList : TInterfaceList;
 begin
-    NumProblemNets := 0;
-
-    UnmatchedPortList := CreateObject(TInterfaceList);
+    LocalPortList := CreateObject(TInterfaceList);
 
     PortList.Clear;
-    UnmatchedPortNetList.Clear;
-
     // compile list of all ports across all schematic sheets in project
     for DocIdx := 0 to Workspace.DM_FocusedProject.DM_PhysicalDocumentCount - 1 do
     begin
@@ -407,33 +511,58 @@ begin
         FillPortList(CurrentDocument);
     end;
 
+    UnmatchedPortNetList.Clear;
     FillUnmatchedPortNetList;
-    NumProblemNets := UnmatchedPortNetList.Count;
-
-    // for each problem net, add its ports to a message
+    RemoveFloatingPortsFromUnmatchedList; // only does anything if FindFloatingPorts already found floating ports
+    // for each problem net in UnmatchedPortNetList, add its ports to a message
     for NetIdx := 0 to UnmatchedPortNetList.Count - 1 do
     begin
         NetName := UnmatchedPortNetList[NetIdx];
-        UnmatchedPortList.Clear;
+        LocalPortList.Clear;
         // iterate through all ports to find those matching this net
         for PortIdx := 0 to PortList.Count - 1 do
         begin
             Port := PortList[PortIdx];
-            if Port.DM_FlattenedNetName = NetName then UnmatchedPortList.Add(Port);
+            if Port.DM_FlattenedNetName = NetName then LocalPortList.Add(Port);
         end;
 
-        AddMessage_UnmatchedPorts(UnmatchedPortList);
+        AddMessage_UnmatchedPorts(LocalPortList);
+    end;
+
+    MixedPortNameNetlist.Clear;
+    FillMixedPortNameNetList;
+    // for each problem net in MixedPortNameNetlist, add its ports to a message
+    for NetIdx := 0 to MixedPortNameNetlist.Count - 1 do
+    begin
+        NetName := MixedPortNameNetlist[NetIdx];
+        LocalPortList.Clear;
+        // iterate through all ports to find those matching this net
+        for PortIdx := 0 to PortList.Count - 1 do
+        begin
+            Port := PortList[PortIdx];
+            if Port.DM_FlattenedNetName = NetName then LocalPortList.Add(Port);
+        end;
+
+        AddMessage_MixedPortNames(LocalPortList);
     end;
 
     // summarize results
-    if (NumProblemNets > 0) then
-    begin
-        if (ShowMessages) then ShowWarning(IntToStr(NumProblemNets) + ' Net(s) with potential port problems' + sLineBreak2 + 'See Messages Panel for Details');
-        Workspace.DM_ShowMessageView;
-    end
-    else
+    if (UnmatchedPortNetList.Count = 0) and (MixedPortNameNetlist.Count = 0) then
     begin
         if (ShowMessages) then ShowInfo('No nets with port problems detected');
+        exit;
+    end;
+
+    if (UnmatchedPortNetList.Count > 0) then
+    begin
+        if (ShowMessages) then ShowWarning(IntToStr(UnmatchedPortNetList.Count) + ' Net(s) with potential port direction problems' + sLineBreak2 + 'See Messages Panel for Details');
+        Workspace.DM_ShowMessageView;
+    end;
+
+    if (MixedPortNameNetlist.Count > 0) then
+    begin
+        if (ShowMessages) then ShowWarning(IntToStr(MixedPortNameNetlist.Count) + ' Net(s) with mixed port names' + sLineBreak2 + 'See Messages Panel for Details');
+        Workspace.DM_ShowMessageView;
     end;
 end;
 
@@ -563,10 +692,12 @@ begin
     MessagesManager.ClearMessages;
 
     ComponentList := CreateObject(TInterfaceList);
+    GlobalFloatingPortList := CreateObject(TInterfaceList);
     FloatingPortList := CreateObject(TInterfaceList);
     PortList := CreateObject(TInterfaceList);
     SheetSymbolList := CreateObject(TInterfaceList);
     UnmatchedPortNetList := CreateObject(TStringList);
+    MixedPortNameNetlist := CreateObject(TStringList);
 end;
 
 
@@ -603,6 +734,33 @@ begin
     Result := OutputFileNames.DelimitedText;
 end;
 
+
+procedure   RemoveFloatingPortsFromUnmatchedList(dummy : Integer = 0);
+var
+    NetIdx : Integer;
+    NetName : String;
+    Port    : INetItem;
+    PortIdx : Integer;
+    PortNet : String;
+begin
+    if (UnmatchedPortNetList.Count = 0) or (GlobalFloatingPortList.Count = 0) then exit;
+
+    for NetIdx := UnmatchedPortNetList.Count - 1 downto 0 do
+    begin
+        NetName := UnmatchedPortNetList[NetIdx];
+        for PortIdx := 0 to GlobalFloatingPortList.Count - 1 do
+        begin
+            Port := GlobalFloatingPortList[PortIdx];
+            PortNet := Port.DM_FlattenedNetName;
+            // if port is floating, then net name will be unique so we can use it as key
+            if NetName = PortNet then
+            begin
+                UnmatchedPortNetList.Delete(NetIdx);
+                break;
+            end;
+        end;
+    end;
+end;
 
 procedure   Start;
 var
