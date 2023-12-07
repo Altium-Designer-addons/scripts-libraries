@@ -32,3 +32,4 @@ Script will also report any nets that have an "invalid" combination of port dire
 ## Changelog
 - 2023-12-05 by Corey Beyer & Ryan Rutledge : v1.00 - Initial release based on Corey's FindFloatingPorts v1.1
 - 2023-12-07 by Ryan Rutledge : v1.10 - added support for detecting when a net has mixed port names (sometimes this is intentional!); unmatched ports list will now ignore floating ports (if they were previously identified)
+- 2023-12-07 by Ryan Rutledge : v1.11 - hotfix to allow nets to have all unspecified-direction ports
