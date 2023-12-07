@@ -18,7 +18,7 @@
 {..............................................................................}
 const
     cScriptName = 'FindUnmatchedPorts';
-    cScriptVersion = '1.10';
+    cScriptVersion = '1.11';
     IMG_Error = 4;
     IMG_Port = 17;
     IMG_YellowSquare = 72;
@@ -433,6 +433,7 @@ begin
         // valid combinations
         if (NumOutput = 1) and (NumInput > 0) and (NumBidirectional = 0) and (NumUnspecified = 0) then IsValidCombo := True; // ONE output port with one or more input ports
         if (NumOutput = 0) and (NumInput = 0) and (NumBidirectional > 1) and (NumUnspecified = 0) then IsValidCombo := True; // TWO or more bidirectional ports
+        if (NumOutput = 0) and (NumInput = 0) and (NumBidirectional = 0) and (NumUnspecified > 1) then IsValidCombo := True; // TWO or more unspecified ports
 
         // if net has invalid combination of ports, add it to the list of trouble nets
         if not IsValidCombo then UnmatchedPortNetList.Add(NetName);
@@ -649,6 +650,7 @@ begin
 
     if (NumOutput = 1) and (NumInput > 0) and (NumBidirectional = 0) and (NumUnspecified = 0)       then Result := Format('1 output port with %d input ports is valid.', [NumInput])
     else if (NumOutput = 0) and (NumInput = 0) and (NumBidirectional > 1) and (NumUnspecified = 0)  then Result := Format('%d bidirectional ports is valid.', [NumInput])
+    else if (NumOutput = 0) and (NumInput = 0) and (NumBidirectional = 0) and (NumUnspecified > 1)  then Result := Format('%d unspecified direction ports is valid.', [NumInput])
     else if (NumBidirectional > 1) and ((NumOutput + NumInput + NumUnspecified) > 0)                then Result := Format('%d bidirectional ports with %d port(s) of other types is invalid.', [NumBidirectional, NumOutput + NumInput + NumUnspecified])
     else if (NumOutput = 1) and ((NumBidirectional + NumUnspecified) > 0)                           then Result := Format('1 output port with %d bidirectional and/or unspecified port(s) is invalid.', [NumBidirectional + NumUnspecified])
     else if (NumInput > 0) and (NumOutput > 1) and ((NumBidirectional + NumUnspecified) = 0)        then Result := Format('%d input port(s) with %d output ports is invalid.', [NumInput, NumOutput])
