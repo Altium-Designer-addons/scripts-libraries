@@ -26,7 +26,7 @@ const
     cCtrlKey            = 3; // available for use during component and location selection
     cConfigFileName     = 'QuickSilkSettings.ini';
     cScriptTitle        = 'QuickSilk';
-    cScriptVersion      = '1.11';
+    cScriptVersion      = '1.12';
     cDEBUGLEVEL         = 0;
 
 var
@@ -77,6 +77,7 @@ function    DeselectInvalid : Integer; forward;
 function    DocumentIsPCB : Boolean; forward;
 function    ESTOP_Assert(dummy : Boolean = False); forward;
 function    ESTOP_ReadAndClear(dummy : Boolean = False) : Boolean; forward;
+function    GetClickDistanceFromBRect(BRect : TCoordRect; const x, y : TCoord) : Double; forward;
 function    GetComponentAtCursor(const sPrompt : TString) : IPCB_Primitive; forward;
 function    GetLayerSet(SlkLayer: Integer; ObjID: Integer) : TV7_LayerSet; forward;
 function    GetMinDesignatorClearance(var Comp : IPCB_Component) : TCoord; forward;
@@ -210,7 +211,7 @@ begin
         ConfigFile_GetPath;
 
     ShowInfo(MsgText, 'About');
-end; { About }
+end;
 
 function    AutoMove(var NameOrComment : IPCB_Text; ParentOnly : Boolean = True; StartDist : TCoord = 200000; ForceAutoPos : TTextAutoposition = eAutoPos_Manual) : TCoord;
 const
@@ -1082,11 +1083,24 @@ begin
     ESTOP := False;
 end;
 
+function    GetClickDistanceFromBRect(BRect : TCoordRect; const x, y : TCoord) : Double;
+var
+    cX, cY : Double;
+begin
+    // calculate center of rectangle
+    cX := (BRect.left + BRect.right) / 2;
+    cY := (BRect.top + BRect.bottom) / 2;
+
+    // calculate distance from x,y
+    Result := Sqrt(  ( (x - cX) * (x - cX) ) + ( (y - cY) * (y - cY) )  );
+end;
+
 function    GetComponentAtCursor(const sPrompt : TString) : IPCB_Primitive;
 var
     x, y            : TCoord;
     Comp, PrevComp  : IPCB_Component;
     Area, PrevArea  : Int64;
+    Dist, PrevDist  : Double;
     Iter            : IPCB_BoardIterator;
     BRect           : TCoordRect;
     VisibleLayerSet : TV7_LayerSet;
@@ -1124,6 +1138,7 @@ begin
                 begin
                     BRect := Comp.BoundingRectangleNoNameComment;
                     Area := GetComponentAreaMils(Comp);
+                    Dist := GetClickDistanceFromBRect(BRect, x, y);
                     // click should be within bounding rectangle
                     if (BRect.left < x) and (x < BRect.right) and (BRect.bottom < y) and (y < BRect.top) then
                     begin
@@ -1132,16 +1147,20 @@ begin
                             // prioritize component on current layer if previous component is not
                             if IsSameSideLayer(Comp.Layer, Board.CurrentLayer) and not IsSameSideLayer(PrevComp.Layer, Board.CurrentLayer) then Result := Comp
                             // both components are on the same layer, prioritize smaller component
-                            else if IsSameSideLayer(Comp.Layer, PrevComp.Layer) and (Area < PrevArea) then Result := Comp;
+                            else if IsSameSideLayer(Comp.Layer, PrevComp.Layer) and (Area < PrevArea) then Result := Comp
+                            // both components are on the same layer and the same area, prioritize which one has centroid closer to click
+                            else if IsSameSideLayer(Comp.Layer, PrevComp.Layer) and (Area = PrevArea) and (Dist < PrevDist) then Result := Comp;
                         end
                         else
                         begin
                             Result := Comp;
                             Area := GetComponentAreaMils(Comp);
+                            Dist := GetClickDistanceFromBRect(BRect, x, y);
                         end;
 
                         PrevComp := Result;
                         PrevArea := GetComponentAreaMils(Result);
+                        PrevDist := GetClickDistanceFromBRect(BRect, x, y);
                     end;
                     Comp := Iter.NextPCBObject;
                 end;
@@ -3647,12 +3666,6 @@ end;
 
 procedure   MyPercent_Finish(dummy : Boolean = False);
 begin
-    //if MyPercentActive then
-    //begin
-        //MyStatusBar_SetState(cStatusBar_ProgressBarStop,'');
-        //MyStatusBar_PopStatus;
-    //end;
-
     MyStatusBar_SetState(cStatusBar_ProgressBarStop,'');
     MyStatusBar_PopStatus;
     MyStatusBar_SetState(cStatusBar_SetDefault,'');
