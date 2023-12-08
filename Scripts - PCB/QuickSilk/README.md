@@ -150,6 +150,7 @@ From the GUI, you may click on the clearance labels to select all visible design
     - changed area around text to look for violations from fixed 20 mils to whatever clearance rule is that's being checked
 - 2023-08-01 - QuickSilk Ver 1.10 : modified so that "current layer" priority of component picker considers silkscreen layers' side too
 - 2023-08-01 - QuickSilk Ver 1.11 : fixed bug where first component body found would be ignored
+- 2023-12-07 - QuickSilk Ver 1.12 : added nearness-to-click tie-breaker for locked components that have the same bounding area
 
 ### Planned features?
 - Add violating objects to messages panel with ability to jump to?
