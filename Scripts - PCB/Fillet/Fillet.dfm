@@ -114,7 +114,12 @@ object FormFillet: TFormFillet
       Top = 0
       Width = 40
       Height = 16
+      Hint = 
+        'Ratio of max radius given connected tracks, or of existing arcs ' +
+        'if relative mode'
       Caption = '%'
+      ParentShowHint = False
+      ShowHint = True
       TabOrder = 2
       OnClick = RadioUnitsRatioClick
     end
