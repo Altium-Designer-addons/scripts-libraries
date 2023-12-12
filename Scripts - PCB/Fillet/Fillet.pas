@@ -8,7 +8,7 @@ const
     cScriptVersion      = '2.00';
     cScriptTitle        = 'Fillet';
     cConfigFileName     = 'MyFilletSettings.ini';
-    cDEBUGLEVEL         = 2;
+    cDEBUGLEVEL         = 0;
     eModeRadius         = 0;
     eModeRatio          = 1;
     eArcModeAbsolute    = 0;
@@ -252,7 +252,7 @@ begin
         DebugString := DebugString + Format('FirstAngle = %f; SecondAngle = %f', [FirstAngle / Pi * 180, SecondAngle / Pi * 180]) + sLineBreak2;
         DebugString := DebugString + Format('SecondAngle - FirstAngle = %f', [(SecondAngle - FirstAngle) / Pi * 180]);
 
-        DebugMessage(2, DebugString, 'Confirm or Cancel Debug');
+        if iDebugLevel >= 2 then DebugMessage(2, DebugString, 'Confirm or Cancel Debug');
     end;
 end;
 
@@ -292,7 +292,7 @@ begin
     end;
 
     Result := (FirstTrackEnd > 0) and (SecondTrackEnd > 0);
-    DebugMessage(3, 'GetCommonPointsForTracks returned ' + BoolToStr(Result, True), 'Confirm or Cancel Debug');
+    if iDebugLevel >= 3 then DebugMessage(3, 'GetCommonPointsForTracks returned ' + BoolToStr(Result, True) + sLineBreak2 + Format('%s %s end %d connected to %d end of %s%s', [FirstTrack.Descriptor, sLineBreak, FirstTrackEnd, SecondTrackEnd, sLineBreak, SecondTrack.Descriptor]), 'Confirm or Cancel Debug - GetCommonPointsForTracks');
 end;
 
 procedure Inspect_IPCB_Track(var Track : IPCB_Track; const MyLabel : string = '');
@@ -496,7 +496,7 @@ begin
         if AnArc.ObjectId = eArcObject then ArcDictionaryAdd(UnprocessedArcs, AnArc);
     end; // at this point UnprocessedArcs has all the arcs we want to evaluate but not all will be glossed
 
-    DebugMessage(2, UnprocessedArcs.Text + sLineBreak2 + ArcDictionaryDebug(UnprocessedArcs), 'Confirm UnprocessedArcs List');
+    if iDebugLevel >= 2 then DebugMessage(2, UnprocessedArcs.Text + sLineBreak2 + ArcDictionaryDebug(UnprocessedArcs), 'Confirm UnprocessedArcs List');
 
     // TODO: need to check each arc in current group against all unprocessed arcs, and only stop looking once a complete pass is made without finding a match
     while UnprocessedArcs.Count > 0 do
@@ -533,7 +533,7 @@ begin
 
         until not MatchFound;
 
-        DebugMessage(2, CurrentGlossGroup.Text + sLineBreak2 + ArcDictionaryDebug(CurrentGlossGroup), 'Confirm Unsorted CurrentGlossGroup List');
+        if iDebugLevel >= 2 then DebugMessage(2, CurrentGlossGroup.Text + sLineBreak2 + ArcDictionaryDebug(CurrentGlossGroup), 'Confirm Unsorted CurrentGlossGroup List');
 
         // sort and process the current group
         if CurrentGlossGroup.Count > 1 then CoincidentArcGroupGloss(CurrentGlossGroup);
@@ -557,7 +557,7 @@ begin
         exit;
     end;
     ArcDictionarySort(ArcDictionary, ArcSortOrder = eArcSortReverse);
-    DebugMessage(2, ArcDictionary.Text + sLineBreak2 + ArcDictionaryDebug(ArcDictionary), 'Confirm Sorted ArcDictionary List');
+    if iDebugLevel >= 2 then DebugMessage(2, ArcDictionary.Text + sLineBreak2 + ArcDictionaryDebug(ArcDictionary), 'Confirm Sorted ArcDictionary List');
 
     TrackDictionaryInitialize(FirstTrackList);
     TrackDictionaryInitialize(SecondTrackList);
@@ -588,8 +588,8 @@ begin
         ExtendTracksOverArc(AnArc, FirstTrack, SecondTrack);
     end;
 
-    DebugMessage(2, FirstTrackList.Text + sLineBreak2 + TrackDictionaryDebug(FirstTrackList), 'Confirm FirstTrack List');
-    DebugMessage(2, SecondTrackList.Text + sLineBreak2 + TrackDictionaryDebug(SecondTrackList), 'Confirm SecondTrack List');
+    if iDebugLevel >= 2 then DebugMessage(2, FirstTrackList.Text + sLineBreak2 + TrackDictionaryDebug(FirstTrackList), 'Confirm FirstTrack List');
+    if iDebugLevel >= 2 then DebugMessage(2, SecondTrackList.Text + sLineBreak2 + TrackDictionaryDebug(SecondTrackList), 'Confirm SecondTrack List');
 
     // Now go over the saved track pairs and apply new radii
     for ListIdx := 0 to FirstTrackList.Count - 1 do
@@ -781,16 +781,16 @@ begin
     X2 := ATrack.x2;
     Y2 := ATrack.y2;
 
-    // scale down all numbers (and hopefully use floating point math) to avoid overflows - Altium math operations are limited to 32bit
-    X := X / 100;
-    Y := Y / 100;
-    X1 := X1 / 100;
-    Y1 := Y1 / 100;
-    X2 := X2 / 100;
-    Y2 := Y2 / 100;
+    // scale down numbers to mils (and hopefully use floating point math) to avoid overflows - Altium integer math operations are limited to Int32
+    X := CoordToMils2(X);
+    Y := CoordToMils2(Y);
+    X1 := CoordToMils2(X1);
+    Y1 := CoordToMils2(Y1);
+    X2 := CoordToMils2(X2);
+    Y2 := CoordToMils2(Y2);
 
     // sourced from https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line
-    Result := Round(Abs(( ((X2 - X1)*(Y1 - Y)) - ((X1 - X)*(Y2 - Y1)) ) / Sqrt(Sqr(X2 - X1) + Sqr(Y2 - Y1))) * 100);
+    Result := MilsToCoord(Abs(( ((X2 - X1)*(Y1 - Y)) - ((X1 - X)*(Y2 - Y1)) ) / Sqrt(Sqr(X2 - X1) + Sqr(Y2 - Y1))));
 end;
 
 procedure RemoveTrackUndoSafe(ATrack : IPCB_Track);
@@ -808,6 +808,7 @@ begin
 
     Board.BeginModify;
     Board.RemovePCBObject(ATrack);
+    Board.DispatchMessage(Board.I_ObjectAddress, c_BroadCast, PCBM_BoardRegisteration, ATrack.I_ObjectAddress);
     Board.EndModify;
 end;
 
@@ -1116,6 +1117,8 @@ begin
         SecondPrim := SIter.NextPCBObject;
     end;
     Board.SpatialIterator_Destroy(SIter);
+
+    if (FirstPrim <> nil) and (SecondPrim <> nil) then if iDebugLevel >= 3 then DebugMessage(3, FirstPrim.Descriptor + sLineBreak2 + Format('End %d connected to end %d of ', [FirstPrimEnd, SecondPrimEnd]) + SecondPrim.Descriptor + '', 'Confirm or Cancel Debug - GetArcOrTrackOnEnd');
 end;
 
 
@@ -1142,6 +1145,7 @@ var
     T1Y1, T1Y2, T2Y1, T2Y2  : Double;
     Denominator : Double;
 begin
+    if (FirstTrack = nil) or (SecondTrack = nil) then exit;
     // convert to mils to avoid overflow in intersection calculation
     //T1X1 := CoordToMils2(FirstTrack.x1);
     //T1Y1 := CoordToMils2(FirstTrack.y1);
@@ -1175,6 +1179,8 @@ begin
         // Change units back to type TCoord
         Xp := MilsToCoord(Xp);
         Yp := MilsToCoord(Yp);
+
+        if iDebugLevel >= 3 then DebugMessage(3, FirstTrack.Descriptor + sLineBreak2 + 'and' + sLineBreak2 + SecondTrack.Descriptor + sLineBreak2 + Format('intersect at coordinates %s, %s (%d, %d)', [CoordToDisplayX(Xp), CoordToDisplayY(Yp), Xp, Yp]), 'Confirm or Cancel Debug - GetIntersectionPointBetweenTracks');
     end
     else
     begin
@@ -1182,7 +1188,6 @@ begin
         Yp := nil;
     end;
 end;
-
 
 procedure ExtendTracksOverArc(AnArc : IPCB_Primitive; FirstTrack : IPCB_Primitive; SecondTrack : IPCB_Primitive);
 var
@@ -1196,6 +1201,7 @@ begin
     AnArc.SetState_Selected(false);
     Board.BeginModify;
     Board.RemovePCBObject(AnArc);
+    Board.DispatchMessage(Board.I_ObjectAddress, c_Broadcast, PCBM_BoardRegisteration, AnArc.I_ObjectAddress);
     Board.EndModify;
 
     // Extend first track to intersection point
@@ -1283,7 +1289,7 @@ begin
             if ArcMode = eArcModeAbsolute then
             begin
                 // in absolute ratio mode, calculate ratio for chained tracks using projected lengths
-                DebugMessage(3, 'ProjectedMaxRadius = ' + CoordToDisplayStr(ProjectedMaxRadius) + sLineBreak2 + 'MaxRadius = ' + CoordToDisplayStr(MaxRadius), 'Confirm or Cancel Debug');
+                if iDebugLevel >= 3 then DebugMessage(3, 'ProjectedMaxRadius = ' + CoordToDisplayStr(ProjectedMaxRadius) + sLineBreak2 + 'MaxRadius = ' + CoordToDisplayStr(MaxRadius), 'Confirm or Cancel Debug');
                 ArcRadius := Max(ProjectedMaxRadius, MaxRadius) * (Ratio / 100);
             end
             else if ArcMode = eArcModeRelative then
@@ -1332,7 +1338,7 @@ begin
         else if Mode = eModeRatio then
         begin
             // in ratio mode, calculate ratio for chained tracks using projected lengths
-            DebugMessage(3, 'ProjectedMaxRadius = ' + CoordToDisplayStr(ProjectedMaxRadius) + sLineBreak2 + 'MaxRadius = ' + CoordToDisplayStr(MaxRadius), 'Confirm or Cancel Debug');
+            if iDebugLevel >= 3 then DebugMessage(3, 'ProjectedMaxRadius = ' + CoordToDisplayStr(ProjectedMaxRadius) + sLineBreak2 + 'MaxRadius = ' + CoordToDisplayStr(MaxRadius), 'Confirm or Cancel Debug');
             ArcRadius := Max(ProjectedMaxRadius, MaxRadius) * (Ratio / 100);
         end;
     end;
@@ -1460,6 +1466,7 @@ begin
     end;
 
     Result := CommonPoint;
+    if iDebugLevel >= 3 then DebugMessage(3, 'GetCommonPointForTrackWithArc returned ' + BoolToStr(Result, True) + sLineBreak2 + Format('%s %s is connected at end %d to %s%s', [ATrack.Descriptor, sLineBreak, CommonPoint, sLineBreak, AnArc.Descriptor]), 'Confirm or Cancel Debug - GetCommonPointForTrackWithArc');
 end;
 
 
@@ -1525,7 +1532,7 @@ begin
                 begin
                     // Find arc angle needed to connect tracks
                     ArcAngle := GetArcAngleBetweenTracks(FirstTrack, SecondTrack);
-                    DebugMessage(3, Format('Tracks form angle of %f°', [RoundCoords(ArcAngle / Pi * 180, 0.001)]), 'Confirm or Cancel Debug');
+                    if iDebugLevel >= 3 then DebugMessage(3, Format('Tracks form angle of %f°', [RoundCoords(ArcAngle / Pi * 180, 0.001)]), 'Confirm or Cancel Debug');
 
                     // Only process if arc angle won't be over 175°
                     if ArcAngle < 3.055 then
@@ -1577,7 +1584,7 @@ begin
                 end;
             end;
 
-            DebugMessage(3, Format( '%d, %d', [FirstTrackEnd, SecondTrackEnd] ), 'Confirm or Cancel Debug');
+            if iDebugLevel >= 3 then DebugMessage(3, Format( 'Arc is connected to first track end %d and second track end %d', [FirstTrackEnd, SecondTrackEnd] ), 'Confirm or Cancel Debug - Overlapping primitive loop, Arc section');
 
             // Update arc radius if both arc vertices are connected to tracks
             if (FirstTrackEnd <> 0) and (SecondTrackEnd <> 0) then
@@ -1585,7 +1592,7 @@ begin
 
                 // Find arc angle needed to connect tracks
                 ArcAngle := GetArcAngleBetweenTracks(FirstTrack, SecondTrack);
-                DebugMessage(3, Format('Tracks form angle of %f°', [RoundCoords(ArcAngle / Pi * 180, 0.001)]), 'Confirm or Cancel Debug');
+                if iDebugLevel >= 3 then DebugMessage(3, Format('Tracks form angle of %f°', [RoundCoords(ArcAngle / Pi * 180, 0.001)]), 'Confirm or Cancel Debug - GetArcAngleBetweenTracks in redraw arc');
 
                 // Only process if arc angle isn't over 175°
                 if ArcAngle < 3.055 then
@@ -1700,27 +1707,29 @@ begin
         NewEndAngle := AngleNormalize(ArcHalfAngle + HalfSectorAngle);
 
         // Calculate new vectors based on adjusted angles
-        StartVecX   := (Radius * Cos(NewStartAngle)) / 100;
-        StartVecY   := (Radius * Sin(NewStartAngle)) / 100;
-        EndVecX     := (Radius * Cos(NewEndAngle  )) / 100;
-        EndVecY     := (Radius * Sin(NewEndAngle  )) / 100;
+        // be warned that integer comparison uses Int32
+        // scale down to avoid overflows
+        StartVecX   := CoordToMils2((Radius * Cos(NewStartAngle)));
+        StartVecY   := CoordToMils2((Radius * Sin(NewStartAngle)));
+        EndVecX     := CoordToMils2((Radius * Cos(NewEndAngle  )));
+        EndVecY     := CoordToMils2((Radius * Sin(NewEndAngle  )));
     end
     else
     begin
-        StartVecX := (AnArc.StartX - AnArc.XCenter) / 100;
-        StartVecY := (AnArc.StartY - AnArc.YCenter) / 100;
-        EndVecX := (AnArc.EndX - AnArc.XCenter) / 100;
-        EndVecY := (AnArc.EndY - AnArc.YCenter) / 100;
+        StartVecX := CoordToMils2((AnArc.StartX - AnArc.XCenter));
+        StartVecY := CoordToMils2((AnArc.StartY - AnArc.YCenter));
+        EndVecX := CoordToMils2((AnArc.EndX - AnArc.XCenter));
+        EndVecY := CoordToMils2((AnArc.EndY - AnArc.YCenter));
     end;
 
-    PointVecX := (X - AnArc.XCenter) / 100;
-    PointVecY := (Y - AnArc.YCenter) / 100;
+    PointVecX := CoordToMils2((X - AnArc.XCenter));
+    PointVecY := CoordToMils2((Y - AnArc.YCenter));
 
-    DebugMessage(4, Format('StartVecX VarType = %d | StartVecY VarType = %d | EndVecX VarType = %d | EndVecY VarType = %d | PointVecX VarType = %d | PointVecY VarType = %d',
+    if iDebugLevel >= 4 then DebugMessage(4, Format('StartVecX VarType = %d | StartVecY VarType = %d | EndVecX VarType = %d | EndVecY VarType = %d | PointVecX VarType = %d | PointVecY VarType = %d',
                         [   VarType(StartVecX),      VarType(StartVecY),       VarType(EndVecX),     VarType(EndVecY),      VarType(PointVecX),      VarType(PointVecY)]));
 
-    IsCWFromEnd := ( (-EndVecX * PointVecY) + (EndVecY * PointVecX) ) >= 0;          // comparison uses 32 bits
-    IsCCWFromStart := ( (-StartVecX * PointVecY) + (StartVecY * PointVecX) ) <= 0;   // scale down to avoid overflows
+    IsCWFromEnd := ( (-EndVecX * PointVecY) + (EndVecY * PointVecX) ) >= 0;
+    IsCCWFromStart := ( (-StartVecX * PointVecY) + (StartVecY * PointVecX) ) <= 0;
 
     // note that the result should be inverted if the sector spans more than 180 deg. (End is clockwise from start in vector terms)
     IsSectorObtuse := -StartVecX * EndVecY + StartVecY * EndVecX >= 0;
@@ -1950,15 +1959,15 @@ begin
         Y2 := ATrack.y2;
     end;
     // scale down all numbers (and hopefully use floating point math) to avoid overflows - Altium math operations are limited to 32bit
-    X := X / 100;
-    Y := Y / 100;
-    X1 := X1 / 100;
-    Y1 := Y1 / 100;
-    X2 := X2 / 100;
-    Y2 := Y2 / 100;
+    X := CoordToMils2(X);
+    Y := CoordToMils2(Y);
+    X1 := CoordToMils2(X1);
+    Y1 := CoordToMils2(Y1);
+    X2 := CoordToMils2(X2);
+    Y2 := CoordToMils2(Y2);
 
     // sourced from https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line
-    Result := Round(Abs(( ((X2 - X1)*(Y1 - Y)) - ((X1 - X)*(Y2 - Y1)) ) / Sqrt(Sqr(X2 - X1) + Sqr(Y2 - Y1))) * 100);
+    Result := MilsToCoord(Abs(( ((X2 - X1)*(Y1 - Y)) - ((X1 - X)*(Y2 - Y1)) ) / Sqrt(Sqr(X2 - X1) + Sqr(Y2 - Y1))));
 end;
 
 function TrackDictionaryGetTrackCoords(const DictionaryList : TStringList; ATrack : IPCB_Track; out X1, Y1, X2, Y2 : TCoord) : Boolean;
@@ -2018,6 +2027,7 @@ var
     DelimPos, idx : Integer;
     Value : Integer;
 begin
+    if iDebugLevel >= 4 then DebugMessage(4, 'TrackDictionaryValueParse retrieving coordinates from value string "' + ValueString + '"');
     TempString := ValueString;
     idx := 0;
 
@@ -2034,11 +2044,11 @@ begin
             2 : X2 := Value;
             3 : Y2 := Value;
         end;
-
-        Inc(idx);
         Delete(TempString, 1, DelimPos); // remove processed value
 
-    until (DelimPos = Length(TempString) + 1) or (idx >= 4);
+        Inc(idx);
+
+    until (idx >= 4);
 end;
 
 
