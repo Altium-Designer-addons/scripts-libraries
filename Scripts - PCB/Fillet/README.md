@@ -36,11 +36,12 @@ _Invoke script_ `_Start` or `Start` procedure and follow the GUI.
   - Preset does _**NOT**_ restore the units that were used with it, etc.
   - Change units, arc mode, and other settings before running preset.
 
-### Absolute Arc Mode
-_"mils" or "mm"_ will fillet selected tracks with an arc of the specified radius, *limited by the length of the connected tracks*
-_"%"_ will create a radius that will shorten the shorter of two joined tracks by the indicated percentage. May have unintended behavior when multiple tracks in series are selected.
+### Arc Modes
+#### Absolute Arc Mode
+- _"mils" or "mm"_ will fillet selected tracks with an arc of the specified radius, *limited by the length of the connected tracks*
+- _"%"_ will create a radius that will shorten the shorter of two joined tracks by the indicated percentage. May have unintended behavior when multiple tracks in series are selected.
 
-### Relative Arc Mode
+#### Relative Arc Mode
 - when using _"mils" or "mm"_, selected tracks with existing fillets will have their radius modified by the specified radius, up to the limit of the connected track length.
   - Input value must be a non-negative value. "0" will result in existing arcs being removed and tracks left without fillets. Very large values will be internally clamped to not reverse the tracks.
 - when using _"%"_, each existing fillet's radius will be scaled by the specified percentage. "50" will halve the radius, "100" will redraw at same radius **(but can be used to trigger Gloss Arcs feature)**, "200" will double the radius.
@@ -49,7 +50,7 @@ _"%"_ will create a radius that will shorten the shorter of two joined tracks by
 - Applies rounding to the final arc radius depending on units in use:
   - _"mils"_ : radius will be rounded to the nearest 1 mil
   - _"mm"_ : radius will be rounded to the nearest 0.025 mm
-  -_"%"_ : radius will be rounded 1 mil or 0.025 mm depending on the display units in the PcbDoc
+  - _"%"_ : radius will be rounded 1 mil or 0.025 mm depending on the display units in the PcbDoc
 - Has interaction with _"Gloss Arcs"_ setting (see below)
 
 ### Gloss Arcs
@@ -72,9 +73,9 @@ _"%"_ will create a radius that will shorten the shorter of two joined tracks by
 - allow filleting between a track and arc as a special case when only two objects are selected? Not a good fit for chained lines, but for one-offs it might be handy.
 
 ## Change log
-- 2023-12-08 by Corey Beyer and Ryan Rutledge : v2.00 - many changes:
+- 2023-12-13 by Corey Beyer and Ryan Rutledge : v2.00 - many changes:
   - major refactor of script with more modularity for sanity
-  - added ability to change tracks with existing fillets
+  - added ability to rebuild tracks with existing fillets
   - added option to change existing arcs relative to their current radius
   - added option to round final radius to nearest 1mil or 0.025mm depending on units in use (ratio uses display units)
   - added option to make fillets added to parallel tracks concentric using inner arc as starting radius (or outer arc as starting radius if using ratio mode >= 45%)
