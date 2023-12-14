@@ -4,43 +4,55 @@
 
 var
     Board             : IPCB_Board;
+    SortedPads        : TStringList;
     SortedTracks      : TStringList;
     SortedVias        : TStringList;
     TrimPerpendicular : Boolean; // test feature that trims dangling track ends
     DebuggingEnabled  : Boolean; // debug feature will log before-and-after results of tracks modified by script
     DebugFilePath     : string;
     DebugList         : TStringList;
+    PadDebugFilePath  : string;
+    PadDebugList      : TStringList;
+    PadModeEnabled    : Boolean;
     ViaDebugFilePath  : string;
     ViaDebugList      : TStringList;
     ViaModeEnabled    : Boolean;
 
 const
-    ScriptVersion = '1.55';
+    ScriptVersion = '1.60';
     ScriptTitle = 'Distribute';
     cConfigFileName = 'MyDistributeConfig.ini';
+    sLineBreak2 = sLineBreak + sLineBreak;
 
 
+procedure _Start; forward;
+procedure _StartWithDebug; forward;
 procedure About; forward;
 procedure AddToDebugListAfter(var Prim : IPCB_Track; LastIntercept : TCoord); forward;
 procedure AddToDebugListBefore(var Prim : IPCB_Track; TargetSlope : Double; TargetIntercept : TCoord); forward;
 procedure AddToDebugListFirstVia(var Prim1 : IPCB_Via; var Prim2 : IPCB_Track); forward;
 procedure AddToDebugListSecondVia(var Prim1 : IPCB_Via; var Prim2 : IPCB_Track; const viaminc, viamaxc, midc : TCoord); forward;
 procedure calculate(LaunchedFromGUI : Boolean); forward;
-procedure CompileSortedTracks(const dummy : Integer); forward;
-function CompileSortedVias(const dummy : Integer) : Boolean; forward;
+function CompileSortedPads(const dummy : Integer = 0) : Boolean; forward;
+procedure CompileSortedTracks(const dummy : Integer = 0); forward;
+function CompileSortedVias(const dummy : Integer = 0) : Boolean; forward;
 function ConfigFile_GetPath(dummy : String = ''): String; forward;
 procedure ConfigFile_Read(AFileName : String); forward;
 procedure ConfigFile_Write(AFileName : String); forward;
+procedure ConfigFile_Update(ConfigFile : TIniFile); forward;
+function DebugContourInfo(contour : IPCB_Contour) : TStringList; forward;
+function DebugGeometricPolygonInfo(poly : IPCB_GeometricPolygon) : TStringList; forward;
 function DistributeBackward(startc, stepc : TCoord; coef : Double); forward;
 function DistributeForward(startc, stepc : TCoord; coef : Double); forward;
 function DistributeFromCenter(startc, stepc : TCoord; coef : Double); forward;
-procedure EnableBetweenViaControls(NewEnable : Boolean); forward;
+procedure EnableBetweenPadViaControls(NewEnable : Boolean); forward;
 procedure EnableByValControls(NewEnable : Boolean); forward;
 procedure FastDistributeByCenterline; forward;
 procedure FastDistributeByClearance; forward;
 function GetAnotherTrackInPoint(Prim1 : IPCB_Track; X, Y : TCoord; out OnFirstPoint : Boolean) : IPCB_Primitive; forward;
 function GetEdgeIntercept(const ThisTrackIndex : Integer; const coef : Double; out LastIntercept : TCoord; const Reverse : Boolean); forward;
 function GetIntersection(k1 : Double; c1 : TCoord; IsPrim1Vert : Boolean; k2 : Double; c2 : TCoord; IsPrim2Vert : Boolean; out X, Y : TCoord) : Boolean; forward;
+function GetPadPoly(Obj: IPCB_Pad; Expansion: TCoord = 0; ALayer : TV7_Layer = eNoLayer) : IPCB_GeometricPolygon; forward;
 function GetParallelLine(k1 : Double; c1 : TCoord; IsPrim1Vert : Boolean; out k2 : Double; out c2 : TCoord; out IsPrim2Vert : Boolean; X, Y : TCoord) : Boolean; forward;
 function GetPerpendicularLine(k1 : Double; c1 : TCoord; IsPrim1Vert : Boolean; out k2 : Double; out c2 : TCoord; out IsPrim2Vert : Boolean; X, Y : TCoord) : Boolean; forward;
 function GetPresetButtonEnable(const dummy : Integer) : Boolean; forward;
@@ -52,6 +64,7 @@ procedure PadAndSort(var list : TStringList); forward;
 function PointToPointDistance(X1, Y1, X2, Y2 : TCoord) : Double; forward;
 procedure PresetButtonClicked(Sender : TObject); forward;
 procedure SelectListItems(const list : TStringList); forward;
+function SetupDataFromPad(var PrimPad : IPCB_Pad; ALayer : TV7_Layer; k_midpoint : Double; c_midpoint : TCoord; IsMidVert : Boolean; out k : Double; out c : TCoord; out IsIntVert : Boolean; out X, Y : TCoord) : Boolean; forward;
 procedure SetupDataFromTrack(var Prim1 : IPCB_Track; out IsVertical : Boolean; out k : Double; out c, X1, Y1, X2, Y2 : TCoord); forward;
 procedure SetupDataFromVia(var PrimVia : IPCB_Via; var PrimTrack : IPCB_Track; out IsIntVert : Boolean; out k : Double; out c, X, Y, size : TCoord); forward;
 procedure Start; forward;
@@ -59,11 +72,11 @@ procedure StartWithDebug; forward;
 procedure TFormDistribute.ButtonCancelClick(Sender : TObject); forward;
 procedure TFormDistribute.ButtonOKClick(Sender : TObject); forward;
 procedure TFormDistribute.ButtonUnitsClick(Sender : TObject); forward;
-procedure TFormDistribute.ButtonViaUnitsClick(Sender : TObject); forward;
+procedure TFormDistribute.ButtonPadViaUnitsClick(Sender : TObject); forward;
 procedure TFormDistribute.CheckBoxTrimEndsClick(Sender : TObject); forward;
-procedure TFormDistribute.CheckBoxViaClearanceClick(Sender : TObject); forward;
+procedure TFormDistribute.CheckBoxPadViaClearanceClick(Sender : TObject); forward;
 procedure TFormDistribute.EditDistanceChange(Sender : TObject); forward;
-procedure TFormDistribute.EditViaClearanceChange(Sender : TObject); forward;
+procedure TFormDistribute.EditPadViaClearanceChange(Sender : TObject); forward;
 procedure TFormDistribute.FormDistributeShow(Sender : TObject); forward;
 procedure TFormDistribute.RadioButtonCentersClick(Sender : TObject); forward;
 procedure TFormDistribute.RadioButtonCentersValClick(Sender : TObject); forward;
@@ -75,18 +88,32 @@ procedure ValidateOnChange(Sender : TObject); forward;
 function ViasExistOnTrackLayer(const dummy : Integer) : Boolean; forward;
 
 
+
+procedure _Start;
+begin
+    Start;
+end;
+
+procedure _StartWithDebug;
+begin
+    StartWithDebug;
+end;
+
+
 {......................................................................................................................}
 procedure About;
 var
     MsgText : string;
 begin
-    MsgText := '"' + ScriptTitle + '" script version ' + ScriptVersion + sLineBreak + sLineBreak +
-        'Updated versions may be found here:' + sLineBreak +
-        'https://github.com/Altium-Designer-addons/scripts-libraries' + sLineBreak + sLineBreak +
-        'Settings save location:' + sLineBreak +
-        ClientAPI_SpecialFolder_AltiumApplicationData + '\' + cConfigFileName;
+    MsgText := '"' + ScriptTitle + '" script version ' + ScriptVersion + sLineBreak2 +
+        'Use "_Start" to launch GUI. Use "FastDistributeByClearance" or ' + sLineBreak +
+        '"FastDistributeByCenterLine" to skip GUI for some operations' + sLineBreak2 +
+        'Updated versions and documentation may be found here:' + sLineBreak +
+        'https://github.com/Altium-Designer-addons/scripts-libraries' + sLineBreak +
+        '/tree/master/Scripts - PCB/Distribute' + sLineBreak2 +
+        'Settings save location:' + sLineBreak + ConfigFile_GetPath;
 
-    ShowInfo(MsgText, 'About');
+    ShowInfo(MsgText, 'About Script');
 end;
 {......................................................................................................................}
 
@@ -236,6 +263,13 @@ begin
 
     if not LaunchedFromGUI then TrimPerpendicular := False; // assume don't trim if GUI wasn't used
 
+    if LaunchedFromGUI then
+    begin
+        // clear these flags if the GUI selections make them not applicable, to save some processing
+        PadModeEnabled := PadModeEnabled and ((RadioDirections.Enabled and (RadioDirections.ItemIndex = 1)) or CheckBoxPadViaClearance.Checked);
+        ViaModeEnabled := ViaModeEnabled and ((RadioDirections.Enabled and (RadioDirections.ItemIndex = 1)) or CheckBoxPadViaClearance.Checked);
+    end;
+
     Board.NewUndo;
 
     // Start undo
@@ -281,12 +315,47 @@ begin
             ViaDebugFilePath := ClientAPI_SpecialFolder_AltiumApplicationData + '\DistributeScriptViaDebug.csv';
             ViaDebugList := CreateObject(TStringList);
             ViaDebugList.Append('Via1 X,Via1 Y,Via1 size,Via1 slope,Via1 intercept,Via2 X,Via2 Y,Via2 size,Via2 slope,Via2 intercept,ref track slope,ref track intercept, viaminc, viamaxc, midc');
+
+            PadDebugFilePath := ClientAPI_SpecialFolder_AltiumApplicationData + '\DistributeScriptPadDebug.csv';
+            PadDebugList := CreateObject(TStringList);
+            PadDebugList.Append('Pad1 Point X,Pad1 Point Y,Pad1 slope,Pad1 intercept,Pad2 Point X,Pad2 Point Y,Pad2 slope,Pad2 intercept,ref track slope,ref track intercept, viaminc, viamaxc, midc');
         end;
 
-        // KEY BEHAVIOR: in "CEN/VIA" distribute direction mode, via midpoint will take priority. Note that two stacked vias can be used to force a trajectory.
-        // compile list of sorted vias (MUST come after list of sorted tracks) and calculate midpoint if successful
-        // calculate midpoint accounting for via size so that differently-sized vias don't bias the result
-        if CompileSortedVias(0) and ViasExistOnTrackLayer(0) then
+        // compile list of sorted pads (MUST come after list of sorted tracks) and calculate point on outline nearest the first track
+        // re-use via variables to run the same execution path as between-vias
+        if PadModeEnabled and CompileSortedPads then
+        begin
+            Prim2 := SortedTracks.getObject(0);         // get first track from the SortedTracks list
+
+            //Prim1 := SortedPads.getObject(0); // get first pad from the SortedPads list
+            viaminc := StrToInt(SortedPads[0]); // pads are pre-processed so c is already the intercept we care about
+            //if DebuggingEnabled then AddToDebugListFirstPad(Prim1, viaminc); // TODO
+
+
+            //Prim1 := SortedPads.getObject(1); // get second pad from the SortedPads list
+            viamaxc := StrToInt(SortedPads[1]); // pads are pre-processed so c is already the intercept we care about
+
+            if PadModeEnabled and CheckBoxPadViaClearance.Checked then
+            begin
+                TempString := EditPadViaClearance.Text;
+                if (LastDelimiter(',.', TempString) <> 0) then TempString[LastDelimiter(',.', TempString)] := DecimalSeparator;
+
+                // convert desired intercept step using intercept coefficient and selected units
+                if (ButtonPadViaUnits.Caption = 'mm') then viaclearance := mmsToCoord(StrToFloat(TempString)) / (coef)
+                else viaclearance                                    := milsToCoord(StrToFloat(TempString)) / (coef);
+
+                viaminc := viaminc + viaclearance;  // add user clearance
+                viamaxc := viamaxc - viaclearance;  // subtract user clearance
+            end;
+
+            viaminc := Ceil(viaminc / 20) * 20;     // apply some rounding to make sure to clear by the requested amount
+            viamaxc := Floor(viamaxc / 20) * 20;
+
+            midc := (viaminc + viamaxc) div 2;   // midline between the vias, accounting for their size
+
+            //if DebuggingEnabled then AddToDebugListSecondPad(Prim1, viaminc, viamaxc, midc); // TODO
+        end
+        else if ViaModeEnabled and (CompileSortedVias and ViasExistOnTrackLayer(0)) then
         begin
             Prim2 := SortedTracks.getObject(0);         // get first track from the SortedTracks list
 
@@ -300,13 +369,13 @@ begin
             SetupDataFromVia(Prim1, Prim2, IsVert1, k1, c1, x11, y11, viasize);
             viamaxc := c1 - viasize / (2 * coef);          // subtract via pad radius
 
-            if ViaModeEnabled and CheckBoxViaClearance.Checked then
+            if ViaModeEnabled and CheckBoxPadViaClearance.Checked then
             begin
-                TempString := EditViaClearance.Text;
+                TempString := EditPadViaClearance.Text;
                 if (LastDelimiter(',.', TempString) <> 0) then TempString[LastDelimiter(',.', TempString)] := DecimalSeparator;
 
                 // convert desired intercept step using intercept coefficient and selected units
-                if (ButtonViaUnits.Caption = 'mm') then viaclearance := mmsToCoord(StrToFloat(TempString)) / (coef)
+                if (ButtonPadViaUnits.Caption = 'mm') then viaclearance := mmsToCoord(StrToFloat(TempString)) / (coef)
                 else viaclearance                                    := milsToCoord(StrToFloat(TempString)) / (coef);
 
                 viaminc := viaminc + viaclearance;  // add user clearance
@@ -401,7 +470,7 @@ begin
         end
         else if RadioButtonClearance.Checked then
         begin
-            if ViaModeEnabled and CheckBoxViaClearance.Checked then
+            if (PadModeEnabled or ViaModeEnabled) and CheckBoxPadViaClearance.Checked then
             begin
                 stepc := (viamaxc - viaminc - cTotalWidths) / ((SortedTracks.Count / 3) - 1); // same intercept increment as above but between vias and subtracting sum of track widths
                 DistributeFromCenter(midc, stepc, coef);
@@ -430,13 +499,15 @@ begin
             end;
         end;
 
-        if ViaModeEnabled and ((CheckBoxViaClearance.Checked) or (RadioDirections.ItemIndex = 1)) then SelectListItems(SortedVias);
+        if PadModeEnabled and ((CheckBoxPadViaClearance.Checked) or (RadioDirections.ItemIndex = 1)) then SelectListItems(SortedPads);
+        if ViaModeEnabled and ((CheckBoxPadViaClearance.Checked) or (RadioDirections.ItemIndex = 1)) then SelectListItems(SortedVias);
 
         // save last-used values and presets
         if LaunchedFromGUI then ConfigFile_Write(ConfigFile_GetPath);
 
         if DebuggingEnabled then
         begin
+            PadDebugList.SaveToFile(PadDebugFilePath);
             ViaDebugList.SaveToFile(ViaDebugFilePath);
             DebugList.SaveToFile(DebugFilePath);
             ShowInfo('Debugging output saved');
@@ -454,8 +525,99 @@ end;
 
 
 {......................................................................................................................}
+{ Function to compile sorted list of pads. Note that pad count checks are assumed to have been done by InitialCheck procedure }
+function CompileSortedPads(const dummy : Integer = 0) : Boolean;
+var
+    i, j                        : Integer;
+    TempString                  : string;
+    PrimTrack                   : IPCB_Primitive;
+    PrimPad, PrimPad2           : IPCB_Primitive;
+    IsVert_track                : Boolean;
+    x11, x12, y11, y12          : TCoord;
+    IsMidVert, IsIntVert        : Boolean;
+    x_midpoint, y_midpoint      : TCoord;
+    X_pad, Y_pad                : TCoord;
+    k_track, k_midpoint, k_pad  : Double;
+    c_track, c_midpoint, c_pad  : TCoord;
+    PadsNotOnLayer              : Integer;
+begin
+    Result := False;
+    PadsNotOnLayer := 0;
+    if (SortedTracks = nil) or (SortedTracks.Count < 1) then exit;
+
+    SortedPads := CreateObject(TStringList);
+
+    // iterate through selection like CompileSortedTracks, but for the two pads.
+    // Note that this will use SortedTracks list to project an intercept point for a parallel line passing through the closest point on each pad
+    PrimTrack :=  SortedTracks.getObject(0);
+    SetupDataFromTrack(PrimTrack, IsVert_track, k_track, c_track, x11, y11, x12, y12);
+
+    // get midpoint between 2 pads in selection
+    for i := 0 to Board.SelectecObjectCount - 1 do
+    begin
+        PrimPad := Board.SelectecObject[i];
+        if PrimPad.ObjectId = ePadObject then
+        begin
+            x_midpoint := PrimPad.x;
+            y_midpoint := PrimPad.y;
+
+            for j := i + 1 to Board.SelectecObjectCount - 1 do
+            begin
+                PrimPad2 := Board.SelectecObject[j];
+                if (PrimPad2.ObjectId = ePadObject) and (PrimPad.I_ObjectAddress <> PrimPad2.I_ObjectAddress) then
+                begin
+                    x_midpoint := (x_midpoint + PrimPad2.x) div 2; // average x coord
+                    y_midpoint := (y_midpoint + PrimPad2.y) div 2; // average y coord
+
+                    break; // found second pad, break
+                end;
+            end;
+
+            break; // either found both pads or ran out of selection, break either way
+        end;
+    end;
+
+    // get the parallel line that intercepts midpoint
+    GetParallelLine(k_track, c_track, IsVert_track, k_midpoint, c_midpoint, IsMidVert, x_midpoint, y_midpoint);
+
+    // populate the list with only pads
+    for i := 0 to Board.SelectecObjectCount - 1 do
+    begin
+        PrimPad := Board.SelectecObject[i];
+        if PrimPad.ObjectId = ePadObject then
+        begin
+            if SetupDataFromPad(PrimPad, PrimTrack.Layer, k_midpoint, c_midpoint, IsMidVert, k_pad, c_pad, IsIntVert, X_pad, Y_pad) then
+            begin
+                TempString := IntToStr(c_pad);
+
+                if c_pad > 0 then TempString := '+' + TempString;
+
+                SortedPads.AddObject(TempString, PrimPad); // store via object using intercept as key
+            end
+            else Inc(PadsNotOnLayer);
+        end;
+    end;
+
+    if SortedPads.Count = 2 then
+    begin
+        // pad and sort list
+        PadAndSort(SortedPads);
+        Result := True;
+    end
+    else
+    begin
+        if PadsNotOnLayer > 0 then
+        begin
+            ShowWarning(IntToStr(PadsNotOnLayer) + ' pad(s) in selection don''t exist on track layers. Invalid pads will be deselected.');
+        end;
+    end;
+end;
+{......................................................................................................................}
+
+
+{......................................................................................................................}
 { CompileSortedTracks }
-procedure CompileSortedTracks(const dummy : Integer);
+procedure CompileSortedTracks(const dummy : Integer = 0);
 var
     i                           : Integer;
     TempString                  : string;
@@ -495,7 +657,7 @@ end;
 
 {......................................................................................................................}
 { Function to compile sorted list of vias. Note that via count checks are assumed to have been done by InitialCheck procedure }
-function CompileSortedVias(const dummy : Integer) : Boolean;
+function CompileSortedVias(const dummy : Integer = 0) : Boolean;
 var
     i                           : Integer;
     TempString                  : string;
@@ -529,7 +691,7 @@ begin
 
             if c1 > 0 then TempString := '+' + TempString;
 
-            SortedVias.AddObject(TempString, PrimVia); // store track object using intercept as key
+            SortedVias.AddObject(TempString, PrimVia); // store via object using intercept as key
         end;
         i := i + 1;
     end;
@@ -566,6 +728,8 @@ begin
 
     IniFile := TIniFile.Create(AFileName);
 
+    ConfigFile_Update(IniFile); // call separate function to handle any changes to key names for backward compatibility
+
     FormDistribute.Top    := IniFile.ReadInteger('Window Position', 'Top', FormDistribute.Top);
     FormDistribute.Left   := IniFile.ReadInteger('Window Position', 'Left', FormDistribute.Left);
 
@@ -584,9 +748,9 @@ begin
     RadioButtonClearanceVal.Checked := IniFile.ReadBool('Last Used', 'Distribute Clearance By Value', RadioButtonClearanceVal.Checked);
     RadioButtonCentersVal.Checked   := IniFile.ReadBool('Last Used', 'Distribute Centers By Value', RadioButtonCentersVal.Checked);
     CheckBoxTrimEnds.Checked        := IniFile.ReadBool('Last Used', 'Trim Track Ends', CheckBoxTrimEnds.Checked);
-    EditViaClearance.Text           := IniFile.ReadString('Last Used', 'Via Clearance', EditViaClearance.Text);
+    EditPadViaClearance.Text        := IniFile.ReadString('Last Used', 'Pad & Via Clearance', EditPadViaClearance.Text);
     ButtonUnits.Caption             := IniFile.ReadString('Last Used', 'Units', ButtonUnits.Caption);
-    ButtonViaUnits.Caption          := IniFile.ReadString('Last Used', 'Via Units', ButtonViaUnits.Caption);
+    ButtonPadViaUnits.Caption       := IniFile.ReadString('Last Used', 'Pad & Via Units', ButtonPadViaUnits.Caption);
 
     // Main input field needs to be set last because changing some other values trigger it
     EditDistance.Text               := IniFile.ReadString('Last Used', 'By-Value Distance', EditDistance.Text);
@@ -621,12 +785,93 @@ begin
     IniFile.WriteBool('Last Used', 'Distribute Clearance By Value', RadioButtonClearanceVal.Checked);
     IniFile.WriteBool('Last Used', 'Distribute Centers By Value', RadioButtonCentersVal.Checked);
     IniFile.WriteBool('Last Used', 'Trim Track Ends', CheckBoxTrimEnds.Checked);
-    IniFile.WriteString('Last Used', 'Via Clearance', EditViaClearance.Text);
+    IniFile.WriteString('Last Used', 'Pad & Via Clearance', EditPadViaClearance.Text);
     IniFile.WriteString('Last Used', 'Units', ButtonUnits.Caption);
-    IniFile.WriteString('Last Used', 'Via Units', ButtonViaUnits.Caption);
+    IniFile.WriteString('Last Used', 'Pad & Via Units', ButtonPadViaUnits.Caption);
     IniFile.WriteString('Last Used', 'By-Value Distance', EditDistance.Text);
 
     IniFile.Free;
+end;
+{......................................................................................................................}
+
+
+{......................................................................................................................}
+procedure ConfigFile_Update(ConfigFile : TIniFile);
+var
+    IniSection, OldSetting, NewSetting, SettingValue : String;
+begin
+    // v1.60 changed via modes to pad/via
+    begin
+        IniSection := 'Last Used';
+        OldSetting := 'Via Clearance';
+        NewSetting := 'Pad & Via Clearance';
+        if ConfigFile.ValueExists(IniSection, OldSetting) then
+        begin
+            SettingValue := ConfigFile.ReadString(IniSection, OldSetting, ''); // read the old setting
+            ConfigFile.DeleteKey(IniSection, OldSetting); // delete the old key
+            ConfigFile.WriteString(IniSection, NewSetting, SettingValue); // write the new key
+        end;
+
+        IniSection := 'Last Used';
+        OldSetting := 'Via Units';
+        NewSetting := 'Pad & Via Units';
+        if ConfigFile.ValueExists(IniSection, OldSetting) then
+        begin
+            SettingValue := ConfigFile.ReadString(IniSection, OldSetting, ''); // read the old setting
+            ConfigFile.DeleteKey(IniSection, OldSetting); // delete the old key
+            ConfigFile.WriteString(IniSection, NewSetting, SettingValue); // write the new key
+        end;
+
+    end;
+end;
+{......................................................................................................................}
+
+
+{......................................................................................................................}
+function DebugContourInfo(contour : IPCB_Contour) : TStringList;
+var
+    PointList: TStringList;
+    iPoint: Integer;
+begin
+    PointList := CreateObject(TStringList);
+    if contour.Count > 0 then
+    begin
+        PointList.Add('contour points');
+        for iPoint := 0 to contour.Count - 1 do
+        begin
+            PointList.Add(Format('%d:%s,%s', [iPoint, CoordToDisplayX(contour.x(iPoint)), CoordToDisplayY(contour.y(iPoint))]));
+        end;
+    end
+    else PointList.Add('Empty or invalid contour');
+
+    Result := PointList;
+end;
+{......................................................................................................................}
+
+
+{......................................................................................................................}
+function DebugGeometricPolygonInfo(poly : IPCB_GeometricPolygon) : TStringList;
+var
+    PointList: TStringList;
+    contour: IPCB_Contour;
+    iPoly, iPoint: Integer;
+begin
+    PointList := CreateObject(TStringList);
+    PointList.Clear;
+    if (poly <> nil) and (poly.Count > 0) then
+    begin
+        for iPoly := 0 to poly.Count - 1 do
+        begin
+            contour := poly.Contour(iPoly);
+            PointList.AddStrings(DebugContourInfo(contour));
+        end;
+    end
+    else
+    begin
+        PointList.Add('Polygon has no contours');
+    end;
+
+    Result := PointList;
 end;
 {......................................................................................................................}
 
@@ -815,24 +1060,27 @@ end;
 
 {......................................................................................................................}
 { function to enable or disable controls related to between-via distribute mode }
-procedure EnableBetweenViaControls(NewEnable : Boolean);
+procedure EnableBetweenPadViaControls(NewEnable : Boolean);
 begin
     if RadioButtonClearance.Checked then
     begin
-        CheckBoxViaClearance.Enabled    := NewEnable;
-        EditViaClearance.Enabled        := CheckBoxViaClearance.Checked;
-        ButtonViaUnits.Enabled          := CheckBoxViaClearance.Checked;
+        CheckBoxPadViaClearance.Enabled    := NewEnable;
+        if Board.SelectecObjectCount > 3 then
+        begin
+            EditPadViaClearance.Enabled    := CheckBoxPadViaClearance.Checked;
+            ButtonPadViaUnits.Enabled      := CheckBoxPadViaClearance.Checked;
+        end;
     end
     else
     begin
-        CheckBoxViaClearance.Enabled    := False;
-        EditViaClearance.Enabled        := False;
-        ButtonViaUnits.Enabled          := False;
+        CheckBoxPadViaClearance.Enabled    := False;
+        EditPadViaClearance.Enabled        := False;
+        ButtonPadViaUnits.Enabled          := False;
     end;
 
-    CheckBoxViaClearance.Visible    := NewEnable;
-    EditViaClearance.Visible        := NewEnable;
-    ButtonViaUnits.Visible          := NewEnable;
+    CheckBoxPadViaClearance.Visible    := NewEnable;
+    EditPadViaClearance.Visible        := NewEnable;
+    ButtonPadViaUnits.Visible          := NewEnable;
 
 end;
 {......................................................................................................................}
@@ -893,17 +1141,20 @@ end;
 procedure FastDistributeByClearance;
 var
     status   : Integer;
+    InitialCheckResult : Integer;
 begin
-    if (InitialCheck(status) = 2) then ViaModeEnabled := True else ViaModeEnabled := False;
+    InitialCheckResult := InitialCheck(status);
+    if (InitialCheckResult = 3) then PadModeEnabled := True else PadModeEnabled := False;
+    if (InitialCheckResult = 2) then ViaModeEnabled := True else ViaModeEnabled := False;
+
     if status = 0 then
     begin
-        if (ViaModeEnabled) and (Board.SelectecObjectCount = 3) then
+        if (PadModeEnabled or ViaModeEnabled) and (Board.SelectecObjectCount = 3) then
         begin
-            // two vias and one track selected, do track centering instead
+            // two pads/vias and one track selected, do track centering instead
             DebuggingEnabled                := False;
-            RadioButtonCenters.Checked      := False;
-            RadioButtonClearance.Checked    := False;
-            RadioDirections.ItemIndex       := 1;
+            RadioButtonClearance.Checked    := True;
+            CheckBoxPadViaClearance.Checked := True;
             calculate(False);
         end
         else
@@ -1017,6 +1268,26 @@ end;
 
 
 {......................................................................................................................}
+{ Get GeometricPolygon using PCBServer.PCBContourMaker }
+function GetPadPoly(Obj: IPCB_Pad; Expansion: TCoord = 0; ALayer : TV7_Layer = eNoLayer) : IPCB_GeometricPolygon;
+var
+    Poly : IPCB_GeometricPolygon;
+    ViaExpansion : TCoord;
+    ViaRadius : TCoord;
+begin
+    if Obj.ObjectId = ePadObject then
+    begin
+        // Function  MakeContour(APrim : IPCB_Primitive; AExpansion : Integer; ALayer : TV6_Layer) : IPCB_GeometricPolygon;
+        if ALayer = eNoLayer then ALayer := Obj.Layer;
+
+        Poly := PCBServer.PCBContourMaker.MakeContour(Obj, Expansion, ALayer);
+    end;
+
+    result := Poly;
+end;
+
+
+{......................................................................................................................}
 {function to create slope and intercept for virtual line parallel to an ordinate line and passing through a point (k1,c1,IsPrim1Vert are for ordinate line)}
 function GetParallelLine(k1 : Double; c1 : TCoord; IsPrim1Vert : Boolean; out k2 : Double; out c2 : TCoord; out IsPrim2Vert : Boolean; X, Y : TCoord) : Boolean;
 begin
@@ -1090,6 +1361,7 @@ var
     IsVert1, IsVert2   : Boolean;
     x11, x12, y11, y12 : TCoord;
     x21, x22, y21, y22 : TCoord;
+    PadCount           : Integer;
     ViaCount           : Integer;
 begin
     status := 0; // clear result status
@@ -1099,58 +1371,38 @@ begin
     Board := PCBServer.GetCurrentPCBBoard;
     if Board = nil then exit;
 
+    PadCount := 0;
     ViaCount := 0;
 
-    // Count vias without deselecting them (assume vias should be in a net
+    // Count pads and vias without deselecting them
     for i := 0 to Board.SelectecObjectCount - 1 do
     begin
         Prim1 := Board.SelectecObject[i];
-        if ((Prim1.ObjectId = eViaObject) and (Prim1.InNet)) then ViaCount := ViaCount + 1;
+        if (Prim1.ObjectId = eViaObject) then ViaCount := ViaCount + 1;
+        if (Prim1.ObjectId = ePadObject) then PadCount := PadCount + 1;
     end;
 
-    // If there are greater or less than 2 vias, deselect all vias
-    if (ViaCount <> 2) then
+    // need to deselect anything that isn't a pad, via, or electrical track as these will cause errors elsewhere)
+    for i := Board.SelectecObjectCount - 1 downto 0 do
     begin
-        // need to deselect anything that isn't an electrical track as these will cause errors elsewhere
-        i := 0;
-        while i < Board.SelectecObjectCount do
-        begin
-            Prim1 := Board.SelectecObject[i];
-            if ((Prim1.ObjectId <> eTrackObject) or (not Prim1.InNet)) then Prim1.SetState_Selected(False)
-            else i := i + 1; // advance iterator if current object remains selected
-        end;
-    end
-    else
-    begin
-        // need to deselect anything that isn't an electrical track or the two vias as these will cause errors elsewhere)
-        i := 0;
-        while i < Board.SelectecObjectCount do
-        begin
-            Prim1 := Board.SelectecObject[i];
-            if (((Prim1.ObjectId <> eTrackObject) and (Prim1.ObjectId <> eViaObject)) or (not Prim1.InNet)) then Prim1.SetState_Selected(False)
-            else i := i + 1; // advance iterator if current object remains selected
-        end;
+        Prim1 := Board.SelectecObject[i];
+        if (PadCount <> 2) then if (Prim1.ObjectId = ePadObject) then Prim1.Selected := False; // deselect any pads unless count is 2
+        if (ViaCount <> 2) or (PadCount = 2) then if (Prim1.ObjectId = eViaObject) then Prim1.Selected := False; // deselect and vias unless count is 2 or pads are already 2
+        if (((Prim1.ObjectId <> eTrackObject) and (Prim1.ObjectId <> ePadObject) and (Prim1.ObjectId <> eViaObject)) or ((Prim1.ObjectId = eTrackObject) and not Prim1.InNet)) then Prim1.Selected := False;
     end;
-
 
     // make sure there are enough objects selected to operate upon
-    if ((ViaCount = 2) and (Board.SelectecObjectCount < 3)) or ((ViaCount <> 2) and (Board.SelectecObjectCount < 2)) then
+    if ((PadCount + ViaCount = 2) and (Board.SelectecObjectCount < 3)) or ((PadCount + ViaCount <> 2) and (Board.SelectecObjectCount < 2)) then
     begin
-        if DebuggingEnabled and (ViaCount <> 2) then
+        if DebuggingEnabled then
         begin
-            ShowError('Select at least 2 tracks or ONE pair of vias and a track that all belong to nets.' + sLineBreak + sLineBreak +
+            ShowError('Select at least 2 electrical tracks or ONE pair of pads or vias and at least one electrical track.' + sLineBreak + sLineBreak +
                         '-- Debugging Info --' + sLineBreak +
-                        'ViaCount: ' + IntToStr(ViaCount) + sLineBreak +
-                        'Selected Track Count: ' + IntToStr(Board.SelectecObjectCount));
-        end
-        else if DebuggingEnabled then
-        begin
-            ShowError('Select at least 2 tracks or ONE pair of vias and a track that all belong to nets.' + sLineBreak + sLineBreak +
-                        '-- Debugging Info --' + sLineBreak +
+                        'PadCount: ' + IntToStr(PadCount) + sLineBreak +
                         'ViaCount: ' + IntToStr(ViaCount) + sLineBreak +
                         'Selected Object Count: ' + IntToStr(Board.SelectecObjectCount));
         end
-        else ShowError('Select at least 2 tracks or ONE pair of vias and a track that all belong to nets.');
+        else ShowError('Select at least 2 electrical tracks or ONE pair of pads or vias and at least one electrical track.');
 
         status := 1;
         exit;
@@ -1158,19 +1410,17 @@ begin
 
     // Since we're allowing vias now, we should instead iterate until reaching the first track
     // Find the first track and store its index in 'i'
-    i := 0;
-    while (Board.SelectecObject[i].ObjectId <> eTrackObject) and (i < Board.SelectecObjectCount - 1) do
-    begin
-        i := i + 1;
-    end;
+    for i := 0 to Board.SelectecObjectCount - 1 do
+        if Board.SelectecObject[i].ObjectId = eTrackObject then
+        begin
+            // Set up the initial track data
+            Prim1 := Board.SelectecObject[i];
+            SetupDataFromTrack(Prim1, IsVert1, k1, c1, x11, y11, x12, y12);
+            break;
+        end;
 
-    // Set up the initial track data
-    Prim1 := Board.SelectecObject[i];
-    SetupDataFromTrack(Prim1, IsVert1, k1, c1, x11, y11, x12, y12);
-
-    // Check that all selected tracks are parallel with the first one, skipping vias
-    i := i + 1;
-    while i < Board.SelectecObjectCount do
+    // Check that all selected tracks are parallel with the first one
+    for i := 0 to Board.SelectecObjectCount - 1 do
     begin
         Prim1 := Board.SelectecObject[i];
         if Prim1.ObjectId = eTrackObject then
@@ -1195,9 +1445,9 @@ begin
                 exit;
             end;
         end;
-        i := i + 1;
     end;
-    Result := ViaCount;
+
+    if PadCount = 2 then Result := 3 else if ViaCount = 2 then Result := 2;
 end;
 {......................................................................................................................}
 
@@ -1248,9 +1498,9 @@ begin
             14 : PresetList.Add(CheckBoxTrimEnds.Checked);  // PresetList[14] (14-element PresetList implies v1.4)
             15 :
                 begin
-                    PresetList.Add(EditViaClearance.Text);  // PresetList[15] (added in v1.54)
+                    PresetList.Add(EditPadViaClearance.Text);  // PresetList[15] (added in v1.54)
                     PresetList.Add(ButtonUnits.Caption);    // PresetList[16] (added in v1.54)
-                    PresetList.Add(ButtonViaUnits.Caption); // PresetList[17] (added in v1.54)
+                    PresetList.Add(ButtonPadViaUnits.Caption); // PresetList[17] (added in v1.54)
                 end;
             NumPresets :
                 begin
@@ -1274,9 +1524,9 @@ begin
         RadioButtonClearanceVal.Checked := PresetList[12];
         RadioButtonCentersVal.Checked   := PresetList[13];
         CheckBoxTrimEnds.Checked        := PresetList[14];
-        EditViaClearance.Text           := PresetList[15];
+        EditPadViaClearance.Text           := PresetList[15];
         ButtonUnits.Caption             := PresetList[16];
-        ButtonViaUnits.Caption          := PresetList[17];
+        ButtonPadViaUnits.Caption          := PresetList[17];
         EditDistance.Text               := PresetList[0]; // Main input field needs to be set last because setting each preset updates it
     end
     else exit; // if preset file didn't exist at all, just exit (older file format deprecated)
@@ -1546,6 +1796,62 @@ end;
 
 
 {......................................................................................................................}
+{ For PrimPad and a midpoint line, provides parallel line that projects through the closest point on the pad on the selected layer. }
+function SetupDataFromPad(var PrimPad : IPCB_Pad; ALayer : TV7_Layer; k_midpoint : Double; c_midpoint : TCoord; IsMidVert : Boolean; out k : Double; out c : TCoord; out IsIntVert : Boolean; out X, Y : TCoord) : Boolean;
+var
+    ViaLayer                    : TLayer;
+    TrackLayer                  : TLayer;
+    IsVert_track                : Boolean;
+    x11, x12, y11, y12          : TCoord;
+    k_temp                      : Double;
+    c_temp                      : TCoord;
+    x_midpoint, y_midpoint      : TCoord;
+    X_temp, Y_temp              : TCoord;
+    PadOutlinePoly              : IPCB_GeometricPolygon;
+    PadOutlineContour           : IPCB_Contour;
+    PointIdx                    : Integer;
+    LineDist, TempDist          : TCoord;
+begin
+    Result := False;
+    LineDist := 2147483647;
+
+    // Check if PrimPad exists
+    if (PrimPad = nil) then exit;
+
+    // Get a geometric polygon exactly outlining the pad on the selected layer. This will let us accommodate pads of any shape.
+    PadOutlinePoly := GetPadPoly(PrimPad, 0, ALayer);
+    if PadOutlinePoly = nil then exit;
+    if PadOutlinePoly.Count = 0 then exit;
+    PadOutlineContour := PadOutlinePoly.Contour(0);
+    if PadOutlineContour.Count = 0 then exit;
+
+    // after making sure we got a contour with points, we need to find the point with the closest distance to the midpoint line
+    for PointIdx := 0 to PadOutlineContour.Count - 1 do
+    begin
+        // calculate parallel line that intersects this point on the pad
+        X_temp := PadOutlineContour.x(PointIdx);
+        Y_temp := PadOutlineContour.y(PointIdx);
+        GetParallelLine(k_midpoint, c_midpoint, IsMidVert, k_temp, c_temp, IsIntVert, X_temp, Y_temp);
+
+        // closeness based on intercept coordinate
+        TempDist := Abs(c_midpoint - c_temp);
+
+        if TempDist < LineDist then
+        begin
+            LineDist := TempDist;
+            k := k_temp;
+            c := c_temp;
+            X := X_temp;
+            Y := Y_temp;
+        end;
+    end;
+
+    Result := True; // indicates we found a valid contour and processed it
+end;
+{......................................................................................................................}
+
+
+{......................................................................................................................}
 { critical function to get normalized line properties. k is slope, c is intercept. }
 procedure SetupDataFromTrack(var Prim1 : IPCB_Track; out IsVertical : Boolean; out k : Double; out c, X1, Y1, X2, Y2 : TCoord);
 var
@@ -1676,9 +1982,13 @@ end;
 procedure Start;
 var
     status : Integer;
+    InitialCheckResult : Integer;
 begin
     DebuggingEnabled := False;
-    if (InitialCheck(status) = 2) then ViaModeEnabled := True else ViaModeEnabled := False;
+    InitialCheckResult := InitialCheck(status);
+    if (InitialCheckResult = 3) then PadModeEnabled := True else PadModeEnabled := False;
+    if (InitialCheckResult = 2) then ViaModeEnabled := True else ViaModeEnabled := False;
+
     if status = 0 then
     begin
         FormDistribute.ShowModal;
@@ -1692,9 +2002,13 @@ end;
 procedure StartWithDebug;
 var
     status : Integer;
+    InitialCheckResult : Integer;
 begin
     DebuggingEnabled := True;
-    if (InitialCheck(status) = 2) then ViaModeEnabled := True else ViaModeEnabled := False;
+    InitialCheckResult := InitialCheck(status);
+    if (InitialCheckResult = 3) then PadModeEnabled := True else PadModeEnabled := False;
+    if (InitialCheckResult = 2) then ViaModeEnabled := True else ViaModeEnabled := False;
+
     if status = 0 then
     begin
         FormDistribute.ShowModal;
@@ -1744,24 +2058,24 @@ end;
 
 
 {......................................................................................................................}
-procedure TFormDistribute.ButtonViaUnitsClick(Sender : TObject);
+procedure TFormDistribute.ButtonPadViaUnitsClick(Sender : TObject);
 var
     TempString : string;
 begin
-    TempString := EditViaClearance.Text;
+    TempString := EditPadViaClearance.Text;
     if (LastDelimiter(',.', TempString) <> 0) then TempString[LastDelimiter(',.', TempString)] := DecimalSeparator;
 
-    if ButtonViaUnits.Caption = 'mil' then
+    if ButtonPadViaUnits.Caption = 'mil' then
     begin
-        ButtonViaUnits.Caption := 'mm';
-        EditViaClearance.Text   := CoordToMMs(milsToCoord(StrToFloat(TempString)));
+        ButtonPadViaUnits.Caption := 'mm';
+        EditPadViaClearance.Text   := CoordToMMs(milsToCoord(StrToFloat(TempString)));
     end
     else
     begin
-        ButtonViaUnits.Caption := 'mil';
-        EditViaClearance.Text   := CoordToMils(mmsToCoord(StrToFloat(TempString)));
+        ButtonPadViaUnits.Caption := 'mil';
+        EditPadViaClearance.Text   := CoordToMils(mmsToCoord(StrToFloat(TempString)));
     end;
-    EditViaClearance.SetFocus;
+    EditPadViaClearance.SetFocus;
 end;
 {......................................................................................................................}
 
@@ -1776,10 +2090,10 @@ end;
 
 
 {......................................................................................................................}
-procedure TFormDistribute.CheckBoxViaClearanceClick(Sender : TObject);
+procedure TFormDistribute.CheckBoxPadViaClearanceClick(Sender : TObject);
 begin
-    EnableBetweenViaControls(ViaModeEnabled);
-    if (CheckBoxViaClearance.Checked and FormDistribute.Active) then EditViaClearance.SetFocus;
+    EnableBetweenPadViaControls(ViaModeEnabled or PadModeEnabled);
+    if (CheckBoxPadViaClearance.Checked and FormDistribute.Active and EditPadViaClearance.Enabled) then EditPadViaClearance.SetFocus;
 end;
 {......................................................................................................................}
 
@@ -1805,19 +2119,19 @@ end;
 
 
 {......................................................................................................................}
-procedure TFormDistribute.EditViaClearanceChange(Sender : TObject);
+procedure TFormDistribute.EditPadViaClearanceChange(Sender : TObject);
 begin
 
     if IsStringANum(Sender.Text) then
     begin
         Sender.Font.Color       := clWindowText;
         ButtonOK.Enabled        := True;
-        ButtonViaUnits.Enabled  := True;
+        ButtonPadViaUnits.Enabled  := True;
     end
     else
     begin
         ButtonOK.Enabled        := False;
-        ButtonViaUnits.Enabled  := False;
+        ButtonPadViaUnits.Enabled  := False;
         Sender.Font.Color       := clRed;
     end;
 end;
@@ -1847,6 +2161,11 @@ begin
         EnableByValControls(True);
         if not RadioButtonCentersVal.Checked then RadioButtonClearanceVal.Checked := True;
     end
+    else if RadioButtonClearance.Checked and (Board.SelectecObjectCount = 3) and (ViaModeEnabled or PadModeEnabled) then
+    begin
+        CheckBoxPadViaClearance.Checked := True;
+        EnableByValControls(False);
+    end
     else if (RadioButtonClearanceVal.Checked or RadioButtonCentersVal.Checked) then
     begin
         EnableByValControls(True);
@@ -1856,7 +2175,7 @@ begin
         EnableByValControls(False);
     end;
 
-    EnableBetweenViaControls(ViaModeEnabled);
+    EnableBetweenPadViaControls(ViaModeEnabled or PadModeEnabled);
 
 end;
 {......................................................................................................................}
@@ -1866,7 +2185,7 @@ end;
 procedure TFormDistribute.RadioButtonCentersClick(Sender : TObject);
 begin
     EnableByValControls(False);
-    EnableBetweenViaControls(ViaModeEnabled);
+    EnableBetweenPadViaControls(ViaModeEnabled or PadModeEnabled);
 end;
 {......................................................................................................................}
 
@@ -1875,7 +2194,7 @@ end;
 procedure TFormDistribute.RadioButtonCentersValClick(Sender : TObject);
 begin
     EnableByValControls(True);
-    EnableBetweenViaControls(ViaModeEnabled);
+    EnableBetweenPadViaControls(ViaModeEnabled or PadModeEnabled);
     EditDistance.SetFocus;
 end;
 {......................................................................................................................}
@@ -1885,7 +2204,7 @@ end;
 procedure TFormDistribute.RadioButtonClearanceClick(Sender : TObject);
 begin
     EnableByValControls(False);
-    EnableBetweenViaControls(ViaModeEnabled);
+    EnableBetweenPadViaControls(ViaModeEnabled or PadModeEnabled);
 end;
 {......................................................................................................................}
 
@@ -1894,7 +2213,7 @@ end;
 procedure TFormDistribute.RadioButtonClearanceValClick(Sender : TObject);
 begin
     EnableByValControls(True);
-    EnableBetweenViaControls(ViaModeEnabled);
+    EnableBetweenPadViaControls(ViaModeEnabled or PadModeEnabled);
     EditDistance.SetFocus;
 end;
 {......................................................................................................................}
