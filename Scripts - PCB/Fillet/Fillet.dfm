@@ -338,6 +338,7 @@ object FormFillet: TFormFillet
       Checked = True
       TabOrder = 0
       TabStop = True
+      OnClick = RadioUnitsRatioClick
     end
     object RadioArcsRelative: TRadioButton
       Left = 65
@@ -350,6 +351,7 @@ object FormFillet: TFormFillet
       Caption = 'Relative'
       TabOrder = 1
       TabStop = True
+      OnClick = RadioUnitsRatioClick
     end
   end
   object CheckBoxRounding: TCheckBox
