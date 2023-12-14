@@ -1,4 +1,4 @@
-# [DOWNLOAD](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Scripts%20-%20PCB/AdjustDesignators2) script
+# [DOWNLOAD](https://altium-designer-addons.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Scripts%20-%20PCB/AdjustDesignators2) script
 
 # AdjustDesignators2
 This scripts can be used to adjust designators on mech layers or on silkscreen. The designators are centred, rotated at 0 or 90 deg depending on the component orientation and scaled appropriately.
