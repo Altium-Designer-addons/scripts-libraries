@@ -4,7 +4,7 @@ object FormDistribute: TFormDistribute
   BorderIcons = [biSystemMenu]
   Caption = 'Distribute'
   ClientHeight = 298
-  ClientWidth = 384
+  ClientWidth = 400
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -18,13 +18,13 @@ object FormDistribute: TFormDistribute
   object Bevel1: TBevel
     Left = 8
     Top = 88
-    Width = 224
+    Width = 240
     Height = 144
   end
   object Bevel2: TBevel
     Left = 8
     Top = 8
-    Width = 224
+    Width = 240
     Height = 80
   end
   object LabelVersion: TLabel
@@ -35,9 +35,9 @@ object FormDistribute: TFormDistribute
     Caption = 'version X.X'
   end
   object RadioDirections: TRadioGroup
-    Left = 112
+    Left = 120
     Top = 145
-    Width = 80
+    Width = 96
     Height = 80
     Hint = 'Distribution direction. Choose one for more info.'
     Caption = 'Direction'
@@ -50,7 +50,7 @@ object FormDistribute: TFormDistribute
     ItemIndex = 0
     Items.Strings = (
       '&FWD'
-      '&CEN/VIA'
+      '&CEN/PAD/VIA'
       '&REV')
     ParentDoubleBuffered = False
     ParentFont = False
@@ -98,7 +98,7 @@ object FormDistribute: TFormDistribute
     OnClick = RadioButtonCentersValClick
   end
   object EditDistance: TEdit
-    Left = 24
+    Left = 32
     Top = 150
     Width = 40
     Height = 21
@@ -108,7 +108,7 @@ object FormDistribute: TFormDistribute
     OnChange = EditDistanceChange
   end
   object ButtonUnits: TButton
-    Left = 72
+    Left = 80
     Top = 150
     Width = 32
     Height = 20
@@ -138,7 +138,7 @@ object FormDistribute: TFormDistribute
     OnClick = ButtonCancelClick
   end
   object ButtonPreset1: TButton
-    Left = 312
+    Left = 328
     Top = 9
     Width = 64
     Height = 25
@@ -148,7 +148,7 @@ object FormDistribute: TFormDistribute
     OnClick = PresetButtonClicked
   end
   object tPreset1: TEdit
-    Left = 240
+    Left = 256
     Top = 11
     Width = 64
     Height = 21
@@ -162,7 +162,7 @@ object FormDistribute: TFormDistribute
     OnKeyPress = UserKeyPress
   end
   object ButtonPreset2: TButton
-    Left = 312
+    Left = 328
     Top = 41
     Width = 64
     Height = 25
@@ -172,7 +172,7 @@ object FormDistribute: TFormDistribute
     OnClick = PresetButtonClicked
   end
   object tPreset2: TEdit
-    Left = 240
+    Left = 256
     Top = 43
     Width = 64
     Height = 21
@@ -186,7 +186,7 @@ object FormDistribute: TFormDistribute
     OnKeyPress = UserKeyPress
   end
   object ButtonPreset3: TButton
-    Left = 312
+    Left = 328
     Top = 73
     Width = 64
     Height = 25
@@ -196,7 +196,7 @@ object FormDistribute: TFormDistribute
     OnClick = PresetButtonClicked
   end
   object tPreset3: TEdit
-    Left = 240
+    Left = 256
     Top = 75
     Width = 64
     Height = 21
@@ -210,7 +210,7 @@ object FormDistribute: TFormDistribute
     OnKeyPress = UserKeyPress
   end
   object ButtonPreset4: TButton
-    Left = 312
+    Left = 328
     Top = 105
     Width = 64
     Height = 25
@@ -220,7 +220,7 @@ object FormDistribute: TFormDistribute
     OnClick = PresetButtonClicked
   end
   object tPreset4: TEdit
-    Left = 240
+    Left = 256
     Top = 107
     Width = 64
     Height = 21
@@ -234,7 +234,7 @@ object FormDistribute: TFormDistribute
     OnKeyPress = UserKeyPress
   end
   object ButtonPreset5: TButton
-    Left = 312
+    Left = 328
     Top = 137
     Width = 64
     Height = 25
@@ -244,7 +244,7 @@ object FormDistribute: TFormDistribute
     OnClick = PresetButtonClicked
   end
   object tPreset5: TEdit
-    Left = 240
+    Left = 256
     Top = 139
     Width = 64
     Height = 21
@@ -258,7 +258,7 @@ object FormDistribute: TFormDistribute
     OnKeyPress = UserKeyPress
   end
   object ButtonPreset6: TButton
-    Left = 312
+    Left = 328
     Top = 169
     Width = 64
     Height = 25
@@ -268,7 +268,7 @@ object FormDistribute: TFormDistribute
     OnClick = PresetButtonClicked
   end
   object tPreset6: TEdit
-    Left = 240
+    Left = 256
     Top = 171
     Width = 64
     Height = 21
@@ -282,7 +282,7 @@ object FormDistribute: TFormDistribute
     OnKeyPress = UserKeyPress
   end
   object ButtonPreset7: TButton
-    Left = 312
+    Left = 328
     Top = 201
     Width = 64
     Height = 25
@@ -292,7 +292,7 @@ object FormDistribute: TFormDistribute
     OnClick = PresetButtonClicked
   end
   object tPreset7: TEdit
-    Left = 240
+    Left = 256
     Top = 203
     Width = 64
     Height = 21
@@ -306,7 +306,7 @@ object FormDistribute: TFormDistribute
     OnKeyPress = UserKeyPress
   end
   object ButtonPreset8: TButton
-    Left = 312
+    Left = 328
     Top = 233
     Width = 64
     Height = 25
@@ -316,7 +316,7 @@ object FormDistribute: TFormDistribute
     OnClick = PresetButtonClicked
   end
   object tPreset8: TEdit
-    Left = 240
+    Left = 256
     Top = 235
     Width = 64
     Height = 21
@@ -338,20 +338,20 @@ object FormDistribute: TFormDistribute
     TabOrder = 25
     OnClick = CheckBoxTrimEndsClick
   end
-  object CheckBoxViaClearance: TCheckBox
-    Left = 32
-    Top = 36
-    Width = 136
+  object CheckBoxPadViaClearance: TCheckBox
+    Left = 31
+    Top = 38
+    Width = 145
     Height = 17
     TabStop = False
-    Caption = '&Via Clearance (Alt+V)'
+    Caption = 'Pad/&Via Clearance (Alt+V)'
     Enabled = False
     TabOrder = 26
     Visible = False
-    OnClick = CheckBoxViaClearanceClick
+    OnClick = CheckBoxPadViaClearanceClick
   end
-  object EditViaClearance: TEdit
-    Left = 160
+  object EditPadViaClearance: TEdit
+    Left = 176
     Top = 36
     Width = 40
     Height = 21
@@ -360,10 +360,10 @@ object FormDistribute: TFormDistribute
     TabOrder = 27
     Text = '6'
     Visible = False
-    OnChange = EditViaClearanceChange
+    OnChange = EditPadViaClearanceChange
   end
-  object ButtonViaUnits: TButton
-    Left = 202
+  object ButtonPadViaUnits: TButton
+    Left = 218
     Top = 36
     Width = 27
     Height = 20
@@ -372,6 +372,6 @@ object FormDistribute: TFormDistribute
     TabOrder = 28
     TabStop = False
     Visible = False
-    OnClick = ButtonViaUnitsClick
+    OnClick = ButtonPadViaUnitsClick
   end
 end
