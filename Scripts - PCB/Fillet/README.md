@@ -73,8 +73,9 @@ _Invoke script_ `_Start` or `Start` procedure and follow the GUI.
 - allow filleting between a track and arc as a special case when only two objects are selected? Not a good fit for chained lines, but for one-offs it might be handy.
 
 ## Change log
-- 2023-12-13 by Corey Beyer and Ryan Rutledge : v2.00 - many changes:
+- 2023-12-14 by Corey Beyer and Ryan Rutledge : v2.00 - many changes:
   - major refactor of script with more modularity for sanity
+  - bug fixes and UX refinements
   - added ability to rebuild tracks with existing fillets
   - added option to change existing arcs relative to their current radius
   - added option to round final radius to nearest 1mil or 0.025mm depending on units in use (ratio uses display units)
@@ -93,4 +94,3 @@ _Invoke script_ `_Start` or `Start` procedure and follow the GUI.
 - 2011-10-21 by Petar Perisin : v1.3 - added undo and updated to execute faster
 - 2011-09-26 by Petar Perisin : v1.2 - updated fillet script with some extra functionality
 - 2011-08-18 by Petar Perisin : v1.00? - initial release to community script repo and hotfix to copy net to created arc
-
