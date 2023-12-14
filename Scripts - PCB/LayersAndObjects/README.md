@@ -19,7 +19,7 @@ Also, Script was modified to enable it to work when documents are switched, just
 Finally, Script UI will now show board database internal layer names (MidLayer2, Mechanical13, etc)
 
 ## How to install and use
-_Step 1_: [DOWNLOAD](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Scripts%20-%20PCB/LayersAndObjects) script
+_Step 1_: [DOWNLOAD](https://altium-designer-addons.github.io/DownGit/#/home?url=https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Scripts%20-%20PCB/LayersAndObjects) script
 
 _Step 2_: integrate the script into Altium Designer and execute it.\
 If you are a newcomer to Altium scripts, [please read the "how to" wiki page](https://github.com/Altium-Designer-addons/scripts-libraries/wiki/HowTo_execute_scripts).
