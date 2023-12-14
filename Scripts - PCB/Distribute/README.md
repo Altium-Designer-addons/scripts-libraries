@@ -85,7 +85,8 @@ Sometimes, particularly when distributing tracks that are not routed at 90° or 
 Tracks with a slope greater than 20 (90° > angle > ~87.137°) will be coerced to be perfectly vertical. This is a limitation of the Double number type. In short, angles that are too steep will have Y-intercept values that are too large to handle.
 
 ## Change log
-- 2023-12-13 by Ryan Rutledge : v1.60 - added support for distributing between pads if they exist on the same layer as track (behavior should match via behavior otherwise)
+- 2023-12-14 by Ryan Rutledge : v1.61 - updated UI to better reflect behavior of distribute evenly versus by fixed distance
+- 2023-12-13 by Ryan Rutledge : v1.60 - added support for distributing between pads if they exist on the same layer as track (should match via behavior otherwise)
 - 2023-10-23 by Ryan Rutledge : v1.55 - fixed bug with save/load of GUI position
 - 2023-07-10 by Ryan Rutledge : v1.54 - after running between-via centering, vias are not deselected; added support for evenly distributing between vias with specific via clearance
 - 2023-06-07 by Ryan Rutledge : v1.53 - fixed typo in *SetupDataFromTrack* declaration (didn't seem to be functionally broken though); reformatted function signatures to use more concise and proper Delphi syntax - non-functional change because DelphiScript is untyped, but it's more "correct" now; allow centering between projected drills of vias that don't exist on track layer with user confirmation
