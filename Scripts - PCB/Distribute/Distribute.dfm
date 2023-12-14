@@ -62,9 +62,9 @@ object FormDistribute: TFormDistribute
   object RadioButtonClearance: TRadioButton
     Left = 16
     Top = 16
-    Width = 184
+    Width = 200
     Height = 17
-    Caption = 'Distribute by Clearance (Alt+&Q)'
+    Caption = 'Evenly Distribute Clearances (Alt+&Q)'
     Checked = True
     TabOrder = 0
     TabStop = True
@@ -73,27 +73,27 @@ object FormDistribute: TFormDistribute
   object RadioButtonCenters: TRadioButton
     Left = 16
     Top = 64
-    Width = 184
+    Width = 200
     Height = 17
-    Caption = 'Distribute by Centerlines (Alt+&W)'
+    Caption = 'Evenly Distribute Centerlines (Alt+&W)'
     TabOrder = 1
     OnClick = RadioButtonCentersClick
   end
   object RadioButtonClearanceVal: TRadioButton
     Left = 16
     Top = 96
-    Width = 184
+    Width = 200
     Height = 17
-    Caption = 'Distribute Clearances by: (Alt+&E)'
+    Caption = 'Set to Fixed Clearance (Alt+&E)'
     TabOrder = 2
     OnClick = RadioButtonClearanceValClick
   end
   object RadioButtonCentersVal: TRadioButton
     Left = 16
     Top = 120
-    Width = 184
+    Width = 200
     Height = 17
-    Caption = 'Distribute Centers by: (Alt+&A)'
+    Caption = 'Set to Fixed Pitch (Alt+&A)'
     TabOrder = 3
     OnClick = RadioButtonCentersValClick
   end
