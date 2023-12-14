@@ -19,7 +19,7 @@ var
     ViaModeEnabled    : Boolean;
 
 const
-    ScriptVersion = '1.60';
+    ScriptVersion = '1.61';
     ScriptTitle = 'Distribute';
     cConfigFileName = 'MyDistributeConfig.ini';
     sLineBreak2 = sLineBreak + sLineBreak;
