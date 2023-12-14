@@ -182,6 +182,11 @@ var
     Xp, Yp: TCoord; // coordinates of intersection point
 begin
     GetIntersectionPointBetweenTracks(FirstTrack, SecondTrack, Xp, Yp);
+    if (Xp = nil) and (Yp = nil) then
+    begin
+        Result := 0;
+        exit;
+    end;
 
     // Determine the deltas for the first track
     T1P1Dist := PointToPointDistance(FirstTrack.x1, FirstTrack.y1, Xp, Yp);
@@ -322,6 +327,12 @@ var
     ChSet    : TSet;
 begin
     Result := True;
+
+    if (Text = '-') or (Text = '') or (Text = '.') then
+    begin
+        Result := False;
+        exit;
+    end;
 
     if AllowNegative then
     begin
@@ -726,7 +737,7 @@ end;
 
 procedure ConvertFormUnits(const dummy : Integer);
 begin
-    if IsStringANum(tRadius.Text) then
+    if IsStringANum(tRadius.Text, RadioArcsRelative.Checked) then
     begin
         // Radius Value and Buttons
         if (RadioUnitsMM.Checked = true) then
@@ -741,11 +752,12 @@ begin
             Units := eImperial;
             Radius := milsToCoord(StrToFloat(tRadius.Text));
         end
-        else
+        else // % Ratio mode
         begin
             Mode := eModeRatio;
             Units := Board.DisplayUnit xor 1;   // need to xor with 1 to convert to eMetric or eImperial for StringToCoordUnit, etc.
             Ratio := StrToFloat(tRadius.Text);
+            if RadioArcsRelative.Checked and (Ratio < 0) then Ratio := Ratio + 100; // standardize ratio so that for ex. -80% = 20%
         end;
     end;
 
@@ -1170,7 +1182,7 @@ begin
 
     // Find intersection point of tracks (sourced from https://en.wikipedia.org/wiki/Line-line_intersection)
     Denominator := ( ((T1X1-T1X2)*(T2Y1-T2Y2)) - ((T1Y1-T1Y2)*(T2X1-T2X2)) );
-    if (Denominator = 0) then ShowError(FirstTrack.Identifier + ' and ' + sLineBreak + SecondTrack.Identifier + ' do not intersect.');
+    if (Denominator = 0) then DebugMessage(2, FirstTrack.Descriptor + ' and ' + sLineBreak + SecondTrack.Descriptor + ' do not intersect or are parallel.');
     if Denominator <> 0 then
     begin
         Xp := ( (((T1X1*T1Y2)-(T1Y1*T1X2))*(T2X1-T2X2)) - ((T1X1-T1X2)*((T2X1*T2Y2)-(T2Y1*T2X2))) )   /   Denominator;
@@ -1524,14 +1536,22 @@ begin
             for Obj2Idx := 0 to Board.SelectecObjectCount - 1 do
             begin
                 SecondTrack := Board.SelectecObject(Obj2Idx);
-                if (Obj2Idx = ObjIdx) then
+                if (Obj2Idx = ObjIdx) or (RadioArcsRelative.Checked) then
                 begin
+                    // don't process pair of tracks in relative mode (don't add new arcs)
                     // Do nothing but also don't update UserMessage because this isn't a failure
                 end
                 else if (Obj2Idx <> ObjIdx) and (SecondTrack.Layer = FirstTrack.Layer) and GetCommonPointsForTracks(FirstTrack, SecondTrack, FirstTrackEnd, SecondTrackEnd, RoundToDigit) then
                 begin
                     // Find arc angle needed to connect tracks
                     ArcAngle := GetArcAngleBetweenTracks(FirstTrack, SecondTrack);
+
+                    if ArcAngle = 0 then
+                    begin
+                        UserMessage := 'Unable to add arc between parallel tracks';
+                        continue;
+                    end;
+
                     if iDebugLevel >= 3 then DebugMessage(3, Format('Tracks form angle of %f°', [RoundCoords(ArcAngle / Pi * 180, 0.001)]), 'Confirm or Cancel Debug');
 
                     // Only process if arc angle won't be over 175°
@@ -1542,6 +1562,7 @@ begin
                         // Create arc
                         ArcRadius := DetermineArcRadiusFromTracks(FirstTrack, SecondTrack);
                         CreateArcBetweenTracks(ArcRadius, FirstTrack, SecondTrack);
+                        UserMessage := 'Operation completed successfully';
                     end
                     else UserMessage := 'Angle between some of the connected tracks is too acute (<5°) to risk adding arc';
                 end
@@ -1604,6 +1625,7 @@ begin
                     ArcRadius := DetermineArcRadiusFromArc(AnArc, FirstTrack, SecondTrack);
                     ExtendTracksOverArc(AnArc, FirstTrack, SecondTrack);
                     CreateArcBetweenTracks(ArcRadius, FirstTrack, SecondTrack);
+                    UserMessage := 'Operation completed successfully';
 
                     // Don't increment loop when updating arc (since it gets deselected)
                     IncrementLoop := False;
@@ -2061,7 +2083,7 @@ begin
 
     // Read previous settings from file
     ConfigFile_Read(ConfigFile_GetPath);
-    ButtonOK.Enabled := IsStringANum(tRadius.Text, RadioArcsRelative.Checked and (not RadioUnitsRatio.Checked));
+    ButtonOK.Enabled := IsStringANum(tRadius.Text, RadioArcsRelative.Checked);
 end;
 
 
@@ -2080,10 +2102,13 @@ end;
 
 procedure TFormFillet.RadioUnitsRatioClick(Sender: TObject);
 begin
-    if IsStringANum(tRadius.Text) then
+    if IsStringANum(tRadius.Text, True) then
     begin
         if (RadioUnitsRatio.Checked = true) and (StrToFloat(tRadius.Text) > 100) and (not RadioArcsRelative.Checked) then tRadius.Text := '100'
-        else if (RadioUnitsRatio.Checked = true) and (StrToFloat(tRadius.Text) < 0) then tRadius.Text := '0';
+        else if (RadioUnitsRatio.Checked = true) and RadioArcsRelative.Checked and (StrToFloat(tRadius.Text) < -100) then tRadius.Text := '-100'
+        else if (RadioUnitsRatio.Checked = true) and (not RadioArcsRelative.Checked) and (StrToFloat(tRadius.Text) < 0) then tRadius.Text := '0';
+
+        ButtonOK.Enabled := IsStringANum(tRadius.Text, RadioArcsRelative.Checked);
     end;
 end;
 
@@ -2093,21 +2118,33 @@ var
     textbox : TEdit;
 begin
     textbox := Sender;
-    if IsStringANum(textbox.Text) then
+    if IsStringANum(textbox.Text, True) then
     begin
         If Sender <> tRadius then tRadius.Text := textbox.Text;
-        ButtonOK.Enabled := IsStringANum(tRadius.Text, RadioArcsRelative.Checked and (not RadioUnitsRatio.Checked));
 
         if (RadioUnitsRatio.Checked = true) and (StrToFloat(textbox.Text) > 100) and (not RadioArcsRelative.Checked) then
         begin
             textbox.Text := '100';
             ShowInfo('% input limited to 100% to avoid reversing tracks');
+            textbox.SetFocus;
+            textbox.SelectAll;
         end
-        else if (RadioUnitsRatio.Checked = true) and (StrToFloat(textbox.Text) < 0) then
+        else if (RadioUnitsRatio.Checked = true) and RadioArcsRelative.Checked and (StrToFloat(textbox.Text) < -100) then
+        begin
+            textbox.Text := '-100';
+            ShowInfo('% input limited to -100% (full arc removal) to avoid reversing tracks');
+            textbox.SetFocus;
+            textbox.SelectAll;
+        end
+        else if (RadioUnitsRatio.Checked = true) and (StrToFloat(textbox.Text) < 0) and (not RadioArcsRelative.Checked) then
         begin
             textbox.Text := '0';
             ShowInfo('% input limited to 0% to avoid reversing tracks');
+            textbox.SetFocus;
+            textbox.SelectAll;
         end;
+
+        ButtonOK.Enabled := IsStringANum(tRadius.Text, RadioArcsRelative.Checked);
     end
     else ButtonOK.Enabled := False;
 end;
@@ -2120,13 +2157,9 @@ begin
         Key := #0; //catch and discard key press to avoid beep
         DoFillets(0);
     end
-    else if (not RadioArcsRelative.Checked) and (Ord(Key) = 13) then
+    else if (Ord(Key) = 13) and (not RadioArcsRelative.Checked) then
     begin
-        ShowInfo('Negative values only allowed for Relative arc mode and fixed radius. OK button disabled.');
-    end
-    else
-    begin
-        ButtonOK.Enabled := IsStringANum(tRadius.Text, RadioArcsRelative.Checked and (not RadioUnitsRatio.Checked));
+        ShowInfo('Negative values only allowed for Relative arc mode. OK button disabled.');
     end;
 end;
 
