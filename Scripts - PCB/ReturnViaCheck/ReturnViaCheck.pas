@@ -8,7 +8,10 @@
 const
     cScriptTitle            = 'ReturnViaCheck'; // modified from AssemblyTextPrep script
     cConfigFileName         = 'ReturnViaCheckConfig.ini';
-    cScriptVersion          = '0.41';
+    cScriptVersion          = '0.50';
+    CustomRule1_Name        = 'ScriptRule_ReturnViaCheck';
+    CustomRule1_Kind        = eRule_HoleToHoleClearance;
+    //CustomRule1_Kind        = eRule_RoutingViaStyle; // eRule_RoutingViaStyle has really ugly description for this
     cDEBUGLEVEL             = 0;
     DEBUGEXPANSION          = -1; // leave at -1 to disable
     //status bar commands
@@ -33,6 +36,7 @@ const
 
 var
     bIgnoreCBChange         : Boolean;
+    bUseCustomViolations    : Boolean;
     bProcessing             : Boolean;
     bMetricUnits            : Boolean;
     IsViaSelectable         : Boolean;
@@ -48,6 +52,8 @@ var
     SignalNetList           : TInterfaceList;
     DrillPairsList          : TInterfaceList;
     ReturnViaDrillPairsList : TInterfaceList;
+    CustomRulesList         : TInterfaceList;
+    ViolationList           : TInterfaceList;
     gvCurrentPercentCount   : Integer;
     gvTotalPercentCount     : Integer;
     gvOldPercent            : Integer;
@@ -56,12 +62,16 @@ var
 
 procedure   _GUI; forward;
 procedure   About; forward;
+procedure   Main_CheckAll(dummy : Integer = 0); forward;
+procedure   Main_Recheck(dummy : Integer = 0); forward;
 procedure   AddMessage(MessageClass, MessageText: String); forward;
 procedure   AddMessageAdvanced(MessagesManager : IMessagesManager, messageClass : WideString, messageText : WideString, documentName : WideString, imageIndex : Integer, callBackProcess : WideString = '', callBackParameters : WideString = '', messageDetails : IDXPMessageItemDetails = nil); forward;
 procedure   AddMessageCallback_Via(Via : IPCB_Via); forward;
 procedure   ChangeTextUnits(Units : TUnit); forward;
+procedure   ClientClearFilter(dummy : Boolean = False); forward;
 procedure   ClientDeSelectAll(dummy : Boolean = False); forward;
 procedure   ClientZoomRedraw(dummy : Boolean = False); forward;
+procedure   ClientResetAllErrorMarkers(dummy : Boolean = False); forward;
 procedure   ClientZoomSelected(dummy : Boolean = False); forward;
 function    ConfigFile_GetPath(dummy : String = '') : String; forward;
 procedure   ConfigFile_Read(AFileName : String); forward;
@@ -83,12 +93,14 @@ function    GetDelimitedListBoxSelections(ListBox : TListBox; MyDelim : String =
 function    GetDrillPairs(const dummy : Integer = 0) : TInterfaceList; forward;
 function    GetIteratorCount(Iter : IPCB_BoardIterator) : Integer; forward;
 function    GetNearbyVias(SignalVia : IPCB_Via) : TInterfaceList; forward;
+function    GetViaDrillPair(Via : IPCB_Via) : IPCB_DrillLayerPair; forward;
 procedure   GUI_BeginProcess(dummy : Boolean = False); forward;
 procedure   GUI_EndProcess(dummy : Boolean = False); forward;
 function    GUI_ForLoopStart(StatusMsg : String; LoopCount : Integer) : Integer; forward;
 procedure   GUI_LoopEnd(dummy : Boolean = False); forward;
 procedure   GUI_LoopProgress(StatusMsg : String = ''); forward;
 function    HasReturnVia(SignalVia : IPCB_Via) : Boolean; forward;
+procedure   IgnoreArea(dummy : Integer = 0); forward;
 function    InAllowedDrillStack(Via : IPCB_Via) : Boolean; forward;
 procedure   InitialCheckGUI(var status : Integer); forward;
 function    IsReturnVia(SignalVia : IPCB_Via; OtherVia : IPCB_Via) : Boolean; forward;
@@ -97,9 +109,19 @@ function    IsSelectableCheckStop(bShowWarning : Boolean = True) : Boolean; forw
 function    IsStringANum(Text : string) : Boolean; forward;
 function    ParseDelimitedString(const DelimitedText : String; const MyDelim : String = ';;') : TStringList; forward;
 procedure   RefreshFailedVias(dummy : Boolean = False); forward;
+function    Rules_AddCustomViaRule(const RuleKind : TRuleKind; const RuleName : WideString; DrillPairObj : IPCB_DrillLayerPair; const Comment : WideString) : IPCB_Rule; forward;
+procedure   Rules_ClearDRC_Via(Via : IPCB_Via); forward;
+procedure   Rules_CustomPostProcess(ViolationCount : Integer = 0); forward;
+procedure   Rules_CustomPreProcess(dummy : Integer = 0); forward;
+function    Rules_GetRulesByKind(const RuleKind : TRuleKind = -1) : TInterfaceList; forward;
+function    Rules_GetRuleByName(const RulesList : TInterfaceList; const RuleName : WideString) : IPCB_Rule; forward;
+function    Rules_GetRuleForVia(const RulesList : TInterfaceList; const Via : IPCB_Via) : IPCB_Rule; forward;
+function    Rules_MakeViolation_Via(var Via : IPCB_Via) : IPCB_Violation; forward;
+function    Rules_RuleKindToString (ARuleKind : TRuleKind) : String; forward;
 function    SelectComboBoxItem(ComboBox : TComboBox; ItemString : String) : Boolean; forward;
 function    SelectListBoxItems(ListBox : TListBox; ListItems : TStringList) : Boolean; forward;
 procedure   SetButtonEnableStates(EnableState : Boolean); forward;
+function    SetDRCAndAddToHighlight(var Prim : IPCB_Primitive); forward;
 procedure   SetInitialDrillPairSelections(dummy : Boolean = False); forward;
 procedure   SetInitialNetSelections(dummy : Boolean = False); forward;
 procedure   SetNetModeSignalStates(RadioGroup : TObject); forward;
@@ -116,6 +138,7 @@ procedure   TReturnViaCheckForm.ButtonZoomClick(Sender : TObject); forward;
 procedure   TReturnViaCheckForm.InputValueChange(Sender : TObject); forward;
 procedure   TReturnViaCheckForm.LabelVersionClick(Sender : TObject); forward;
 procedure   TReturnViaCheckForm.MMmilButtonClick(Sender : TObject); forward;
+procedure   TReturnViaCheckForm.ReturnViaCheckFormClose(Sender: TObject; var Action: TCloseAction); forward;
 procedure   TReturnViaCheckForm.ReturnViaCheckFormCreate(Sender: TObject); forward;
 procedure   TReturnViaCheckForm.ReturnViaCheckFormShow(Sender : TObject); forward;
 procedure   TReturnViaCheckForm.rgSignalModeClick(Sender: TObject); forward;
@@ -180,6 +203,196 @@ begin
 end; { About }
 
 
+procedure   Main_CheckAll(dummy : Integer = 0);
+var
+    i, TotalCount   : Integer;
+    ProcessedCount, ProgressInt : Integer;
+    ViaIter         : IPCB_BoardIterator;
+    CurrentVia      : IPCB_Via;
+    ReturnNetIndex  : Integer;
+begin
+    bUseCustomViolations := CheckBoxRuleViolations.Checked;
+
+    if ButtonCheckAll.Caption = 'Restart' then
+    begin
+        SetNetPickEnableStates(True);
+        ClientDeSelectAll;
+        ClientClearFilter;
+
+        for i := 0 to FailedViaList.Count - 1 do
+        begin
+            Rules_ClearDRC_Via(FailedViaList[i]);
+        end;
+
+        FailedViaList.Clear;
+        FailedViaIndex := -1;
+        UpdateStatus;
+        UpdateNavButtonStates;
+        exit;
+    end;
+
+    GUI_BeginProcess;
+    PCBServer.PreProcess;
+    if Assigned(CustomRulesList) and (CustomRulesList.Count > 0) then Rules_CustomPostProcess; // don't know how to properly clear the custom DRC errors, so just destroy and rebuild
+    Rules_CustomPreProcess; // set up custom rules for using Rules & Violations to navigate failing vias
+    try
+
+        ProcessedCount := 0;
+        ProgressInt := 0;
+
+        SetNetPickEnableStates(False);
+
+        ClientDeselectAll;
+
+        // Populate SignalNetList and ReturnNetList based on GUI selections
+
+        UpdateNetListsFromSelections;
+
+        UpdateDrillPairsListFromSelections;
+
+        FailedViaIndex := -1;
+        FailedViaList.Clear;
+        MessagesManager.ClearMessages;
+
+        ViaIter := Board.BoardIterator_Create;
+        ViaIter.AddFilter_ObjectSet(MkSet(eViaObject));
+        ViaIter.AddFilter_LayerSet(AllLayers);
+        ViaIter.AddFilter_Method(eProcessAll);
+
+        TotalCount := GetIteratorCount(ViaIter);
+        MyPercent_Init('Processing ' + IntToStr(TotalCount) + ' vias', TotalCount);
+
+        CurrentVia := ViaIter.FirstPCBObject;
+        while CurrentVia <> nil do
+        begin
+            if SignalNetList.IndexOf(CurrentVia.Net) >= 0 then
+            begin
+                if not HasReturnVia(CurrentVia) then
+                begin
+                    FailedViaList.Add(CurrentVia);
+                    Rules_MakeViolation_Via(CurrentVia);
+                end;
+            end;
+
+            Inc(ProcessedCount);
+            MyPercent_Update(Format('%d of %d vias processed', [ProcessedCount, TotalCount]));
+            // throttle Messages panel updates for performance
+            if ((ProcessedCount / TotalCount) * 100) >= (ProgressInt + 1) then
+            begin
+                Inc(ProgressInt);
+                AddMessage('ReturnViaCheck Status', Format('%d of %d vias processed (%d%%)', [ProcessedCount, TotalCount, ProgressInt]));
+            end;
+
+            CurrentVia := ViaIter.NextPCBObject;
+        end;
+        Board.BoardIterator_Destroy(ViaIter);
+
+        MyPercent_Finish;
+
+        // select and zoom to all failed vias and add messages to panel
+        RefreshFailedVias;
+
+        //ClientZoomSelected;
+
+        //UpdateStatus;
+        //UpdateNavButtonStates;
+
+        Board.ViewManager_FullUpdate;
+
+        if FailedViaList.Count > 0 then
+        begin
+            ShowWarning(IntToStr(FailedViaList.Count) + ' violating vias found');
+        end
+        else
+        begin
+            SetNetPickEnableStates(True);
+            ShowInfo('No violating vias found');
+        end;
+
+    finally
+        Rules_CustomPostProcess(FailedViaList.Count); // in case FailedViaList is now empty, need to clean up
+        PCBServer.PostProcess;
+        GUI_EndProcess;
+    end;
+
+    ConfigFile_Write(ConfigFile_GetPath);
+end;
+
+procedure   Main_Recheck(dummy : Integer = 0);
+var
+    i, TotalCount   : Integer;
+    ProcessedCount, ProgressInt : Integer;
+    CurrentVia      : IPCB_Via;
+begin
+    GUI_BeginProcess;
+    PCBServer.PreProcess;
+    try
+        ProcessedCount := 0;
+        ProgressInt := 0;
+
+        TotalCount := FailedViaList.Count;
+        MyPercent_Init('Rechecking ' + IntToStr(TotalCount) + ' vias', TotalCount);
+
+        MessagesManager.ClearMessages;
+        for i := FailedViaList.Count - 1 downto 0 do
+        begin
+            Inc(ProcessedCount);
+            MyPercent_Update(Format('%d of %d vias processed', [ProcessedCount, TotalCount]));
+            if TotalCount > 100 then
+            begin
+                // throttle Messages panel updates for performance
+                if ((ProcessedCount / TotalCount) * 100) >= (ProgressInt + 1) then
+                begin
+                    Inc(ProgressInt);
+                    AddMessage('ReturnViaCheck Status', Format('%d of %d vias processed (%d%%)', [ProcessedCount, TotalCount, ProgressInt]));
+                end;
+            end
+            else
+            begin
+                AddMessage('ReturnViaCheck Status', Format('%d of %d vias processed (%d%%)', [ProcessedCount, TotalCount, Round((ProcessedCount / TotalCount) * 100)]));
+            end;
+
+            CurrentVia := FailedViaList[i];
+            if not HasReturnVia(CurrentVia) then
+            begin
+                //AddMessageCallback_Via(CurrentVia);
+                continue;
+            end;
+
+            Rules_ClearDRC_Via(CurrentVia);
+
+            FailedViaIndex := -1;
+            FailedViaList.Delete(i);
+            //CurrentVia.Selected := False;
+            //CurrentVia.GraphicallyInvalidate;
+        end;
+
+        MyPercent_Finish;
+
+        RefreshFailedVias;
+
+        //if FailedViaIndex >= FailedViaList.Count then FailedViaIndex := FailedViaList.Count - 1;
+
+        //if FailedViaIndex >= 0 then
+        //begin
+            //ClientDeSelectAll;
+            //FailedViaList[FailedViaIndex].Selected := True;
+            //ClientZoomSelected;
+        //end;
+
+        //UpdateStatus;
+        //UpdateNavButtonStates;
+
+        if FailedViaList.Count > 0 then ShowWarning(IntToStr(FailedViaList.Count) + ' violating vias remain');
+
+    finally
+        Rules_CustomPostProcess(FailedViaList.Count);
+        PCBServer.PostProcess;
+        GUI_EndProcess;
+    end;
+end;
+
+
 procedure   AddMessage(MessageClass, MessageText: String);
 begin
     // https://www.altium.com/ru/documentation/altium-nexus/wsm-api-types-and-constants/#Image%20Index%20Table
@@ -189,7 +402,6 @@ begin
     GetWorkspace.DM_MessagesManager.EndUpdate();
     GetWorkspace.DM_MessagesManager.UpdateWindow();
 end;
-
 
 procedure   AddMessageAdvanced(MessagesManager : IMessagesManager, messageClass : WideString, messageText : WideString, documentName : WideString, imageIndex : Integer, callBackProcess : WideString = '', callBackParameters : WideString = '', messageDetails : IDXPMessageItemDetails = nil);
 begin
@@ -210,7 +422,6 @@ begin
         MessagesManager.EndUpdate;
     end;
 end;
-
 
 procedure   AddMessageCallback_Via(Via : IPCB_Via);
 var
@@ -294,17 +505,25 @@ begin
 end;
 
 
+procedure   ClientClearFilter(dummy : Boolean = False);
+begin
+    Client.SendMessage('PCB:RunQuery', 'Clear=True' , 255, Client.CurrentView);
+end;
+
 procedure   ClientDeSelectAll(dummy : Boolean = False);
 begin
     Client.SendMessage('PCB:DeSelect', 'Scope=All' , 255, Client.CurrentView);
 end;
-
 
 procedure   ClientZoomRedraw(dummy : Boolean = False);
 begin
     Client.SendMessage('PCB:Zoom', 'Action=Redraw' , 255, Client.CurrentView);
 end;
 
+procedure   ClientResetAllErrorMarkers(dummy : Boolean = False);
+begin
+    Client.SendMessage('PCB:ResetAllErrorMarkers', '', 255, Client.CurrentView);
+end;
 
 procedure   ClientZoomSelected(dummy : Boolean = False);
 begin
@@ -317,7 +536,6 @@ begin
     Result := ExtractFilePath(GetRunningScriptProjectName) + cConfigFileName;
     if (not FileExists(Result)) or bForbidLocalSettings then Result := IncludeTrailingPathDelimiter(SpecialFolder_AltiumApplicationData) + cConfigFileName;
 end;
-
 
 procedure   ConfigFile_Read(AFileName : String);
 var
@@ -336,6 +554,8 @@ begin
         EditDistanceMax.Text := IniFile.ReadString('Limits', 'Return Via Max Distance', EditDistanceMax.Text);
 
         MMmilButton.Caption := IniFile.ReadString('Config', 'Units', MMmilButton.Caption);
+
+        CheckBoxRuleViolations.Checked := IniFile.ReadBool('Config', 'Custom Violations', CheckBoxRuleViolations.Checked);
 
         rgSignalMode.ItemIndex          := IniFile.ReadInteger('Last Used', 'Signal Net Filter Mode', rgSignalMode.ItemIndex);
         SetNetModeSignalStates(rgSignalMode);
@@ -384,7 +604,6 @@ begin
     end;
 end;
 
-
 procedure   ConfigFile_Write(AFileName : String);
 var
     IniFile     : TIniFile;
@@ -399,6 +618,7 @@ begin
         IniFile.WriteString('Limits', 'Return Via Max Distance', EditDistanceMax.Text);
 
         IniFile.WriteString('Config', 'Units', MMmilButton.Caption);
+        IniFile.WriteBool('Config', 'Custom Violations', CheckBoxRuleViolations.Checked);
 
         idx := ComboBoxSignalNet.ItemIndex;
         if idx >= 0 then TempString := ComboBoxSignalNet.Items[idx] else TempString := '';
@@ -431,12 +651,10 @@ begin
     result := CoordUnitToString(Coords, Board.DisplayUnit xor 1);
 end;
 
-
 function    CoordToX(Coords : TCoord) : String;
 begin
     result := CoordUnitToString(Coords - Board.XOrigin, Board.DisplayUnit xor 1);
 end;
-
 
 function    CoordToY(Coords : TCoord) : String;
 begin
@@ -493,7 +711,6 @@ begin
     Result := (DrillPairsList.Count > 0);
 end;
 
-
 procedure   FillDrillPairsListBox(ListBox : TObject);
 var
     i               : Integer;
@@ -509,7 +726,6 @@ begin
 
     if ListBox.Items.Count = 0 then ListBox.Items.Add('!!! NO DRILL PAIRS DEFINED !!!');
 end;
-
 
 procedure   FillNetClassListBox(ListBox : TObject);
 var
@@ -528,7 +744,6 @@ begin
         c := Iterator.NextPCBObject;
     end;
 end;
-
 
 procedure   FillNetComboBox(ComboBox : TObject);
 var
@@ -549,7 +764,6 @@ begin
 
     if ComboBox.Items.Count > 0 then ComboBox.ItemIndex := 0;
 end;
-
 
 function    FillNetListFromClass(const NetClass : IPCB_OBjectClass; var NetList : TInterfaceList; const Clear : Boolean = False) : Boolean;
 var
@@ -572,7 +786,6 @@ begin
     end;
     Result := (NetList.Count > 0);
 end;
-
 
 function    FillNetListFromSingleNet(const Net : IPCB_Net; var NetList : TInterfaceList; const Clear : Boolean = False) : Boolean;
 begin
@@ -694,6 +907,26 @@ begin
 end;
 
 
+function    GetViaDrillPair(Via : IPCB_Via) : IPCB_DrillLayerPair;
+var
+    idx : Integer;
+    DrillPairObj : IPCB_DrillLayerPair;
+begin
+    Result := nil;
+    if not Assigned(DrillPairsList) then GetDrillPairs;
+
+    for idx := 0 to DrillPairsList.Count - 1 do
+    begin
+        DrillPairObj := DrillPairsList[idx];
+        if (Via.StartLayer = DrillPairObj.StartLayer) and (Via.StopLayer = DrillPairObj.StopLayer) then
+        begin
+            Result := DrillPairObj;
+            break;
+        end;
+    end;
+end;
+
+
 procedure   GUI_BeginProcess(dummy : Boolean = False);
 begin
     if bProcessing = False then
@@ -704,7 +937,6 @@ begin
         BeginHourGlass;
     end;
 end;
-
 
 procedure   GUI_EndProcess(dummy : Boolean = False);
 begin
@@ -717,7 +949,6 @@ begin
     end;
 end;
 
-
 function    GUI_ForLoopStart(StatusMsg : String; LoopCount : Integer) : Integer;
 begin
     Result := LoopCount;
@@ -725,13 +956,11 @@ begin
     GUI_BeginProcess;
 end;
 
-
 procedure   GUI_LoopEnd(dummy : Boolean = False);
 begin
     GUI_EndProcess;
     MyPercent_Finish;
 end;
-
 
 procedure   GUI_LoopProgress(StatusMsg : String = '');
 begin
@@ -753,6 +982,55 @@ begin
         if IsReturnVia(SignalVia, ViaList[i]) then exit;
     end;
     Result := False;
+end;
+
+
+procedure   IgnoreArea(dummy : Integer = 0);
+var
+    X1, X2, Y1, Y2          : TCoord;
+    ListVia, AreaVia        : IPCB_Via;
+    ListIdx                 : Integer;
+    SIter                   : IPCB_SpatialIterator;
+    SIterLeft, SIterRight   : TCoord;
+    SIterTop, SIterBot      : TCoord;
+begin
+    // The ChooseRectangleByCorners fn is an interactive function where you are prompted to choose two points on a PCB document.
+    if not (Board.ChooseRectangleByCorners( 'Choose first corner (Touching Area)', 'Choose second corner (Touching Area)', X1,Y1,X2,Y2)) then exit;
+
+    // find all vias touching this area using iterator
+    SIterLeft := Min(X1, X2);
+    SIterRight := Max(X1, X2);
+    SIterTop := Max(Y1, Y2);
+    SIterBot := Min(Y1, Y2);
+
+    SIter := Board.SpatialIterator_Create;
+    SIter.AddFilter_ObjectSet(MkSet(eViaObject));
+    SIter.AddFilter_Area(SIterLeft, SIterBot, SIterRight, SIterTop);
+
+    // Loop through vias in the spatial iterator area
+    AreaVia := SIter.FirstPCBObject;
+    while (AreaVia <> nil) do
+    begin
+        // check failed via list for this via and remove
+        for ListIdx := FailedViaList.Count - 1 downto 0 do
+        begin
+            ListVia := FailedViaList[ListIdx];
+            if AreaVia.I_ObjectAddress = ListVia.I_ObjectAddress then
+            begin
+                ListVia.Selected := False;
+                Rules_ClearDRC_Via(ListVia);
+                FailedViaList.Delete(ListIdx);
+                break;
+            end;
+        end;
+        AreaVia := SIter.NextPCBObject;
+    end;
+    Board.SpatialIterator_Destroy(SIter);
+
+    // update failure status and buttons
+    FailedViaIndex := Min(FailedViaIndex, FailedViaList.Count - 1);
+    UpdateStatus;
+    UpdateNavButtonStates;
 end;
 
 
@@ -830,7 +1108,7 @@ begin
 
     distance := Sqrt((dX * dX) + (dY * dY)) * 1000;
     if distance <= VIADISTANCEMAX then Result := True;
-    DebugMessage(2, Format('Distance between %s and %s is %s', [SignalVia.Descriptor, OtherVia.Descriptor, CoordToStr(distance)]));
+    DebugMessage(3, Format('Distance between %s and %s is %s', [SignalVia.Descriptor, OtherVia.Descriptor, CoordToStr(distance)]));
 end;
 
 
@@ -959,18 +1237,357 @@ begin
     GetWorkspace.DM_ShowMessageView;
     ClientDeselectAll;
 
-    for i := 0 to FailedViaList.Count - 1 do
+    if FailedViaList.Count > 0 then
     begin
-        CurrentVia := FailedViaList[i];
-        CurrentVia.Selected := True;
-        CurrentVia.GraphicallyInvalidate;
-        AddMessageCallback_Via(CurrentVia);
+        Board.BeginModify;
+
+        for i := 0 to FailedViaList.Count - 1 do
+        begin
+            CurrentVia := FailedViaList[i];
+            CurrentVia.Selected := True;
+            //Board.AddObjectToHighlightObjectList(CurrentVia);
+            SetDRCAndAddToHighlight(CurrentVia);
+            //CurrentVia.GraphicallyInvalidate;
+            AddMessageCallback_Via(CurrentVia);
+        end;
+
+        //ClientZoomSelected;
+
+        // set of THighlightMethod = (eHighlight_Filter, eHighlight_Zoom, eHighlight_Select, eHighlight_Graph, eHighlight_Dim, eHighlight_Thicken, eHighlight_ZoomCursor, eHighlight_ForceSmooth)
+        if FailedViaList.Count > 0 then Board.SetState_Navigate_HighlightObjectList(MkSet(eHighlight_Dim, eHighlight_Zoom, eHighlight_Select), True);
+
+        Board.EndModify;
     end;
 
-    ClientZoomSelected;
+    Board.ViewManager_FullUpdate;
 
     UpdateStatus;
     UpdateNavButtonStates;
+end;
+
+
+function    Rules_AddCustomViaRule(const RuleKind : TRuleKind; const RuleName : WideString; DrillPairObj : IPCB_DrillLayerPair; const Comment : WideString) : IPCB_Rule;
+begin
+    Result := PCBServer.PCBRuleFactory(RuleKind);
+    Result.Name := RuleName + '_' + DrillPairObj.Description;
+    // scope TBD
+    Result.Scope1Expression := 'IsVia';
+    Result.Scope2Expression := 'IsVia';
+    //Result.Scope1Expression := 'IsVia and (DrillPair = ''' + DrillPairObj.Description + ''')';
+    //Result.Scope2Expression := 'IsVia';
+
+    Result.Comment          := Comment;
+
+    // DRC criteria depends on RuleKind
+    // not sure what applies to eRule_RoutingViaStyle, but I'm assuming that
+    // unless I define something, the default is to fail, which works out just fine
+    //Result.Minimum          := MilsToCoord(10); // example for eRule_MinimumAnnularRing
+
+    Result.Gap := VIADISTANCEMAX; // Gap applies to eRule_HoleToHoleClearance
+
+    Result.DRCEnabled       := true;
+    Board.AddPCBObject(Result);
+end;
+
+procedure   Rules_ClearDRC_Via(Via : IPCB_Via);
+var
+    idx : Integer;
+    Violation : IPCB_Violation;
+    ViolationPrim : IPCB_Primitive;
+begin
+    DebugMessage(2, 'Rules_ClearDRC_Via() called on ' + Via.Descriptor);
+
+    if Via = nil then exit;
+
+    if not bUseCustomViolations then
+    begin
+        if Via.DRCError then
+        begin
+            Via.BeginModify;
+            Via.DRCError := False;
+            Via.EndModify;
+            Via.GraphicallyInvalidate;
+            exit;
+        end;
+    end;
+
+    for idx := ViolationList.Count - 1 downto 0 do
+    begin
+        Violation := ViolationList[idx];
+        if Violation = nil then continue;
+        ViolationPrim := Violation.Primitive1;
+        if (ViolationPrim <> nil) and (ViolationPrim.I_ObjectAddress = Via.I_ObjectAddress) then
+        begin
+            if Violation.DRCError then
+            begin
+                Violation.BeginModify;
+                Violation.DRCError := False;
+                Violation.Enabled; // TBD
+                Violation.Used; // TBD
+                Violation.EndModify;
+            end;
+
+            if Via.DRCError then
+            begin
+                Via.BeginModify;
+                Via.DRCError := False;
+                Via.EndModify;
+                Via.GraphicallyInvalidate;
+            end;
+
+            Board.BeginModify;
+            Board.RemovePCBObject(Violation);
+            Board.EndModify;
+
+            PCBServer.DestroyPCBObject(Violation);
+
+            ViolationList.Delete(idx);
+        end;
+    end;
+end;
+
+procedure   Rules_CustomPostProcess(ViolationCount : Integer = 0);
+var
+    idx : Integer;
+    Rule : IPCB_Rule;
+    RuleCount : Integer;
+begin
+    DebugMessage(2, 'Rules_CustomPostProcess(' + IntToStr(ViolationCount) + ') called');
+
+    if not bUseCustomViolations then ViolationCount := 0;
+
+    // "Cleanup" means to turn off DRC flags for custom rules and also get rid of them if there are no violations
+    if Assigned(CustomRulesList) then RuleCount := CustomRulesList.Count else RuleCount := 0;
+    for idx := 0 to (RuleCount - 1) do
+    begin
+        Rule := CustomRulesList[idx];
+        if Rule <> nil then
+        begin
+            Rule.DRCEnabled := False; // turn off DRCEnabled
+
+            if ViolationCount = 0 then // remove custom rules from the board if there were no violations
+            begin
+                Board.RemovePCBObject(Rule);
+                PCBServer.DestroyPCBObject(Rule);
+            end;
+        end;
+    end;
+
+    if ViolationCount = 0 then // if doing a cleanup, also refresh view
+    begin
+        ClientResetAllErrorMarkers;
+        Board.ViewManager_FullUpdate;
+        ClientZoomRedraw;
+    end;
+end;
+
+procedure   Rules_CustomPreProcess(dummy : Integer = 0);
+var
+    idx : Integer;
+    DrillPairObj : IPCB_DrillLayerPair;
+    Rule : IPCB_Rule;
+begin
+    DebugMessage(2, 'Rules_CustomPreProcess called');
+
+    if not bUseCustomViolations then exit;
+
+    if not Assigned(DrillPairsList) then GetDrillPairs;
+
+    if not Assigned(CustomRulesList) then CustomRulesList := Rules_GetRulesByKind(CustomRule1_Kind);
+
+    if not Assigned(ViolationList) then ViolationList := CreateObject(TInterfaceList);
+
+    for idx := 0 to (DrillPairsList.Count - 1) do
+    begin
+        DrillPairObj := DrillPairsList[idx];
+
+        Rule := Rules_GetRuleByName(CustomRulesList, CustomRule1_Name + '_' + DrillPairObj.Description);
+
+        if Rule = nil then
+        begin
+            Rule := Rules_AddCustomViaRule(CustomRule1_Kind, CustomRule1_Name, DrillPairObj, 'Signal via without nearby return via');
+            if Rule <> nil then CustomRulesList.Add(Rule); // allows not having to rebuild CustomRulesList with Rules_GetRulesByKind() before using Rules_GetRuleByName() to find the new rule
+        end
+        else
+        begin
+            Rule.Gap := VIADISTANCEMAX; // Gap applies to eRule_HoleToHoleClearance
+        end;
+
+        if Rule <> nil then Rule.DRCEnabled := True;
+    end;
+end;
+
+function    Rules_GetRulesByKind(const RuleKind : TRuleKind = -1) : TInterfaceList;
+var
+    Iterator : IPCB_BoardIterator;
+    Rule     : IPCB_Rule;
+begin
+    Result := CreateObject(TInterfaceList);
+
+    Iterator := Board.BoardIterator_Create;
+    try
+        Iterator.AddFilter_ObjectSet(MkSet(eRuleObject));
+        Iterator.AddFilter_LayerSet(AllLayers);
+        Iterator.AddFilter_Method(eProcessAll);
+        Rule := Iterator.FirstPCBObject;
+        while (Rule <> Nil) Do
+        begin
+            if (RuleKind = -1) or (Rule.RuleKind = RuleKind) then
+            begin
+                if Pos(CustomRule1_Name, Rule.Name) > 0 then Result.Add(Rule); // only include rules that have the magic name in them
+            end;
+
+            Rule := Iterator.NextPCBObject;
+        end;
+
+    finally
+        Board.BoardIterator_Destroy(Iterator);
+    end;
+end;
+
+function    Rules_GetRuleByName(const RulesList : TInterfaceList; const RuleName : WideString) : IPCB_Rule;
+var
+    Rule : IPCB_Rule;
+    R    : integer;
+begin
+    Result := nil;
+    for R := 0 to (RulesList.Count - 1) do
+    begin
+        Rule := RulesList.Items(R);
+        if Rule.Name = RuleName then
+        begin
+            Result := Rule;
+            break;
+        end;
+    end;
+end;
+
+function    Rules_GetRuleForVia(const RulesList : TInterfaceList; const Via : IPCB_Via) : IPCB_Rule;
+var
+    idx : Integer;
+begin
+    Result := Rules_GetRuleByName(RulesList, CustomRule1_Name + '_' + GetViaDrillPair(Via).Description);
+end;
+
+function    Rules_MakeViolation_Via(var Via : IPCB_Via) : IPCB_Violation;
+var
+    Violation : IPCB_Violation;
+    Rule : IPCB_Rule;
+begin
+    DebugMessage(2, 'Rules_MakeViolation_Via() called on ' + Via.Descriptor);
+
+    if not bUseCustomViolations then
+    begin
+        Result := nil;
+        //SetDRCAndAddToHighlight(Via); // called in RefreshFailedVias
+        exit;
+    end;
+
+    //if Rule.IsUnary then Violation := nil;
+    Violation := nil;
+
+    Rule := Rules_GetRuleForVia(CustomRulesList, Via);
+    if Rule = nil then exit;
+
+    //if Rule.CheckUnaryScope(Via) then Violation := Rule.ActualCheck(Via, nil); // for unary rule types
+    if Rule.CheckUnaryScope(Via) then Violation := Rule.ActualCheck(Via, Via); // for binary rule types
+
+    // if we got a violation to be created, configure it and add to the PCB
+    if Violation <> nil then
+    begin
+        ViolationList.Add(Violation);
+
+        //Violation.Name; // READ ONLY!! :(
+        //Violation.Description; // READ ONLY!! :(
+        //Violation.Layer := Layer;
+
+        Board.BeginModify;
+        //Board.AddObjectToHighlightObjectList(Via); // EXPERIMENTAL
+        Board.AddPCBObject(Violation);
+        //Board.DispatchMessage(Board.I_ObjectAddress, c_BroadCast, PCBM_BoardRegisteration, Violation.I_ObjectAddress);
+        Board.EndModify;
+
+        //Via.BeginModify;
+        //Via.DRCError := True;
+        //Via.EndModify;
+        //Via.GraphicallyInvalidate;
+        //SetDRCAndAddToHighlight(Via); // called in RefreshFailedVias
+    end;
+
+    Result := Violation;
+end;
+
+function    Rules_RuleKindToString (ARuleKind : TRuleKind) : String;
+begin
+    Result := '';
+
+    case ARuleKind Of
+        eRule_Clearance                : Result := 'Clearance';
+        eRule_ParallelSegment          : Result := 'ParallelSegment';
+        eRule_MaxMinWidth              : Result := 'Width';
+        eRule_MaxMinLength             : Result := 'Length';
+        eRule_MatchedLengths           : Result := 'MatchedLengths';
+        eRule_DaisyChainStubLength     : Result := 'StubLength';
+        eRule_PowerPlaneConnectStyle   : Result := 'PlaneConnect';
+        eRule_RoutingTopology          : Result := 'RoutingTopology';
+        eRule_RoutingPriority          : Result := 'RoutingPriority';
+        eRule_RoutingLayers            : Result := 'RoutingLayers';
+        eRule_RoutingCornerStyle       : Result := 'RoutingCorners';
+        eRule_RoutingViaStyle          : Result := 'RoutingVias';
+        eRule_PowerPlaneClearance      : Result := 'PlaneClearance';
+        eRule_SolderMaskExpansion      : Result := 'SolderMaskExpansion';
+        eRule_PasteMaskExpansion       : Result := 'PasteMaskExpansion';
+        eRule_ShortCircuit             : Result := 'ShortCircuit';
+        eRule_BrokenNets               : Result := 'UnRoutedNet';
+        eRule_ViasUnderSMD             : Result := 'ViasUnderSMD';
+        eRule_MaximumViaCount          : Result := 'MaximumViaCount';
+        eRule_MinimumAnnularRing       : Result := 'MinimumAnnularRing';
+        eRule_PolygonConnectStyle      : Result := 'PolygonConnect';
+        eRule_AcuteAngle               : Result := 'AcuteAngle';
+        eRule_ConfinementConstraint    : Result := 'RoomDefinition';
+        eRule_SMDToCorner              : Result := 'SMDToCorner';
+        eRule_ComponentClearance       : Result := 'ComponentClearance';
+        eRule_ComponentRotations       : Result := 'ComponentOrientations';
+        eRule_PermittedLayers          : Result := 'PermittedLayers';
+        eRule_NetsToIgnore             : Result := 'NetsToIgnore';
+        eRule_SignalStimulus           : Result := 'SignalStimulus';
+        eRule_Overshoot_FallingEdge    : Result := 'OvershootFalling';
+        eRule_Overshoot_RisingEdge     : Result := 'OvershootRising';
+        eRule_Undershoot_FallingEdge   : Result := 'UndershootFalling';
+        eRule_Undershoot_RisingEdge    : Result := 'UndershootRising';
+        eRule_MaxMinImpedance          : Result := 'MaxMinImpedance';
+        eRule_SignalTopValue           : Result := 'SignalTopValue';
+        eRule_SignalBaseValue          : Result := 'SignalBaseValue';
+        eRule_FlightTime_RisingEdge    : Result := 'FlightTimeRising';
+        eRule_FlightTime_FallingEdge   : Result := 'FlightTimeFalling';
+        eRule_LayerStack               : Result := 'LayerStack';
+        eRule_MaxSlope_RisingEdge      : Result := 'SlopeRising';
+        eRule_MaxSlope_FallingEdge     : Result := 'SlopeFalling';
+        eRule_SupplyNets               : Result := 'SupplyNets';
+        eRule_MaxMinHoleSize           : Result := 'HoleSize';
+        eRule_TestPointStyle           : Result := 'Testpoint';
+        eRule_TestPointUsage           : Result := 'TestPointUsage';
+        eRule_UnconnectedPin           : Result := 'UnConnectedPin';
+        eRule_SMDToPlane               : Result := 'SMDToPlane';
+        eRule_SMDNeckDown              : Result := 'SMDNeckDown';
+        eRule_LayerPair                : Result := 'LayerPairs';
+        eRule_FanoutControl            : Result := 'FanoutControl';
+        eRule_MaxMinHeight             : Result := 'Height';
+        eRule_DifferentialPairsRouting : Result := 'DiffPairsRouting';
+        eRule_HoleToHoleClearance      : Result := 'HoleToHoleClearance';
+        eRule_MinimumSolderMaskSliver  : Result := 'MinimumSolderMaskSliver';
+        eRule_SilkToSolderMaskClearance: Result := 'SilkToSolderMaskClearance';
+        eRule_SilkToSilkClearance      : Result := 'SilkToSilkClearance';
+        eRule_NetAntennae              : Result := 'NetAntennae';
+        eRule_AssyTestPointStyle       : Result := 'AssyTestPointStyle';
+        eRule_AssyTestPointUsage       : Result := 'AssyTestPointUsage';
+        eRule_SilkToBoardRegion        : Result := 'SilkToBoardRegion';
+        eRule_SMDPADEntry              : Result := 'SMDPADEntry';
+        eRule_None                     : Result := 'None';
+        eRule_ModifiedPolygon          : Result := 'ModifiedPolygon';
+        eRule_BoardOutlineClearance    : Result := 'BoardOutlineClearance';
+        eRule_BackDrilling             : Result := 'BackDrilling';
+    end;
 end;
 
 
@@ -1029,6 +1646,25 @@ procedure   SetButtonEnableStates(EnableState : Boolean);
 begin
     // Reserved for future use
     //ButtonCheckAll.Enabled                  := EnableState;
+end;
+
+
+function    SetDRCAndAddToHighlight(var Prim : IPCB_Primitive);
+begin
+    DebugMessage(2, 'SetDRCAndAddToHighlight() called on ' + Prim.Descriptor);
+
+    //if not Prim.DRCError then
+    begin
+        Prim.BeginModify;
+        Prim.DRCError := True; // WHY ISN'T THIS SETTING VIOLATION OVERLAY BY ITSELF???
+        Prim.GraphicallyInvalidate;
+        Prim.EndModify;
+        //Board.DispatchMessage(Board.I_ObjectAddress, c_BroadCast, PCBM_ViewUpdate, Prim.I_ObjectAddress); // experimental
+    end;
+
+    //Board.BeginModify;
+    Board.AddObjectToHighlightObjectList(Prim);
+    //Board.EndModify;
 end;
 
 
@@ -1146,9 +1782,10 @@ begin
         ListBoxReturnNets.Enabled := False;
     end;
 
-    // only allow changing distance before brand new check
+    // only allow changing config before brand new check
     MMmilButton.Enabled                     := EnableState;
     EditDistanceMax.Enabled                 := EnableState;
+    CheckBoxRuleViolations.Enabled          := EnableState;
 end;
 
 
@@ -1193,110 +1830,21 @@ begin
     ReturnViaCheckForm.Close;
 end; { TReturnViaCheckForm.ButtonCancelClick }
 
-
 procedure   TReturnViaCheckForm.ButtonCheckAllClick(Sender : TObject);
-var
-    i, TotalCount   : Integer;
-    ProcessedCount, ProgressInt : Integer;
-    ViaIter         : IPCB_BoardIterator;
-    CurrentVia      : IPCB_Via;
-    ReturnNetIndex  : Integer;
 begin
-    if ButtonCheckAll.Caption = 'Restart' then
-    begin
-        SetNetPickEnableStates(True);
-        ClientDeSelectAll;
-        FailedViaList.Clear;
-        FailedViaIndex := -1;
-        UpdateStatus;
-        UpdateNavButtonStates;
-        exit;
-    end;
-
-    GUI_BeginProcess;
-    try
-        ProcessedCount := 0;
-        ProgressInt := 0;
-
-        SetNetPickEnableStates(False);
-
-        ClientDeselectAll;
-
-        // Populate SignalNetList and ReturnNetList based on GUI selections
-
-        UpdateNetListsFromSelections;
-
-        UpdateDrillPairsListFromSelections;
-
-        FailedViaIndex := -1;
-        FailedViaList.Clear;
-        MessagesManager.ClearMessages;
-
-        ViaIter := Board.BoardIterator_Create;
-        ViaIter.AddFilter_ObjectSet(MkSet(eViaObject));
-        ViaIter.AddFilter_LayerSet(AllLayers);
-        ViaIter.AddFilter_Method(eProcessAll);
-
-        TotalCount := GetIteratorCount(ViaIter);
-        MyPercent_Init('Processing ' + IntToStr(TotalCount) + ' vias', TotalCount);
-
-        CurrentVia := ViaIter.FirstPCBObject;
-        while CurrentVia <> nil do
-        begin
-            if SignalNetList.IndexOf(CurrentVia.Net) >= 0 then
-            begin
-                if not HasReturnVia(CurrentVia) then
-                begin
-                    FailedViaList.Add(CurrentVia);
-                    //CurrentVia.Selected := True;
-                    //AddMessageCallback_Via(CurrentVia);
-                end;
-            end;
-
-            Inc(ProcessedCount);
-            MyPercent_Update(Format('%d of %d vias processed', [ProcessedCount, TotalCount]));
-            // throttle Messages panel updates for performance
-            if ((ProcessedCount / TotalCount) * 100) >= (ProgressInt + 1) then
-            begin
-                Inc(ProgressInt);
-                AddMessage('ReturnViaCheck Status', Format('%d of %d vias processed (%d%%)', [ProcessedCount, TotalCount, ProgressInt]));
-            end;
-
-            CurrentVia := ViaIter.NextPCBObject;
-        end;
-        Board.BoardIterator_Destroy(ViaIter);
-
-        MyPercent_Finish;
-
-        RefreshFailedVias;
-
-        //ClientZoomSelected;
-
-        //UpdateStatus;
-        //UpdateNavButtonStates;
-
-        if FailedViaList.Count > 0 then
-        begin
-            ShowWarning(IntToStr(FailedViaList.Count) + ' violating vias found');
-        end
-        else
-        begin
-            SetNetPickEnableStates(True);
-            ShowInfo('No violating vias found');
-        end;
-
-    finally
-        GUI_EndProcess;
-    end;
-
-    ConfigFile_Write(ConfigFile_GetPath);
+    Main_CheckAll;
 end; { TReturnViaCheckForm.ButtonCheckAllClick }
 
+procedure   TReturnViaCheckForm.ButtonIgnoreAreaClick(Sender : TObject);
+begin
+    IgnoreArea;
+end;
 
 procedure   TReturnViaCheckForm.ButtonIgnoreClick(Sender : TObject);
 begin
     if FailedViaIndex >= 0 then
     begin
+        Rules_ClearDRC_Via(FailedViaList[FailedViaIndex]);
         FailedViaList.Delete(FailedViaIndex);
         if FailedViaIndex >= FailedViaList.Count then Dec(FailedViaIndex);
     end;
@@ -1311,55 +1859,6 @@ begin
     UpdateStatus;
     UpdateNavButtonStates;
 end;
-
-
-procedure   TReturnViaCheckForm.ButtonIgnoreAreaClick(Sender : TObject);
-var
-    X1, X2, Y1, Y2          : TCoord;
-    ListVia, AreaVia        : IPCB_Via;
-    ListIdx                 : Integer;
-    SIter                   : IPCB_SpatialIterator;
-    SIterLeft, SIterRight   : TCoord;
-    SIterTop, SIterBot      : TCoord;
-begin
-    // The ChooseRectangleByCorners fn is an interactive function where you are prompted to choose two points on a PCB document.
-    if not (Board.ChooseRectangleByCorners( 'Choose first corner (Touching Area)', 'Choose second corner (Touching Area)', X1,Y1,X2,Y2)) then exit;
-
-    // find all vias touching this area using iterator
-    SIterLeft := Min(X1, X2);
-    SIterRight := Max(X1, X2);
-    SIterTop := Max(Y1, Y2);
-    SIterBot := Min(Y1, Y2);
-
-    SIter := Board.SpatialIterator_Create;
-    SIter.AddFilter_ObjectSet(MkSet(eViaObject));
-    SIter.AddFilter_Area(SIterLeft, SIterBot, SIterRight, SIterTop);
-
-    // Loop through vias in the spatial iterator area
-    AreaVia := SIter.FirstPCBObject;
-    while (AreaVia <> nil) do
-    begin
-        // check failed via list for this via and remove
-        for ListIdx := FailedViaList.Count - 1 downto 0 do
-        begin
-            ListVia := FailedViaList[ListIdx];
-            if AreaVia.I_ObjectAddress = ListVia.I_ObjectAddress then
-            begin
-                ListVia.Selected := False;
-                FailedViaList.Delete(ListIdx);
-                break;
-            end;
-        end;
-        AreaVia := SIter.NextPCBObject;
-    end;
-    Board.SpatialIterator_Destroy(SIter);
-
-    // update failure status and buttons
-    FailedViaIndex := Min(FailedViaIndex, FailedViaList.Count - 1);
-    UpdateStatus;
-    UpdateNavButtonStates;
-end;
-
 
 procedure   TReturnViaCheckForm.ButtonNextClick(Sender : TObject);
 begin
@@ -1376,7 +1875,6 @@ begin
     UpdateNavButtonStates;
 end;
 
-
 procedure   TReturnViaCheckForm.ButtonPreviousClick(Sender : TObject);
 begin
     if FailedViaIndex > 0 then Dec(FailedViaIndex);
@@ -1392,76 +1890,10 @@ begin
     UpdateNavButtonStates;
 end;
 
-
 procedure   TReturnViaCheckForm.ButtonRecheckClick(Sender : TObject);
-var
-    i, TotalCount   : Integer;
-    ProcessedCount, ProgressInt : Integer;
-    CurrentVia      : IPCB_Via;
 begin
-    GUI_BeginProcess;
-    try
-        ProcessedCount := 0;
-        ProgressInt := 0;
-
-        TotalCount := FailedViaList.Count;
-        MyPercent_Init('Rechecking ' + IntToStr(TotalCount) + ' vias', TotalCount);
-
-        MessagesManager.ClearMessages;
-        for i := FailedViaList.Count - 1 downto 0 do
-        begin
-            Inc(ProcessedCount);
-            MyPercent_Update(Format('%d of %d vias processed', [ProcessedCount, TotalCount]));
-            if TotalCount > 100 then
-            begin
-                // throttle Messages panel updates for performance
-                if ((ProcessedCount / TotalCount) * 100) >= (ProgressInt + 1) then
-                begin
-                    Inc(ProgressInt);
-                    AddMessage('ReturnViaCheck Status', Format('%d of %d vias processed (%d%%)', [ProcessedCount, TotalCount, ProgressInt]));
-                end;
-            end
-            else
-            begin
-                AddMessage('ReturnViaCheck Status', Format('%d of %d vias processed (%d%%)', [ProcessedCount, TotalCount, Round((ProcessedCount / TotalCount) * 100)]));
-            end;
-
-            CurrentVia := FailedViaList[i];
-            if not HasReturnVia(CurrentVia) then
-            begin
-                //AddMessageCallback_Via(CurrentVia);
-                continue;
-            end;
-
-            FailedViaIndex := -1;
-            FailedViaList.Delete(i);
-            //CurrentVia.Selected := False;
-            //CurrentVia.GraphicallyInvalidate;
-        end;
-
-        MyPercent_Finish;
-
-        RefreshFailedVias;
-
-        //if FailedViaIndex >= FailedViaList.Count then FailedViaIndex := FailedViaList.Count - 1;
-
-        //if FailedViaIndex >= 0 then
-        //begin
-            //ClientDeSelectAll;
-            //FailedViaList[FailedViaIndex].Selected := True;
-            //ClientZoomSelected;
-        //end;
-
-        //UpdateStatus;
-        //UpdateNavButtonStates;
-
-        if FailedViaList.Count > 0 then ShowWarning(IntToStr(FailedViaList.Count) + ' violating vias remain');
-
-    finally
-        GUI_EndProcess;
-    end;
+    Main_Recheck;
 end;
-
 
 procedure   TReturnViaCheckForm.ButtonZoomClick(Sender : TObject);
 begin
@@ -1472,7 +1904,6 @@ begin
         ClientZoomSelected;
     end;
 end;
-
 
 procedure   TReturnViaCheckForm.InputValueChange(Sender : TObject);
 begin
@@ -1492,12 +1923,10 @@ begin
     end;
 end; { TReturnViaCheckForm.InputValueChange }
 
-
 procedure   TReturnViaCheckForm.LabelVersionClick(Sender : TObject);
 begin
     About;
 end;
-
 
 procedure   TReturnViaCheckForm.MMmilButtonClick(Sender : TObject);
 begin
@@ -1514,6 +1943,34 @@ begin
 
 end; { TReturnViaCheckForm.MMmilButtonClick }
 
+procedure   TReturnViaCheckForm.ReturnViaCheckFormClose(Sender: TObject; var Action: TCloseAction);
+var
+    i : Integer;
+begin
+    if Assigned(FailedViaList) and (ButtonCheckAll.Caption = 'Restart') then
+    begin
+        ClientDeSelectAll;
+        ClientClearFilter;
+
+        for i := 0 to FailedViaList.Count - 1 do
+        begin
+            Rules_ClearDRC_Via(FailedViaList[i]);
+        end;
+
+        FailedViaList.Clear;
+    end;
+
+    if Assigned(CustomRulesList) and (CustomRulesList.Count > 0) then // and ConfirmNoYes('Clean up temporary DRC rules and violations?') then
+    begin
+        PCBServer.PreProcess;
+
+        Rules_CustomPostProcess;
+
+        PCBServer.PostProcess;
+
+        ShowInfo('Custom script design rules and DRC violations have been cleaned up');
+    end;
+end;
 
 procedure   TReturnViaCheckForm.ReturnViaCheckFormCreate(Sender: TObject);
 begin
@@ -1523,7 +1980,6 @@ begin
     // set AD build flag
     if (GetBuildNumberPart(Client.GetProductVersion, 0) >= 19) then IsAtLeastAD19 := True else IsAtLeastAD19 := False;
 end;
-
 
 procedure   TReturnViaCheckForm.ReturnViaCheckFormShow(Sender : TObject);
 begin
@@ -1564,12 +2020,10 @@ begin
     SetNetPickEnableStates(True);
 end; { TReturnViaCheckForm.ReturnViaCheckFormShow }
 
-
 procedure   TReturnViaCheckForm.rgSignalModeClick(Sender: TObject);
 begin
     SetNetModeSignalStates(Sender);
 end;
-
 
 procedure   TReturnViaCheckForm.rgReturnModeClick(Sender: TObject);
 begin
@@ -1845,3 +2299,4 @@ procedure   MyPercent_EndComplexOperation(dummy : Boolean = False);
 begin
     MyStatusBar_SetState(cStatusBar_ComplexOpEnd, '');
 end;
+

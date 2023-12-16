@@ -34,8 +34,15 @@ When GUI is launched, selections from previous check will be restored. Net/Class
 - Filter signal vias by net or net class
 - Filter return vias by net or net class
 - Filter return vias by Drill Pair
+### Failed Vias Added to Messages Panel
+Failed vias will be listed in Messages panel. These messages can be used to jump to specific vias.
+### Custom Violations
+- Check the `Custom Violations` box in the GUI to add (somewhat) custom violations for failed vias
+- Custom violations use the Hole To Hole violations formatting (you will see violations like "Hole To Hole Clearance Constraint: (Collision < 35 mil)...") for failing vias
+- This turns on DRC violation overlay for those vias and allows navigating them with the PCB Rules And Violations panel
+- If not used, failed vias will only be highlighted and selected
 
-### Eligible Objects
+## Eligible Objects
 Vias
 
 ## Known Issues
@@ -44,13 +51,14 @@ Vias
 - Return via drill pair eligibility is not validated i.e. user can select drill pairs that aren't _**actually**_ going to provide a return path - the script will still treat them as valid returns if they are close enough.
 
 ## Change log
-- 2023-11-22 by Ryan Rutledge : v0.10 - Initial proof of concept script and requirement musings
-- 2023-11-24 by Ryan Rutledge : v0.11 - some UI cleanup
-- 2023-11-29 by Ryan Rutledge : v0.20 - now adds message to messages panel for each failed via detected
-- 2023-11-30 by Ryan Rutledge : v0.30 - added ability to select drill pairs other than full-stack
-- 2023-12-01 by Ryan Rutledge : v0.31 - "Recheck Fails" re-selects and zooms all failed vias; harmonized messages and selection behavior between "check all" and "recheck failed"; minor UX tweaks
-- 2023-12-04 by Ryan Rutledge : v0.40 - recall selections from previous check when launching script, added progress indicators
+- 2023-12-16 by Ryan Rutledge : v0.50 - added optional custom DRC violations; now highlights failed vias; more safety checks
 - 2023-12-05 by Ryan Rutledge : v0.41 - added button to ignore all failed vias touching an area
+- 2023-12-04 by Ryan Rutledge : v0.40 - recall selections from previous check when launching script, added progress indicators
+- 2023-12-01 by Ryan Rutledge : v0.31 - "Recheck Fails" re-selects and zooms all failed vias; harmonized messages and selection behavior between "check all" and "recheck failed"; minor UX tweaks
+- 2023-11-30 by Ryan Rutledge : v0.30 - added ability to select drill pairs other than full-stack
+- 2023-11-29 by Ryan Rutledge : v0.20 - now adds message to messages panel for each failed via detected
+- 2023-11-24 by Ryan Rutledge : v0.11 - some UI cleanup
+- 2023-11-22 by Ryan Rutledge : v0.10 - Initial proof of concept script and requirement musings
 
 # INITIAL REQUIREMENTS SPEC
 ## Non-Modal GUI

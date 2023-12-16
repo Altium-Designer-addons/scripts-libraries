@@ -13,6 +13,7 @@ object ReturnViaCheckForm: TReturnViaCheckForm
   Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
+  OnClose = ReturnViaCheckFormClose
   OnCreate = ReturnViaCheckFormCreate
   OnShow = ReturnViaCheckFormShow
   PixelsPerInch = 96
@@ -411,5 +412,20 @@ object ReturnViaCheckForm: TReturnViaCheckForm
     TabOrder = 16
     TabStop = False
     OnClick = ButtonIgnoreAreaClick
+  end
+  object CheckBoxRuleViolations: TCheckBox
+    Left = 232
+    Top = 8
+    Width = 105
+    Height = 17
+    Hint = 
+      'WIP. Creates custom Hole to Hole clearance violations for naviga' +
+      'tion'
+    BiDiMode = bdRightToLeft
+    Caption = 'Custom Violations'
+    ParentBiDiMode = False
+    ParentShowHint = False
+    ShowHint = True
+    TabOrder = 17
   end
 end
