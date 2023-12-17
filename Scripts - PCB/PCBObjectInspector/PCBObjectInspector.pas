@@ -143,6 +143,7 @@ begin
                 Format('%s : %s', ['MiscFlag1',  BoolToStr(Text.MiscFlag1, True)]) + sLineBreak +
                 Format('%s : %s', ['MiscFlag2',  BoolToStr(Text.MiscFlag2, True)]) + sLineBreak +
                 Format('%s : %s', ['MiscFlag3',  BoolToStr(Text.MiscFlag3, True)]) + sLineBreak +
+                Format('%s : %s', ['MirrorFlag',  BoolToStr(Text.MirrorFlag, True)]) + sLineBreak +
                 Format('%s : %s', ['MultiLine',  BoolToStr(Text.Multiline, True)]) + sLineBreak +
                 Format('%s : %s', ['MultilineTextAutoPosition',  IntToStr(Text.MultilineTextAutoPosition)]) + sLineBreak +
                 Format('%s : %s', ['MultilineTextHeight',  CoordToDisplayStr(Text.MultilineTextHeight)]) + sLineBreak +
@@ -159,9 +160,13 @@ begin
                 Format('%s : %s', ['TTFTextWidth',  CoordToDisplayStr(Text.TTFTextWidth)]) + sLineBreak +
                 Format('%s : %s', ['TTFTextHeight',  CoordToDisplayStr(Text.TTFTextHeight)]) + sLineBreak +
                 Format('%s : %s', ['UseTTFonts',  BoolToStr(Text.UseTTFonts, True)]) + sLineBreak +
+                Format('%s : %s', ['Inverted',  BoolToStr(Text.Inverted, True)]) + sLineBreak +
+                Format('%s : %s', ['UseInvertedRectangle',  BoolToStr(Text.UseInvertedRectangle, True)]) + sLineBreak +
+                Format('%s : %s', ['WordWrap',  BoolToStr(Text.WordWrap, True)]) + sLineBreak +
                 Format('%s : %s', ['Used',  BoolToStr(Text.Used, True)]) + sLineBreak +
                 Format('%s : %s', ['UserRouted',  BoolToStr(Text.UserRouted, True)]) + sLineBreak +
                 Format('%s : %s', ['ViewableObjectID',  IntToStr(Text.ViewableObjectID)]) + sLineBreak +
+                Format('%s : %s', ['BorderSpaceType',  IntToStr(Text.BorderSpaceType)]) + sLineBreak +
                 Format('%s : %s', ['Width',  CoordToDisplayStr(Text.Width)]) + sLineBreak +
                 Format('%s : %s', ['WordWrap',  BoolToStr(Text.WordWrap, True)]) + sLineBreak
                 , 'Confirm IPCB_Text Info (partial)')
@@ -226,7 +231,7 @@ begin
             , 'Confirm IPCB_Via Info (partial)')
 end;
 
-procedure Start;
+procedure _Inspect;
 var
     idx         : Integer;
     Obj         : IPCB_ObjectClass;
@@ -246,6 +251,68 @@ begin
         end;
 
         if iDebugLevel = 0 then break;
+    end;
+end;
+
+procedure TurnOffAdvanceSnapping;
+var
+    idx         : Integer;
+    Obj         : IPCB_ObjectClass;
+begin
+    if not DocumentIsPCB then exit;
+
+    PCBServer.PreProcess;
+    try
+        for idx := 0 to Board.SelectecObjectCount - 1 do
+        begin
+            Obj := Board.SelectecObject[idx];
+            if Obj = nil then continue;
+
+            if Obj.ObjectId = eTextObject then
+            begin
+                Inspect_IPCB_Text(Obj, Obj.Descriptor + ' Before Change');
+                Obj.BeginModify;
+                Obj.AdvanceSnapping := False;
+                Obj.GraphicallyInvalidate;
+                Obj.EndModify;
+                Inspect_IPCB_Text(Obj, Obj.Descriptor + ' After Change');
+            end;
+
+            if iDebugLevel = 0 then break;
+        end;
+    finally
+        PCBServer.PostProcess;
+    end;
+end;
+
+procedure TurnOnAdvanceSnapping;
+var
+    idx         : Integer;
+    Obj         : IPCB_ObjectClass;
+begin
+    if not DocumentIsPCB then exit;
+
+    PCBServer.PreProcess;
+    try
+        for idx := 0 to Board.SelectecObjectCount - 1 do
+        begin
+            Obj := Board.SelectecObject[idx];
+            if Obj = nil then continue;
+
+            if Obj.ObjectId = eTextObject then
+            begin
+                Inspect_IPCB_Text(Obj, Obj.Descriptor + ' Before Change');
+                Obj.BeginModify;
+                Obj.AdvanceSnapping := True;
+                Obj.GraphicallyInvalidate;
+                Obj.EndModify;
+                Inspect_IPCB_Text(Obj, Obj.Descriptor + ' After Change');
+            end;
+
+            if iDebugLevel = 0 then break;
+        end;
+    finally
+        PCBServer.PostProcess;
     end;
 end;
 
