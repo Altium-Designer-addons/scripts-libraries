@@ -258,8 +258,10 @@ procedure TurnOffAdvanceSnapping;
 var
     idx         : Integer;
     Obj         : IPCB_ObjectClass;
+    bAskAbort   : Boolean;
 begin
     if not DocumentIsPCB then exit;
+    bAskAbort := True;
 
     PCBServer.PreProcess;
     try
@@ -278,7 +280,10 @@ begin
                 Inspect_IPCB_Text(Obj, Obj.Descriptor + ' After Change');
             end;
 
-            if iDebugLevel = 0 then break;
+            if (iDebugLevel = 0) and bAskAbort then
+            begin
+                If ConfirmNoYes('Inspection messages dismissed - do you want to silently continue processing remaining objects?') then break else bAskAbort := False;
+            end;
         end;
     finally
         PCBServer.PostProcess;
@@ -289,8 +294,10 @@ procedure TurnOnAdvanceSnapping;
 var
     idx         : Integer;
     Obj         : IPCB_ObjectClass;
+    bAskAbort   : Boolean;
 begin
     if not DocumentIsPCB then exit;
+    bAskAbort := True;
 
     PCBServer.PreProcess;
     try
@@ -309,7 +316,10 @@ begin
                 Inspect_IPCB_Text(Obj, Obj.Descriptor + ' After Change');
             end;
 
-            if iDebugLevel = 0 then break;
+            if (iDebugLevel = 0) and bAskAbort then
+            begin
+                If ConfirmNoYes('Inspection messages dismissed - do you want to silently continue processing remaining objects?') then break else bAskAbort := False;
+            end;
         end;
     finally
         PCBServer.PostProcess;
