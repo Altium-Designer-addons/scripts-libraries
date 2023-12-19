@@ -25,7 +25,7 @@ var
 begin
     MsgText := '"' + cScriptTitle + '" script version ' + cScriptVersion + sLineBreak +
         sLineBreak +
-        'Use "_GUI" to check for the existence of signal return vias.' + sLineBreak +
+        'Use "_Inspect" to inspect the properties of selected PcbDoc items.' + sLineBreak +
         sLineBreak +
         'Updated versions and documentation may be found here:' + sLineBreak +
         'https://github.com/Altium-Designer-addons/scripts-libraries' + sLineBreak +
