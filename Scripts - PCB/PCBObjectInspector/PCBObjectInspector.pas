@@ -1,6 +1,6 @@
 const
     cScriptTitle    = 'PCBObjectInspector';
-    cScriptVersion  = '0.11';
+    cScriptVersion  = '0.20';
     cDEBUGLEVEL     = 1;
     sLineBreak2     = sLineBreak + sLineBreak;
 
@@ -13,6 +13,20 @@ var
     sComponentKindStrings : array[0..6];
     sShapeStrings : array[0..9];
     sTextAutoposition : array[0..9];
+    sPolyHatchStyleStrings : array[0..5];
+    sPolygonPourOverStrings : array[0..2];
+    sPolygonTypeStrings : array[0..2];
+    sExtendedDrillTypeStrings : array[0..3];
+    sExtendedHoleTypeStrings : array[0..2];
+    sPlaneConnectStyleStrings : array[0..2];
+    sRegionKindStrings : array[0..4];
+    sBoardSideStrings : array[0..1];
+    sUnitStyleStrings : array[0..2];
+    sDimensionKindStrings : array[0..10];
+    sDimensionTextPositionStrings : array[0..9];
+    sDimensionUnitStrings : array[0..6];
+    sDimensionArrowPositionStrings : array[0..1];
+
 
 procedure ClientNavigate(URL : WideString);
 begin
@@ -25,7 +39,7 @@ var
 begin
     MsgText := '"' + cScriptTitle + '" script version ' + cScriptVersion + sLineBreak +
         sLineBreak +
-        'Use "_Inspect" to inspect the properties of selected PcbDoc items.' + sLineBreak +
+        'Use "_Inspect" to inspect the underlying properties of selected PcbDoc items.' + sLineBreak +
         sLineBreak +
         'Updated versions and documentation may be found here:' + sLineBreak +
         'https://github.com/Altium-Designer-addons/scripts-libraries' + sLineBreak +
@@ -96,6 +110,19 @@ begin
     sComponentKindStrings := ['eComponentKind_Standard', 'eComponentKind_Mechanical', 'eComponentKind_Graphical', 'eComponentKind_NetTie_BOM', 'eComponentKind_NetTie_NoBOM', 'eComponentKind_Standard_NoBOM', 'eComponentKind_Jumper'];
     sShapeStrings :=  ['eNoShape', 'eRounded', 'eRectangular', 'eOctagonal', 'eCircleShape', 'eArcShape', 'eTerminator', 'eRoundRectShape', 'eRotatedRectShape', 'eRoundedRectangular'];
     sTextAutoposition := ['eAutoPos_Manual', 'eAutoPos_TopLeft', 'eAutoPos_CenterLeft', 'eAutoPos_BottomLeft', 'eAutoPos_TopCenter', 'eAutoPos_CenterCenter', 'eAutoPos_BottomCenter', 'eAutoPos_TopRight', 'eAutoPos_CenterRight', 'eAutoPos_BottomRight'];
+    sPolyHatchStyleStrings = ['ePolyHatch90', 'ePolyHatch45', 'ePolyVHatch', 'ePolyHHatch', 'ePolyNoHatch', 'ePolySolid'];
+    sPolygonPourOverStrings = ['ePolygonPourOver_None', 'ePolygonPourOver_SameNet', 'ePolygonPourOver_SameNetPolygons'];
+    sPolygonTypeStrings = ['eSignalLayerPolygon', 'eSplitPlanePolygon', 'eCoverlayOutlinePolygon'];
+    sExtendedDrillTypeStrings = ['eDrilledHole', 'ePunchedHole', 'eLaserDrilledHole', 'ePlasmaDrilledHole'];
+    sExtendedHoleTypeStrings = ['eRoundHole', 'eSquareHole', 'eSlotHole'];
+    sPlaneConnectStyleStrings = ['eReliefConnectToPlane', 'eDirectConnectToPlane', 'eNoConnect'];
+    sRegionKindStrings = ['eRegionKind_Copper', 'eRegionKind_Cutout', 'eRegionKind_NamedRegion', 'eRegionKind_BoardCutout', 'eRegionKind_Cavity'];
+    sBoardSideStrings = ['eBoardSide_Top', 'eBoardSide_Bottom'];
+    sUnitStyleStrings = ['eNoUnits', 'eYesUnits', 'eParenthUnits'];
+    sDimensionKindStrings = ['eNoDimension', 'eLinearDimension', 'eAngularDimension', 'eRadialDimension', 'eLeaderDimension', 'eDatumDimension', 'eBaselineDimension', 'eCenterDimension', 'eOriginalDimension', 'eLinearDiameterDimension', 'eRadialDiameterDimension'];
+    sDimensionTextPositionStrings = ['eTextAuto', 'eTextCenter', 'eTextTop', 'eTextBottom', 'eTextRight', 'eTextLeft', 'eTextInsideRight', 'eTextInsideLeft', 'eTextUniDirectional', 'eTextManual');
+    sDimensionUnitStrings = ['eMils', 'eInches', 'eMillimeters', 'eCentimeters', 'eDegrees', 'eRadians', 'eAutomaticUnit'];
+    sDimensionArrowPositionStrings = ['eInside', 'eOutside'];
 
     // Checks if current document is a PCB kind if not, show error and return false.
     Board := PCBServer.GetCurrentPCBBoard;
@@ -145,7 +172,7 @@ end;
 procedure Inspect_IPCB_Arc(const AnArc : IPCB_Track; const MyLabel : string = '');
 begin
     DebugMessage(1, 'DEBUGGING: ' + MyLabel + sLineBreak +
-                '------------------------------' + sLineBreak +
+                '------------------------------------------------------------' + sLineBreak +
                 Format('%s : %s', ['XCenter', IntToStr(AnArc.XCenter)]) + sLineBreak +
                 Format('%s : %s', ['YCenter', IntToStr(AnArc.YCenter)]) + sLineBreak +
                 Format('%s : %s', ['Radius', IntToStr(AnArc.Radius)]) + sLineBreak +
@@ -173,7 +200,7 @@ end;
 procedure Inspect_IPCB_Component(const Comp : IPCB_Component; const MyLabel : string = '');
 begin
     DebugMessage(1, 'DEBUGGING: ' + MyLabel + sLineBreak +
-                '------------------------------' + sLineBreak +
+                '------------------------------------------------------------' + sLineBreak +
                 Format('%s : %s', ['AxisCount', IntToStr(Comp.AxisCount)]) + sLineBreak +
                 Format('%s : %s', ['ChannelOffset', IntToStr(Comp.ChannelOffset)]) + sLineBreak +
                 Format('%s : %s', ['ComponentKind:TComponentKind', sComponentKindStrings[Comp.ComponentKind]]) + sLineBreak +
@@ -224,10 +251,102 @@ begin
                 , 'Confirm IPCB_Component Info (partial)')
 end;
 
+procedure Inspect_IPCB_ComponentBody(const Obj : IPCB_ComponentBody; const MyLabel : string = '');
+begin
+    DebugMessage(1, 'DEBUGGING: ' + MyLabel + sLineBreak +
+            '------------------------------------------------------------' + sLineBreak +
+            Format('%s : %s', ['ModelHasChanged', BoolToStr(Obj.ModelHasChanged, True)]) + sLineBreak +
+            Format('%s : %s', ['StandoffHeight', IntToStr(Obj.StandoffHeight)]) + sLineBreak +
+            Format('%s : %s', ['OverallHeight', IntToStr(Obj.OverallHeight)]) + sLineBreak +
+            Format('%s : %s', ['BodyProjection:TBoardSide', sBoardSideStrings[Obj.BodyProjection]]) + sLineBreak +
+            Format('%s : %s', ['BodyColor3D', IntToStr(Obj.BodyColor3D)]) + sLineBreak +
+            Format('%s : %s', ['BodyOpacity3D', IntToStr(Obj.BodyOpacity3D)]) + sLineBreak +
+            Format('%s : %s', ['Texture', Obj.Texture]) + sLineBreak +
+            Format('%s : %s', ['TextureCenter', IntToStr(Obj.TextureCenter)]) + sLineBreak +
+            Format('%s : %s', ['TextureSize', IntToStr(Obj.TextureSize)]) + sLineBreak +
+            Format('%s : %s', ['TextureRotation', FloatToStr(Obj.TextureRotation)]) + sLineBreak +
+            Format('%s : %s', ['OverrideColor', BoolToStr(Obj.OverrideColor, True)]) + sLineBreak +
+            Format('%s : %s', ['Kind:TRegionKind', sRegionKindStrings[Obj.Kind]]) + sLineBreak +
+            Format('%s : %s', ['Name', Obj.Name]) + sLineBreak +
+            Format('%s : %s', ['HoleCount', IntToStr(Obj.HoleCount)]) + sLineBreak +
+            Format('%s : %s', ['Area', IntToStr(Obj.Area)]) + sLineBreak +
+            Format('%s : %s', ['CavityHeight', IntToStr(Obj.CavityHeight)]) + sLineBreak +
+            Format('%s : %s', ['ObjectId', sObjectIdStrings[Obj.ObjectId]]) + sLineBreak +
+            Format('%s : %s', ['Layer', IntToStr(Obj.Layer)]) + sLineBreak +
+            Format('%s : %s', ['DRCError', BoolToStr(Obj.DRCError, True)]) + sLineBreak +
+            Format('%s : %s', ['MiscFlag1', BoolToStr(Obj.MiscFlag1, True)]) + sLineBreak +
+            Format('%s : %s', ['MiscFlag2', BoolToStr(Obj.MiscFlag2, True)]) + sLineBreak +
+            Format('%s : %s', ['MiscFlag3', BoolToStr(Obj.MiscFlag3, True)]) + sLineBreak +
+            Format('%s : %s', ['EnableDraw', BoolToStr(Obj.EnableDraw, True)]) + sLineBreak +
+            Format('%s : %s', ['Moveable', BoolToStr(Obj.Moveable, True)]) + sLineBreak +
+            Format('%s : %s', ['InBoard', BoolToStr(Obj.InBoard, True)]) + sLineBreak +
+            Format('%s : %s', ['InComponent', BoolToStr(Obj.InComponent, True)]) + sLineBreak +
+            Format('%s : %s', ['ObjectIDString', Obj.ObjectIDString]) + sLineBreak +
+            Format('%s : %s', ['Identifier', Obj.Identifier]) + sLineBreak +
+            Format('%s : %s', ['Descriptor', Obj.Descriptor]) + sLineBreak +
+            Format('%s : %s', ['Detail', Obj.Detail]) + sLineBreak +
+            Format('%s : %s', ['UniqueId', Obj.UniqueId])
+            , 'Confirm IPCB_ComponentBody Info (partial)')
+end;
+
+procedure Inspect_IPCB_Dimension(const Obj : IPCB_Dimension; const MyLabel : string = '');
+begin
+    DebugMessage(1, 'DEBUGGING: ' + MyLabel + sLineBreak +
+            '------------------------------------------------------------' + sLineBreak +
+            Format('%s : %s', ['DimensionKind:TDimensionKind', sDimensionKindStrings[Obj.DimensionKind]]) + sLineBreak +
+            Format('%s : %s', ['TextX', IntToStr(Obj.TextX)]) + sLineBreak +
+            Format('%s : %s', ['TextY', IntToStr(Obj.TextY)]) + sLineBreak +
+            Format('%s : %s', ['X1Location', IntToStr(Obj.X1Location)]) + sLineBreak +
+            Format('%s : %s', ['Y1Location', IntToStr(Obj.Y1Location)]) + sLineBreak +
+            Format('%s : %s', ['Size', IntToStr(Obj.Size)]) + sLineBreak +
+            Format('%s : %s', ['LineWidth', IntToStr(Obj.LineWidth)]) + sLineBreak +
+            Format('%s : %s', ['TextHeight', IntToStr(Obj.TextHeight)]) + sLineBreak +
+            Format('%s : %s', ['TextWidth', IntToStr(Obj.TextWidth)]) + sLineBreak +
+            Format('%s : %s', ['TextLineWidth', IntToStr(Obj.TextLineWidth)]) + sLineBreak +
+            Format('%s : %s', ['TextPosition:TDimensionTextPosition', sDimensionTextPositionStrings[Obj.TextPosition]]) + sLineBreak +
+            Format('%s : %s', ['TextGap', IntToStr(Obj.TextGap)]) + sLineBreak +
+            Format('%s : %s', ['TextFormat', Obj.TextFormat]) + sLineBreak +
+            Format('%s : %s', ['TextDimensionUnit:TDimensionUnit', sDimensionUnitStrings[Obj.TextDimensionUnit]]) + sLineBreak +
+            Format('%s : %s', ['TextPrecision', IntToStr(Obj.TextPrecision)]) + sLineBreak +
+            Format('%s : %s', ['TextPrefix', Obj.TextPrefix]) + sLineBreak +
+            Format('%s : %s', ['TextSuffix', Obj.TextSuffix]) + sLineBreak +
+            Format('%s : %s', ['TextValue', FloatToStr(Obj.TextValue)]) + sLineBreak +
+            Format('%s : %s', ['ArrowSize', IntToStr(Obj.ArrowSize)]) + sLineBreak +
+            Format('%s : %s', ['ArrowLineWidth', IntToStr(Obj.ArrowLineWidth)]) + sLineBreak +
+            Format('%s : %s', ['ArrowLength', IntToStr(Obj.ArrowLength)]) + sLineBreak +
+            Format('%s : %s', ['ArrowPosition:TDimensionArrowPosition', sDimensionArrowPositionStrings[Obj.ArrowPosition]]) + sLineBreak +
+            Format('%s : %s', ['ExtensionOffset', IntToStr(Obj.ExtensionOffset)]) + sLineBreak +
+            Format('%s : %s', ['ExtensionLineWidth', IntToStr(Obj.ExtensionLineWidth)]) + sLineBreak +
+            Format('%s : %s', ['ExtensionPickGap', IntToStr(Obj.ExtensionPickGap)]) + sLineBreak +
+            Format('%s : %s', ['Style:TUnitStyle', sUnitStyleStrings[Obj.Style]]) + sLineBreak +
+            Format('%s : %s', ['References_Count', IntToStr(Obj.References_Count)]) + sLineBreak +
+            Format('%s : %s', ['UseTTFonts', BoolToStr(Obj.UseTTFonts, True)]) + sLineBreak +
+            Format('%s : %s', ['Bold', BoolToStr(Obj.Bold, True)]) + sLineBreak +
+            Format('%s : %s', ['Italic', BoolToStr(Obj.Italic, True)]) + sLineBreak +
+            Format('%s : %s', ['FontName', Obj.FontName]) + sLineBreak +
+            Format('%s : %s', ['x', IntToStr(Obj.x)]) + sLineBreak +
+            Format('%s : %s', ['y', IntToStr(Obj.y)]) + sLineBreak +
+            Format('%s : %s', ['PrimitiveLock', BoolToStr(Obj.PrimitiveLock, True)]) + sLineBreak +
+            Format('%s : %s', ['ObjectId', sObjectIdStrings[Obj.ObjectId]]) + sLineBreak +
+            Format('%s : %s', ['Layer', IntToStr(Obj.Layer)]) + sLineBreak +
+            Format('%s : %s', ['DRCError', BoolToStr(Obj.DRCError, True)]) + sLineBreak +
+            Format('%s : %s', ['MiscFlag1', BoolToStr(Obj.MiscFlag1, True)]) + sLineBreak +
+            Format('%s : %s', ['MiscFlag2', BoolToStr(Obj.MiscFlag2, True)]) + sLineBreak +
+            Format('%s : %s', ['MiscFlag3', BoolToStr(Obj.MiscFlag3, True)]) + sLineBreak +
+            Format('%s : %s', ['Moveable', BoolToStr(Obj.Moveable, True)]) + sLineBreak +
+            Format('%s : %s', ['InComponent', BoolToStr(Obj.InComponent, True)]) + sLineBreak +
+            Format('%s : %s', ['ObjectIDString', Obj.ObjectIDString]) + sLineBreak +
+            Format('%s : %s', ['Identifier', Obj.Identifier]) + sLineBreak +
+            Format('%s : %s', ['Descriptor', Obj.Descriptor]) + sLineBreak +
+            Format('%s : %s', ['Detail', Obj.Detail]) + sLineBreak +
+            Format('%s : %s', ['UniqueId', Obj.UniqueId])
+            , 'Confirm IPCB_Dimension Info (partial)')
+end;
+
 procedure Inspect_IPCB_Fill(const AFill : IPCB_Fill; const MyLabel : string = '');
 begin
     DebugMessage(1, 'DEBUGGING: ' + MyLabel + sLineBreak +
-                '------------------------------' + sLineBreak +
+                '------------------------------------------------------------' + sLineBreak +
                 Format('%s : %s', ['XLocation', IntToStr(AFill.XLocation)]) + sLineBreak +
                 Format('%s : %s', ['YLocation', IntToStr(AFill.YLocation)]) + sLineBreak +
                 Format('%s : %s', ['X1Location', IntToStr(AFill.X1Location)]) + sLineBreak +
@@ -264,7 +383,7 @@ begin
     if LayerObject = nil then exit;
     LayerInfo := GetLayerInfo(LayerObject);
     DebugMessage(1, 'DEBUGGING: ' + MyLabel + sLineBreak +
-            '------------------------------' + sLineBreak +
+            '------------------------------------------------------------' + sLineBreak +
             Format('%s : %s', ['ObjectIDString',  LayerObject.ObjectIDString]) + sLineBreak +
             LayerInfo + sLineBreak
             , 'Confirm IPCB_LayerObject Info (partial)')
@@ -281,7 +400,7 @@ begin
             Format('%s : %s', ['YPadOffsetAll', IntToStr(APad.YPadOffsetAll)]);
 
     DebugMessage(1, 'DEBUGGING: ' + MyLabel + sLineBreak +
-                '------------------------------' + sLineBreak +
+                '------------------------------------------------------------' + sLineBreak +
                 AD19DebugStr + sLineBreak +
                 Format('%s : %s', ['x', IntToStr(APad.x)]) + sLineBreak +
                 Format('%s : %s', ['y', IntToStr(APad.y)]) + sLineBreak +
@@ -304,8 +423,8 @@ begin
                 Format('%s : %s', ['OwnerPart_ID', IntToStr(APad.OwnerPart_ID)]) + sLineBreak +
                 Format('%s : %s', ['SwappedPadName', APad.SwappedPadName]) + sLineBreak +
                 Format('%s : %s', ['Plated', BoolToStr(APad.Plated, True)]) + sLineBreak +
-                Format('%s : %s', ['DrillType', IntToStr(APad.DrillType)]) + sLineBreak +
-                Format('%s : %s', ['HoleType', IntToStr(APad.HoleType)]) + sLineBreak +
+                Format('%s : %s', ['DrillType:TExtendedDrillType', sExtendedDrillTypeStrings[APad.DrillType]]) + sLineBreak +
+                Format('%s : %s', ['HoleType:TExtendedHoleType', sExtendedHoleTypeStrings[APad.HoleType]]) + sLineBreak +
                 Format('%s : %s', ['HoleWidth', IntToStr(APad.HoleWidth)]) + sLineBreak +
                 Format('%s : %s', ['HoleRotation', FloatToStr(APad.HoleRotation)]) + sLineBreak +
                 Format('%s : %s', ['JumperID', IntToStr(APad.JumperID)]) + sLineBreak +
@@ -344,6 +463,93 @@ begin
                 , 'Confirm IPCB_Pad Info (partial)')
 end;
 
+procedure Inspect_IPCB_Polygon(const Obj : IPCB_Polygon; const MyLabel : string = '');
+begin
+    DebugMessage(1, 'DEBUGGING: ' + MyLabel + sLineBreak +
+            '------------------------------------------------------------' + sLineBreak +
+            Format('%s : %s', ['AreaSize', FloatToStr(Obj.AreaSize)]) + sLineBreak +
+            Format('%s : %s', ['PolygonType:TPolygonType', sPolygonTypeStrings[Obj.PolygonType]]) + sLineBreak +
+            Format('%s : %s', ['RemoveDead', BoolToStr(Obj.RemoveDead, True)]) + sLineBreak +
+            Format('%s : %s', ['UseOctagons', BoolToStr(Obj.UseOctagons, True)]) + sLineBreak +
+            Format('%s : %s', ['AvoidObsticles', BoolToStr(Obj.AvoidObsticles, True)]) + sLineBreak +
+            Format('%s : %s', ['PourOver:TPolygonPourOver', sPolygonPourOverStrings[Obj.PourOver]]) + sLineBreak +
+            Format('%s : %s', ['Grid', IntToStr(Obj.Grid)]) + sLineBreak +
+            Format('%s : %s', ['TrackSize', IntToStr(Obj.TrackSize)]) + sLineBreak +
+            Format('%s : %s', ['MinTrack', IntToStr(Obj.MinTrack)]) + sLineBreak +
+            Format('%s : %s', ['PointCount', IntToStr(Obj.PointCount)]) + sLineBreak +
+            Format('%s : %s', ['PolyHatchStyle:TPolyHatchStyle', sPolyHatchStyleStrings[Obj.PolyHatchStyle]]) + sLineBreak +
+            Format('%s : %s', ['BorderWidth', IntToStr(Obj.BorderWidth)]) + sLineBreak +
+            Format('%s : %s', ['ExpandOutline', BoolToStr(Obj.ExpandOutline, True)]) + sLineBreak +
+            Format('%s : %s', ['RemoveIslandsByArea', BoolToStr(Obj.RemoveIslandsByArea, True)]) + sLineBreak +
+            Format('%s : %s', ['IslandAreaThreshold', FloatToStr(Obj.IslandAreaThreshold)]) + sLineBreak +
+            Format('%s : %s', ['RemoveNarrowNecks', BoolToStr(Obj.RemoveNarrowNecks, True)]) + sLineBreak +
+            Format('%s : %s', ['NeckWidthThreshold', IntToStr(Obj.NeckWidthThreshold)]) + sLineBreak +
+            Format('%s : %s', ['ClipAcuteCorners', BoolToStr(Obj.ClipAcuteCorners, True)]) + sLineBreak +
+            Format('%s : %s', ['MitreCorners', BoolToStr(Obj.MitreCorners, True)]) + sLineBreak +
+            Format('%s : %s', ['DrawRemovedNecks', BoolToStr(Obj.DrawRemovedNecks, True)]) + sLineBreak +
+            Format('%s : %s', ['DrawRemovedIslands', BoolToStr(Obj.DrawRemovedIslands, True)]) + sLineBreak +
+            Format('%s : %s', ['DrawDeadCopper', BoolToStr(Obj.DrawDeadCopper, True)]) + sLineBreak +
+            Format('%s : %s', ['ArcApproximation', IntToStr(Obj.ArcApproximation)]) + sLineBreak +
+            Format('%s : %s', ['Name', Obj.Name]) + sLineBreak +
+            Format('%s : %s', ['IgnoreViolations', BoolToStr(Obj.IgnoreViolations, True)]) + sLineBreak +
+            Format('%s : %s', ['PourIndex', IntToStr(Obj.PourIndex)]) + sLineBreak +
+            Format('%s : %s', ['Poured', BoolToStr(Obj.Poured, True)]) + sLineBreak +
+            Format('%s : %s', ['AutoGenerateName', BoolToStr(Obj.AutoGenerateName, True)]) + sLineBreak +
+            Format('%s : %s', ['ArcPourMode', BoolToStr(Obj.ArcPourMode, True)]) + sLineBreak +
+            Format('%s : %s', ['x', IntToStr(Obj.x)]) + sLineBreak +
+            Format('%s : %s', ['y', IntToStr(Obj.y)]) + sLineBreak +
+            Format('%s : %s', ['PrimitiveLock', BoolToStr(Obj.PrimitiveLock, True)]) + sLineBreak +
+            Format('%s : %s', ['ObjectId', sObjectIdStrings[Obj.ObjectId]]) + sLineBreak +
+            Format('%s : %s', ['Layer', IntToStr(Obj.Layer)]) + sLineBreak +
+            Format('%s : %s', ['DRCError', BoolToStr(Obj.DRCError, True)]) + sLineBreak +
+            Format('%s : %s', ['MiscFlag1', BoolToStr(Obj.MiscFlag1, True)]) + sLineBreak +
+            Format('%s : %s', ['MiscFlag2', BoolToStr(Obj.MiscFlag2, True)]) + sLineBreak +
+            Format('%s : %s', ['MiscFlag3', BoolToStr(Obj.MiscFlag3, True)]) + sLineBreak +
+            Format('%s : %s', ['Moveable', BoolToStr(Obj.Moveable, True)]) + sLineBreak +
+            Format('%s : %s', ['PolygonOutline', BoolToStr(Obj.PolygonOutline, True)]) + sLineBreak +
+            Format('%s : %s', ['InNet', BoolToStr(Obj.InNet, True)]) + sLineBreak +
+            Format('%s : %s', ['ObjectIDString', Obj.ObjectIDString]) + sLineBreak +
+            Format('%s : %s', ['Identifier', Obj.Identifier]) + sLineBreak +
+            Format('%s : %s', ['Descriptor', Obj.Descriptor]) + sLineBreak +
+            Format('%s : %s', ['Detail', Obj.Detail]) + sLineBreak +
+            Format('%s : %s', ['UniqueId', Obj.UniqueId])
+            , 'Confirm IPCB_Polygon Info (partial)')
+end;
+
+procedure Inspect_IPCB_Region(const Obj : IPCB_Region; const MyLabel : string = '');
+begin
+    DebugMessage(1, 'DEBUGGING: ' + MyLabel + sLineBreak +
+            '------------------------------------------------------------' + sLineBreak +
+            Format('%s : %s', ['Kind:TRegionKind', sRegionKindStrings[Obj.Kind]]) + sLineBreak +
+            Format('%s : %s', ['Name', Obj.Name]) + sLineBreak +
+            Format('%s : %s', ['HoleCount', IntToStr(Obj.HoleCount)]) + sLineBreak +
+            Format('%s : %s', ['Area', IntToStr(Obj.Area)]) + sLineBreak +
+            Format('%s : %s', ['CavityHeight', IntToStr(Obj.CavityHeight)]) + sLineBreak +
+            Format('%s : %s', ['ObjectId', sObjectIdStrings[Obj.ObjectId]]) + sLineBreak +
+            Format('%s : %s', ['Layer', IntToStr(Obj.Layer)]) + sLineBreak +
+            Format('%s : %s', ['DRCError', BoolToStr(Obj.DRCError, True)]) + sLineBreak +
+            Format('%s : %s', ['MiscFlag1', BoolToStr(Obj.MiscFlag1, True)]) + sLineBreak +
+            Format('%s : %s', ['MiscFlag2', BoolToStr(Obj.MiscFlag2, True)]) + sLineBreak +
+            Format('%s : %s', ['MiscFlag3', BoolToStr(Obj.MiscFlag3, True)]) + sLineBreak +
+            Format('%s : %s', ['Moveable', BoolToStr(Obj.Moveable, True)]) + sLineBreak +
+            Format('%s : %s', ['TearDrop', BoolToStr(Obj.TearDrop, True)]) + sLineBreak +
+            Format('%s : %s', ['IsKeepout', BoolToStr(Obj.IsKeepout, True)]) + sLineBreak +
+            Format('%s : %s', ['PolygonOutline', BoolToStr(Obj.PolygonOutline, True)]) + sLineBreak +
+            Format('%s : %s', ['InPolygon', BoolToStr(Obj.InPolygon, True)]) + sLineBreak +
+            Format('%s : %s', ['InComponent', BoolToStr(Obj.InComponent, True)]) + sLineBreak +
+            Format('%s : %s', ['InNet', BoolToStr(Obj.InNet, True)]) + sLineBreak +
+            Format('%s : %s', ['IsElectricalPrim', BoolToStr(Obj.IsElectricalPrim, True)]) + sLineBreak +
+            Format('%s : %s', ['ObjectIDString', Obj.ObjectIDString]) + sLineBreak +
+            Format('%s : %s', ['Identifier', Obj.Identifier]) + sLineBreak +
+            Format('%s : %s', ['Descriptor', Obj.Descriptor]) + sLineBreak +
+            Format('%s : %s', ['Detail', Obj.Detail]) + sLineBreak +
+            Format('%s : %s', ['PasteMaskExpansion', IntToStr(Obj.PasteMaskExpansion)]) + sLineBreak +
+            Format('%s : %s', ['SolderMaskExpansion', IntToStr(Obj.SolderMaskExpansion)]) + sLineBreak +
+            Format('%s : %s', ['UnionIndex', IntToStr(Obj.UnionIndex)]) + sLineBreak +
+            Format('%s : %s', ['UniqueId', Obj.UniqueId])
+            , 'Confirm IPCB_Region Info (partial)')
+end;
+
 procedure Inspect_IPCB_Text(const Text : IPCB_Text3; const MyLabel : string = '');
 var
     AD19DebugStr : String;
@@ -353,7 +559,7 @@ begin
             Format('%s : %s', ['SnapPointY',  CoordToDisplayY(Text.SnapPointY)]);
 
     DebugMessage(1, 'DEBUGGING: ' + MyLabel + sLineBreak +
-                '------------------------------' + sLineBreak +
+                '------------------------------------------------------------' + sLineBreak +
                 AD19DebugStr + sLineBreak +
                 Format('%s : %s', ['Moveable',  BoolToStr(Text.Moveable, True)]) + sLineBreak +
                 Format('%s : %s', ['AllowGlobalEdit',  BoolToStr(Text.AllowGlobalEdit, True)]) + sLineBreak +
@@ -399,7 +605,7 @@ end;
 procedure Inspect_IPCB_Track(const Track : IPCB_Track; const MyLabel : string = '');
 begin
     DebugMessage(1, 'DEBUGGING: ' + MyLabel + sLineBreak +
-                '------------------------------' + sLineBreak +
+                '------------------------------------------------------------' + sLineBreak +
                 Format('%s : %s', ['x1', IntToStr(Track.x1)]) + sLineBreak +
                 Format('%s : %s', ['y1', IntToStr(Track.y1)]) + sLineBreak +
                 Format('%s : %s', ['x2', IntToStr(Track.x2)]) + sLineBreak +
@@ -427,7 +633,7 @@ procedure Inspect_IPCB_Via(const ViaObj : IPCB_Via, const MyLabel : string = '')
 begin
     if ViaObj = nil then exit;
     DebugMessage(1, 'DEBUGGING: ' + MyLabel + sLineBreak +
-            '------------------------------' + sLineBreak +
+            '------------------------------------------------------------' + sLineBreak +
             Format('%s : %s', ['Mode:TPadMode', sPadModeStrings[ViaObj.Mode]]) + sLineBreak +
             Format('%s : %s', ['x', IntToStr(ViaObj.x)]) + sLineBreak +
             Format('%s : %s', ['y', IntToStr(ViaObj.y)]) + sLineBreak +
@@ -491,10 +697,10 @@ begin
             eTextObject         : Inspect_IPCB_Text(Obj);
             eFillObject         : Inspect_IPCB_Fill(Obj);
             eComponentObject    : Inspect_IPCB_Component(Obj);
-            //ePolyObject         :
-            //eRegionObject       :
-            //eComponentBodyObject:
-            //eDimensionObject    :
+            ePolyObject         : Inspect_IPCB_Polygon(Obj);
+            eRegionObject       : Inspect_IPCB_Region(Obj);
+            eComponentBodyObject: Inspect_IPCB_ComponentBody(Obj);
+            eDimensionObject    : Inspect_IPCB_Dimension(Obj);
             else DebugMessage(1, 'Script has not implemented inspector for ' + Obj.ObjectIDString);
         end;
 
