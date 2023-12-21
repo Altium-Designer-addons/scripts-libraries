@@ -110,19 +110,19 @@ begin
     sComponentKindStrings := ['eComponentKind_Standard', 'eComponentKind_Mechanical', 'eComponentKind_Graphical', 'eComponentKind_NetTie_BOM', 'eComponentKind_NetTie_NoBOM', 'eComponentKind_Standard_NoBOM', 'eComponentKind_Jumper'];
     sShapeStrings :=  ['eNoShape', 'eRounded', 'eRectangular', 'eOctagonal', 'eCircleShape', 'eArcShape', 'eTerminator', 'eRoundRectShape', 'eRotatedRectShape', 'eRoundedRectangular'];
     sTextAutoposition := ['eAutoPos_Manual', 'eAutoPos_TopLeft', 'eAutoPos_CenterLeft', 'eAutoPos_BottomLeft', 'eAutoPos_TopCenter', 'eAutoPos_CenterCenter', 'eAutoPos_BottomCenter', 'eAutoPos_TopRight', 'eAutoPos_CenterRight', 'eAutoPos_BottomRight'];
-    sPolyHatchStyleStrings = ['ePolyHatch90', 'ePolyHatch45', 'ePolyVHatch', 'ePolyHHatch', 'ePolyNoHatch', 'ePolySolid'];
-    sPolygonPourOverStrings = ['ePolygonPourOver_None', 'ePolygonPourOver_SameNet', 'ePolygonPourOver_SameNetPolygons'];
-    sPolygonTypeStrings = ['eSignalLayerPolygon', 'eSplitPlanePolygon', 'eCoverlayOutlinePolygon'];
-    sExtendedDrillTypeStrings = ['eDrilledHole', 'ePunchedHole', 'eLaserDrilledHole', 'ePlasmaDrilledHole'];
-    sExtendedHoleTypeStrings = ['eRoundHole', 'eSquareHole', 'eSlotHole'];
-    sPlaneConnectStyleStrings = ['eReliefConnectToPlane', 'eDirectConnectToPlane', 'eNoConnect'];
-    sRegionKindStrings = ['eRegionKind_Copper', 'eRegionKind_Cutout', 'eRegionKind_NamedRegion', 'eRegionKind_BoardCutout', 'eRegionKind_Cavity'];
-    sBoardSideStrings = ['eBoardSide_Top', 'eBoardSide_Bottom'];
-    sUnitStyleStrings = ['eNoUnits', 'eYesUnits', 'eParenthUnits'];
-    sDimensionKindStrings = ['eNoDimension', 'eLinearDimension', 'eAngularDimension', 'eRadialDimension', 'eLeaderDimension', 'eDatumDimension', 'eBaselineDimension', 'eCenterDimension', 'eOriginalDimension', 'eLinearDiameterDimension', 'eRadialDiameterDimension'];
-    sDimensionTextPositionStrings = ['eTextAuto', 'eTextCenter', 'eTextTop', 'eTextBottom', 'eTextRight', 'eTextLeft', 'eTextInsideRight', 'eTextInsideLeft', 'eTextUniDirectional', 'eTextManual');
-    sDimensionUnitStrings = ['eMils', 'eInches', 'eMillimeters', 'eCentimeters', 'eDegrees', 'eRadians', 'eAutomaticUnit'];
-    sDimensionArrowPositionStrings = ['eInside', 'eOutside'];
+    sPolyHatchStyleStrings := ['ePolyHatch90', 'ePolyHatch45', 'ePolyVHatch', 'ePolyHHatch', 'ePolyNoHatch', 'ePolySolid'];
+    sPolygonPourOverStrings := ['ePolygonPourOver_None', 'ePolygonPourOver_SameNet', 'ePolygonPourOver_SameNetPolygons'];
+    sPolygonTypeStrings := ['eSignalLayerPolygon', 'eSplitPlanePolygon', 'eCoverlayOutlinePolygon'];
+    sExtendedDrillTypeStrings := ['eDrilledHole', 'ePunchedHole', 'eLaserDrilledHole', 'ePlasmaDrilledHole'];
+    sExtendedHoleTypeStrings := ['eRoundHole', 'eSquareHole', 'eSlotHole'];
+    sPlaneConnectStyleStrings := ['eReliefConnectToPlane', 'eDirectConnectToPlane', 'eNoConnect'];
+    sRegionKindStrings := ['eRegionKind_Copper', 'eRegionKind_Cutout', 'eRegionKind_NamedRegion', 'eRegionKind_BoardCutout', 'eRegionKind_Cavity'];
+    sBoardSideStrings := ['eBoardSide_Top', 'eBoardSide_Bottom'];
+    sUnitStyleStrings := ['eNoUnits', 'eYesUnits', 'eParenthUnits'];
+    sDimensionKindStrings := ['eNoDimension', 'eLinearDimension', 'eAngularDimension', 'eRadialDimension', 'eLeaderDimension', 'eDatumDimension', 'eBaselineDimension', 'eCenterDimension', 'eOriginalDimension', 'eLinearDiameterDimension', 'eRadialDiameterDimension'];
+    sDimensionTextPositionStrings := ['eTextAuto', 'eTextCenter', 'eTextTop', 'eTextBottom', 'eTextRight', 'eTextLeft', 'eTextInsideRight', 'eTextInsideLeft', 'eTextUniDirectional', 'eTextManual'];
+    sDimensionUnitStrings := ['eMils', 'eInches', 'eMillimeters', 'eCentimeters', 'eDegrees', 'eRadians', 'eAutomaticUnit'];
+    sDimensionArrowPositionStrings := ['eInside', 'eOutside'];
 
     // Checks if current document is a PCB kind if not, show error and return false.
     Board := PCBServer.GetCurrentPCBBoard;
