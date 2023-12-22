@@ -9,24 +9,26 @@ var
     IsAtLeastAD19   : Boolean;
     iDebugLevel     : Integer;
     LayerStack      : IPCB_MasterLayerStack;
-    sPadModeStrings : array[0..2];
-    sObjectIdStrings : array[0..26];
-    sComponentKindStrings : array[0..6];
-    sShapeStrings : array[0..9];
-    sTextAutoposition : array[0..9];
-    sPolyHatchStyleStrings : array[0..5];
-    sPolygonPourOverStrings : array[0..2];
-    sPolygonTypeStrings : array[0..2];
-    sExtendedDrillTypeStrings : array[0..3];
-    sExtendedHoleTypeStrings : array[0..2];
-    sPlaneConnectStyleStrings : array[0..2];
-    sRegionKindStrings : array[0..4];
-    sBoardSideStrings : array[0..1];
-    sUnitStyleStrings : array[0..2];
-    sDimensionKindStrings : array[0..10];
-    sDimensionTextPositionStrings : array[0..9];
-    sDimensionUnitStrings : array[0..6];
-    sDimensionArrowPositionStrings : array[0..1];
+    sPadModeStrings                 : array[0..2];
+    sObjectIdStrings                : array[0..26];
+    sComponentKindStrings           : array[0..6];
+    sShapeStrings                   : array[0..9];
+    sTextAutoposition               : array[0..9];
+    sPolyHatchStyleStrings          : array[0..5];
+    sPolygonPourOverStrings         : array[0..2];
+    sPolygonTypeStrings             : array[0..2];
+    sExtendedDrillTypeStrings       : array[0..3];
+    sExtendedHoleTypeStrings        : array[0..2];
+    sPlaneConnectStyleStrings       : array[0..2];
+    sRegionKindStrings              : array[0..4];
+    sBoardSideStrings               : array[0..1];
+    sUnitStyleStrings               : array[0..2];
+    sDimensionKindStrings           : array[0..10];
+    sDimensionTextPositionStrings   : array[0..9];
+    sDimensionUnitStrings           : array[0..6];
+    sDimensionArrowPositionStrings  : array[0..1];
+    sLayerClassIDStrings            : array[0..9];
+    sDielectricTypeStrings          : array[0..4];
 
 
 procedure Inspect_IPCB_Polygon(const Obj : IPCB_Polygon; const MyLabel : string = ''); forward;
@@ -170,6 +172,8 @@ begin
     sDimensionTextPositionStrings := ['eTextAuto', 'eTextCenter', 'eTextTop', 'eTextBottom', 'eTextRight', 'eTextLeft', 'eTextInsideRight', 'eTextInsideLeft', 'eTextUniDirectional', 'eTextManual'];
     sDimensionUnitStrings := ['eMils', 'eInches', 'eMillimeters', 'eCentimeters', 'eDegrees', 'eRadians', 'eAutomaticUnit'];
     sDimensionArrowPositionStrings := ['eInside', 'eOutside'];
+    sLayerClassIDStrings := ['eLayerClass_All', 'eLayerClass_Mechanical', 'eLayerClass_Physical', 'eLayerClass_Electrical', 'eLayerClass_Dielectric', 'eLayerClass_Signal', 'eLayerClass_InternalPlane', 'eLayerClass_SolderMask', 'eLayerClass_Overlay', 'eLayerClass_PasteMask'];
+    sDielectricTypeStrings := ['eNoDielectric', 'eCore', 'ePrePreg', 'eSurfaceMaterial', 'eFilm'];
 
     // Checks if current document is a PCB kind if not, show error and return false.
     Board := PCBServer.GetCurrentPCBBoard;
@@ -181,6 +185,7 @@ begin
     else Result := True;
 
     LayerStack := Board.MasterLayerStack;
+    //LayerStack := Board.LayerStack_V7;
 end;
 
 function IsConnectedToLayer(PVPrim : IPCB_Primitive; Layer : TV7_Layer) : Boolean;
@@ -399,28 +404,108 @@ begin
     end;
 end;
 
-function GetLayerInfo(LayerObject : IPCB_LayerObject) : String;
+function GetLayerInfo(LayerObject : IPCB_LayerObject_V7) : String;
+var
+    DielectricObj : IPCB_DielectricObject;
 begin
+    Result := '';
     if LayerObject = nil then
     begin
         Result := 'LayerObject is nil';
         exit;
     end;
 
-    Result := 'Layer: ' + LayerObject.Name + ' (' + Layer2String(LayerObject.LayerID) + ')' + ', ' +
-            FloatToStr(LayerObject.CopperThickness / 10000) + 'mil Cu' + sLineBreak;
+    if LayerObject.LayerID = eNoLayer then DielectricObj := LayerObject else DielectricObj := nil;
 
-    if LayerObject.Dielectric.DielectricType <> eNoDielectric then
+
+    if (DielectricObj = nil) then
     begin
-        Result := Result + 'Dielectric below: ' + FloatToStr(LayerObject.Dielectric.DielectricHeight / 10000) + 'mil ' +
-                ConvertDielectricTypeTOString(LayerObject.Dielectric.DielectricType) + sLineBreak +
-                LayerObject.Dielectric.DielectricMaterial +  ', Dk=' +
-                FloatToStr(LayerObject.Dielectric.DielectricConstant);
+        Result := 'Layer: ' + LayerObject.Name + ' (' + Layer2String(LayerObject.LayerID) + ')' + sLineBreak +
+                Format('%s : %s (%s)', ['CopperThickness', IntToStr(LayerObject.CopperThickness), CoordToDisplayStr(LayerObject.CopperThickness)]);
+    end
+    else if (DielectricObj <> nil) then // else is dielectric layer
+    begin
+        Result := 'Layer : ' + DielectricObj.Name + sLineBreak +
+                Format('%s : %s', ['DielectricMaterial', DielectricObj.DielectricMaterial]) + sLineBreak +
+                Format('%s : %s', ['DielectricType:TDielectricType', sDielectricTypeStrings[DielectricObj.DielectricType]]) + sLineBreak +
+                Format('%s : %s', ['DielectricConstant', FloatToStr(DielectricObj.DielectricConstant)]) + sLineBreak +
+                Format('%s : %s (%s)', ['DielectricHeight', IntToStr(DielectricObj.DielectricHeight), CoordToDisplayStr(DielectricObj.DielectricHeight)]);
     end;
 end;
 
-function GetLayerDistance(FromLayerObj, ToLayerObj : IPCB_LayerObject) : TCoord;
+function GetLayerThickness(LayerObject : IPCB_LayerObject_V7) : TCoord;
+var
+    DielectricObj : IPCB_DielectricObject;
 begin
+    Result := 0;
+
+    if LayerObject = nil then exit;
+
+    if LayerObject.LayerID = eNoLayer then DielectricObj := LayerObject else DielectricObj := nil;
+
+    if (DielectricObj = nil) then
+    begin
+        Result := LayerObject.CopperThickness;
+    end
+    else if (DielectricObj <> nil) then // else is dielectric layer
+    begin
+        Result := DielectricObj.DielectricHeight;
+    end;
+end;
+
+function GetLayer2LayerDistance(FromLayerObj, ToLayerObj : IPCB_LayerObject_V7) : TCoord;
+var
+    LayerIdx        : Integer;
+    LayerIter       : IPCB_LayerObjectIterator;
+    CurrentLayerObj : IPCB_LayerObject_V7;
+    StartLayerObj   : IPCB_LayerObject_V7;
+    StopLayerObj    : IPCB_LayerObject_V7;
+    bStopIter       : Boolean;
+    DebugMsg        : String;
+    SummaryStr      : String;
+begin
+    Result := 0;
+    bStopIter := false;
+    DebugMsg := '';
+
+    //LayerIter := LayerStack.Iterator_2(eLayerClass_All, FromLayerObj, ToLayerObj); // don't know which order from and to layers will be in
+    LayerIter := LayerStack.Iterator; // don't know which order from and to layers will be in
+    LayerIter.SetBeforeFirst;
+
+    // roll iterator forward to the first layer
+    while LayerIter.Next do
+    begin
+        if LayerIter.LayerObject = FromLayerObj then
+        begin
+            StartLayerObj := FromLayerObj;
+            StopLayerObj := ToLayerObj;
+            break;
+        end
+        else if LayerIter.LayerObject = ToLayerObj then
+        begin
+            StartLayerObj := ToLayerObj;
+            StopLayerObj := FromLayerObj;
+            break;
+        end;
+    end;
+
+    repeat
+        CurrentLayerObj := LayerIter.LayerObject;
+        if CurrentLayerObj = nil then exit;
+        if CurrentLayerObj = StopLayerObj then bStopIter := True;
+
+        DebugMessage(2, GetLayerInfo(CurrentLayerObj));
+
+        if (CurrentLayerObj <> StartLayerObj) and (CurrentLayerObj <> StopLayerObj) then Result := Result + GetLayerThickness(CurrentLayerObj);
+
+        SummaryStr := Format('Layer = "%s"; Thickness = %s', [CurrentLayerObj.Name, CoordToDisplayStr(GetLayerThickness(CurrentLayerObj))]);
+
+        if DebugMsg = '' then DebugMsg := SummaryStr else DebugMsg := DebugMsg + sLineBreak + SummaryStr;
+
+        LayerIter.Next;
+    until bStopIter;
+
+    DebugMessage(1, DebugMsg);
 end;
 
 function VarTypeString(arg) : String;
@@ -1079,6 +1164,64 @@ begin
         end;
     finally
         PCBServer.PostProcess;
+    end;
+end;
+
+procedure MeasureThicknessBetween;
+var
+    idx         : Integer;
+    Obj, Obj2   : IPCB_ObjectClass;
+    ObjLayer, Obj2Layer : IPCB_LayerObject_V7;
+begin
+    if not DocumentIsPCB then exit;
+
+    if Board.SelectecObjectCount > 2 then
+    begin
+        ShowError('Select max 2 items');
+        exit;
+    end;
+
+    if Board.SelectecObjectCount = 1 then
+    begin
+        Obj := Board.SelectecObject[0];
+        if Obj = nil then exit;
+
+        case Obj.ObjectId of
+            ePadObject          :
+            begin
+                //Inspect_IPCB_Pad(Obj);
+                if Obj.Layer = eMultiLayer then DebugMessage(0, Format('Distance between layers %s and %s = %s', [LayerStack.FirstLayer.Name, LayerStack.LastLayer.Name, CoordToDisplayStr(GetLayer2LayerDistance(LayerStack.FirstLayer, LayerStack.LastLayer))]))
+                else DebugMessage(0, 'Not a multilayer pad. Distance is 0');
+            end
+            eViaObject          :
+            begin
+                //Inspect_IPCB_Via(Obj);
+                DebugMessage(0, Format('Distance between via start layer %s and stop layer %s = %s', [Obj.StartLayer.Name, Obj.StopLayer.Name, CoordToDisplayStr(GetLayer2LayerDistance(Obj.StartLayer, Obj.StopLayer))]));
+            end
+            else DebugMessage(1, 'Measuring thickness between start and stop layers of single item only works for multilayer pads and vias');
+        end;
+    end
+    else if Board.SelectecObjectCount = 2 then
+    begin
+        Obj := Board.SelectecObject[0];
+        Obj2 := Board.SelectecObject[1];
+
+        if (Obj.Layer = eMultiLayer) or (Obj2.Layer = eMultiLayer) then
+        begin
+            ShowError('Both measured items must not be multilayer');
+            exit;
+        end;
+
+        if Obj.Layer = Obj2.Layer then
+        begin
+            ShowError('Items are on the same layer');
+            exit;
+        end;
+
+        ObjLayer := LayerStack.LayerObject_V7(Obj.Layer);
+        Obj2Layer := LayerStack.LayerObject_V7(Obj2.Layer);
+
+        DebugMessage(0, Format('Distance between %s on layer %s and %s on layer %s = %s', [Obj.ObjectIDString, ObjLayer.Name, Obj2.ObjectIDString, Obj2Layer.Name, CoordToDisplayStr(GetLayer2LayerDistance(ObjLayer, Obj2Layer))]));
     end;
 end;
 
