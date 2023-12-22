@@ -433,6 +433,25 @@ begin
     end;
 end;
 
+function GetLayerShortInfo(LayerObject : IPCB_LayerObject_V7) : String;
+var
+    DielectricObj : IPCB_DielectricObject;
+begin
+    Result := '';
+    if LayerObject = nil then exit;
+
+    if LayerObject.LayerID = eNoLayer then DielectricObj := LayerObject else DielectricObj := nil;
+
+    if (DielectricObj = nil) then
+    begin
+        Result := Format('Layer=%s;;Type=Metal;;Thickness=%s', [LayerObject.Name, IntToStr(LayerObject.CopperThickness)]);
+    end
+    else if (DielectricObj <> nil) then // else is dielectric layer
+    begin
+        Result := Format('Layer=%s;;Type=Dielectric;;Thickness=%s', [DielectricObj.Name, IntToStr(DielectricObj.DielectricHeight)]);
+    end;
+end;
+
 function GetLayerThickness(LayerObject : IPCB_LayerObject_V7) : TCoord;
 var
     DielectricObj : IPCB_DielectricObject;
@@ -500,7 +519,61 @@ begin
 
         SummaryStr := Format('Layer = "%s"; Thickness = %s', [CurrentLayerObj.Name, CoordToDisplayStr(GetLayerThickness(CurrentLayerObj))]);
 
-        if DebugMsg = '' then DebugMsg := SummaryStr else DebugMsg := DebugMsg + sLineBreak + SummaryStr;
+        if DebugMsg <> '' then DebugMsg := DebugMsg + sLineBreak;
+        DebugMsg := DebugMsg + SummaryStr;
+
+        LayerIter.Next;
+    until bStopIter;
+
+    DebugMessage(1, DebugMsg);
+end;
+
+function GetSimpleLayerSubstackList(FromLayerObj, ToLayerObj : IPCB_LayerObject_V7) : TStringList;
+var
+    LayerIter       : IPCB_LayerObjectIterator;
+    CurrentLayerObj : IPCB_LayerObject_V7;
+    StartLayerObj   : IPCB_LayerObject_V7;
+    StopLayerObj    : IPCB_LayerObject_V7;
+    bStopIter       : Boolean;
+    DebugMsg        : String;
+    SummaryStr      : String;
+begin
+    Result := CreateObject(TStringList);
+    bStopIter := false;
+    DebugMsg := '';
+
+    LayerIter := LayerStack.Iterator;
+    LayerIter.SetBeforeFirst;
+
+    // roll iterator forward to the first layer (don't know which order from and to layers will be in)
+    while LayerIter.Next do
+    begin
+        if LayerIter.LayerObject = FromLayerObj then
+        begin
+            StartLayerObj := FromLayerObj;
+            StopLayerObj := ToLayerObj;
+            break;
+        end
+        else if LayerIter.LayerObject = ToLayerObj then
+        begin
+            StartLayerObj := ToLayerObj;
+            StopLayerObj := FromLayerObj;
+            break;
+        end;
+    end;
+
+    repeat
+        CurrentLayerObj := LayerIter.LayerObject;
+        if CurrentLayerObj = nil then exit;
+        if CurrentLayerObj = StopLayerObj then bStopIter := True;
+
+        SummaryStr := GetLayerShortInfo(CurrentLayerObj);
+        DebugMessage(2, SummaryStr);
+
+        Result.AddObject(SummaryStr, CurrentLayerObj);
+
+        if DebugMsg <> '' then DebugMsg := DebugMsg + sLineBreak;
+        DebugMsg := DebugMsg + SummaryStr;
 
         LayerIter.Next;
     until bStopIter;
@@ -1198,7 +1271,7 @@ begin
                 //Inspect_IPCB_Via(Obj);
                 DebugMessage(0, Format('Distance between via start layer %s and stop layer %s = %s', [Obj.StartLayer.Name, Obj.StopLayer.Name, CoordToDisplayStr(GetLayer2LayerDistance(Obj.StartLayer, Obj.StopLayer))]));
             end
-            else DebugMessage(1, 'Measuring thickness between start and stop layers of single item only works for multilayer pads and vias');
+            else ShowError('Measuring thickness between start and stop layers of single item only works for multilayer pads and vias');
         end;
     end
     else if Board.SelectecObjectCount = 2 then
@@ -1225,3 +1298,36 @@ begin
     end;
 end;
 
+procedure LayerStackSummary;
+var
+    idx             : Integer;
+    TotalThickness  : TCoord;
+    CurrentLayerObj : IPCB_LayerObject_V7;
+    StartLayerObj   : IPCB_LayerObject_V7;
+    StopLayerObj    : IPCB_LayerObject_V7;
+    LayerStackList  : TStringList;
+    DebugMsg        : String;
+begin
+    if not DocumentIsPCB then exit;
+
+    TotalThickness := 0;
+    DebugMsg := '';
+
+    StartLayerObj := LayerStack.FirstLayer;
+    StopLayerObj := LayerStack.LastLayer;
+
+    LayerStackList := GetSimpleLayerSubstackList(StartLayerObj, StopLayerObj);
+
+    for idx := 0 to LayerStackList.Count - 1 do
+    begin
+        CurrentLayerObj := LayerStackList.Objects[idx];
+        TotalThickness := TotalThickness + GetLayerThickness(CurrentLayerObj);
+
+        if DebugMsg <> '' then DebugMsg := DebugMsg + sLineBreak;
+        DebugMsg := DebugMsg + LayerStackList[idx]
+    end;
+
+    DebugMsg := DebugMsg + sLineBreak + '------------------------------------------------------------' + sLineBreak + 'Total Thickness (excluding soldermask): ' + CoordToDisplayStr(TotalThickness);
+
+    DebugMessage(0, DebugMsg);
+end;
