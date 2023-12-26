@@ -28,8 +28,18 @@ If you are a newcomer to Altium scripts, [please read the "how to" wiki page](ht
 Script will detect if this is not the case.
 
 ## Features
+### Stackup-Based Via Connection Checking
+- User tags Reference layers in stackup visualization
+- Each layer will have up to 2 reference layers:
+  - First reference layer will be the nearest layer tagged as REF, regardless of distance or of any intervening layers (user may have intervening layers cut away or not actually routed)
+  - Second reference layer will be the nearest layer **on the opposite side** from the first reference layer, **IF** it is within 2X the first reference layer's distance from signal layer.
+    - 2X factor is based on the fact that coupling will be dominantly to the closer layer (first reference). For an example, a 50 ohm unbalanced stripline's impedance changes by <1% when when the farther reference layer changes from 2X to 2.1X distance:
+![Stripline Impedance Calculation](ReturnViaCheck_StriplineCalc.png)
+- If connected signal layers share a single common reference layer, no via is necessary. Example: L2 is reference, L1 and L3 both only reference L2, and signal via is only connected on L1 and L3.
+- Click on `?` to see how reference layers have been interpreted based on user's REF tags and stackup thicknesses:
+![Reference Layer Assignment Info](ReturnViaCheck_REFLayerHelp1.png)
 ### Recall Previous Selections
-When GUI is launched, selections from previous check will be restored. Net/Class/Drill Pair names must match exactly else defaults will be used. Works best between checks on the same board.
+When GUI is launched, selections from previous check will be restored. Net/Class/Drill Pair/Layer names must match exactly else defaults will be used. Works best between checks on the same board.
 ### Filter Signal & Return Vias
 - Filter signal vias by net or net class
 - Filter return vias by net or net class
@@ -38,6 +48,7 @@ When GUI is launched, selections from previous check will be restored. Net/Class
 Failed vias will be listed in Messages panel. These messages can be used to jump to specific vias.
 ### Custom Violations
 - Check the `Custom Violations` box in the GUI to add (somewhat) custom violations for failed vias
+- If `Custom Violations` is **ENABLED**, via return checks will modify the PcbDoc to add and remove custom rules and violations
 - Custom violations use the Hole To Hole violations formatting (you will see violations like "Hole To Hole Clearance Constraint: (Collision < 35 mil)...") for failing vias
 - This turns on DRC violation overlay for those vias and allows navigating them with the PCB Rules And Violations panel
 - If not used, failed vias will only be highlighted and selected
@@ -48,9 +59,10 @@ Vias
 ## Known Issues
 ### Return via drill pair eligibility
 - Defaults to full-stack at start, but user can select other drill pairs in the layer stack to consider.
-- Return via drill pair eligibility is not validated i.e. user can select drill pairs that aren't _**actually**_ going to provide a return path - the script will still treat them as valid returns if they are close enough.
+- In `Drill Pairs` Via Check Mode, return via drill pair eligibility is not validated i.e. user can select drill pairs that aren't _**actually**_ going to provide a return path - the script will still treat them as valid returns if they are close enough.
 
 ## Change log
+- 2023-12-25 by Ryan Rutledge : v0.60 - new feature: optional stackup-based reference connection checking; UX polish
 - 2023-12-16 by Ryan Rutledge : v0.50 - added optional custom DRC violations; now highlights failed vias; more safety checks
 - 2023-12-05 by Ryan Rutledge : v0.41 - added button to ignore all failed vias touching an area
 - 2023-12-04 by Ryan Rutledge : v0.40 - recall selections from previous check when launching script, added progress indicators
@@ -83,14 +95,7 @@ Vias
   - [ ] vias of both types could have vias in pad without any traces wired
 - [ ] should through-hole pads be considered? I'm leaning toward no but maybe this has value?
 ## Issues to do with stackups and drill pairs
-- [ ] Return vias need to *actually* span the relevant reference plane layers
-  - [ ] Without getting into actual impedance structure definition, there are some corner cases to watch out for
-  - [ ] For an internal signal trace, return via should span layers adjacent to signal layers
-  - [ ] If reference planes are not on adjacent layers it may accept a via that doesn't span both reference planes
-  - [ ] contrived example: for a SIG1 <> SIG3 route in a SIG1-GND1-SIG2-SIG3-GND2-SIG4 stackup, a SIG1-SIG3 GND via is insufficient because it does not connect GND1 to GND2
-  - [ ] another scenario: stackup above has GND1-GND2 buried via
-  - [ ] Do we need to enumerate layers and allow tagging layers as GND references?
-  - [ ] For complex stackups, only considering full-stack vias could raise false positives (reinforces need for ability to ignore/waive detected failures)
+- [x] `Use Stackup` Via Check Mode should analyze actual via connections to verify that the used signal layers' references are connected together
 ## Dedicated list of nets to exclude?
 - [ ] Same potential multiselection problem as above (would probably only make sense to allow selecting net classes to excludes)
 ## Save states between runs

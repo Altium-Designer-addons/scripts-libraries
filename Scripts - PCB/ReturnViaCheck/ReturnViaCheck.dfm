@@ -5,7 +5,7 @@ object ReturnViaCheckForm: TReturnViaCheckForm
   BorderStyle = bsSingle
   Caption = 'ReturnViaCheck Helper Script'
   ClientHeight = 683
-  ClientWidth = 346
+  ClientWidth = 634
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -15,7 +15,11 @@ object ReturnViaCheckForm: TReturnViaCheckForm
   OldCreateOrder = False
   OnClose = ReturnViaCheckFormClose
   OnCreate = ReturnViaCheckFormCreate
+  OnMouseEnter = ReturnViaCheckFormMouseEnter
   OnShow = ReturnViaCheckFormShow
+  DesignSize = (
+    634
+    683)
   PixelsPerInch = 96
   TextHeight = 13
   object Bevel2: TBevel
@@ -146,6 +150,38 @@ object ReturnViaCheckForm: TReturnViaCheckForm
     Font.Style = [fsBold]
     ParentFont = False
     Layout = tlCenter
+  end
+  object LabelStackupMode: TLabel
+    Left = 400
+    Top = 9
+    Width = 184
+    Height = 13
+    Alignment = taCenter
+    AutoSize = False
+    Caption = 'Only applies to "Use Stackup"'
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -11
+    Font.Name = 'Tahoma'
+    Font.Style = [fsBold]
+    ParentFont = False
+    Layout = tlCenter
+  end
+  object LabelHelp: TLabel
+    Left = 576
+    Top = 6
+    Width = 24
+    Height = 18
+    Alignment = taCenter
+    AutoSize = False
+    Caption = '?'
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clBlue
+    Font.Height = -16
+    Font.Name = 'Tahoma'
+    Font.Style = [fsBold]
+    ParentFont = False
+    OnClick = LabelHelpClick
   end
   object ButtonCheckAll: TButton
     Left = 8
@@ -385,9 +421,9 @@ object ReturnViaCheckForm: TReturnViaCheckForm
     OnClick = ButtonIgnoreClick
   end
   object ListBoxDrillPairs: TListBox
-    Left = 8
+    Left = 112
     Top = 448
-    Width = 328
+    Width = 224
     Height = 96
     Hint = '"Return" via drill pairs (allows multi-select)'
     ItemHeight = 13
@@ -415,7 +451,7 @@ object ReturnViaCheckForm: TReturnViaCheckForm
   end
   object CheckBoxRuleViolations: TCheckBox
     Left = 232
-    Top = 8
+    Top = 28
     Width = 105
     Height = 17
     Hint = 
@@ -427,5 +463,74 @@ object ReturnViaCheckForm: TReturnViaCheckForm
     ParentShowHint = False
     ShowHint = True
     TabOrder = 17
+  end
+  object ScrollBoxStackup: TScrollBox
+    Left = 352
+    Top = 24
+    Width = 272
+    Height = 648
+    Anchors = [akTop, akRight]
+    BevelEdges = []
+    BevelInner = bvNone
+    BevelOuter = bvNone
+    BorderStyle = bsNone
+    DoubleBuffered = True
+    ParentDoubleBuffered = False
+    TabOrder = 18
+    OnMouseEnter = StackupScrollBoxEnterLeave
+    OnMouseLeave = StackupScrollBoxEnterLeave
+    object PaintBoxStackup: TPaintBox
+      Left = 48
+      Top = 0
+      Width = 200
+      Height = 616
+      OnMouseEnter = StackupScrollBoxEnterLeave
+      OnPaint = DrawStackup
+    end
+  end
+  object ButtonSaveStackup: TButton
+    Left = 352
+    Top = 0
+    Width = 48
+    Height = 24
+    Hint = 'Save current reference layers without requiring a new check.'
+    Caption = 'Save'
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -11
+    Font.Name = 'Tahoma'
+    Font.Style = []
+    ParentFont = False
+    ParentShowHint = False
+    ShowHint = True
+    TabOrder = 19
+    TabStop = False
+    Visible = False
+    OnClick = ButtonSaveStackupClick
+    OnMouseEnter = StackupScrollBoxEnterLeave
+  end
+  object rgViaCheckMode: TRadioGroup
+    Left = 8
+    Top = 450
+    Width = 96
+    Height = 56
+    Hint = 
+      'Use Stackup : automatically evaluate reference layer connections' +
+      ' using stackup REF tags'
+    Caption = 'Via Check Mode'
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -11
+    Font.Name = 'Tahoma'
+    Font.Style = []
+    ItemIndex = 0
+    Items.Strings = (
+      'Use Stackup'
+      'Drill Pairs')
+    ParentFont = False
+    ParentShowHint = False
+    ShowHint = True
+    TabOrder = 20
+    OnClick = rgViaCheckModeClick
   end
 end
