@@ -38,6 +38,9 @@ Script will detect if this is not the case.
 - If connected signal layers share a single common reference layer, no via is necessary. Example: L2 is reference, L1 and L3 both only reference L2, and signal via is only connected on L1 and L3.
 - Click on `?` to see how reference layers have been interpreted based on user's REF tags and stackup thicknesses:
 ![Reference Layer Assignment Info](ReturnViaCheck_REFLayerHelp1.png)
+- When a layer is considered "Connected":
+  - Via exists on that layer (has a pad larger than drill hole) and has a track, arc, region, fill, polygon, or pad connected to it
+  - Via has a plane connection on that layer
 ### Recall Previous Selections
 When GUI is launched, selections from previous check will be restored. Net/Class/Drill Pair/Layer names must match exactly else defaults will be used. Works best between checks on the same board.
 ### Filter Signal & Return Vias
