@@ -179,9 +179,11 @@ object ReturnViaCheckForm: TReturnViaCheckForm
     Font.Color = clBlue
     Font.Height = -16
     Font.Name = 'Tahoma'
-    Font.Style = [fsBold]
+    Font.Style = []
     ParentFont = False
     OnClick = LabelHelpClick
+    OnMouseEnter = LabelHelpMouseEnter
+    OnMouseLeave = LabelHelpMouseLeave
   end
   object ButtonCheckAll: TButton
     Left = 8
