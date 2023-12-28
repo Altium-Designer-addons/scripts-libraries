@@ -178,12 +178,12 @@ procedure   TReturnViaCheckForm.LabelVersionClick(Sender : TObject); forward;
 procedure   TReturnViaCheckForm.MMmilButtonClick(Sender : TObject); forward;
 procedure   TReturnViaCheckForm.ReturnViaCheckFormClose(Sender: TObject; var Action: TCloseAction); forward;
 procedure   TReturnViaCheckForm.ReturnViaCheckFormCreate(Sender: TObject); forward;
-procedure   TReturnViaCheckForm.StackupScrollBoxEnterLeave(Sender: TObject); forward;
 procedure   TReturnViaCheckForm.ReturnViaCheckFormMouseEnter(Sender: TObject); forward;
 procedure   TReturnViaCheckForm.ReturnViaCheckFormShow(Sender : TObject); forward;
-procedure   TReturnViaCheckForm.rgSignalModeClick(Sender: TObject); forward;
 procedure   TReturnViaCheckForm.rgReturnModeClick(Sender: TObject); forward;
+procedure   TReturnViaCheckForm.rgSignalModeClick(Sender: TObject); forward;
 procedure   TReturnViaCheckForm.rgViaCheckModeClick(Sender: TObject); forward;
+procedure   TReturnViaCheckForm.StackupScrollBoxEnterLeave(Sender: TObject); forward;
 procedure   TReturnViaCheckForm.UserKeyPress(Sender : TObject; var Key : Char); forward;
 procedure   UpdateConstants(dummy : Boolean = False); forward;
 procedure   UpdateStatus(const StatusString : String = ''); forward;
@@ -3192,15 +3192,6 @@ begin
     FailedViaIndex := -1;
 end;
 
-procedure   TReturnViaCheckForm.StackupScrollBoxEnterLeave(Sender: TObject);
-begin
-    // used instead of CheckBox.OnClick because can't dynamically register OnClick event, apparently
-    if (not ButtonSaveStackup.Visible) then
-    begin
-        if (RefLayerSerialString <> RefLayerControlList_ToString) then ButtonSaveStackup.Visible := True;
-    end;
-end;
-
 procedure   TReturnViaCheckForm.ReturnViaCheckFormMouseEnter(Sender: TObject);
 var
     idx : Integer;
@@ -3283,6 +3274,15 @@ end;
 procedure   TReturnViaCheckForm.rgViaCheckModeClick(Sender: TObject);
 begin
     SetNetModeSignalStates(Sender);
+end;
+
+procedure   TReturnViaCheckForm.StackupScrollBoxEnterLeave(Sender: TObject);
+begin
+    // used instead of CheckBox.OnClick because can't dynamically register OnClick event, apparently
+    if (not ButtonSaveStackup.Visible) then
+    begin
+        if (RefLayerSerialString <> RefLayerControlList_ToString) then ButtonSaveStackup.Visible := True;
+    end;
 end;
 
 { programmatically, OnKeyPress fires before OnChange event and "catches" the key press }
