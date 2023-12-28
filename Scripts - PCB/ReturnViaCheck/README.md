@@ -33,6 +33,7 @@ Script will detect if this is not the case.
 - Each layer will have up to 2 reference layers:
   - First reference layer will be the nearest layer tagged as REF, regardless of distance or of any intervening layers (user may have intervening layers cut away or not actually routed)
   - Second reference layer will be the nearest layer **on the opposite side** from the first reference layer, **IF** it is within 2X the first reference layer's distance from signal layer.
+    - 2X factor is the default value but can be configured by text-editing the configuration file (click version number in GUI to view path to config file)
     - 2X factor is based on the fact that coupling will be dominantly to the closer layer (first reference). For an example, a 50 ohm unbalanced stripline's impedance changes by <1% when when the farther reference layer changes from 2X to 2.1X distance:
 ![Stripline Impedance Calculation](ReturnViaCheck_StriplineCalc.png)
 - If connected signal layers share a single common reference layer, no via is necessary. Example: L2 is reference, L1 and L3 both only reference L2, and signal via is only connected on L1 and L3.
@@ -65,6 +66,7 @@ Vias
 - In `Drill Pairs` Via Check Mode, return via drill pair eligibility is not validated i.e. user can select drill pairs that aren't _**actually**_ going to provide a return path - the script will still treat them as valid returns if they are close enough.
 
 ## Change log
+- 2023-12-28 by Ryan Rutledge : v0.61 - made second reference distance ratio configurable in settings file; minor UX polish
 - 2023-12-25 by Ryan Rutledge : v0.60 - new feature: optional stackup-based reference connection checking; UX polish
 - 2023-12-16 by Ryan Rutledge : v0.50 - added optional custom DRC violations; now highlights failed vias; more safety checks
 - 2023-12-05 by Ryan Rutledge : v0.41 - added button to ignore all failed vias touching an area
