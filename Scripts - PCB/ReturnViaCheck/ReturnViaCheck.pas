@@ -180,9 +180,7 @@ procedure   TReturnViaCheckForm.ReturnViaCheckFormClose(Sender: TObject; var Act
 procedure   TReturnViaCheckForm.ReturnViaCheckFormCreate(Sender: TObject); forward;
 procedure   TReturnViaCheckForm.ReturnViaCheckFormMouseEnter(Sender: TObject); forward;
 procedure   TReturnViaCheckForm.ReturnViaCheckFormShow(Sender : TObject); forward;
-procedure   TReturnViaCheckForm.rgReturnModeClick(Sender: TObject); forward;
-procedure   TReturnViaCheckForm.rgSignalModeClick(Sender: TObject); forward;
-procedure   TReturnViaCheckForm.rgViaCheckModeClick(Sender: TObject); forward;
+procedure   TReturnViaCheckForm.rgModeClick(Sender: TObject); forward;
 procedure   TReturnViaCheckForm.StackupScrollBoxEnterLeave(Sender: TObject); forward;
 procedure   TReturnViaCheckForm.UserKeyPress(Sender : TObject; var Key : Char); forward;
 procedure   UpdateConstants(dummy : Boolean = False); forward;
@@ -3261,17 +3259,7 @@ begin
     SetNetPickEnableStates(True);
 end; { TReturnViaCheckForm.ReturnViaCheckFormShow }
 
-procedure   TReturnViaCheckForm.rgSignalModeClick(Sender: TObject);
-begin
-    SetNetModeSignalStates(Sender);
-end;
-
-procedure   TReturnViaCheckForm.rgReturnModeClick(Sender: TObject);
-begin
-    SetNetModeSignalStates(Sender);
-end;
-
-procedure   TReturnViaCheckForm.rgViaCheckModeClick(Sender: TObject);
+procedure   TReturnViaCheckForm.rgModeClick(Sender: TObject);
 begin
     SetNetModeSignalStates(Sender);
 end;
