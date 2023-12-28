@@ -179,9 +179,11 @@ object ReturnViaCheckForm: TReturnViaCheckForm
     Font.Color = clBlue
     Font.Height = -16
     Font.Name = 'Tahoma'
-    Font.Style = [fsBold]
+    Font.Style = []
     ParentFont = False
     OnClick = LabelHelpClick
+    OnMouseEnter = LabelHelpMouseEnter
+    OnMouseLeave = LabelHelpMouseLeave
   end
   object ButtonCheckAll: TButton
     Left = 8
@@ -215,7 +217,7 @@ object ReturnViaCheckForm: TReturnViaCheckForm
     ParentShowHint = False
     ShowHint = True
     TabOrder = 1
-    OnClick = rgReturnModeClick
+    OnClick = rgModeClick
   end
   object rgSignalMode: TRadioGroup
     Left = 8
@@ -238,7 +240,7 @@ object ReturnViaCheckForm: TReturnViaCheckForm
     ParentShowHint = False
     ShowHint = True
     TabOrder = 5
-    OnClick = rgSignalModeClick
+    OnClick = rgModeClick
   end
   object EditDistanceMax: TEdit
     Left = 112
@@ -351,7 +353,7 @@ object ReturnViaCheckForm: TReturnViaCheckForm
     Top = 640
     Width = 104
     Height = 32
-    Hint = 
+    Hint =
       'Recheck detected failed vias and remove any that now have return' +
       ' vias'
     Caption = 'Recheck Fails'
@@ -454,7 +456,7 @@ object ReturnViaCheckForm: TReturnViaCheckForm
     Top = 28
     Width = 105
     Height = 17
-    Hint = 
+    Hint =
       'WIP. Creates custom Hole to Hole clearance violations for naviga' +
       'tion'
     BiDiMode = bdRightToLeft
@@ -514,7 +516,7 @@ object ReturnViaCheckForm: TReturnViaCheckForm
     Top = 450
     Width = 96
     Height = 56
-    Hint = 
+    Hint =
       'Use Stackup : automatically evaluate reference layer connections' +
       ' using stackup REF tags'
     Caption = 'Via Check Mode'
@@ -531,6 +533,6 @@ object ReturnViaCheckForm: TReturnViaCheckForm
     ParentShowHint = False
     ShowHint = True
     TabOrder = 20
-    OnClick = rgViaCheckModeClick
+    OnClick = rgModeClick
   end
 end
