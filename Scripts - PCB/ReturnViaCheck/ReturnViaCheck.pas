@@ -8,12 +8,13 @@
 const
     cScriptTitle            = 'ReturnViaCheck'; // modified from AssemblyTextPrep script
     cConfigFileName         = 'ReturnViaCheckConfig.ini';
-    cScriptVersion          = '0.60';
+    cScriptVersion          = '0.61';
     CustomRule1_Name        = 'ScriptRule_ReturnViaCheck';
     CustomRule1_Kind        = eRule_HoleToHoleClearance;
     //CustomRule1_Kind        = eRule_RoutingViaStyle; // eRule_RoutingViaStyle has really ugly description for this
     cDEBUGLEVEL             = 0;
     DEBUGEXPANSION          = -1; // leave at -1 to disable
+    cREF_RATIO              = 2; // default second reference layer distance as ratio of first ref distance
     //status bar commands
     cStatusBar_Panel1               =  1;
     cStatusBar_Panel2               =  2;
@@ -54,6 +55,7 @@ var
     bRunOnceFlag            : Boolean;
     bUseStackupChecking     : Boolean;
     VIADISTANCEMAX          : TCoord;
+    REF_RATIO               : Double;
     FailedViaIndex          : Integer;
     FailedViaList           : TInterfaceList;
     ReturnNetList           : TInterfaceList;
@@ -170,16 +172,18 @@ procedure   TReturnViaCheckForm.ButtonSaveStackupClick(Sender: TObject); forward
 procedure   TReturnViaCheckForm.ButtonZoomClick(Sender : TObject); forward;
 procedure   TReturnViaCheckForm.InputValueChange(Sender : TObject); forward;
 procedure   TReturnViaCheckForm.LabelHelpClick(Sender: TObject); forward;
+procedure   TReturnViaCheckForm.LabelHelpMouseEnter(Sender: TObject); forward;
+procedure   TReturnViaCheckForm.LabelHelpMouseLeave(Sender: TObject); forward;
 procedure   TReturnViaCheckForm.LabelVersionClick(Sender : TObject); forward;
 procedure   TReturnViaCheckForm.MMmilButtonClick(Sender : TObject); forward;
 procedure   TReturnViaCheckForm.ReturnViaCheckFormClose(Sender: TObject; var Action: TCloseAction); forward;
 procedure   TReturnViaCheckForm.ReturnViaCheckFormCreate(Sender: TObject); forward;
+procedure   TReturnViaCheckForm.StackupScrollBoxEnterLeave(Sender: TObject); forward;
 procedure   TReturnViaCheckForm.ReturnViaCheckFormMouseEnter(Sender: TObject); forward;
 procedure   TReturnViaCheckForm.ReturnViaCheckFormShow(Sender : TObject); forward;
 procedure   TReturnViaCheckForm.rgSignalModeClick(Sender: TObject); forward;
 procedure   TReturnViaCheckForm.rgReturnModeClick(Sender: TObject); forward;
 procedure   TReturnViaCheckForm.rgViaCheckModeClick(Sender: TObject); forward;
-procedure   TReturnViaCheckForm.StackupScrollBoxEnterLeave(Sender: TObject); forward;
 procedure   TReturnViaCheckForm.UserKeyPress(Sender : TObject; var Key : Char); forward;
 procedure   UpdateConstants(dummy : Boolean = False); forward;
 procedure   UpdateStatus(const StatusString : String = ''); forward;
@@ -637,32 +641,44 @@ begin
         TempList := ParseDelimitedString(TempString);
         if TempList.Count > 0 then SelectListBoxItems(ListBoxDrillPairs, TempList);
 
+        TempString := IniFile.ReadString('Hidden Settings', 'Second Reference Distance Ratio', FloatToStr(cREF_RATIO));
+        if IsStringANum(TempString) then REF_RATIO := StrToFloat(TempString) else REF_RATIO := cREF_RATIO;
+
         RefLayerSerialString := IniFile.ReadString('Last Used', 'Reference Layers', '');
-
-        if iDebugLevel > 0 then
-        begin
-            SettingsDebugList := CreateObject(TStringList);
-
-            if FileExists(AFileName) then
-            begin
-                SettingsDebugList.LoadFromFile(AFileName);
-                ConfigDebugCaption := 'Confirm Settings read from file';
-                SettingsDebugList.Insert(0, AFileName);
-                DebugMessage(1, SettingsDebugList.Text, ConfigDebugCaption);
-            end
-            else DebugMessage(1, 'No settings file located. Defaults used.');
-
-            SettingsDebugFile := ChangeFileExt(ConfigFile_GetPath,'.ini') + '_debug.ini';
-            ConfigFile_Write(SettingsDebugFile);
-            SettingsDebugList.LoadFromFile(SettingsDebugFile);
-            DeleteFile(SettingsDebugFile);
-
-            ConfigDebugCaption := 'Confirm Settings used in operation';
-            DebugMessage(1, SettingsDebugList.Text, ConfigDebugCaption);
-        end;
     finally
         IniFile.Free;
     end;
+
+    if iDebugLevel > 0 then
+    begin
+        SettingsDebugList := CreateObject(TStringList);
+
+        if FileExists(AFileName) then
+        begin
+            SettingsDebugList.LoadFromFile(AFileName);
+            ConfigDebugCaption := 'Confirm Settings read from file';
+            SettingsDebugList.Insert(0, AFileName);
+            DebugMessage(1, SettingsDebugList.Text, ConfigDebugCaption);
+        end
+        else DebugMessage(1, 'No settings file located. Defaults used.');
+
+        SettingsDebugFile := ChangeFileExt(ConfigFile_GetPath,'.ini') + '_debug.ini';
+        ConfigFile_Write(SettingsDebugFile);
+        SettingsDebugList.LoadFromFile(SettingsDebugFile);
+        DeleteFile(SettingsDebugFile);
+
+        ConfigDebugCaption := 'Confirm Settings used in operation';
+        DebugMessage(1, SettingsDebugList.Text, ConfigDebugCaption);
+    end;
+
+    if REF_RATIO <= 1.0 then // 1.0 implies second reference layer must be exactly same distance as first ref layer (can't be <1 else second ref is impossible)
+    begin // restore to default value
+        REF_RATIO := cREF_RATIO;
+        ShowWarning('Second Reference distance ratio can''t be less than 1.0 else second ref is unsolveable.' + sLineBreak +
+                    'Default value of ' + FloatToStr(cREF_RATIO) + ' has been restored.'
+                    , 'Invalid value used for Second Reference Distance Ratio');
+    end;
+
 end;
 
 procedure   ConfigFile_Write(AFileName : String);
@@ -699,6 +715,10 @@ begin
         IniFile.WriteInteger('Last Used', 'Signal Net Filter Mode', rgSignalMode.ItemIndex);
         IniFile.WriteInteger('Last Used', 'Return Net Filter Mode', rgReturnMode.ItemIndex);
         IniFile.WriteInteger('Last Used', 'Via Check Mode', rgViaCheckMode.ItemIndex);
+
+        IniFile.WriteString('Hidden Settings', 'Warning', 'Second Reference distance ratio default is 2. See documentation for explanation.');
+        IniFile.WriteString('Hidden Settings', 'Second Reference Distance Ratio', FloatToStr(REF_RATIO));
+
     finally
         IniFile.Free;
         ButtonSaveStackup.Visible := False;
@@ -2235,7 +2255,8 @@ begin
 
         FirstDistance := GetLayer2LayerDistance(ThisLayerObject, FirstRefObject); // get distance to first reference layer
 
-        FirstRefIdx := RefLayerControlList.IndexOf(FirstRefObject.I_ObjectAddress); // get index of first reference for this layer, for figuring out which side we're on
+        // need to limit search to opposite side of signal layer from first reference layer
+        FirstRefIdx := RefLayerControlList.IndexOf(FirstRefObject.I_ObjectAddress);
         if FirstRefIdx < ThisIdx then // first ref was before current layer
         begin
             OtherStartIdx := ThisIdx + 1;   // layer after this one
@@ -2257,9 +2278,9 @@ begin
 
             Distance := GetLayer2LayerDistance(ThisLayerObject, OtherLayerObject);
 
-            // MAGIC NUMBER ALERT! Initially I'm only counting a second layer as a reference layer if it is within 2x the distance to the first reference layer i.e. still reasonably coupled.
-            // Once distance to second reference layer is greater than 2x, first reference layer will dominate. This value may warrant some tuning, or made a hidden setting.
-            if Distance > (FirstDistance * 2) then continue; // don't consider layer as second reference if more than 2x the first reference
+            // MAGIC NUMBER ALERT! Initially I'm only counting a second layer as a reference layer if it is within 2x (default value) the distance to the first reference layer i.e. still reasonably coupled.
+            // Once distance to second reference layer is greater than 2x, first reference layer will dominate. See script documentation on Github for detailed explanation.
+            if Distance > (FirstDistance * REF_RATIO) then continue; // don't consider layer as second reference if more than REF_RATIO X the first reference distance
 
             // if approaching, will latch closest ref layer before signal layer. if leaving, will latch closest ref layer after signal layer
             if Distance < MinDistance then
@@ -3088,9 +3109,9 @@ begin
         RefLayerList_CompileFirst;
         RefLayerList_CompileSecond;
         MessageStr :=   'In Via Check Mode: "Use Stackup", First Ref layer is the closest REF' + sLineBreak +
-                        'layer, regardless of actual distance or non-REF layers between.' + sLineBreak2 +
-                        'Second Ref layer is closest REF layer on opposite side ofsignal layer, as' +sLineBreak +
-                        'long as second layer is within 2X the distance of the First Ref Layer.' + sLineBreak2 +
+                        'layer, regardless of actual distance or non-REF layers between them.' + sLineBreak2 +
+                        'Second Ref layer is closest REF layer on opposite side of signal layer, as' +sLineBreak +
+                        'long as second layer is within ' + FloatToStr(REF_RATIO) + 'X the distance of the First Ref layer.' + sLineBreak2 +
                         RefLayerList_Debug;
         ShowInfo(MessageStr, 'Information : Reference Layer Assignments');
     end
@@ -3101,6 +3122,16 @@ begin
                 'In Via Check Mode: "Drill Pairs", stackup is ignored.'
                 , 'Information : Using Stackup Reference Tags');
     end;
+end;
+
+procedure   TReturnViaCheckForm.LabelHelpMouseEnter(Sender: TObject);
+begin
+    Sender.Font.Style := MkSet(fsBold, fsUnderline);
+end;
+
+procedure   TReturnViaCheckForm.LabelHelpMouseLeave(Sender: TObject);
+begin
+    Sender.Font.Style := 0;
 end;
 
 procedure   TReturnViaCheckForm.LabelVersionClick(Sender : TObject);
