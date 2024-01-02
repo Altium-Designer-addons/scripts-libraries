@@ -66,6 +66,7 @@ Vias
 - In `Drill Pairs` Via Check Mode, return via drill pair eligibility is not validated i.e. user can select drill pairs that aren't _**actually**_ going to provide a return path - the script will still treat them as valid returns if they are close enough.
 
 ## Change log
+- 2024-01-02 by Ryan Rutledge : v0.70 - changed config settings to remember last 10 board stackup reference layer assignments (by file name); fixed stackup getting slightly cut off
 - 2023-12-28 by Ryan Rutledge : v0.61 - made second reference distance ratio configurable in settings file; minor UX polish
 - 2023-12-25 by Ryan Rutledge : v0.60 - new feature: optional stackup-based reference connection checking; UX polish
 - 2023-12-16 by Ryan Rutledge : v0.50 - added optional custom DRC violations; now highlights failed vias; more safety checks
@@ -95,9 +96,7 @@ Vias
 - [x] Option to filter return vias by Drill Pair
 - [x] Multiselection only for net classes because of likelihood of huge count of individual nets
 - [x] Selected return nets are ignored
-- [ ] Ignore any vias without a trace wired up to them?
-  - [ ] return vias can have traces wired up to them
-  - [ ] vias of both types could have vias in pad without any traces wired
+- [x] Ignore unconnected via layers
 - [ ] should through-hole pads be considered? I'm leaning toward no but maybe this has value?
 ## Issues to do with stackups and drill pairs
 - [x] `Use Stackup` Via Check Mode should analyze actual via connections to verify that the used signal layers' references are connected together
@@ -106,7 +105,7 @@ Vias
 ## Save states between runs
 - [x] Lists of nets/classes could be challenging - looks for exact match from last check
 - [x] Needs to not break if netlist changes (eg. with different board or just a netlist change) - will only restore if all saved values exist
-- [ ] Would be nice to save state for a few "recent" boards, but probably not worth implementation effort
+- [x] Would be nice to save state for a few "recent" boards
 ## Buttons to Check All, Recheck, and Clear Results
 - [x] Check All button: checks all vias. After clicking, selected filter settings are locked until clear results button is used
 - [x] Recheck button: (for performance reasons) only repeats check on vias in failed via list. If any now pass, list will be updated
