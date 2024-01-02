@@ -8,7 +8,7 @@
 const
     cScriptTitle            = 'ReturnViaCheck'; // modified from AssemblyTextPrep script
     cConfigFileName         = 'ReturnViaCheckConfig.ini';
-    cScriptVersion          = '0.61';
+    cScriptVersion          = '0.70';
     CustomRule1_Name        = 'ScriptRule_ReturnViaCheck';
     CustomRule1_Kind        = eRule_HoleToHoleClearance;
     //CustomRule1_Kind        = eRule_RoutingViaStyle; // eRule_RoutingViaStyle has really ugly description for this
@@ -86,8 +86,10 @@ procedure   ClientZoomRedraw(dummy : Boolean = False); forward;
 procedure   ClientZoomSelected(dummy : Boolean = False); forward;
 function    ConfigFile_GetPath(dummy : String = '') : String; forward;
 procedure   ConfigFile_Read(AFileName : String); forward;
+function    ConfigFile_ReadHistory(AFileName : String) : String; forward;
+procedure   ConfigFile_Update(ConfigFile : TIniFile; DeleteOldKeys : Boolean = False); forward;
 procedure   ConfigFile_Write(AFileName : String); forward;
-procedure   ConfigFile_WriteStackup(AFileName : String); forward;
+procedure   ConfigFile_WriteHistory(AFileName : String); forward;
 function    CoordToStr(Coords : TCoord) : String; forward;
 function    CoordToX(Coords : TCoord) : String; forward;
 function    CoordToY(Coords : TCoord) : String; forward;
@@ -606,6 +608,9 @@ var
 begin
     IniFile := TIniFile.Create(AFileName);
     try
+        RefLayerSerialString := '';
+        ConfigFile_Update(IniFile, False); // call separate function to handle any changes to key names for backward compatibility (will update RefLayerSerialString if old key exists, but old key isn't removed until new keys are saved)
+
         ReturnViaCheckForm.Top := IniFile.ReadInteger('Window Position', 'Top', ReturnViaCheckForm.Top);
         ReturnViaCheckForm.Left := IniFile.ReadInteger('Window Position', 'Left', ReturnViaCheckForm.Left);
 
@@ -642,10 +647,12 @@ begin
         TempString := IniFile.ReadString('Hidden Settings', 'Second Reference Distance Ratio', FloatToStr(cREF_RATIO));
         if IsStringANum(TempString) then REF_RATIO := StrToFloat(TempString) else REF_RATIO := cREF_RATIO;
 
-        RefLayerSerialString := IniFile.ReadString('Last Used', 'Reference Layers', '');
+        //RefLayerSerialString := IniFile.ReadString('Last Used', 'Reference Layers', '');
     finally
         IniFile.Free;
     end;
+
+    if RefLayerSerialString = '' then RefLayerSerialString := ConfigFile_ReadHistory(AFileName); // if RefLayerSerialString isn't blank, then value was pulled from old key
 
     if iDebugLevel > 0 then
     begin
@@ -679,6 +686,55 @@ begin
 
 end;
 
+function    ConfigFile_ReadHistory(AFileName : String) : String;
+var
+    IniFile                 : TIniFile;
+    Idx                     : Integer;
+    TempBoardName           : String;
+    ThisBoardName           : String;
+begin
+    Result := '';
+
+    IniFile := TIniFile.Create(AFileName);
+    try
+        ThisBoardName := Board.FileName;
+
+        // read board names until match is found, then return that match's Layers value
+        for Idx := 0 to 9 do
+        begin
+            TempBoardName := IniFile.ReadString('Recent Boards', 'Board' + IntToStr(Idx) + ' File Name', '');
+            if TempBoardName = ThisBoardName then
+            begin
+                Result := IniFile.ReadString('Recent Boards', 'Board' + IntToStr(Idx) + ' Layers', '');
+                break;
+            end;
+        end;
+
+    finally
+        IniFile.Free;
+    end;
+end;
+
+procedure   ConfigFile_Update(ConfigFile : TIniFile; DeleteOldKeys : Boolean = False);
+var
+    IniSection, OldSetting, NewSetting, SettingValue : String;
+begin
+    // v0.70 changed from saving last-used layers to saving revolving history of recent boards
+    begin
+        IniSection := 'Last Used';
+        OldSetting := 'Reference Layers';
+        //NewSetting := 'Pad & Via Clearance';
+        if ConfigFile.ValueExists(IniSection, OldSetting) then
+        begin
+            //SettingValue := ConfigFile.ReadString(IniSection, OldSetting, ''); // read the old setting
+            //ConfigFile.WriteString(IniSection, NewSetting, SettingValue); // write the new key
+            RefLayerSerialString := ConfigFile.ReadString(IniSection, OldSetting, ''); // read the old setting
+            if DeleteOldKeys then ConfigFile.DeleteKey(IniSection, OldSetting); // delete the old key
+        end;
+
+    end;
+end;
+
 procedure   ConfigFile_Write(AFileName : String);
 var
     IniFile     : TIniFile;
@@ -707,8 +763,8 @@ begin
         IniFile.WriteString('Last Used', 'Return Net Classes', GetDelimitedListBoxSelections(ListBoxReturnNets));
         IniFile.WriteString('Last Used', 'Drill Pairs', GetDelimitedListBoxSelections(ListBoxDrillPairs));
 
-        RefLayerSerialString := RefLayerControlList_ToString;
-        IniFile.WriteString('Last Used', 'Reference Layers', RefLayerSerialString);
+        //RefLayerSerialString := RefLayerControlList_ToString;
+        //IniFile.WriteString('Last Used', 'Reference Layers', RefLayerSerialString);
 
         IniFile.WriteInteger('Last Used', 'Signal Net Filter Mode', rgSignalMode.ItemIndex);
         IniFile.WriteInteger('Last Used', 'Return Net Filter Mode', rgReturnMode.ItemIndex);
@@ -719,20 +775,62 @@ begin
 
     finally
         IniFile.Free;
-        ButtonSaveStackup.Visible := False;
-        if PaintBoxStackup.Enabled then LabelStackupMode.Caption := '';
+        //ButtonSaveStackup.Visible := False;
+        //if PaintBoxStackup.Enabled then LabelStackupMode.Caption := '';
     end;
+
+    ConfigFile_WriteHistory(AFileName);
 end;
 
-
-procedure   ConfigFile_WriteStackup(AFileName : String);
+procedure   ConfigFile_WriteHistory(AFileName : String);
 var
-    IniFile     : TIniFile;
+    IniFile                 : TIniFile;
+    Idx, MatchIdx           : Integer;
+    TempBoardName           : String;
+    TempBoardSerialString   : String;
+    ThisBoardName           : String;
+    ThisBoardSerialString   : String;
+    HistoryList             : TStringList;
 begin
+    HistoryList := CreateObject(TStringList);
+
     IniFile := TIniFile.Create(AFileName);
     try
+        ConfigFile_Update(IniFile, True); // run inifile upgrade procedure with delete old keys = true because we're about to save new keys
+        // INFO: old key isn't deleted until saving new ones else the user might cancel before saving new keys, but now old key is gone forever
+
+        ThisBoardName := Board.FileName;
         RefLayerSerialString := RefLayerControlList_ToString;
-        IniFile.WriteString('Last Used', 'Reference Layers', RefLayerSerialString);
+        ThisBoardSerialString := RefLayerSerialString;
+
+        MatchIdx := -1;
+        for Idx := 0 to 9 do
+        begin
+            TempBoardName           := IniFile.ReadString('Recent Boards', 'Board' + IntToStr(Idx) + ' File Name', '');
+            TempBoardSerialString   := IniFile.ReadString('Recent Boards', 'Board' + IntToStr(Idx) + ' Layers', '');
+            if TempBoardName = ThisBoardName then MatchIdx := Idx;
+            HistoryList.Add(TempBoardName + '=' + TempBoardSerialString);
+        end;
+
+        // HistoryList now contains up to 10 entries, if MatchIdx >= 0 then pop and insert new entry at 0, else just insert new at 0
+        if MatchIdx >= 0 then
+        begin
+            HistoryList.Delete(MatchIdx); // delete matching element
+            HistoryList.Insert(0, ThisBoardName + '=' + ThisBoardSerialString);
+        end
+        else
+        begin
+            HistoryList.Delete(HistoryList.Count - 1); // delete last element
+            HistoryList.Insert(0, ThisBoardName + '=' + ThisBoardSerialString);
+        end;
+
+        // write out updated values
+        for Idx := 0 to HistoryList.Count - 1 do
+        begin
+            IniFile.WriteString('Recent Boards', 'Board' + IntToStr(Idx) + ' File Name', HistoryList.Names[Idx]);
+            IniFile.WriteString('Recent Boards', 'Board' + IntToStr(Idx) + ' Layers', HistoryList.ValueFromIndex[Idx]);
+        end;
+
     finally
         IniFile.Free;
         ButtonSaveStackup.Visible := False;
@@ -1550,7 +1648,7 @@ begin
     DebugMessage(2, DebugMsg);
 
     // Adjust PaintBox height to fit all layers
-    PaintBox.Height := TotalHeight + (LayerStackList.Count - 1) * 2; // including gaps
+    PaintBox.Height := PadY + TotalHeight + (LayerStackList.Count - 1) * 2; // including gaps
 end;
 
 procedure   LayerStackSummary;
@@ -3067,7 +3165,7 @@ end;
 
 procedure   TReturnViaCheckForm.ButtonSaveStackupClick(Sender: TObject);
 begin
-    ConfigFile_WriteStackup(ConfigFile_GetPath);
+    ConfigFile_WriteHistory(ConfigFile_GetPath);
 end;
 
 procedure   TReturnViaCheckForm.ButtonZoomClick(Sender : TObject);
