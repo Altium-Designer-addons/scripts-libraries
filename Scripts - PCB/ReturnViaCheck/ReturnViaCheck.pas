@@ -8,7 +8,7 @@
 const
     cScriptTitle            = 'ReturnViaCheck'; // modified from AssemblyTextPrep script
     cConfigFileName         = 'ReturnViaCheckConfig.ini';
-    cScriptVersion          = '0.70';
+    cScriptVersion          = '0.71';
     CustomRule1_Name        = 'ScriptRule_ReturnViaCheck';
     CustomRule1_Kind        = eRule_HoleToHoleClearance;
     //CustomRule1_Kind        = eRule_RoutingViaStyle; // eRule_RoutingViaStyle has really ugly description for this
@@ -1797,6 +1797,8 @@ begin
     ViaList := CreateObject(TInterfaceList);
     ViaList := GetNearbyVias(SignalVia);
 
+    //if (ViaList.Count > 0) and (SignalVia.Net.Name = 'CS-Y1') then DebugMessage(0, ConnectedLayers_GetListString(SignalVia));
+
     // first check if all connected layers share a single reference layer (no via is needed)
     if bUseStackupChecking then
     begin
@@ -1806,7 +1808,13 @@ begin
         for i := 0 to SignalLayerList.Count - 1 do
         begin
             SigLayer := SignalLayerList[i];
-            if RefLayerList_GetSecond(SigLayer) <> nil then break; // if there is a second reference layer at any point, via must be used
+
+            // if there is a second reference layer at any point, via must be used
+            if RefLayerList_GetSecond(SigLayer) <> nil then
+            begin
+                RefLayerCount := 2;
+                break;
+            end;
 
             // get first ref layer found
             if RefLayerCount = 0 then
@@ -2034,7 +2042,7 @@ begin
                 for RtnIdx := 0 to ReturnLayerList.Count - 1 do
                 begin
                     RtnLayer := ReturnLayerList[RtnIdx];
-                    if FirstRefLayer.I_ObjectAddress = RtnLayer.I_ObjectAddress then
+                    if SecondRefLayer.I_ObjectAddress = RtnLayer.I_ObjectAddress then
                     begin
                         bNotConnected := False;
                         break;
