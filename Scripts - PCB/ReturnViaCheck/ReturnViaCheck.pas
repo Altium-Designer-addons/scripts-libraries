@@ -8,7 +8,7 @@
 const
     cScriptTitle            = 'ReturnViaCheck'; // modified from AssemblyTextPrep script
     cConfigFileName         = 'ReturnViaCheckConfig.ini';
-    cScriptVersion          = '0.71';
+    cScriptVersion          = '0.72';
     CustomRule1_Name        = 'ScriptRule_ReturnViaCheck';
     CustomRule1_Kind        = eRule_HoleToHoleClearance;
     //CustomRule1_Kind        = eRule_RoutingViaStyle; // eRule_RoutingViaStyle has really ugly description for this
@@ -142,6 +142,7 @@ function    RefLayerControlList_FromString(SerialString : String) : Boolean; for
 procedure   RefLayerList_CompileFirst(dummy : Integer = 0); forward;
 procedure   RefLayerList_CompileSecond(dummy : Integer = 0); forward;
 function    RefLayerList_Debug(dummy : Integer = 0) : String; forward;
+function    RefLayerList_DebugWithGaps(SignalLayerObject, FirstRefObject, SecondRefObject : IPCB_LayerObject_V7) : String; forward;
 function    RefLayerList_GetFirst(LayerObject : IPCB_LayerObject_V7) : IPCB_LayerObject_V7; forward;
 function    RefLayerList_GetSecond(LayerObject : IPCB_LayerObject_V7) : IPCB_LayerObject_V7; forward;
 procedure   RefreshFailedVias(dummy : Boolean = False); forward;
@@ -294,6 +295,7 @@ begin
         ClientDeselectAll;
 
         // compile reference layer lists
+        if bUseStackupChecking then
         begin
             RefLayerList_CompileFirst;
             RefLayerList_CompileSecond;
@@ -2420,9 +2422,55 @@ begin
         if Result <> '' then Result := Result + sLineBreak;
 
         if (FirstLayerObject = nil) and (SecondLayerObject = nil) then Result := Result + SignalLayerObject.Name + ' references no layers '
-        else if (FirstLayerObject <> nil) and (SecondLayerObject <> nil) then Result := Result + SignalLayerObject.Name + ' references layers ' + FirstLayerObject.Name + ' and ' + SecondLayerObject.Name
-        else if FirstLayerObject <> nil then Result := Result + SignalLayerObject.Name + ' references layer ' + FirstLayerObject.Name;
+        else if (FirstLayerObject <> nil) and (SecondLayerObject <> nil) then Result := Result + SignalLayerObject.Name + ' references layers ' + FirstLayerObject.Name + ' and ' + SecondLayerObject.Name + sLineBreak + RefLayerList_DebugWithGaps(SignalLayerObject, FirstLayerObject, SecondLayerObject)
+        else if FirstLayerObject <> nil then Result := Result + SignalLayerObject.Name + ' references layer ' + FirstLayerObject.Name + sLineBreak + RefLayerList_DebugWithGaps(SignalLayerObject, FirstLayerObject, SecondLayerObject);
     end;
+end;
+
+function    RefLayerList_DebugWithGaps(SignalLayerObject, FirstRefObject, SecondRefObject : IPCB_LayerObject_V7) : String;
+var
+    GapAbove, GapBelow      : TCoord;
+    LayerAbove, LayerBelow  : IPCB_LayerObject_V7;
+    idx                     : Integer;
+begin
+    Result := '';
+    GapAbove := -1;
+    GapBelow := -1;
+    LayerAbove := nil;
+    LayerBelow := nil;
+
+    if (FirstRefObject = nil) and (SecondRefObject = nil) then exit;
+
+    // since RefLayerControlList has keys of layers in top-to-bottom order, use indexes to sort order of layers
+    if RefLayerControlList.IndexOf(FirstRefObject.I_ObjectAddress) < RefLayerControlList.IndexOf(SignalLayerObject.I_ObjectAddress) then
+    begin
+        GapAbove := GetLayer2LayerDistance(FirstRefObject, SignalLayerObject);
+        LayerAbove := FirstRefObject;
+    end
+    else
+    begin
+        GapBelow := GetLayer2LayerDistance(FirstRefObject, SignalLayerObject);
+        LayerBelow := FirstRefObject;
+    end;
+
+    if (SecondRefObject <> nil) then
+    begin
+        if (RefLayerControlList.IndexOf(SecondRefObject.I_ObjectAddress) < RefLayerControlList.IndexOf(SignalLayerObject.I_ObjectAddress)) then
+        begin
+            GapAbove := GetLayer2LayerDistance(SecondRefObject, SignalLayerObject);
+            LayerAbove := SecondRefObject;
+        end
+        else
+        begin
+            GapBelow := GetLayer2LayerDistance(SecondRefObject, SignalLayerObject);
+            LayerBelow := SecondRefObject;
+        end;
+    end;
+
+    if      (LayerAbove <> nil) and (LayerBelow <> nil) then Result := Format('  *  %s / %s / %s / %s / %s', [LayerAbove.Name, CoordToStr(GapAbove), SignalLayerObject.Name, CoordToStr(GapBelow), LayerBelow.Name])
+    else if (LayerAbove <> nil) and (LayerBelow = nil)  then Result := Format('  *  %s / %s / %s', [LayerAbove.Name, CoordToStr(GapAbove), SignalLayerObject.Name])
+    else if (LayerAbove = nil)  and (LayerBelow <> nil) then Result := Format('  *  %s / %s / %s', [SignalLayerObject.Name, CoordToStr(GapBelow), LayerBelow.Name]);
+
 end;
 
 function    RefLayerList_GetFirst(LayerObject : IPCB_LayerObject_V7) : IPCB_LayerObject_V7;
@@ -3221,9 +3269,8 @@ begin
     end
     else
     begin
-        ShowInfo('In Via Check Mode: "Use Stackup", check layers that' + sLineBreak +
-                'should be considered references for signal layers.' + sLineBreak2 +
-                'In Via Check Mode: "Drill Pairs", stackup is ignored.'
+        ShowInfo('In Via Check Mode: "Drill Pairs", stackup is ignored.' + sLineBreak2 +
+                'Switch to Via Check Mode: "Use Stackup" to assign reference layers.'
                 , 'Information : Using Stackup Reference Tags');
     end;
 end;
