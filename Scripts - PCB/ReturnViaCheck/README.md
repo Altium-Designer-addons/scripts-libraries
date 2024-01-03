@@ -66,6 +66,7 @@ Vias
 - In `Drill Pairs` Via Check Mode, return via drill pair eligibility is not validated i.e. user can select drill pairs that aren't _**actually**_ going to provide a return path - the script will still treat them as valid returns if they are close enough.
 
 ## Change log
+- 2024-01-03 by Ryan Rutledge : v0.72 - minor improvement to layer stackup help button info; skip compiling reference layers when not using stackup checking
 - 2024-01-02 by Ryan Rutledge : v0.71 - fixed bug with second reference layer not being properly checked and another possible bug
 - 2024-01-02 by Ryan Rutledge : v0.70 - changed config settings to remember last 10 board stackup reference layer assignments (by file name); fixed stackup getting slightly cut off
 - 2023-12-28 by Ryan Rutledge : v0.61 - made second reference distance ratio configurable in settings file; minor UX polish
