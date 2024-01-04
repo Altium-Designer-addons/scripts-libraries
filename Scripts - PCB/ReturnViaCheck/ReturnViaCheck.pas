@@ -8,7 +8,7 @@
 const
     cScriptTitle            = 'ReturnViaCheck'; // modified from AssemblyTextPrep script
     cConfigFileName         = 'ReturnViaCheckConfig.ini';
-    cScriptVersion          = '0.72';
+    cScriptVersion          = '0.73';
     CustomRule1_Name        = 'ScriptRule_ReturnViaCheck';
     CustomRule1_Kind        = eRule_HoleToHoleClearance;
     //CustomRule1_Kind        = eRule_RoutingViaStyle; // eRule_RoutingViaStyle has really ugly description for this
@@ -90,9 +90,6 @@ function    ConfigFile_ReadHistory(AFileName : String) : String; forward;
 procedure   ConfigFile_Update(ConfigFile : TIniFile; DeleteOldKeys : Boolean = False); forward;
 procedure   ConfigFile_Write(AFileName : String); forward;
 procedure   ConfigFile_WriteHistory(AFileName : String); forward;
-function    CoordToStr(Coords : TCoord) : String; forward;
-function    CoordToX(Coords : TCoord) : String; forward;
-function    CoordToY(Coords : TCoord) : String; forward;
 function    DebugLevelStr(dummy : String = '') : String; forward;
 procedure   DebugMessage(const ShowLevel : Integer; const msg : WideString; const Caption : String = 'Confirm or Cancel Debug'); forward;
 function    DocumentIsPCB(dummy : Boolean = False) : Boolean; forward;
@@ -146,6 +143,10 @@ function    RefLayerList_DebugWithGaps(SignalLayerObject, FirstRefObject, Second
 function    RefLayerList_GetFirst(LayerObject : IPCB_LayerObject_V7) : IPCB_LayerObject_V7; forward;
 function    RefLayerList_GetSecond(LayerObject : IPCB_LayerObject_V7) : IPCB_LayerObject_V7; forward;
 procedure   RefreshFailedVias(dummy : Boolean = False); forward;
+function    RoundCoords(coords : TCoord; round_mult : Double; units : TUnit) : TCoord; forward;
+function    RoundCoordStr(Coords : TCoord) : String; forward;
+function    RoundCoordToX(Coords : TCoord) : String; forward;
+function    RoundCoordToY(Coords : TCoord) : String; forward;
 function    Rules_AddCustomViaRule(const RuleKind : TRuleKind; const RuleName : WideString; DrillPairObj : IPCB_DrillLayerPair; const Comment : WideString) : IPCB_Rule; forward;
 procedure   Rules_ClearDRC_Via(Via : IPCB_Via); forward;
 procedure   Rules_CustomPostProcess(ViolationCount : Integer = 0); forward;
@@ -493,37 +494,46 @@ var
     X1, Y1, X2, Y2 : Integer;
     DX, DY: Integer;
     OpenDocString : WideString;
+    ShowDocString : WideString;
     BoardRefString : WideString;
     ZoomOnRectString : WideString;
 begin
     if Via = nil then exit;
-
-    X1 := Via.BoundingRectangle.Left;
-    Y1 := Via.BoundingRectangle.Bottom;
-    X2 := Via.BoundingRectangle.Right;
-    Y2 := Via.BoundingRectangle.Top;
-    DX := X2 - X1;
-    DY := Y2 - Y1;
-
-    X1 := X1 - (4 * DX);
-    Y1 := Y1 - (3 * DY);
-    X2 := X2 + (4 * DX);
-    Y2 := Y2 + (3 * DY);
-
-    OpenDocString := '';
-    //OpenDocString := Format(' Client.ShowDocument(Client.OpenDocument(''PCB'', ''%s'')); ', [Board.FileName]); // not very performant and only serves to switch to the document if it's inactive
-    BoardRefString := Format(' PCB:=PCBServer.GetPCBBoardByPath(''%s''); ', [Board.FileName]);
-    ZoomOnRectString := Format(' PCB.GraphicalView_ZoomOnRect(%d, %d, %d, %d); ', [X1, Y1, X2, Y2]);
-    callBackProcess := 'ScriptingSystem:RunScriptText';
-    callBackParameters := 'Text=var PCB:IPCB_Board; Begin ' + OpenDocString + BoardRefString + 'if PCB=nil then exit;' + ZoomOnRectString + ' end;';
-
-    DebugMessage(3, callBackParameters);
 
     messageClass := '[WARNING]';
     messageText :=Format('%s net %s has no return via.', [Via.Net.Name, Via.Descriptor]);
     documentName := ExtractFileName(Board.FileName);
     documentFullPath := Board.FileName;
     imageIndex := cImageIndexOrange;
+
+    X1 := Via.BoundingRectangle.Left;
+    Y1 := Via.BoundingRectangle.Bottom;
+    X2 := Via.BoundingRectangle.Right;
+    Y2 := Via.BoundingRectangle.Top;
+
+    // expand zoom on each side proportional to object size
+    //DX := X2 - X1;
+    //DY := Y2 - Y1;
+    //X1 := X1 - (4 * DX);
+    //Y1 := Y1 - (3 * DY);
+    //X2 := X2 + (4 * DX);
+    //Y2 := Y2 + (3 * DY);
+
+    // expand zoom on each side by fixed 100 mils
+    X1 := X1 - 1000000;
+    Y1 := Y1 - 1000000;
+    X2 := X2 + 1000000;
+    Y2 := Y2 + 1000000;
+
+    //OpenDocString := Format(' if not Client.IsDocumentOpen(''%s'') then Client.OpenDocument(''PCB'', ''%s''); ', [documentFullPath, documentFullPath]) + sLineBreak;
+    OpenDocString := ''; // don't need to try to open document because messages are cleared if document is closed
+    ShowDocString := Format(' Client.ShowDocumentDontFocus(Client.GetDocumentByPath(''%s'')); ', [documentFullPath]) + sLineBreak; // counterintuitively, Client.ShowDocumentDontFocus() performs better than Client.ShowDocument()
+    BoardRefString := Format(' PCB:=PCBServer.GetPCBBoardByPath(''%s''); ', [documentFullPath]) + sLineBreak;
+    ZoomOnRectString := Format(' PCB.GraphicalView_ZoomOnRect(%d, %d, %d, %d); ', [X1, Y1, X2, Y2]) + sLineBreak;
+    callBackProcess := 'ScriptingSystem:RunScriptText';
+    callBackParameters := 'Text=var PCB:IPCB_Board; Begin ' + OpenDocString + ShowDocString + BoardRefString + 'if PCB=nil then exit;' + sLineBreak + ZoomOnRectString + ' end;';
+
+    DebugMessage(3, callBackParameters);
 
     AddMessageAdvanced(MessagesManager, messageClass, messageText, documentName, imageIndex, callBackProcess, callBackParameters);
 end;
@@ -838,28 +848,6 @@ begin
         ButtonSaveStackup.Visible := False;
         if PaintBoxStackup.Enabled then LabelStackupMode.Caption := '';
     end;
-end;
-
-
-function    CoordToStr(Coords : TCoord) : String;
-const
-    MAXINT = 2147483647;
-    MININT = -2147483647;
-begin
-    if Coords < MININT then Coords := MININT
-    else if Coords > MAXINT then Coords := MAXINT;
-
-    result := CoordUnitToString(Coords, Board.DisplayUnit xor 1);
-end;
-
-function    CoordToX(Coords : TCoord) : String;
-begin
-    result := CoordUnitToString(Coords - Board.XOrigin, Board.DisplayUnit xor 1);
-end;
-
-function    CoordToY(Coords : TCoord) : String;
-begin
-    result := CoordUnitToString(Coords - Board.YOrigin, Board.DisplayUnit xor 1);
 end;
 
 
@@ -1379,7 +1367,7 @@ begin
 
         if (CurrentLayerObj <> StartLayerObj) and (CurrentLayerObj <> StopLayerObj) then Result := Result + GetLayerThickness(CurrentLayerObj);
 
-        SummaryStr := Format('Layer = "%s"; Thickness = %s', [CurrentLayerObj.Name, CoordToStr(GetLayerThickness(CurrentLayerObj))]);
+        SummaryStr := Format('Layer = "%s"; Thickness = %s', [CurrentLayerObj.Name, RoundCoordStr(GetLayerThickness(CurrentLayerObj))]);
 
         if DebugMsg <> '' then DebugMsg := DebugMsg + sLineBreak;
         DebugMsg := DebugMsg + SummaryStr;
@@ -1627,7 +1615,7 @@ begin
             PaintBox.Canvas.Brush.Color := GetStackupColor(LayerType);
             //PaintBox.Canvas.FillRect(Rect(10, PosY, PaintBox.Width - 10, PosY + LayerHeight));  // no visible rectangles // Rect(L, T, R, B)
             PaintBox.Canvas.Rectangle(5, PosY, PaintBox.Width - 5, PosY + LayerHeight); // WORKS but FillRect did not
-            PaintBox.Canvas.TextOut(15, PosY - (MinLayerSize / 2 - 1) + LayerHeight/2, LayerName + '  -  ' + CoordToStr(Thickness)); // WORKS and uses brush color as background color
+            PaintBox.Canvas.TextOut(15, PosY - (MinLayerSize / 2 - 1) + LayerHeight/2, LayerName + '  -  ' + RoundCoordStr(Thickness)); // WORKS and uses brush color as background color
 
             if DebugMsg <> '' then DebugMsg := DebugMsg + sLineBreak;
             DebugMsg := DebugMsg + Format('PaintBox.Canvas.FillRect(Rect(%d, %d, %d, %d))', [10, PosY, PaintBox.Width - 10, PosY + LayerHeight]);
@@ -1682,9 +1670,9 @@ begin
         DebugMsg := DebugMsg + LayerStackList[idx]
     end;
 
-    DebugMsg := DebugMsg + sLineBreak + '------------------------------------------------------------' + sLineBreak + 'Total Thickness (excluding soldermask): ' + CoordToStr(TotalThickness);
+    DebugMsg := DebugMsg + sLineBreak + '------------------------------------------------------------' + sLineBreak + 'Total Thickness (excluding soldermask): ' + RoundCoordStr(TotalThickness);
 
-    DebugMessage(0, DebugMsg);
+    ShowInfo(DebugMsg, 'Information: Layer Stackup Summary');
 end;
 
 
@@ -2057,7 +2045,7 @@ begin
     end;
 
     Result := True;
-    DebugMessage(3, Format('Distance between %s and %s is %s', [SignalVia.Descriptor, OtherVia.Descriptor, CoordToStr(distance)]));
+    DebugMessage(3, Format('Distance between %s and %s is %s', [SignalVia.Descriptor, OtherVia.Descriptor, RoundCoordStr(distance)]));
 end;
 
 
@@ -2467,9 +2455,9 @@ begin
         end;
     end;
 
-    if      (LayerAbove <> nil) and (LayerBelow <> nil) then Result := Format('  *  %s / %s / %s / %s / %s', [LayerAbove.Name, CoordToStr(GapAbove), SignalLayerObject.Name, CoordToStr(GapBelow), LayerBelow.Name])
-    else if (LayerAbove <> nil) and (LayerBelow = nil)  then Result := Format('  *  %s / %s / %s', [LayerAbove.Name, CoordToStr(GapAbove), SignalLayerObject.Name])
-    else if (LayerAbove = nil)  and (LayerBelow <> nil) then Result := Format('  *  %s / %s / %s', [SignalLayerObject.Name, CoordToStr(GapBelow), LayerBelow.Name]);
+    if      (LayerAbove <> nil) and (LayerBelow <> nil) then Result := Format('  *  %s / %s / %s / %s / %s', [LayerAbove.Name, RoundCoordStr(GapAbove), SignalLayerObject.Name, RoundCoordStr(GapBelow), LayerBelow.Name])
+    else if (LayerAbove <> nil) and (LayerBelow = nil)  then Result := Format('  *  %s / %s / %s', [LayerAbove.Name, RoundCoordStr(GapAbove), SignalLayerObject.Name])
+    else if (LayerAbove = nil)  and (LayerBelow <> nil) then Result := Format('  *  %s / %s / %s', [SignalLayerObject.Name, RoundCoordStr(GapBelow), LayerBelow.Name]);
 
 end;
 
@@ -2516,6 +2504,7 @@ begin
             SetDRCAndAddToHighlight(CurrentVia);
             //CurrentVia.GraphicallyInvalidate;
             AddMessageCallback_Via(CurrentVia);
+            //AddMessageCallback_Via2(CurrentVia); //experimental
         end;
 
         //ClientZoomSelected;
@@ -2530,6 +2519,62 @@ begin
 
     UpdateStatus;
     UpdateNavButtonStates;
+end;
+
+
+function    RoundCoords(coords : TCoord; round_mult : Double; units : TUnit) : TCoord;
+begin
+    case units of
+        eImperial: begin
+            Result := MilsToCoord(Round(CoordToMils(coords) / round_mult) * round_mult);
+        end;
+        eMetric: begin
+            Result := MMsToCoord(Round(CoordToMMs(coords) / round_mult) * round_mult);
+        end;
+        else begin
+            Result := coords; // invalid
+        end;
+    end;
+end;
+
+function    RoundCoordStr(Coords : TCoord) : String;
+const
+    MAXINT = 2147483647;
+    MININT = -2147483647;
+var
+    Units : TUnit;
+begin
+    // coerce to Int32
+    if Coords < MININT then Coords := MININT
+    else if Coords > MAXINT then Coords := MAXINT;
+
+    Units := Board.DisplayUnit xor 1;
+    case Units of
+        eImperial: begin
+            Result := FloatToStr(CoordToMils(RoundCoords(Coords, 0.001, Units))) + 'mil'; // round to nearest multiple of 0.001mil (TCoord is 0.0001mil but UI TRUNCATES to display 0.001mil resolution)
+        end;
+        eMetric: begin
+            Result := FloatToStr(CoordToMMs(RoundCoords(Coords, 0.0001, Units))) + 'mm'; // round to nearest multiple of 0.0001mm
+        end;
+        else
+        begin
+            Result := 'NaN';
+        end;
+    end;
+
+    //result := CoordUnitToString(Coords, Board.DisplayUnit xor 1); // built-in metric conversion rounds to 0.01mm resolution
+end;
+
+function    RoundCoordToX(Coords : TCoord) : String;
+begin
+    //result := CoordUnitToString(Coords - Board.XOrigin, Board.DisplayUnit xor 1);
+    Result := RoundCoordStr(Coords - Board.XOrigin);
+end;
+
+function    RoundCoordToY(Coords : TCoord) : String;
+begin
+    //result := CoordUnitToString(Coords - Board.YOrigin, Board.DisplayUnit xor 1);
+    Result := RoundCoordStr(Coords - Board.YOrigin);
 end;
 
 
