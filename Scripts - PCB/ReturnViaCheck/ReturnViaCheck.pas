@@ -8,7 +8,7 @@
 const
     cScriptTitle            = 'ReturnViaCheck'; // modified from AssemblyTextPrep script
     cConfigFileName         = 'ReturnViaCheckConfig.ini';
-    cScriptVersion          = '0.73';
+    cScriptVersion          = '0.74';
     CustomRule1_Name        = 'ScriptRule_ReturnViaCheck';
     CustomRule1_Kind        = eRule_HoleToHoleClearance;
     //CustomRule1_Kind        = eRule_RoutingViaStyle; // eRule_RoutingViaStyle has really ugly description for this
@@ -103,6 +103,7 @@ function    FolderIsReadOnly(const AFolderPath : String) : Boolean; forward;
 function    ConnectedLayers_GetList(PVPrim : IPCB_Primitive) : TInterfaceList; forward;
 function    ConnectedLayers_GetListString(PVPrim : IPCB_Primitive) : String; forward;
 function    ConnectedLayers_IsConnected(PVPrim : IPCB_Primitive; Layer : TV7_Layer) : Boolean; forward;
+function    ConnectedLayers_IsHoleInSolidRegion(const PVPrim : IPCB_Primitive; const RegionPrim : IPCB_Region) : Boolean; forward;
 function    GetDelimitedListBoxSelections(ListBox : TListBox; MyDelim : String = ';;') : String; forward;
 function    GetDrillPairs(const dummy : Integer = 0) : TInterfaceList; forward;
 function    GetIteratorCount(Iter : IPCB_BoardIterator) : Integer; forward;
@@ -142,7 +143,7 @@ function    RefLayerList_Debug(dummy : Integer = 0) : String; forward;
 function    RefLayerList_DebugWithGaps(SignalLayerObject, FirstRefObject, SecondRefObject : IPCB_LayerObject_V7) : String; forward;
 function    RefLayerList_GetFirst(LayerObject : IPCB_LayerObject_V7) : IPCB_LayerObject_V7; forward;
 function    RefLayerList_GetSecond(LayerObject : IPCB_LayerObject_V7) : IPCB_LayerObject_V7; forward;
-procedure   RefreshFailedVias(dummy : Boolean = False); forward;
+procedure   RefreshFailedVias(HighlightOnly : Boolean = False); forward;
 function    RoundCoords(coords : TCoord; round_mult : Double; units : TUnit) : TCoord; forward;
 function    RoundCoordStr(Coords : TCoord) : String; forward;
 function    RoundCoordToX(Coords : TCoord) : String; forward;
@@ -1067,6 +1068,8 @@ var
     GeoPolysTouch       : Boolean;
     PVPrimGeoPoly       : IPCB_GeometricPolygon;
     PVPrimContour       : IPCB_Contour;
+    ViaSizeOnLayer      : TCoord;
+    TempString          : String;
 begin
     Result := False;
     if PVPrim = nil then exit;
@@ -1081,12 +1084,15 @@ begin
 
     if PVPrim.ObjectId = eViaObject then
     begin
-        if PVPrim.IntersectLayer(Layer) and ((PVPrim.SizeOnLayer[Layer] > PVPrim.HoleSize) or LayerUtils.IsInternalPlaneLayer(Layer)) then bExistsOnLayer := true;
-        //DebugMessage(1, Format('Layer %s: via intersects layer = %s; SizeOnLayer = %s', [IntToStr(Layer), BoolToStr(PVPrim.IntersectLayer(Layer), True), IntToStr(PVPrim.SizeOnLayer[Layer])]));
+        ViaSizeOnLayer := PVPrim.SizeOnLayer[Layer]; // assign to variable explicitly because debugger claims SizeOnLayer property doesn't exist
+        //if PVPrim.IntersectLayer(Layer) and ((ViaSizeOnLayer > PVPrim.HoleSize) or LayerUtils.IsInternalPlaneLayer(Layer)) then bExistsOnLayer := true;
+        if PVPrim.IntersectLayer(Layer) then bExistsOnLayer := true; // moved pad size check to connection logic to allow exception for directly connected solid polygon pours
     end
     else if PVPrim.ObjectId = ePadObject then
     begin
-        if (PVPrim.Layer = eMultiLayer) and (PVPrim.StackShapeOnLayer(Layer) <> eNoShape) and (not PVPrim.IsPadRemoved(Layer)) then bExistsOnLayer := True
+        // NOTE: size on layer isn't as simple for pads, so just check for eNoShape or IsPadRemoved instead (not as good as actual annular ring check but oh well)
+        // technically pad could be removed on layer with a direct connect pour, so check pad size/shape later like via
+        if PVPrim.Layer = eMultiLayer then bExistsOnLayer := True
         else if PVPrim.Layer = Layer then bExistsOnLayer := True;
     end;
 
@@ -1115,24 +1121,39 @@ begin
             end;
 
             if (SpatialPrim.ObjectId <> ePadObject) and (SpatialPrim.InNet) and (Board.PrimPrimDistance(SpatialPrim, PVPrim) = 0) then
-            begin
-                bConnected := True;
-                break;
+            begin // arcs, tracks, fills, or standalone regions touching PVPrim
+                case PVPrim.ObjectId of
+                    ePadObject: if (PVPrim.Layer = Layer) or ((PVPrim.Layer = eMultiLayer) and (PVPrim.StackShapeOnLayer(Layer) <> eNoShape) and (not PVPrim.IsPadRemoved(Layer))) then bConnected := True;
+                    eViaObject: if (ViaSizeOnLayer > PVPrim.HoleSize) then bConnected := True;
+                end;
+
+                if bConnected then break;
             end
             else if (SpatialPrim.ObjectId = ePadObject) and (SpatialPrim.InNet) and (SpatialPrim.ShapeOnLayer(Layer) <> eNoShape) and (Board.PrimPrimDistance(SpatialPrim, PVPrim) = 0) then
-            begin
-                bConnected := True;
-                break;
+            begin // pads with a pad shape on the given layer touching PVPrim
+                case PVPrim.ObjectId of
+                    ePadObject: if (PVPrim.Layer = Layer) or ((PVPrim.Layer = eMultiLayer) and (PVPrim.StackShapeOnLayer(Layer) <> eNoShape) and (not PVPrim.IsPadRemoved(Layer))) then bConnected := True;
+                    eViaObject: if (ViaSizeOnLayer > PVPrim.HoleSize) then bConnected := True;
+                end;
+
+                if bConnected then break;
             end
-            else if (SpatialPrim.ObjectId = eRegionObject) and (SpatialPrim.Kind = eRegionKind_Copper) and (SpatialPrim.InPolygon) and (PVPrim.Net = SpatialPrim.Polygon.Net) then // polygons and their poured regions are not "InNet" for whatever reason
-            begin
+            else if (SpatialPrim.ObjectId = eRegionObject) and (SpatialPrim.Kind = eRegionKind_Copper) and (SpatialPrim.InPolygon) and (PVPrim.Net = SpatialPrim.Polygon.Net) then
+            begin // poured regions of polygons that have has same net as PVPrim
+                // NOTE: polygons and their poured regions are not "InNet" for whatever reason
+
                 //Inspect_IPCB_Region(SpatialPrim, IntToStr(Board.PrimPrimDistance(SpatialPrim, PVPrim)));
 
                 if (Board.PrimPrimDistance(SpatialPrim, PVPrim) = 0) then
-                begin
+                begin // touching PVPrim
                     //Inspect_IPCB_Polygon(SpatialPrim.Polygon, IntToStr(Board.PrimPrimDistance(SpatialPrim.Polygon, PVPrim)));
-                    bConnected := True;
-                    break;
+
+                    case PVPrim.ObjectId of
+                        ePadObject: if ((PVPrim.StackShapeOnLayer(Layer) <> eNoShape) and (not PVPrim.IsPadRemoved(Layer))) or ((SpatialPrim.Polygon.PolyHatchStyle = ePolySolid) and (ConnectedLayers_IsHoleInSolidRegion(PVPrim, SpatialPrim))) then bConnected := True;
+                        eViaObject: if (ViaSizeOnLayer > PVPrim.HoleSize) or ((ViaSizeOnLayer <= PVPrim.HoleSize) and (SpatialPrim.Polygon.PolyHatchStyle = ePolySolid) and ConnectedLayers_IsHoleInSolidRegion(PVPrim, SpatialPrim)) then bConnected := True;
+                    end;
+
+                    if bConnected then break;
                 end;
             end;
 
@@ -1170,7 +1191,11 @@ begin
             SplitPlaneRegion := GIter.FirstPCBObject;
             while SplitPlaneRegion <> nil do
             begin
-                //Inspect_IPCB_Region(SplitPlaneRegion, Format('HitPrimitive: %s; PrimitiveInsidePoly: %s; StrictHitTest: %s', [BoolToStr(SplitPlane.GetState_HitPrimitive(PVPrim), True), BoolToStr(SplitPlane.PrimitiveInsidePoly(PVPrim), True), BoolToStr(SplitPlane.GetState_StrictHitTest(PVPrim.x, PVPrim.y), True)]));
+                {TempString := Format('HitPrimitive: %s; PrimitiveInsidePoly: %s; StrictHitTest: %s', [BoolToStr(SplitPlane.GetState_HitPrimitive(PVPrim), True), BoolToStr(SplitPlane.PrimitiveInsidePoly(PVPrim), True), BoolToStr(SplitPlane.GetState_StrictHitTest(PVPrim.x, PVPrim.y), True)]);
+                TempString := TempString + sLineBreak + Format('PowerPlaneConnectStyle <> eNoConnect: %s', [BoolToStr(PVPrim.PowerPlaneConnectStyle <> eNoConnect, True)]);
+                TempString := TempString + sLineBreak + Format('GetState_IsConnectedToPlane(%s): %s', [Layer2String(Layer), BoolToStr(PVPrim.GetState_IsConnectedToPlane(Layer), True)]);
+                TempString := TempString + sLineBreak + Format('SplitPlaneRegion PrimPrimDistance: %s', [RoundCoordStr(Board.PrimPrimDistance(SplitPlaneRegion, PVPrim))]);
+                Inspect_IPCB_Region(SplitPlaneRegion, TempString);}
 
                 //if Board.PrimPrimDistance(SplitPlaneRegion, PVPrim) = 0 then // doesn't work correctly with splitplaneregion to detect if primitive actually touches plane
                 //begin
@@ -1178,7 +1203,14 @@ begin
                     //break;
                 //end;
 
-                if SplitPlane.GetState_HitPrimitive(PVPrim) and (PVPrim.PowerPlaneConnectStyle <> eNoConnect) then // unfortunately GetState_HitPrimitive and similar functions only tell when plane overlaps the primitive
+                if SplitPlane.GetState_HitPrimitive(PVPrim) and (PVPrim.PowerPlaneConnectStyle <> eNoConnect) and PVPrim.GetState_IsConnectedToPlane(Layer) then
+                begin
+                    bConnected := True;
+                    break;
+                end;
+
+                // check above seems to capture the criteria I was using GeometricPolygonsTouch to check for, so this is no longer needed and is presumably much less performant
+                {if SplitPlane.GetState_HitPrimitive(PVPrim) and (PVPrim.PowerPlaneConnectStyle <> eNoConnect) then // unfortunately GetState_HitPrimitive and similar functions only tell when plane overlaps the primitive
                 begin
                     // use PCBContourUtilities.GeometricPolygonsTouch to determine if there is actually a connection on layer. Likely not very performant but PrimPrimDistance does not seem to work for SplitPlaneRegions.
                     // just eliminate as many factors as possible before checking at this level
@@ -1208,7 +1240,7 @@ begin
                         bConnected := True;
                         break;
                     end;
-                end;
+                end;}
 
                 SplitPlaneRegion := GIter.NextPCBObject;
             end;
@@ -1225,6 +1257,57 @@ begin
             exit;
         end;
     end;
+end;
+
+function    ConnectedLayers_IsHoleInSolidRegion(const PVPrim : IPCB_Primitive; const RegionPrim : IPCB_Region) : Boolean;
+const
+    POINTCOUNT = 8;
+var
+    idx                 : Integer;
+    Angle               : Double;
+    PointRadius         : TCoord;
+    Xc, Yc              : TCoord;
+    RegionPrimGeoPoly   : IPCB_GeometricPolygon;
+    PVPrimGeoPoly       : IPCB_GeometricPolygon;
+    PVPrimContour       : IPCB_Contour;
+begin
+    Result := False;
+    if PVPrim = nil then exit;
+    if PVPrim.HoleSize = 0 then exit;
+    if RegionPrim = nil then exit;
+    RegionPrimGeoPoly := PCBServer.PCBContourMaker.MakeContour(RegionPrim, 0, RegionPrim.Layer); // MakeContour makes IPCB_GeometricPolygon, not IPCB_Contour. Go figure.
+    if RegionPrimGeoPoly = nil then exit;
+    if RegionPrimGeoPoly.Count = 0 then exit;
+
+    Angle := 360 / POINTCOUNT;
+    PointRadius := (PVPrim.HoleSize + 20000) / 2; // radius 1mil expanded from hole
+    Xc := PVPrim.x;
+    Yc := PVPrim.y;
+
+    // create a new polygon from scratch to use with PCBServer.PCBContourUtilities.GeometricPolygonsTouch rather than trying to handle all the possible contours
+    PVPrimGeoPoly := PCBServer.PCBGeometricPolygonFactory;
+    PVPrimGeoPoly.AddEmptyContour;
+    PVPrimContour := PVPrimGeoPoly.Contour(0);
+    PVPrimContour.AddPoint(PointRadius + Xc, Yc); // create a tiny triangle in starting position at 0 deg.
+    PVPrimContour.AddPoint(PointRadius + Xc + 1, Yc);
+    PVPrimContour.AddPoint(PointRadius + Xc, Yc + 1);
+
+    for idx := 0 to POINTCOUNT - 1 do
+    begin
+        if idx > 0 then PVPrimContour.RotateAboutPoint(Angle, Xc, Yc); // use built-in rotation method for simplicity
+
+        //if not PCBServer.PCBContourUtilities.PointInContour(RegionPrimGeoPoly.Contour(0), X, Y) then exit; // no guarantee that Contour(0) is the correct contour to evaluate
+
+        // PCBServer.PCBContourUtilities.GeometricPolygonsTouch should verify that the tiny triangle touches the actual region
+        if not PCBServer.PCBContourUtilities.GeometricPolygonsTouch(RegionPrimGeoPoly, PVPrimGeoPoly) then
+        begin
+            PVPrimContour.Clear;
+            exit;
+        end;
+    end;
+
+    PVPrimContour.Clear;
+    Result := True;
 end;
 
 
@@ -1870,6 +1953,8 @@ begin
     end;
     Board.SpatialIterator_Destroy(SIter);
 
+    RefreshFailedVias(True); // update highlight info only
+
     // update failure status and buttons
     FailedViaIndex := Min(FailedViaIndex, FailedViaList.Count - 1);
     UpdateStatus;
@@ -2484,11 +2569,30 @@ begin
 end;
 
 
-procedure   RefreshFailedVias(dummy : Boolean = False);
+procedure   RefreshFailedVias(HighlightOnly : Boolean = False);
 var
     i           : Integer;
     CurrentVia  : IPCB_Via;
 begin
+    if HighlightOnly then
+    begin
+        if FailedViaList.Count > 0 then
+        begin
+            for i := 0 to FailedViaList.Count - 1 do
+            begin
+                CurrentVia := FailedViaList[i];
+                Board.AddObjectToHighlightObjectList(CurrentVia);
+            end;
+
+            // set of THighlightMethod = (eHighlight_Filter, eHighlight_Zoom, eHighlight_Select, eHighlight_Graph, eHighlight_Dim, eHighlight_Thicken, eHighlight_ZoomCursor, eHighlight_ForceSmooth)
+            Board.SetState_Navigate_HighlightObjectList(MkSet(eHighlight_Dim), True);
+        end;
+
+        Board.ViewManager_FullUpdate;
+
+        exit;
+    end;
+
     GetWorkspace.DM_ShowMessageView;
     ClientDeselectAll;
 
@@ -2510,7 +2614,7 @@ begin
         //ClientZoomSelected;
 
         // set of THighlightMethod = (eHighlight_Filter, eHighlight_Zoom, eHighlight_Select, eHighlight_Graph, eHighlight_Dim, eHighlight_Thicken, eHighlight_ZoomCursor, eHighlight_ForceSmooth)
-        if FailedViaList.Count > 0 then Board.SetState_Navigate_HighlightObjectList(MkSet(eHighlight_Dim, eHighlight_Zoom, eHighlight_Select), True);
+        Board.SetState_Navigate_HighlightObjectList(MkSet(eHighlight_Dim, eHighlight_Zoom, eHighlight_Select), True);
 
         if bUseCustomViolations then Board.EndModify;
     end;
@@ -3224,6 +3328,8 @@ begin
         FailedViaList[FailedViaIndex].Selected := True;
         ClientZoomSelected;
     end;
+
+    RefreshFailedVias(True); // update highlight info only
 
     UpdateStatus;
     UpdateNavButtonStates;
