@@ -1,6 +1,6 @@
 const
     cScriptTitle    = 'PCBObjectInspector';
-    cScriptVersion  = '0.31';
+    cScriptVersion  = '0.32';
     cDEBUGLEVEL     = 1;
     sLineBreak2     = sLineBreak + sLineBreak;
 
@@ -19,6 +19,7 @@ var
     sPolygonTypeStrings             : array[0..2];
     sExtendedDrillTypeStrings       : array[0..3];
     sExtendedHoleTypeStrings        : array[0..2];
+    sPlaneConnectionStyleStrings    : array[0..2];
     sPlaneConnectStyleStrings       : array[0..2];
     sRegionKindStrings              : array[0..4];
     sBoardSideStrings               : array[0..1];
@@ -67,6 +68,7 @@ begin
     else if coords > MAXINT then coords := MAXINT;
 
     //result := CoordUnitToString(coords, Board.DisplayUnit xor 1); // only uses 2 digits of precision for metric
+    // SIDE NOTE: CoordToMMs_FullPrecision() is rumored to eliminate coord to mm conversion/rounding errors
 
     if (Board.DisplayUnit xor 1) = eImperial then Result := FloatToStr(CoordToMils(coords)) + 'mil'
     else Result := FloatToStr(CoordToMMs(coords)) + 'mm';
@@ -74,13 +76,56 @@ end;
 
 function CoordToDisplayX(coords : TCoord) : String;
 begin
-    result := CoordUnitToString(coords - Board.XOrigin, Board.DisplayUnit xor 1);
+    //result := CoordUnitToString(coords - Board.XOrigin, Board.DisplayUnit xor 1);
+    result := CoordToDisplayStr(coords - Board.XOrigin); // better resolution for mm
 end;
 
 function CoordToDisplayY(coords : TCoord) : String;
 begin
-    result := CoordUnitToString(coords - Board.YOrigin, Board.DisplayUnit xor 1);
+    //result := CoordUnitToString(coords - Board.YOrigin, Board.DisplayUnit xor 1);
+    result := CoordToDisplayStr(coords - Board.YOrigin); // better resolution for mm
 end;
+
+function RoundCoordStr(Coords : TCoord) : String;
+const
+    MAXINT = 2147483647;
+    MININT = -2147483647;
+var
+    Units : TUnit;
+begin
+    // coerce to Int32
+    if Coords < MININT then Coords := MININT
+    else if Coords > MAXINT then Coords := MAXINT;
+
+    Units := Board.DisplayUnit xor 1;
+    case Units of
+        eImperial: begin
+            Result := FloatToStr(CoordToMils(RoundCoords(Coords, 0.001, Units))) + 'mil'; // round to nearest multiple of 0.001mil (TCoord is 0.0001mil but UI TRUNCATES to display 0.001mil resolution)
+        end;
+        eMetric: begin
+            Result := FloatToStr(CoordToMMs(RoundCoords(Coords, 0.0001, Units))) + 'mm'; // round to nearest multiple of 0.0001mm
+        end;
+        else
+        begin
+            Result := 'NaN';
+        end;
+    end;
+
+    //result := CoordUnitToString(Coords, Board.DisplayUnit xor 1); // built-in metric conversion rounds to 0.01mm resolution
+end;
+
+function RoundCoordToX(Coords : TCoord) : String;
+begin
+    //result := CoordUnitToString(Coords - Board.XOrigin, Board.DisplayUnit xor 1);
+    Result := RoundCoordStr(Coords - Board.XOrigin);
+end;
+
+function RoundCoordToY(Coords : TCoord) : String;
+begin
+    //result := CoordUnitToString(Coords - Board.YOrigin, Board.DisplayUnit xor 1);
+    Result := RoundCoordStr(Coords - Board.YOrigin);
+end;
+
 
 function CoordToMils2(coords : TCoord) : Double;
 begin
@@ -164,6 +209,7 @@ begin
     sPolygonTypeStrings := ['eSignalLayerPolygon', 'eSplitPlanePolygon', 'eCoverlayOutlinePolygon'];
     sExtendedDrillTypeStrings := ['eDrilledHole', 'ePunchedHole', 'eLaserDrilledHole', 'ePlasmaDrilledHole'];
     sExtendedHoleTypeStrings := ['eRoundHole', 'eSquareHole', 'eSlotHole'];
+    sPlaneConnectionStyleStrings := ['ePlaneNoConnect', 'ePlaneReliefConnect', 'ePlaneDirectConnect'];
     sPlaneConnectStyleStrings := ['eReliefConnectToPlane', 'eDirectConnectToPlane', 'eNoConnect'];
     sRegionKindStrings := ['eRegionKind_Copper', 'eRegionKind_Cutout', 'eRegionKind_NamedRegion', 'eRegionKind_BoardCutout', 'eRegionKind_Cavity'];
     sBoardSideStrings := ['eBoardSide_Top', 'eBoardSide_Bottom'];
@@ -188,6 +234,57 @@ begin
     //LayerStack := Board.LayerStack_V7;
 end;
 
+function IsHoleInSolidRegion(const PVPrim : IPCB_Primitive; const RegionPrim : IPCB_Region) : Boolean;
+const
+    POINTCOUNT = 8;
+var
+    idx                 : Integer;
+    Angle               : Double;
+    PointRadius         : TCoord;
+    Xc, Yc              : TCoord;
+    RegionPrimGeoPoly   : IPCB_GeometricPolygon;
+    PVPrimGeoPoly       : IPCB_GeometricPolygon;
+    PVPrimContour       : IPCB_Contour;
+begin
+    Result := False;
+    if PVPrim = nil then exit;
+    if PVPrim.HoleSize = 0 then exit;
+    if RegionPrim = nil then exit;
+    RegionPrimGeoPoly := PCBServer.PCBContourMaker.MakeContour(RegionPrim, 0, RegionPrim.Layer); // MakeContour makes IPCB_GeometricPolygon, not IPCB_Contour. Go figure.
+    if RegionPrimGeoPoly = nil then exit;
+    if RegionPrimGeoPoly.Count = 0 then exit;
+
+    Angle := 360 / POINTCOUNT;
+    PointRadius := (PVPrim.HoleSize + 20000) / 2; // radius 1mil expanded from hole
+    Xc := PVPrim.x;
+    Yc := PVPrim.y;
+
+    // create a new polygon from scratch to use with PCBServer.PCBContourUtilities.GeometricPolygonsTouch rather than trying to handle all the possible contours
+    PVPrimGeoPoly := PCBServer.PCBGeometricPolygonFactory;
+    PVPrimGeoPoly.AddEmptyContour;
+    PVPrimContour := PVPrimGeoPoly.Contour(0);
+    PVPrimContour.AddPoint(PointRadius + Xc, Yc); // create a tiny triangle in starting position at 0 deg.
+    PVPrimContour.AddPoint(PointRadius + Xc + 1, Yc);
+    PVPrimContour.AddPoint(PointRadius + Xc, Yc + 1);
+
+    for idx := 0 to POINTCOUNT - 1 do
+    begin
+        if idx > 0 then PVPrimContour.RotateAboutPoint(Angle, Xc, Yc); // use built-in rotation method for simplicity
+
+        //if not PCBServer.PCBContourUtilities.PointInContour(RegionPrimGeoPoly.Contour(0), X, Y) then exit; // no guarantee that Contour(0) is the correct contour to evaluate
+
+        // PCBServer.PCBContourUtilities.GeometricPolygonsTouch should verify that the tiny triangle touches the actual region
+        if not PCBServer.PCBContourUtilities.GeometricPolygonsTouch(RegionPrimGeoPoly, PVPrimGeoPoly) then
+        begin
+            PVPrimContour.Clear;
+            exit;
+        end;
+    end;
+
+    PVPrimContour.Clear;
+    Result := True;
+end;
+
 function IsConnectedToLayer(PVPrim : IPCB_Primitive; Layer : TV7_Layer) : Boolean;
 var
     bExistsOnLayer, bConnected : Boolean;
@@ -202,6 +299,8 @@ var
     GeoPolysTouch       : Boolean;
     PVPrimGeoPoly       : IPCB_GeometricPolygon;
     PVPrimContour       : IPCB_Contour;
+    ViaSizeOnLayer      : TCoord;
+    TempString          : String;
 begin
     Result := False;
     if PVPrim = nil then exit;
@@ -216,12 +315,15 @@ begin
 
     if PVPrim.ObjectId = eViaObject then
     begin
-        if PVPrim.IntersectLayer(Layer) and ((PVPrim.SizeOnLayer[Layer] > PVPrim.HoleSize) or LayerUtils.IsInternalPlaneLayer(Layer)) then bExistsOnLayer := true;
-        //DebugMessage(1, Format('Layer %s: via intersects layer = %s; SizeOnLayer = %s', [IntToStr(Layer), BoolToStr(PVPrim.IntersectLayer(Layer), True), IntToStr(PVPrim.SizeOnLayer[Layer])]));
+        ViaSizeOnLayer := PVPrim.SizeOnLayer[Layer]; // assign to variable explicitly because debugger claims SizeOnLayer property doesn't exist
+        //if PVPrim.IntersectLayer(Layer) and ((ViaSizeOnLayer > PVPrim.HoleSize) or LayerUtils.IsInternalPlaneLayer(Layer)) then bExistsOnLayer := true;
+        if PVPrim.IntersectLayer(Layer) then bExistsOnLayer := true; // moved pad size check to connection logic to allow exception for directly connected solid polygon pours
     end
     else if PVPrim.ObjectId = ePadObject then
     begin
-        if (PVPrim.Layer = eMultiLayer) and (PVPrim.StackShapeOnLayer(Layer) <> eNoShape) and (not PVPrim.IsPadRemoved(Layer)) then bExistsOnLayer := True
+        // NOTE: size on layer isn't as simple for pads, so just check for eNoShape or IsPadRemoved instead (not as good as actual annular ring check but oh well)
+        // technically pad could be removed on layer with a direct connect pour, so check pad size/shape later like via
+        if (PVPrim.Layer = eMultiLayer) and (PVPrim.Plated) then bExistsOnLayer := True
         else if PVPrim.Layer = Layer then bExistsOnLayer := True;
     end;
 
@@ -250,24 +352,39 @@ begin
             end;
 
             if (SpatialPrim.ObjectId <> ePadObject) and (SpatialPrim.InNet) and (Board.PrimPrimDistance(SpatialPrim, PVPrim) = 0) then
-            begin
-                bConnected := True;
-                break;
+            begin // arcs, tracks, fills, or standalone regions touching PVPrim
+                case PVPrim.ObjectId of
+                    ePadObject: if (PVPrim.Layer = Layer) or ((PVPrim.Layer = eMultiLayer) and (PVPrim.StackShapeOnLayer(Layer) <> eNoShape) and (not PVPrim.IsPadRemoved(Layer))) then bConnected := True;
+                    eViaObject: if (ViaSizeOnLayer > PVPrim.HoleSize) then bConnected := True;
+                end;
+
+                if bConnected then break;
             end
             else if (SpatialPrim.ObjectId = ePadObject) and (SpatialPrim.InNet) and (SpatialPrim.ShapeOnLayer(Layer) <> eNoShape) and (Board.PrimPrimDistance(SpatialPrim, PVPrim) = 0) then
-            begin
-                bConnected := True;
-                break;
+            begin // pads with a pad shape on the given layer touching PVPrim
+                case PVPrim.ObjectId of
+                    ePadObject: if (PVPrim.Layer = Layer) or ((PVPrim.Layer = eMultiLayer) and (PVPrim.StackShapeOnLayer(Layer) <> eNoShape) and (not PVPrim.IsPadRemoved(Layer))) then bConnected := True;
+                    eViaObject: if (ViaSizeOnLayer > PVPrim.HoleSize) then bConnected := True;
+                end;
+
+                if bConnected then break;
             end
-            else if (SpatialPrim.ObjectId = eRegionObject) and (SpatialPrim.Kind = eRegionKind_Copper) and (SpatialPrim.InPolygon) and (PVPrim.Net = SpatialPrim.Polygon.Net) then // polygons and their poured regions are not "InNet" for whatever reason
-            begin
+            else if (SpatialPrim.ObjectId = eRegionObject) and (SpatialPrim.Kind = eRegionKind_Copper) and (SpatialPrim.InPolygon) and (PVPrim.Net = SpatialPrim.Polygon.Net) then
+            begin // poured regions of polygons that have has same net as PVPrim
+                // NOTE: polygons and their poured regions are not "InNet" for whatever reason
+
                 //Inspect_IPCB_Region(SpatialPrim, IntToStr(Board.PrimPrimDistance(SpatialPrim, PVPrim)));
 
                 if (Board.PrimPrimDistance(SpatialPrim, PVPrim) = 0) then
-                begin
+                begin // touching PVPrim
                     //Inspect_IPCB_Polygon(SpatialPrim.Polygon, IntToStr(Board.PrimPrimDistance(SpatialPrim.Polygon, PVPrim)));
-                    bConnected := True;
-                    break;
+
+                    case PVPrim.ObjectId of
+                        ePadObject: if ((PVPrim.StackShapeOnLayer(Layer) <> eNoShape) and (not PVPrim.IsPadRemoved(Layer))) or ((SpatialPrim.Polygon.PolyHatchStyle = ePolySolid) and (IsHoleInSolidRegion(PVPrim, SpatialPrim))) then bConnected := True;
+                        eViaObject: if (ViaSizeOnLayer > PVPrim.HoleSize) or ((ViaSizeOnLayer <= PVPrim.HoleSize) and (SpatialPrim.Polygon.PolyHatchStyle = ePolySolid) and IsHoleInSolidRegion(PVPrim, SpatialPrim)) then bConnected := True;
+                    end;
+
+                    if bConnected then break;
                 end;
             end;
 
@@ -305,15 +422,26 @@ begin
             SplitPlaneRegion := GIter.FirstPCBObject;
             while SplitPlaneRegion <> nil do
             begin
-                //Inspect_IPCB_Region(SplitPlaneRegion, Format('HitPrimitive: %s; PrimitiveInsidePoly: %s; StrictHitTest: %s', [BoolToStr(SplitPlane.GetState_HitPrimitive(PVPrim), True), BoolToStr(SplitPlane.PrimitiveInsidePoly(PVPrim), True), BoolToStr(SplitPlane.GetState_StrictHitTest(PVPrim.x, PVPrim.y), True)]));
+                {TempString := Format('HitPrimitive: %s; PrimitiveInsidePoly: %s; StrictHitTest: %s', [BoolToStr(SplitPlane.GetState_HitPrimitive(PVPrim), True), BoolToStr(SplitPlane.PrimitiveInsidePoly(PVPrim), True), BoolToStr(SplitPlane.GetState_StrictHitTest(PVPrim.x, PVPrim.y), True)]);
+                TempString := TempString + sLineBreak + Format('PowerPlaneConnectStyle <> eNoConnect: %s', [BoolToStr(PVPrim.PowerPlaneConnectStyle <> eNoConnect, True)]);
+                TempString := TempString + sLineBreak + Format('GetState_IsConnectedToPlane(%s): %s', [Layer2String(Layer), BoolToStr(PVPrim.GetState_IsConnectedToPlane(Layer), True)]);
+                TempString := TempString + sLineBreak + Format('SplitPlaneRegion PrimPrimDistance: %s', [RoundCoordStr(Board.PrimPrimDistance(SplitPlaneRegion, PVPrim))]);
+                Inspect_IPCB_Region(SplitPlaneRegion, TempString);}
 
-                //if Board.PrimPrimDistance(SplitPlaneRegion, PVPrim) = 0 then // doesn't work correctly with splitplaneregion to detect if primitive actually touches plane
+                //if Board.PrimPrimDistance(SplitPlaneRegion, PVPrim) = 0 then // doesn't work correctly with splitplaneregion to detect if PAD primitive actually touches plane
                 //begin
                     //bConnected := True;
                     //break;
                 //end;
 
-                if SplitPlane.GetState_HitPrimitive(PVPrim) and (PVPrim.PowerPlaneConnectStyle <> eNoConnect) then // unfortunately GetState_HitPrimitive and similar functions only tell when plane overlaps the primitive
+                if SplitPlane.GetState_HitPrimitive(PVPrim) and (PVPrim.PowerPlaneConnectStyle <> eNoConnect) and PVPrim.GetState_IsConnectedToPlane(Layer) then
+                begin
+                    bConnected := True;
+                    break;
+                end;
+
+                // check above seems to capture the criteria I was using GeometricPolygonsTouch to check for, so this is no longer needed and is presumably much less performant
+                {if SplitPlane.GetState_HitPrimitive(PVPrim) and (PVPrim.PowerPlaneConnectStyle <> eNoConnect) then // unfortunately GetState_HitPrimitive and similar functions only tell when plane overlaps the primitive
                 begin
                     // use PCBContourUtilities.GeometricPolygonsTouch to determine if there is actually a connection on layer. Likely not very performant but PrimPrimDistance does not seem to work for SplitPlaneRegions.
                     // just eliminate as many factors as possible before checking at this level
@@ -337,13 +465,18 @@ begin
 
                     GeoPolysTouch := PCBServer.PCBContourUtilities.GeometricPolygonsTouch(SplitPlaneRegion.GetGeometricPolygon, PVPrimGeoPoly);
 
+                    TempString := Format('GeoPolysTouch: %s%sHitPrimitive: %s; PrimitiveInsidePoly: %s; StrictHitTest: %s', [BoolToStr(GeoPolysTouch, True), sLineBreak, BoolToStr(SplitPlane.GetState_HitPrimitive(PVPrim), True), BoolToStr(SplitPlane.PrimitiveInsidePoly(PVPrim), True), BoolToStr(SplitPlane.GetState_StrictHitTest(PVPrim.x, PVPrim.y), True)]);
+                    TempString := TempString + sLineBreak + Format('SplitPlane PrimPrimDistance: %s%sSplitPlaneRegion PrimPrimDistance: %s', [RoundCoordStr(Board.PrimPrimDistance(SplitPlane, PVPrim)), sLineBreak, RoundCoordStr(Board.PrimPrimDistance(SplitPlaneRegion, PVPrim))]);
+                    Inspect_IPCB_Region(SplitPlaneRegion, TempString);
+
                     //DebugMessage(1, 'PrimPrimDistance = ' + IntToStr(Board.PrimPrimDistance(SplitPlaneRegion, PVPrim)) + sLineBreak2 + 'GeometricPolygonsTouch = ' + BoolToStr(GeoPolysTouch, True));
                     if GeoPolysTouch then
                     begin
                         bConnected := True;
                         break;
                     end;
-                end;
+
+                end;}
 
                 SplitPlaneRegion := GIter.NextPCBObject;
             end;
@@ -448,7 +581,8 @@ begin
     end
     else if (DielectricObj <> nil) then // else is dielectric layer
     begin
-        Result := Format('Layer=%s;;Type=Dielectric;;Thickness=%s', [DielectricObj.Name, IntToStr(DielectricObj.DielectricHeight)]);
+        if DielectricObj.DielectricType = eCore then Result := Format('Layer=%s;;Type=Core;;Thickness=%s', [DielectricObj.Name, IntToStr(DielectricObj.DielectricHeight)])
+        else Result := Format('Layer=%s;;Type=PrePreg;;Thickness=%s', [DielectricObj.Name, IntToStr(DielectricObj.DielectricHeight)]);
     end;
 end;
 
@@ -528,7 +662,7 @@ begin
     DebugMessage(1, DebugMsg);
 end;
 
-function GetSimpleLayerSubstackList(FromLayerObj, ToLayerObj : IPCB_LayerObject_V7) : TStringList;
+function GetLayerSubstackList(FromLayerObj, ToLayerObj : IPCB_LayerObject_V7) : TStringList;
 var
     LayerIter       : IPCB_LayerObjectIterator;
     CurrentLayerObj : IPCB_LayerObject_V7;
@@ -590,10 +724,51 @@ begin
         3 : Result := 'varInteger (int32)';
         4 : Result := 'varSingle';
         5 : Result := 'varDouble';
+        8 : Result := 'varOleStr';
         11 : Result := 'varBoolean';
         20 : Result := 'varInt64';
         else Result := 'missing case (incomplete list)';
     end;
+end;
+
+function HyperlinkText_ZoomPCB(Board : IPCB_Board; Obj : IPCB_ObjectClass; LinkText : String; Debug : Boolean = False) : WideString;
+var
+    CallBackProcess : WideString;
+    CallBackContext : WideString;
+    CallBackParameters : WideString;
+    DocumentFullPath : WideString;
+    StrX1, StrX2, StrY1, StrY2 : String;
+    X1, X2, Y1, Y2 : Integer;
+begin
+    Result := '';
+    if Board = nil then exit;
+    if Obj = nil then exit;
+    if Obj.ObjectId = nil then exit;
+
+    // Obj.BoundingRectangle property is available for all normally selectable object types in PcbDoc but just in case...
+    if Obj.BoundingRectangle = nil then exit;
+
+    CallBackProcess := '';
+    CallBackParameters := '';
+    DocumentFullPath := Board.FileName;
+
+    X1 := Obj.BoundingRectangle.Left;
+    X2 := Obj.BoundingRectangle.Right;
+    Y1 := Obj.BoundingRectangle.Bottom;
+    Y2 := Obj.BoundingRectangle.Top;
+
+    StrX1 := CoordUnitToString(X1 - Board.XOrigin, Board.DisplayUnit xor 1);
+    StrX2 := CoordUnitToString(X2 - Board.XOrigin, Board.DisplayUnit xor 1);
+    StrY1 := CoordUnitToString(Y1 - Board.YOrigin, Board.DisplayUnit xor 1);
+    StrY2 := CoordUnitToString(Y2 - Board.YOrigin, Board.DisplayUnit xor 1);
+
+    CallBackProcess := 'PCB:Zoom';
+    CallBackContext := Format('document=%s;viewname=PCBEditor;', [DocumentFullPath]);
+    CallBackParameters := Format('Action=AREA_DYNAMICZOOM|Location1.X=%s|Location2.X=%s|Location1.Y=%s|Location2.Y=%s', [StrX1, StrX2, StrY1, StrY2]);
+
+    if Debug then ShowInfo('CallBackProcess=''' + CallBackProcess + ''''+ sLineBreak + 'CallBackContext=''' + CallBackContext + ''''+ sLineBreak + 'CallBackParameters=''' + CallBackParameters + '''');
+
+    Result := Format('<a href="dxpprocess://%0:s?%1:s%2:s" class="callback"><acronym title="dxpprocess://%0:s?%1:s%2:s">%3:s</acronym></a>', [CallBackProcess, CallBackContext, CallBackParameters, LinkText]);
 end;
 
 procedure Inspect_IPCB_Arc(const Obj : IPCB_Track; const MyLabel : string = '');
@@ -842,7 +1017,6 @@ begin
     DebugMessage(1, 'DEBUGGING: ' + MyLabel + sLineBreak +
             '------------------------------------------------------------' + sLineBreak +
             AD19DebugStr +
-            Format('%s : %s', ['Net.Name', Obj.Net.Name]) + sLineBreak +
             Format('%s : %s', ['x', IntToStr(Obj.x)]) + sLineBreak +
             Format('%s : %s', ['y', IntToStr(Obj.y)]) + sLineBreak +
             Format('%s : %s', ['PinDescriptor', Obj.PinDescriptor]) + sLineBreak +
@@ -1310,13 +1484,15 @@ var
 begin
     if not DocumentIsPCB then exit;
 
+    iDebugLevel := 0;
+
     TotalThickness := 0;
     DebugMsg := '';
 
     StartLayerObj := LayerStack.FirstLayer;
     StopLayerObj := LayerStack.LastLayer;
 
-    LayerStackList := GetSimpleLayerSubstackList(StartLayerObj, StopLayerObj);
+    LayerStackList := GetLayerSubstackList(StartLayerObj, StopLayerObj);
 
     for idx := 0 to LayerStackList.Count - 1 do
     begin
@@ -1329,5 +1505,38 @@ begin
 
     DebugMsg := DebugMsg + sLineBreak + '------------------------------------------------------------' + sLineBreak + 'Total Thickness (excluding soldermask): ' + CoordToDisplayStr(TotalThickness);
 
-    DebugMessage(0, DebugMsg);
+    ShowInfo(DebugMsg, 'Information: Layer Stackup Summary');
 end;
+
+procedure Inspect_CallBackHyperlinkText_ZoomPCB;
+var
+    idx         : Integer;
+    Obj         : IPCB_ObjectClass;
+begin
+    if not DocumentIsPCB then exit;
+
+    for idx := 0 to Board.SelectecObjectCount - 1 do
+    begin
+        Obj := Board.SelectecObject[idx];
+        if Obj = nil then continue;
+
+        case Obj.ObjectId of
+            eArcObject          : DebugMessage(1, HyperlinkText_ZoomPCB(Board, Obj, 'Arc Object Hyperlink', False));
+            ePadObject          : DebugMessage(1, HyperlinkText_ZoomPCB(Board, Obj, 'Pad Object Hyperlink', False));
+            eViaObject          : DebugMessage(1, HyperlinkText_ZoomPCB(Board, Obj, 'Via Object Hyperlink', False));
+            eTrackObject        : DebugMessage(1, HyperlinkText_ZoomPCB(Board, Obj, 'Track Object Hyperlink', False));
+            eTextObject         : DebugMessage(1, HyperlinkText_ZoomPCB(Board, Obj, 'Text Object Hyperlink', False));
+            eFillObject         : DebugMessage(1, HyperlinkText_ZoomPCB(Board, Obj, 'Fill Object Hyperlink', False));
+            eComponentObject    : DebugMessage(1, HyperlinkText_ZoomPCB(Board, Obj, 'Component Object Hyperlink', False));
+            ePolyObject         : DebugMessage(1, HyperlinkText_ZoomPCB(Board, Obj, 'Polygon Object Hyperlink', False));
+            eRegionObject       : DebugMessage(1, HyperlinkText_ZoomPCB(Board, Obj, 'Region Object Hyperlink', False));
+            eComponentBodyObject: DebugMessage(1, HyperlinkText_ZoomPCB(Board, Obj, 'Component Body Object Hyperlink', False));
+            eDimensionObject    : DebugMessage(1, HyperlinkText_ZoomPCB(Board, Obj, 'Dimension Object Hyperlink', False));
+            eRuleObject         : DebugMessage(1, HyperlinkText_ZoomPCB(Board, Obj, 'Room Object Hyperlink', False));
+            else DebugMessage(1, 'Script has not implemented Inspect_CallBackHyperlinkText_ZoomPCB for ' + Obj.ObjectIDString);
+        end;
+
+        if iDebugLevel = 0 then break;
+    end;
+end;
+
