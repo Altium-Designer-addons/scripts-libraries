@@ -66,6 +66,7 @@ Vias
 - In `Drill Pairs` Via Check Mode, return via drill pair eligibility is not validated i.e. user can select drill pairs that aren't _**actually**_ going to provide a return path - the script will still treat them as valid returns if they are close enough.
 
 ## Change log
+- 2024-01-10 by Ryan Rutledge : v0.74 - polished up highlighting UX when failures are ignored; plane connection check performance improvement; recognize connection in cases where padless hole is flooded with a solid polygon pour (not a full annular ring check)
 - 2024-01-03 by Ryan Rutledge : v0.73 - changed metric unit strings from truncated 0.01mm to rounded 0.0001mm resolution; improved Messages so the PcbDoc is shown if not visible; made Messages zoom to fixed expansion rather than proportional to object size
 - 2024-01-03 by Ryan Rutledge : v0.72 - minor improvement to layer stackup help button info; skip compiling reference layers when not using stackup checking
 - 2024-01-02 by Ryan Rutledge : v0.71 - fixed bug with second reference layer not being properly checked and another possible bug
