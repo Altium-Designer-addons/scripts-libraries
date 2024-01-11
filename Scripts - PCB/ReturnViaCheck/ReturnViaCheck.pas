@@ -1092,7 +1092,7 @@ begin
     begin
         // NOTE: size on layer isn't as simple for pads, so just check for eNoShape or IsPadRemoved instead (not as good as actual annular ring check but oh well)
         // technically pad could be removed on layer with a direct connect pour, so check pad size/shape later like via
-        if PVPrim.Layer = eMultiLayer then bExistsOnLayer := True
+        if (PVPrim.Layer = eMultiLayer) and (PVPrim.Plated) then bExistsOnLayer := True
         else if PVPrim.Layer = Layer then bExistsOnLayer := True;
     end;
 
