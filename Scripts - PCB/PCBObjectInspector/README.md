@@ -13,6 +13,9 @@ If you are a newcomer to Altium scripts, [please read the "how to" wiki page](ht
 
 _Step 3_: Select objects on the PcbDoc and run `_Inspect` script procedure.
 
+## Examples
+![Example1](Example1.png)
+
 ## Bonus Functions
 - `TurnOffAdvanceSnapping` : Turns **OFF** the `AdvanceSnapping` property of PCB Text strings. For debugging.
 - `TurnOnAdvanceSnapping` : Turns **ON** the `AdvanceSnapping` property of PCB Text strings. Can fix certain text snap point and justification issues.
