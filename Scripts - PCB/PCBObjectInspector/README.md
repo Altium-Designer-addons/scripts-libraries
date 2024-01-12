@@ -14,7 +14,11 @@ If you are a newcomer to Altium scripts, [please read the "how to" wiki page](ht
 _Step 3_: Select objects on the PcbDoc and run `_Inspect` script procedure.
 
 ## Examples
+#### `_Inspect` Example:
 ![Example1](Example1.png)
+
+#### `CompareObjects` Example:
+![Example2](Example2.png)
 
 ## Bonus Functions
 - `TurnOffAdvanceSnapping` : Turns **OFF** the `AdvanceSnapping` property of PCB Text strings. For debugging.
