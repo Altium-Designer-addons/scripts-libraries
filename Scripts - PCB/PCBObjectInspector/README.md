@@ -29,6 +29,7 @@ _Step 3_: Select objects on the PcbDoc and run `_Inspect` script procedure.
 - `CompareObjects` : Compares inspector results between two objects of the same type and shows differences.
 
 ## Change log
+- 2024-01-12 by Ryan Rutledge : v0.41 - fixed missing RoundCoords function; added length and width to fill inspector
 - 2024-01-11 by Ryan Rutledge : v0.40 - added ability to compare inspector results between two of the same type of object; most Coord values will now also show display unit values (X and Y coordinates are converted relative to board origin); changed to using custom rounding for coordinate to string conversions
 - 2024-01-10 by Ryan Rutledge : v0.32 - improved connection checking routine; added demonstration of creating an HTML hyperlink to jump to a PCB object in Altium Designer; added display unit conversion functions with rounding
 - 2023-12-21 by Ryan Rutledge : v0.31 - some polishing; added function to measure board thickness between layers; added function to build a list of stackup layer objects from a given start to stop layer
