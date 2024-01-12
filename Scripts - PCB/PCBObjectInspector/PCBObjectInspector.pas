@@ -1,6 +1,6 @@
 const
     cScriptTitle    = 'PCBObjectInspector';
-    cScriptVersion  = '0.40';
+    cScriptVersion  = '0.41';
     cDEBUGLEVEL     = 1;
     sLineBreak2     = sLineBreak + sLineBreak;
 
@@ -95,6 +95,21 @@ function CoordToDisplayY(coords : TCoord) : String;
 begin
     //result := CoordUnitToString(coords - Board.YOrigin, Board.DisplayUnit xor 1);
     result := CoordToDisplayStr(coords - Board.YOrigin); // better resolution for mm
+end;
+
+function RoundCoords(coords : TCoord; round_mult : Double; units : TUnit) : TCoord;
+begin
+    case units of
+        eImperial: begin
+            Result := MilsToCoord(Round(CoordToMils(coords) / round_mult) * round_mult);
+        end;
+        eMetric: begin
+            Result := MMsToCoord(Round(CoordToMMs(coords) / round_mult) * round_mult);
+        end;
+        else begin
+            Result := coords; // invalid
+        end;
+    end;
 end;
 
 function RoundCoordStr(Coords : TCoord) : String;
@@ -982,6 +997,8 @@ begin
             Format('%s : %s (%s)', ['Y1Location', IntToStr(Obj.Y1Location), RoundCoordToY(Obj.Y1Location)]) + sLineBreak +
             Format('%s : %s (%s)', ['X2Location', IntToStr(Obj.X2Location), RoundCoordToX(Obj.X2Location)]) + sLineBreak +
             Format('%s : %s (%s)', ['Y2Location', IntToStr(Obj.Y2Location), RoundCoordToY(Obj.Y2Location)]) + sLineBreak +
+            Format('%s : %s (%s)', ['GetState_Width', IntToStr(Obj.GetState_Width), RoundCoordStr(Obj.GetState_Width)]) + sLineBreak +
+            Format('%s : %s (%s)', ['GetState_Length', IntToStr(Obj.GetState_Length), RoundCoordStr(Obj.GetState_Length)]) + sLineBreak +
             Format('%s : %s', ['Rotation', FloatToStr(Obj.Rotation)]) + sLineBreak +
             Format('%s : %s', ['ObjectId', sObjectIdStrings[Obj.ObjectId]]) + sLineBreak +
             Format('%s : %s (%s)', ['Layer', IntToStr(Obj.Layer), Layer2String(Obj.Layer)]) + sLineBreak +
