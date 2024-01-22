@@ -26,7 +26,7 @@ const
     cCtrlKey            = 3; // available for use during component and location selection
     cConfigFileName     = 'QuickSilkSettings.ini';
     cScriptTitle        = 'QuickSilk';
-    cScriptVersion      = '1.12';
+    cScriptVersion      = '1.13';
     cDEBUGLEVEL         = 0;
 
 var
@@ -845,7 +845,9 @@ var
     ConfigDebugCaption  : String;
     SettingsDebugFile   : String;
     SettingsDebugList   : TStringList;
+    NewSettings         : Boolean;
 begin
+    NewSettings := False;
     LocalSettingsFile := ExtractFilePath(GetRunningScriptProjectName) + cConfigFileName;
 
     // set CheckBoxLocalSettings.Checked to true if local settings file exists
@@ -869,12 +871,14 @@ begin
     // Check for old MoveAPdesignators2 file if the provided file doesn't exist
     if not FileExists(AFileName) then
     begin
+        NewSettings := True; // set flag to immediately save default settings
+
         AFileName := ClientAPI_SpecialFolder_AltiumApplicationData + '\MoveAPdesignators2Settings.ini';
         if not FileExists(AFileName) then
         begin
             // ini file doesn't exist, try to fall back on even older format file
             LoadPresetListFromFile(0);
-            exit;
+            //exit; // don't actually need to exit if fallback happens, just override defaults if used
         end;
     end;
 
@@ -950,6 +954,8 @@ begin
     finally
         IniFile.Free;
     end;
+
+    if NewSettings then ConfigFile_Write(ConfigFile_GetPath);
 end;
 
 procedure   ConfigFile_Write(AFileName : String);
@@ -1478,9 +1484,9 @@ begin
             else if InSet(cCtrlKey, LocKeySet) then ParentOnly := False else ParentOnly := True; // hold CTRL to also avoid things that are outside parent component
             DebugMessage(3, 'Begin: IsValidPlacement=' + BoolToStr(IsValidPlacement(NameOrComment, ParentOnly), True));
 
-            MoveDist := AutoMove(NameOrComment, ParentOnly, 200000, tc_Autopos);
-
             NormalizeText(NameOrComment);
+
+            MoveDist := AutoMove(NameOrComment, ParentOnly, 200000, tc_Autopos);
 
             NameOrComment.GraphicallyInvalidate;
 
