@@ -8,10 +8,11 @@
 const
     cScriptTitle            = 'ReturnViaCheck'; // modified from AssemblyTextPrep script
     cConfigFileName         = 'ReturnViaCheckConfig.ini';
-    cScriptVersion          = '0.74';
+    cScriptVersion          = '0.75';
     CustomRule1_Name        = 'ScriptRule_ReturnViaCheck';
     CustomRule1_Kind        = eRule_HoleToHoleClearance;
     //CustomRule1_Kind        = eRule_RoutingViaStyle; // eRule_RoutingViaStyle has really ugly description for this
+    sLineBreak2             = sLineBreak + sLineBreak;
     cDEBUGLEVEL             = 0;
     DEBUGEXPANSION          = -1; // leave at -1 to disable
     cREF_RATIO              = 2; // default second reference layer distance as ratio of first ref distance
