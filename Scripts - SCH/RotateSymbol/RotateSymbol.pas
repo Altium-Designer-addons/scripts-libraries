@@ -1,6 +1,6 @@
 const
     cScriptName = 'RotateSymbol';
-    cScriptVersion = '1.00';
+    cScriptVersion = '1.10';
     sLineBreak2 = sLineBreak + sLineBreak;
 
 var
@@ -140,6 +140,82 @@ begin
     ReorientSymbol(True);
 end;
 
+function GetPinHotspot(Pin : ISch_Pin) : TPoint;
+begin
+    if Pin = nil then exit;
+
+    case Pin.Orientation of
+        eRotate0    : begin
+            Result := Point(Pin.Location.x + Pin.PinLength, Pin.Location.y);
+        end;
+        eRotate90   : begin
+            Result := Point(Pin.Location.x, Pin.Location.y + Pin.PinLength);
+        end;
+        eRotate180  : begin
+            Result := Point(Pin.Location.x - Pin.PinLength, Pin.Location.y);
+        end;
+        eRotate270  : begin
+            Result := Point(Pin.Location.x, Pin.Location.y - Pin.PinLength);
+        end;
+    end;
+end;
+
+function HasPinCount(Comp : ISch_Component; PinCount : Integer) : Boolean;
+var
+    PinIter     : ISch_Iterator;
+    Pin         : ISch_Pin;
+begin
+    Result := False;
+    if Comp = nil then exit;
+
+    PinIter := Comp.SchIterator_Create;
+    try
+        PinIter.AddFilter_ObjectSet(MkSet(ePin));
+
+        Pin := PinIter.FirstSchObject;
+        while (Pin <> nil) and (PinCount >= 0) do
+        begin
+            Dec(PinCount);
+            if PinCount < 0 then break; // early exit condition
+            Pin := PinIter.NextSchObject;
+        end;
+    finally
+        Comp.SchIterator_Destroy(PinIter);
+    end;
+
+    Result := PinCount = 0; // true if iterated pin count matches starting PinCount
+end;
+
+function GetCompOrigin(Comp : ISch_Component) : TPoint;
+var
+    PinIter     : ISch_Iterator;
+    Pin         : ISch_Pin;
+    Hotspot1    : TPoint;
+    Hotspot2    : TPoint;
+begin
+    Result := nil;
+    if Comp = nil then exit;
+    // if component only has 2 pins, use the midpoint as the centroid, otherwise just use part "Location" i.e. lib origin
+    if HasPinCount(Comp, 2) then
+    begin
+        PinIter := Comp.SchIterator_Create;
+        try
+            PinIter.AddFilter_ObjectSet(MkSet(ePin));
+
+            Pin := PinIter.FirstSchObject;
+            Hotspot1 := GetPinHotspot(Pin);
+
+            Pin := PinIter.NextSchObject;
+            Hotspot2 := GetPinHotspot(Pin);
+        finally
+            Comp.SchIterator_Destroy(PinIter);
+        end;
+
+        Result := Point((Hotspot1.x + Hotspot2.x) div 2, (Hotspot1.y + Hotspot2.y) div 2);
+    end
+    else Result := Comp.Location;
+end;
+
 procedure RotateInPlace(Clockwise : Boolean = False);
 var
     CompIdx         : Integer;
@@ -160,7 +236,8 @@ begin
 
         FillParameterList(Comp);
 
-        CompOrigin := Comp.Location;
+        //CompOrigin := Comp.Location;
+        CompOrigin := GetCompOrigin(Comp);
 
         Comp.UpdatePart_PreProcess;
         try
@@ -171,10 +248,10 @@ begin
                 Param.Autoposition := False;
             end;
 
-            // rotate part in place by 90°
+            // rotate part in place by 90Â°
             if Clockwise then Comp.RotateBy90(CompOrigin, eRotate270) else Comp.RotateBy90(CompOrigin, eRotate90);
 
-            // rotate all the parameters 90° the other way using part as origin
+            // rotate all the parameters 90Â° the other way using part as origin
             for ParamIdx := 0 to ParameterList.Count - 1 do
             begin
                 Param := ParameterList[ParamIdx];
@@ -226,7 +303,8 @@ begin
 
         FillParameterList(Comp);
 
-        CompOrigin := Comp.Location;
+        //CompOrigin := Comp.Location;
+        CompOrigin := GetCompOrigin(Comp);
 
         Comp.UpdatePart_PreProcess;
         try
