@@ -17,14 +17,15 @@ If you are a newcomer to Altium scripts, [please read the "how to" wiki page](ht
 ## Usage guide
 * Select schematic components and execute one of the script functions below. 
 * In all cases, the visible parameters (and designator) should remain in their starting positions. 
+* In the case of 2-pin symbols, library origin is ignored in favor of midpoint between the two hotspots. This allows use with 2-pin symbols that are not centered on the library origin.
 * Non-component objects in selection are ignored.
 
 ## Functions
 * ### _RotateCCW
-Rotates each selected component about its own origin by 90° counter-clockwise. This rotation is equivalent to selecting a single component and pressing SPACE
+Rotates each selected component about its own origin by 90Â° counter-clockwise. This rotation is equivalent to selecting a single component and pressing SPACE.
 
 * ### _RotateCW
-Rotates each selected component about its own origin by 90° counter-clockwise. This rotation is equivalent to selecting a single component and pressing SHIFT+SPACE
+Rotates each selected component about its own origin by 90Â° counter-clockwise. This rotation is equivalent to selecting a single component and pressing SHIFT+SPACE.
 
 * ### _Mirror
 Toggles the "Mirrored" property of the selected components.
@@ -37,6 +38,8 @@ See previous function.
 
 ## Known Issues
 * ### Rotates/Mirrors the symbol around the library origin, not the actual centroid. Symbols that are not symmetrical about symbol origin will behave accordingly.
+  UPDATE: calculates actual hotspot centroid for 2-pin symbols
 
 ## Change log
+- 2024-03-13 by Ryan Rutledge : v1.10 - now rotates or mirrors about the part's true centroid (midpoint between electrical hotspots) for 2-pin symbols only
 - 2024-03-12 by Ryan Rutledge : v1.00 - initial release
