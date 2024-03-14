@@ -21,14 +21,17 @@ If you are a newcomer to Altium scripts, [please read the "how to" wiki page](ht
 * Non-component objects in selection are ignored.
 
 ## Functions
+* ### _Mirror
+Toggles the "Mirrored" property of the selected components.
+
 * ### _RotateCCW
 Rotates each selected component about its own origin by 90° counter-clockwise. This rotation is equivalent to selecting a single component and pressing SPACE.
 
 * ### _RotateCW
 Rotates each selected component about its own origin by 90° counter-clockwise. This rotation is equivalent to selecting a single component and pressing SHIFT+SPACE.
 
-* ### _Mirror
-Toggles the "Mirrored" property of the selected components.
+* ### About
+Displays version info and directs user here.
 
 * ### ReorientCCW - !!CAUTION!!
 Updates the internal orientation of the selected components without actually rotating them. This should be used with caution because there is no external indicator that the symbol doesn't match the zero orientation of the source library. The only use I've identified for this so far is when the source library's symbol orientation is changed and you want to "correct" an already-placed component so that it doesn't rotate when updated from the libraries.
@@ -41,5 +44,6 @@ See previous function.
   UPDATE: calculates actual hotspot centroid for 2-pin symbols
 
 ## Change log
+- 2024-03-13 by Ryan Rutledge : v1.11 - added `About` info command
 - 2024-03-13 by Ryan Rutledge : v1.10 - now rotates or mirrors about the part's true centroid (midpoint between electrical hotspots) for 2-pin symbols only
 - 2024-03-12 by Ryan Rutledge : v1.00 - initial release
