@@ -1,6 +1,6 @@
 const
     cScriptName = 'RotateSymbol';
-    cScriptVersion = '1.10';
+    cScriptVersion = '1.11';
     sLineBreak2 = sLineBreak + sLineBreak;
 
 var
@@ -8,6 +8,30 @@ var
     ComponentList : TInterfaceList;
     ParameterList : TInterfaceList;
 
+
+procedure ClientNavigate(URL : WideString);
+begin
+    Client.SendMessage('Client:Navigate', 'Mode=Go | Address=' + URL, 255, Client.CurrentView);
+end;
+
+procedure About;
+var
+    MsgText : string;
+begin
+    MsgText := '"' + cScriptName + '" script version ' + cScriptVersion + sLineBreak +
+        sLineBreak +
+        'Rotates or Mirrors schematic components in place without moving visible parameters.' + sLineBreak +
+        sLineBreak +
+        'Updated versions and documentation may be found here:' + sLineBreak +
+        'https://github.com/Altium-Designer-addons/scripts-libraries' + sLineBreak +
+        '/tree/master/Scripts - SCH/RotateSymbol' + sLineBreak2 +
+        'Do you want to open the Script''s Github page?';
+
+    if ConfirmNoYesWithCaption('About Script', MsgText) then
+    begin
+        ClientNavigate('https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Scripts - SCH/RotateSymbol');
+    end;
+end;
 
 procedure GlobalInit(dummy : Integer = 0);
 begin
