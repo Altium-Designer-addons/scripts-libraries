@@ -93,6 +93,23 @@ From the GUI, you may click on the clearance labels to select all visible design
 - Accessed by launching `_GUI` or `TweakDesignators` script procedure
 - Moves by a fixed or automatically-determined movement amount toward the owner component. Automatic movement works by moving it in the autoposition-derived direction until it hits (with some hard-coded clearance constants) a pad, silkscreen line, component body, etc.
 
+## Interactive Designator and Comment placement and format copying
+- **no GUI, works in 2D and 3D mode**
+- Accessed by launching `_QuickSilkCopy` or `InteractivelyCopyPosition` script procedure
+- Shows instructions in status bar
+- After launching script, prompts user to click on a source component
+- After choosing a source component, click on a destination component to copy the Designator/Comment placement and formatting from the source to the target.
+    - Currently selected source component and its Designator and Comment text (if visible) will be selected
+    - Default behavior is to copy the Designator position and formatting *relative to the component orientations of the source and target*
+        - For example, if the source component is rotated 0° and the target component is rotated 180°, the Designator will be placed on the opposite side of the part. Use ALT to modify this behavior.
+    - Holding CTRL while clicking on the target component will copy the Comment placement and formatting instead
+    - Holding ALT while clicking on the target component will copy the Designator/Comment placement absolutely without rotating it relative to component rotation
+    - CTRL and ALT can be combined
+- **Always normalizes text after manipulation**
+- **IMPORTANT**: positioning and rotation are relative to the components' origins, so script works best with component that have the same footprint (or at least the same size and library orientation). Using with mismatched component sizes/orientations it will happily place the text inside or far outside the target component.
+- No plans to add a copy mode that only copies formatting without placement - [FormatCopy](https://github.com/Altium-Designer-addons/scripts-libraries/tree/master/Scripts+-+General/FormatCopy) script already does this (and on many more types of objects).
+- Side note: script does not clear selection at the start, so you can pre-select components to use as sources, which will be deselected after you have selected each interactively as a source component
+
 # Summary of changes since MoveAPdesignators
 - Added ability to set justification anchor so that changes to designator size or length grow in the same direction AutoPosition would grow (manual but smarter)
 - Added 8 configurable preset values
@@ -102,8 +119,10 @@ From the GUI, you may click on the clearance labels to select all visible design
 - Added Automatic movement amount detection
 - Added Interactive designator and comment placement tool
 - Added ability to select designators or comments under component bodies, etc.
+- Added Interactive designator and comment position and format copy
 
 # Changelog
+- 2024-04-05 - QuickSilk Ver 1.20 : added command for interactively copying designator/comment placement and formatting from source component to destination component(s); hopefully enhanced performance of IsOverlapping check by pre-checking bounding rectangles before using geometric polygons
 - 2024-01-22 - QuickSilk Ver 1.13 : fixed needing to run GUI at least once; fixed text normalization to happen before autopositioning
 - 2023-12-07 - QuickSilk Ver 1.12 : added nearness-to-click tie-breaker for locked components that have the same bounding area
 - 2023-08-01 - QuickSilk Ver 1.11 : fixed bug where first component body found would be ignored
