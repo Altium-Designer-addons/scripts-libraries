@@ -27,8 +27,10 @@ _Step 3_: Select objects on the PcbDoc and run `_Inspect` script procedure.
 - `LayerStackSummary` : Demonstrates getting a list of all layers from top to bottom in the stackup with a custom formatted summary and the layer objects themselves.
 - `Inspect_CallBackHyperlinkText_ZoomPCB` : Demonstrates creating an HTML hyperlink for the selected PCB object(s).
 - `CompareObjects` : Compares inspector results between two objects of the same type and shows differences.
+- `AreaRatioCalc` : **ONLY WORKS ON REGIONS** Calculates the coverage ratio by area between 2 regions, or between multiple smaller regions and one larger region, such as windowed paste apertures.
 
 ## Change log
+- 2024-08-14 by Ryan Rutledge : v0.42 - added function `AreaRatioCalc` to calculate the coverage ratio between 2 or more regions; improved RoundCoordStr() function performance and added benchmarking routine to test it; increased metric rounding precision to 5 digits of precision
 - 2024-01-12 by Ryan Rutledge : v0.41 - fixed missing RoundCoords function; added length and width to fill inspector
 - 2024-01-11 by Ryan Rutledge : v0.40 - added ability to compare inspector results between two of the same type of object; most Coord values will now also show display unit values (X and Y coordinates are converted relative to board origin); changed to using custom rounding for coordinate to string conversions
 - 2024-01-10 by Ryan Rutledge : v0.32 - improved connection checking routine; added demonstration of creating an HTML hyperlink to jump to a PCB object in Altium Designer; added display unit conversion functions with rounding
