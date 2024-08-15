@@ -1,6 +1,6 @@
 const
     cScriptTitle    = 'PCBObjectInspector';
-    cScriptVersion  = '0.41';
+    cScriptVersion  = '0.42';
     cDEBUGLEVEL     = 1;
     sLineBreak2     = sLineBreak + sLineBreak;
 
@@ -112,7 +112,7 @@ begin
     end;
 end;
 
-function RoundCoordStr(Coords : TCoord) : String;
+function OldRoundCoordStr(Coords : TCoord) : String;
 const
     MAXINT = 2147483647;
     MININT = -2147483647;
@@ -129,7 +129,7 @@ begin
             Result := FloatToStr(CoordToMils(RoundCoords(Coords, 0.001, Units))) + 'mil'; // round to nearest multiple of 0.001mil (TCoord is 0.0001mil but UI TRUNCATES to display 0.001mil resolution)
         end;
         eMetric: begin
-            Result := FloatToStr(CoordToMMs(RoundCoords(Coords, 0.0001, Units))) + 'mm'; // round to nearest multiple of 0.0001mm
+            Result := FloatToStr(CoordToMMs(RoundCoords(Coords, 0.00001, Units))) + 'mm'; // round to nearest multiple of 0.00001mm
         end;
         else
         begin
@@ -138,6 +138,17 @@ begin
     end;
 
     //result := CoordUnitToString(Coords, Board.DisplayUnit xor 1); // built-in metric conversion rounds to 0.01mm resolution
+end;
+function RoundCoordStr(Coords : TCoord) : String;
+var
+    Units : TUnit;
+begin
+    Units := Board.DisplayUnit xor 1;
+    case Units of
+        eImperial: Result := FloatToStr(Round(CoordToMils(coords) / 0.001) * 001) + 'mil'; // round to nearest multiple of 0.001mil (TCoord is 0.0001mil but UI TRUNCATES to display 0.001mil resolution)
+        eMetric: Result := FloatToStr(Round(CoordToMMs(coords) / 0.00001) * 0.00001) + 'mm'; // round to nearest multiple of 0.00001mm
+        else Result := 'NaN';
+    end;
 end;
 
 function RoundCoordToX(Coords : TCoord) : String;
@@ -1170,16 +1181,21 @@ begin
 end;
 
 function Inspect_IPCB_Region(const Obj : IPCB_Region; const MyLabel : string = ''; const ShowMessage : Boolean = True) : String;
+var
+    MilsArea    : Integer;
 begin
     Result := '';
     if Obj = nil then exit;
     if Obj.Net <> nil then Result := Format('%s : %s', ['Net.Name', Obj.Net.Name]) + sLineBreak;
+
+    MilsArea := Obj.Area / 100000000;
 
     Result := Result +
             Format('%s : %s', ['Kind:TRegionKind', sRegionKindStrings[Obj.Kind]]) + sLineBreak +
             Format('%s : %s', ['Name', Obj.Name]) + sLineBreak +
             Format('%s : %s', ['HoleCount', IntToStr(Obj.HoleCount)]) + sLineBreak +
             Format('%s : %s', ['Area', IntToStr(Obj.Area)]) + sLineBreak +
+            Format('%s : %s', ['Area (sq. mils)', IntToStr(MilsArea)]) + sLineBreak +
             Format('%s : %s (%s)', ['CavityHeight', IntToStr(Obj.CavityHeight), RoundCoordStr(Obj.CavityHeight)]) + sLineBreak +
             Format('%s : %s', ['ObjectId', sObjectIdStrings[Obj.ObjectId]]) + sLineBreak +
             Format('%s : %s (%s)', ['Layer', IntToStr(Obj.Layer), Layer2String(Obj.Layer)]) + sLineBreak +
@@ -1582,6 +1598,280 @@ begin
     end;
 end;
 
+procedure InternalBenchmark;
+var
+    StartTime, EndTime, TimeTaken, TotalTimeTaken   : TDateTime;
+    idx, NumIterations : Integer;
+    MessageText : String;
+    TempString  : String;
+    TempUnits   : TUnit;
+    TempReal    : Double;
+    TempInt     : Integer;
+begin
+    if not DocumentIsPCB then exit;
+
+    MessageText := '';
+    NumIterations := 100000;
+    TotalTimeTaken := 0;
+
+    MessageText := MessageText + 'RoundCoords(imperial) uses 1x case structure, 1x MilsToCoord(), 1x Round(), 1x CoordToMils()';
+
+    if MessageText <> '' then MessageText := MessageText + sLineBreak2;
+    MessageText := MessageText + 'OldRoundCoordStr(imperial), inclusive of RoundCoords(imperial) uses:' + sLineBreak + '2x case structures, 1x FloatToStr(), 2x CoordToMils(), 1x MilsToCoord(), 1x Round(), 1x RoundCoords()';
+
+    if MessageText <> '' then MessageText := MessageText + sLineBreak2;
+    MessageText := MessageText + 'RoundCoordStr(imperial) uses:' + sLineBreak + '1x case structures, 1x FloatToStr(), 1x CoordToMils(), 0x MilsToCoord(), 1x Round(), 0x RoundCoords()';
+
+    BeginHourGlass;
+
+    // benchmark first function
+    begin
+        StartTime := Now;
+        for idx := 1 to NumIterations do
+        begin
+            TempString := OldRoundCoordStr(idx);
+        end;
+        EndTime := Now;
+
+        // Calculate the time taken and convert it to seconds
+        TimeTaken := ((EndTime - StartTime) * 24 * 60 * 60) / NumIterations * 1000000;
+
+        if MessageText <> '' then MessageText := MessageText + sLineBreak2;
+        MessageText := MessageText + Format('%s average time across %d iterations: %.3f us', ['OldRoundCoordStr', NumIterations, TimeTaken]);
+    end;
+    TotalTimeTaken := TotalTimeTaken + TimeTaken;
+
+    // benchmark second function
+    begin
+        StartTime := Now;
+        for idx := 1 to NumIterations do
+        begin
+            TempString := RoundCoordStr(idx);
+        end;
+        EndTime := Now;
+
+        // Calculate the time taken and convert it to seconds
+        TimeTaken := ((EndTime - StartTime) * 24 * 60 * 60) / NumIterations * 1000000;
+
+        if MessageText <> '' then MessageText := MessageText + sLineBreak2;
+        MessageText := MessageText + Format('%s average time across %d iterations: %.3f us', ['RoundCoordStr', NumIterations, TimeTaken]);
+    end;
+    TotalTimeTaken := TotalTimeTaken + TimeTaken;
+
+    // benchmark Board.DisplayUnit xor 1
+    begin
+        StartTime := Now;
+        for idx := 1 to NumIterations do
+        begin
+            TempUnits := Board.DisplayUnit xor 1;
+        end;
+        EndTime := Now;
+
+        // Calculate the time taken and convert it to seconds
+        TimeTaken := ((EndTime - StartTime) * 24 * 60 * 60) / NumIterations * 1000000;
+
+        if MessageText <> '' then MessageText := MessageText + sLineBreak2;
+        MessageText := MessageText + Format('%s average time across %d iterations: %.3f us', ['Board.DisplayUnit xor 1', NumIterations, TimeTaken]);
+    end;
+    TotalTimeTaken := TotalTimeTaken + TimeTaken;
+
+    // benchmark Case structure
+    begin
+        StartTime := Now;
+        for idx := 1 to NumIterations do
+        begin
+            case idx of
+                0: TempString := RoundCoordStr(int);
+                else TempInt := idx;
+            end;
+        end;
+        EndTime := Now;
+
+        // Calculate the time taken and convert it to seconds
+        TimeTaken := ((EndTime - StartTime) * 24 * 60 * 60) / NumIterations * 1000000;
+
+        if MessageText <> '' then MessageText := MessageText + sLineBreak2;
+        MessageText := MessageText + Format('%s average time across %d iterations: %.3f us', ['Case structure', NumIterations, TimeTaken]);
+    end;
+    TotalTimeTaken := TotalTimeTaken + TimeTaken;
+
+    // benchmark RoundCoords
+    begin
+        StartTime := Now;
+        for idx := 1 to NumIterations do
+        begin
+            TempInt := RoundCoords(idx, 0.001, eImperial);
+        end;
+        EndTime := Now;
+
+        // Calculate the time taken and convert it to seconds
+        TimeTaken := ((EndTime - StartTime) * 24 * 60 * 60) / NumIterations * 1000000;
+
+        if MessageText <> '' then MessageText := MessageText + sLineBreak2;
+        MessageText := MessageText + Format('%s average time across %d iterations: %.3f us', ['RoundCoords', NumIterations, TimeTaken]);
+    end;
+    TotalTimeTaken := TotalTimeTaken + TimeTaken;
+
+    // benchmark CoordToMils
+    begin
+        StartTime := Now;
+        for idx := 1 to NumIterations do
+        begin
+            TempReal := CoordToMils(idx);
+        end;
+        EndTime := Now;
+
+        // Calculate the time taken and convert it to seconds
+        TimeTaken := ((EndTime - StartTime) * 24 * 60 * 60) / NumIterations * 1000000;
+
+        if MessageText <> '' then MessageText := MessageText + sLineBreak2;
+        MessageText := MessageText + Format('%s average time across %d iterations: %.3f us', ['CoordToMils(idx)', NumIterations, TimeTaken]);
+    end;
+    TotalTimeTaken := TotalTimeTaken + TimeTaken;
+
+    // benchmark CoordToMMs
+    {begin
+        StartTime := Now;
+        for idx := 1 to NumIterations do
+        begin
+            TempReal := CoordToMMs(idx);
+        end;
+        EndTime := Now;
+
+        // Calculate the time taken and convert it to seconds
+        TimeTaken := ((EndTime - StartTime) * 24 * 60 * 60) / NumIterations * 1000000;
+
+        if MessageText <> '' then MessageText := MessageText + sLineBreak2;
+        MessageText := MessageText + Format('%s average time across %d iterations: %.3f us', ['CoordToMMs(idx)', NumIterations, TimeTaken]);
+    end;
+    TotalTimeTaken := TotalTimeTaken + TimeTaken;}
+
+    // benchmark MilsToCoord
+    begin
+        StartTime := Now;
+        for idx := 1 to NumIterations do
+        begin
+            TempInt := MilsToCoord(idx);
+        end;
+        EndTime := Now;
+
+        // Calculate the time taken and convert it to seconds
+        TimeTaken := ((EndTime - StartTime) * 24 * 60 * 60) / NumIterations * 1000000;
+
+        if MessageText <> '' then MessageText := MessageText + sLineBreak2;
+        MessageText := MessageText + Format('%s average time across %d iterations: %.3f us', ['MilsToCoord(idx)', NumIterations, TimeTaken]);
+    end;
+    TotalTimeTaken := TotalTimeTaken + TimeTaken;
+
+    // benchmark MMsToCoord
+    {begin
+        StartTime := Now;
+        for idx := 1 to NumIterations do
+        begin
+            TempInt := MMsToCoord(idx);
+        end;
+        EndTime := Now;
+
+        // Calculate the time taken and convert it to seconds
+        TimeTaken := ((EndTime - StartTime) * 24 * 60 * 60) / NumIterations * 1000000;
+
+        if MessageText <> '' then MessageText := MessageText + sLineBreak2;
+        MessageText := MessageText + Format('%s average time across %d iterations: %.3f us', ['MMsToCoord(idx)', NumIterations, TimeTaken]) + ' x 0 for RoundCoordStr';
+    end;
+    TotalTimeTaken := TotalTimeTaken + TimeTaken;}
+
+    // benchmark Round
+    begin
+        StartTime := Now;
+        for idx := 1 to NumIterations do
+        begin
+            TempInt := Round(idx / 0.0001) * 0.0001;
+        end;
+        EndTime := Now;
+
+        // Calculate the time taken and convert it to seconds
+        TimeTaken := ((EndTime - StartTime) * 24 * 60 * 60) / NumIterations * 1000000;
+
+        if MessageText <> '' then MessageText := MessageText + sLineBreak2;
+        MessageText := MessageText + Format('%s average time across %d iterations: %.3f us', ['Round(idx / 0.0001) * 0.0001', NumIterations, TimeTaken]);
+    end;
+    TotalTimeTaken := TotalTimeTaken + TimeTaken;
+
+    // benchmark Round
+    {begin
+        StartTime := Now;
+        for idx := 1 to NumIterations do
+        begin
+            TempInt := Round(idx / 0.001) * 0.001;
+        end;
+        EndTime := Now;
+
+        // Calculate the time taken and convert it to seconds
+        TimeTaken := ((EndTime - StartTime) * 24 * 60 * 60) / NumIterations * 1000000;
+
+        if MessageText <> '' then MessageText := MessageText + sLineBreak2;
+        MessageText := MessageText + Format('%s average time across %d iterations: %.3f us', ['Round(idx / 0.001) * 0.001', NumIterations, TimeTaken]);
+    end;
+    TotalTimeTaken := TotalTimeTaken + TimeTaken;}
+
+    // benchmark FloatToStr
+    begin
+        StartTime := Now;
+        for idx := 1 to NumIterations do
+        begin
+            TempString := FloatToStr(idx);
+        end;
+        EndTime := Now;
+
+        // Calculate the time taken and convert it to seconds
+        TimeTaken := ((EndTime - StartTime) * 24 * 60 * 60) / NumIterations * 1000000;
+
+        if MessageText <> '' then MessageText := MessageText + sLineBreak2;
+        MessageText := MessageText + Format('%s average time across %d iterations: %.3f us', ['FloatToStr(idx)', NumIterations, TimeTaken]);
+    end;
+    TotalTimeTaken := TotalTimeTaken + TimeTaken;
+
+    // benchmark string concatenation
+    begin
+        TempString := '';
+        StartTime := Now;
+        for idx := 1 to NumIterations do
+        begin
+            TempString := 'mil' + 'mm';
+        end;
+        EndTime := Now;
+
+        // Calculate the time taken and convert it to seconds
+        TimeTaken := ((EndTime - StartTime) * 24 * 60 * 60) / NumIterations * 1000000;
+
+        if MessageText <> '' then MessageText := MessageText + sLineBreak2;
+        MessageText := MessageText + Format('%s average time across %d iterations: %.3f us', ['string concatenation', NumIterations, TimeTaken]);
+    end;
+    TotalTimeTaken := TotalTimeTaken + TimeTaken;
+
+    // benchmark NOP
+    begin
+        TempString := '';
+        StartTime := Now;
+        for idx := 1 to NumIterations do
+        begin
+            //idx;
+        end;
+        EndTime := Now;
+
+        // Calculate the time taken and convert it to seconds
+        TimeTaken := ((EndTime - StartTime) * 24 * 60 * 60) / NumIterations * 1000000;
+
+        if MessageText <> '' then MessageText := MessageText + sLineBreak2;
+        MessageText := MessageText + Format('%s average time across %d iterations: %.3f us', ['NOP', NumIterations, TimeTaken]) + ' (benchmark loop overhead)';
+    end;
+    TotalTimeTaken := TotalTimeTaken + TimeTaken;
+
+    EndHourGlass;
+
+    ShowInfo(MessageText);
+end;
+
 procedure CompareObjects;
 const
     MAXLINES = 12; // should fit anything but really small screens
@@ -1695,3 +1985,168 @@ begin
     end;
 end;
 
+procedure AreaRatioCalc;
+const
+    MAXLINES = 12; // should fit anything but really small screens
+var
+    idx                     : Integer;
+    SplitPos                : Integer;
+    Obj1, Obj2              : IPCB_ObjectClass;
+    Obj1String, Obj2String  : String;
+    DiffString              : String;
+    Obj1Lines, Obj2Lines    : TStringList;
+    DiffLines               : TStringList;
+    CountString             : String;
+    MilsArea1, MilsArea2    : Integer;
+    MilsMax, MilsSum        : Integer;
+    Coverage1, Coverage2    : String;
+begin
+    if not DocumentIsPCB then exit;
+
+    // Deselect anything that is not a Region
+    for idx := Board.SelectecObjectCount - 1 downto 0 do
+    begin
+        Obj1 := Board.SelectecObject(idx);
+        if (Obj1.ObjectId <> eRegionObject) then Obj1.SetState_Selected(false);
+    end;
+
+    if Board.SelectecObjectCount = 1 then
+    begin
+        ShowError('Select two regions to compare them');
+    end
+    else if Board.SelectecObjectCount = 2 then
+    begin
+        Obj1Lines := CreateObject(TStringList);
+        Obj2Lines := CreateObject(TStringList);
+        DiffLines := CreateObject(TStringList);
+
+        Obj1 := Board.SelectecObject[0];
+        Obj2 := Board.SelectecObject[1];
+
+        MilsArea1 := Obj1.Area / 100000000;
+        MilsArea2 := Obj2.Area / 100000000;
+
+        if MilsArea1 = MilsArea2 then
+        begin
+            DiffLines.Add('Area coverage: 100%');
+            DiffLines.Add(sLineBreak);
+        end
+        else if MilsArea1 > MilsArea2 then
+        begin
+            if MilsArea2 <> 0 then Coverage1 := Format('Obj1 / Obj2 coverage by area: %.1f%%', [(MilsArea1 / MilsArea2) * 100.0]) else Coverage1 := 'Inf';
+            Coverage2 := Format('Obj2 / Obj1 coverage by area: %.1f%%', [(MilsArea2 / MilsArea1) * 100.0]);
+            DiffLines.Add(Coverage1);
+            DiffLines.Add(Coverage2);
+            DiffLines.Add(sLineBreak);
+        end
+        else
+        begin
+            // MilsArea1 < MilsArea2
+            if MilsArea1 <> 0 then Coverage2 := Format('Obj2 / Obj1 coverage by area: %.1f%%', [(MilsArea2 / MilsArea1) * 100.0]) else Coverage2 := 'Inf';
+            Coverage1 := Format('Obj1 / Obj2 coverage by area: %.1f%%', [(MilsArea1 / MilsArea2) * 100.0]);
+            DiffLines.Add(Coverage1);
+            DiffLines.Add(Coverage2);
+            DiffLines.Add(sLineBreak);
+        end;
+
+        Obj1String := InspectObject(Obj1, '', False);
+        Obj2String := InspectObject(Obj2, '', False);
+
+        Obj1Lines.Text := Obj1String;
+        Obj2Lines.Text := Obj2String;
+
+        // TODO: compare Obj1String and Obj2String line by line and output Diffstring
+        for idx := 0 to Max(Obj1Lines.Count, Obj2Lines.Count) - 1 do
+        begin
+            if (idx >= Obj1Lines.Count) or (idx >= Obj2Lines.Count) or
+               (Obj1Lines[idx] <> Obj2Lines[idx]) then
+            begin
+                if idx < Obj1Lines.Count then
+                begin
+                    SplitPos := Pos(':', Obj1Lines[idx]);
+                    if SplitPos > 0 then DiffString := Copy(Obj1Lines[idx], 1, SplitPos - 1) else DiffString :='line ' + IntToStr(idx + 1);
+                end
+                else if idx < Obj2Lines.Count then
+                begin
+                    SplitPos := Pos(':', Obj2Lines[idx]);
+                    if SplitPos > 0 then DiffString := Copy(Obj2Lines[idx], 1, SplitPos - 1) else DiffString :='line ' + IntToStr(idx + 1);
+                end;
+
+                DiffString := 'Difference in ' + DiffString + ': ';
+
+                if idx < Obj1Lines.Count then
+                begin
+                    DiffString := DiffString + sLineBreak + '    Obj1: ' + Obj1Lines[idx];
+                end;
+
+                if idx < Obj2Lines.Count then
+                begin
+                    DiffString := DiffString + sLineBreak + '    Obj2: ' + Obj2Lines[idx];
+                end;
+
+                DiffLines.Add(DiffString);
+            end;
+        end;
+
+        if DiffLines.Count = 0 then
+        begin
+            ShowInfo('No differences detected in inspection results.' + sLineBreak2 + 'REMINDER: only values reported by _Inspect function are compared!');
+        end
+        else if DiffLines.Count <= MAXLINES then
+        begin
+            CountString := ' ' + IntToStr(DiffLines.Count) + ' of ' + IntToStr(DiffLines.Count) + ' ';
+            DebugMessage(0, DiffLines.Text + sLineBreak + 'REMINDER: only values reported by _Inspect function are compared!', 'Confirm region coverage calculation');
+        end
+        else
+        begin
+            DiffString := '';
+            for idx :=  0 to DiffLines.Count - 1 do
+            begin
+                if DiffString <> '' then DiffString := DiffString + sLineBreak;
+                DiffString := DiffString + DiffLines[idx];
+
+                if idx = (DiffLines.Count - 1) then
+                begin
+                    CountString := ' ' + IntToStr(idx + 1 - (idx mod MAXLINES)) + '-' + IntToStr(idx + 1) + ' of ' + IntToStr(DiffLines.Count) + ' ';
+                    DebugMessage(1, DiffString + sLineBreak2 + 'REMINDER: only values reported by _Inspect function are compared!', 'Confirm region coverage calculation');
+                end
+                else if (idx > 0) and ((idx + 1) mod MAXLINES = 0) then
+                begin
+                    CountString := ' ' + IntToStr(idx + 1 - (idx mod MAXLINES)) + '-' + IntToStr(idx + 1) + ' of ' + IntToStr(DiffLines.Count) + ' ';
+                    DebugMessage(1, DiffString + sLineBreak2 + 'REMINDER: only values reported by _Inspect function are compared!', 'Confirm region coverage calculation');
+
+                    DiffString := '';
+                end;
+            end;
+        end;
+    end
+    else if Board.SelectecObjectCount > 2 then
+    begin
+        DiffLines := CreateObject(TStringList);
+
+        MilsMax := 0;
+        MilsSum := 0;
+
+        for idx := 0 to Board.SelectecObjectCount - 1 do
+        begin
+            Obj1 := Board.SelectecObject[idx];
+            MilsArea1 := Obj1.Area / 100000000;
+            if MilsArea1 > MilsMax then MilsMax := MilsArea1;
+            MilsSum := MilsSum + MilsArea1;
+        end;
+
+        MilsSum := MilsSum - MilsMax; // remove MilsMax from sum to calculate total area relative to largest area
+
+        if MilsSum = MilsMax then
+        begin
+            DiffLines.Add('Area coverage: 100%');
+        end
+        else
+        begin
+            if MilsMax <> 0 then Coverage1 := Format('Combined coverage of %s regions vs largest region: %.1f%%', [IntToStr(Board.SelectecObjectCount - 1), (MilsSum / MilsMax) * 100.0]) else Coverage1 := 'Coverage: N/A';
+            DiffLines.Add(sLineBreak + Coverage1);
+        end;
+
+        DebugMessage(0, DiffLines.Text, 'Confirm region area calculation');
+    end;
+end;
