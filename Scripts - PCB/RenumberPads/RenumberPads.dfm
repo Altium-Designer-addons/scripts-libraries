@@ -29,15 +29,15 @@ object RenumberPads: TRenumberPads
     object lblFirstPadIndex: TLabel
       Left = 20
       Top = 20
-      Width = 100
-      Height = 25
+      Width = 73
+      Height = 13
       Caption = 'First Pad Index'
     end
     object lblPadIncrement: TLabel
       Left = 20
       Top = 50
-      Width = 100
-      Height = 25
+      Width = 101
+      Height = 13
       Caption = 'Pad Index Increment'
     end
     object lblPreview: TLabel
@@ -54,7 +54,7 @@ object RenumberPads: TRenumberPads
       Left = 140
       Top = 20
       Width = 80
-      Height = 24
+      Height = 21
       Hint = 'Enter starting designator index.'
       Alignment = taRightJustify
       NumbersOnly = True
@@ -83,7 +83,7 @@ object RenumberPads: TRenumberPads
       Left = 140
       Top = 50
       Width = 80
-      Height = 24
+      Height = 21
       Hint = 'Enter designator incrementing index.'
       Alignment = taRightJustify
       NumbersOnly = True
@@ -114,7 +114,7 @@ object RenumberPads: TRenumberPads
       Left = 140
       Top = 80
       Width = 80
-      Height = 25
+      Height = 21
       Hint = 'Enter designator prefix.'
       Alignment = taRightJustify
       Enabled = False
@@ -125,7 +125,7 @@ object RenumberPads: TRenumberPads
       Left = 140
       Top = 110
       Width = 80
-      Height = 25
+      Height = 21
       Hint = 'Enter designator suffix.'
       Alignment = taRightJustify
       Enabled = False

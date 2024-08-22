@@ -16,6 +16,9 @@ Var
     PadObject   : IPCB_Pad;
 
 {..............................................................................}
+
+
+// OK button event.
 procedure TRenumberPads.btnOKClick(Sender: TObject);
 Var
     PadIndex     : Integer;
