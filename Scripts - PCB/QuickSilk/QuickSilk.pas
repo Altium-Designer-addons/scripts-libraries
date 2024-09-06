@@ -1068,7 +1068,7 @@ begin
         end
         else
         begin
-            if TargetComp.NameOn <> SourceComp.NameOn then
+            if TargetComp.CommentOn <> SourceComp.CommentOn then
             begin
                 TargetComp.BeginModify;
                 TargetComp.CommentOn := SourceComp.CommentOn;
