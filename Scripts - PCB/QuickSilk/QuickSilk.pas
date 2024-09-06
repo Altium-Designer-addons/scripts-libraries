@@ -26,7 +26,7 @@ const
     cCtrlKey            = 3; // available for use during component and location selection
     cConfigFileName     = 'QuickSilkSettings.ini';
     cScriptTitle        = 'QuickSilk';
-    cScriptVersion      = '1.20';
+    cScriptVersion      = '1.21';
     cDEBUGLEVEL         = 0;
 
 var
@@ -1057,6 +1057,25 @@ begin
 
     TargetNameOrComment.BeginModify;
     try
+        if bDesignator then
+        begin
+            if TargetComp.NameOn <> SourceComp.NameOn then
+            begin
+                TargetComp.BeginModify;
+                TargetComp.NameOn := SourceComp.NameOn;
+                TargetComp.EndModify;
+            end;
+        end
+        else
+        begin
+            if TargetComp.NameOn <> SourceComp.NameOn then
+            begin
+                TargetComp.BeginModify;
+                TargetComp.CommentOn := SourceComp.CommentOn;
+                TargetComp.EndModify;
+            end;
+        end;
+
         TargetNameOrComment.AdvanceSnapping := True;
 
         CopyTextFormatFromTo(SourceNameOrComment, TargetNameOrComment, False);

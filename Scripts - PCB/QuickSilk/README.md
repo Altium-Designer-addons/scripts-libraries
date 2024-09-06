@@ -122,6 +122,7 @@ From the GUI, you may click on the clearance labels to select all visible design
 - Added Interactive designator and comment position and format copy
 
 # Changelog
+- 2024-09-06 - QuickSilk Ver 1.21 : updated `InteractivelyCopyPosition` function to also copy visibility setting
 - 2024-04-05 - QuickSilk Ver 1.20 : added command for interactively copying designator/comment placement and formatting from source component to destination component(s); hopefully enhanced performance of IsOverlapping check by pre-checking bounding rectangles before using geometric polygons
 - 2024-01-22 - QuickSilk Ver 1.13 : fixed needing to run GUI at least once; fixed text normalization to happen before autopositioning
 - 2023-12-07 - QuickSilk Ver 1.12 : added nearness-to-click tie-breaker for locked components that have the same bounding area
