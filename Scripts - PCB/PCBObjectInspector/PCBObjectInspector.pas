@@ -1,6 +1,6 @@
 const
     cScriptTitle    = 'PCBObjectInspector';
-    cScriptVersion  = '0.42';
+    cScriptVersion  = '0.43';
     cDEBUGLEVEL     = 1;
     sLineBreak2     = sLineBreak + sLineBreak;
 
@@ -145,7 +145,7 @@ var
 begin
     Units := Board.DisplayUnit xor 1;
     case Units of
-        eImperial: Result := FloatToStr(Round(CoordToMils(coords) / 0.001) * 001) + 'mil'; // round to nearest multiple of 0.001mil (TCoord is 0.0001mil but UI TRUNCATES to display 0.001mil resolution)
+        eImperial: Result := FloatToStr(Round(CoordToMils(coords) / 0.0001) * 0.0001) + 'mil'; // round to nearest multiple of 0.0001mil (TCoord is 0.0001mil but in most places UI TRUNCATES to display 0.001mil resolution)
         eMetric: Result := FloatToStr(Round(CoordToMMs(coords) / 0.00001) * 0.00001) + 'mm'; // round to nearest multiple of 0.00001mm
         else Result := 'NaN';
     end;
