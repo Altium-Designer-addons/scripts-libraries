@@ -30,6 +30,7 @@ _Step 3_: Select objects on the PcbDoc and run `_Inspect` script procedure.
 - `AreaRatioCalc` : **ONLY WORKS ON REGIONS** Calculates the coverage ratio by area between 2 regions, or between multiple smaller regions and one larger region, such as windowed paste apertures.
 
 ## Change log
+- 2024-09-18 by Ryan Rutledge : v0.43 - fixed imperial coordinate conversion bug due to typo, and increased resolution to 0.0001 mil (even though many Altium UI elements will only show to 0.001 mil)
 - 2024-08-14 by Ryan Rutledge : v0.42 - added function `AreaRatioCalc` to calculate the coverage ratio between 2 or more regions; improved RoundCoordStr() function performance and added benchmarking routine to test it; increased metric rounding precision to 5 digits of precision
 - 2024-01-12 by Ryan Rutledge : v0.41 - fixed missing RoundCoords function; added length and width to fill inspector
 - 2024-01-11 by Ryan Rutledge : v0.40 - added ability to compare inspector results between two of the same type of object; most Coord values will now also show display unit values (X and Y coordinates are converted relative to board origin); changed to using custom rounding for coordinate to string conversions
