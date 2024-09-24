@@ -85,6 +85,7 @@ Sometimes, particularly when distributing tracks that are not routed at 90° or 
 Tracks with a slope greater than 20 (90° > angle > ~87.137°) will be coerced to be perfectly vertical. This is a limitation of the Double number type. In short, angles that are too steep will have Y-intercept values that are too large to handle.
 
 ## Change log
+- 2024-09-24 by Ryan Rutledge : v1.63 - fixed issue with Pad/Via Clearance mode when tracks are different width
 - 2024-09-20 by Ryan Rutledge : v1.62 - last-used value now restores Pad/Via Clearance checkbox; added ability to distribute between via & pad combo
 - 2023-12-14 by Ryan Rutledge : v1.61 - updated UI to better reflect behavior of distribute evenly versus by fixed distance
 - 2023-12-13 by Ryan Rutledge : v1.60 - added support for distributing between pads if they exist on the same layer as track (should match via behavior otherwise)
