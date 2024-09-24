@@ -20,7 +20,7 @@ var
     MixedModeEnabled  : Boolean;
 
 const
-    ScriptVersion = '1.62';
+    ScriptVersion = '1.63';
     ScriptTitle = 'Distribute';
     cConfigFileName = 'MyDistributeConfig.ini';
     sLineBreak2 = sLineBreak + sLineBreak;
@@ -355,7 +355,7 @@ begin
             viaminc := Ceil(viaminc / 10) * 10;     // apply some rounding to make sure to clear by the requested amount
             viamaxc := Floor(viamaxc / 10) * 10;
 
-            midc := (viaminc + viamaxc + Round((Prim1.Width - Prim2.Width) * coef)) div 2;   // midline intercept between the pad and via, accounting for track width differences
+            midc := ((viaminc + viamaxc) div 2) + Round((Prim1.Width - Prim2.Width) * coef);   // midline intercept between the pad and via, accounting for track width differences
 
             //if DebuggingEnabled then AddToDebugListSecondPad(Prim1, viaminc, viamaxc, midc); // TODO
         end
@@ -388,7 +388,7 @@ begin
             viaminc := Ceil(viaminc / 10) * 10;     // apply a tiny bit of rounding to make sure to clear by the requested amount
             viamaxc := Floor(viamaxc / 10) * 10;
 
-            midc := (viaminc + viamaxc + Round((Prim1.Width - Prim2.Width) * coef)) div 2;   // midline intercept between the pads, accounting for track width differences
+            midc := ((viaminc + viamaxc) div 2) + Round((Prim1.Width - Prim2.Width) * coef);   // midline intercept between the pads, accounting for track width differences
 
             //if DebuggingEnabled then AddToDebugListSecondPad(Prim1, viaminc, viamaxc, midc); // TODO
         end
@@ -423,7 +423,7 @@ begin
             viaminc := Ceil(viaminc / 10) * 10;     // apply some rounding to make sure to clear by the requested amount
             viamaxc := Floor(viamaxc / 10) * 10;
 
-            midc := (viaminc + viamaxc + Round((Prim1.Width - Prim2.Width) * coef)) div 2;   // midline intercept between the vias, accounting for track width differences
+            midc := ((viaminc + viamaxc) div 2) + Round((Prim1.Width - Prim2.Width) * coef);   // midline intercept between the vias, accounting for track width differences
 
             if DebuggingEnabled then AddToDebugListSecondVia(PrimVia, Prim1, viaminc, viamaxc, midc);
         end;
