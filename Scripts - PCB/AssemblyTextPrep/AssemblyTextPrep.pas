@@ -2,10 +2,12 @@
 { For documentation see README.md }
 
 const
-    cMaxMechLayers          = 1024;
+    cMaxMechLayersAD19      = 1024;
+    cMaxMechLayersAD17      = 32;     // legacy mech layer stack
+    cVersionMajorAD19       = 19;
     cScriptTitle            = 'AssemblyTextPrep';
     cConfigFileName         = 'AssemblyTextPrepConfig.ini';
-    cScriptVersion          = '0.86';
+    cScriptVersion          = '0.87';
     cDEBUGLEVEL             = 0;
 
     DEBUGEXPANSION          = -1; // leave at -1 to disable
@@ -68,6 +70,7 @@ function    AddFreeTextToComp(var Comp : IPCB_Component; var Text : IPCB_Text) :
 procedure   AdjustDesignatorPositions(const CenterStrategyIndex : Integer; const OrientationIndex : Integer; const Resize : Boolean; const Normalize : Boolean); forward;
 function    CalculateCentroid(const contour : IPCB_Contour; out CentroidX : TCoord; out CentroidY : TCoord) : Boolean; forward;
 procedure   ChangeTextUnits(Units : TUnit); forward;
+function    CheckMechLayerStack(dummy : String = '') : integer; forward;
 procedure   ClientDeSelectAll(dummy : Boolean = False); forward;
 procedure   ClientZoomRedraw(dummy : Boolean = False); forward;
 procedure   ClientZoomSelected(dummy : Boolean = False); forward;
@@ -98,6 +101,7 @@ function    GetComponentBounds_Body(Comp : IPCB_Component; out CentroidX : TCoor
 function    GetComponentBounds_Pads(Comp : IPCB_Component; out CentroidX : TCoord; out CentroidY : TCoord; out box_width : TCoord; out box_height : TCoord) : Tnteger; forward;
 function    GetComponentBounds_Simple(const Comp : IPCB_Component; out CentroidX : TCoord; out CentroidY : TCoord; out box_width : TCoord; out box_height : TCoord) : Integer; forward;
 function    GetDesignator(var Comp : IPCB_Component) : IPCB_Primitive; forward;
+function    GetMechLayerObject(MLS: IPCB_MasterLayerStack, i : integer, var MLID : TLayer) : IPCB_MechanicalLayer; forward;
 function    GetObjPoly(Obj: IPCB_ObjectClass, Expansion: TCoord = 0) : IPCB_GeometricPolygon; forward;
 function    GetSelectedAssyTextCount(dummy : Boolean = False) : Integer; forward;
 function    GetSelectedComponentCount(dummy : Boolean = False) : Integer; forward;
@@ -577,6 +581,13 @@ begin
 end;
 
 
+function CheckMechLayerStack(dummy : string = '') : integer;
+begin
+    //IsAtLeastAD19 flag will have been set during DocumentIsPCB() check or GUI form create
+    if IsAtLeastAD19 then Result := cMaxMechLayersAD19 else Result := cMaxMechLayersAD17;
+end;
+
+
 procedure   ClientDeSelectAll(dummy : Boolean = False);
 begin
     Client.SendMessage('PCB:DeSelect', 'Scope=All' , 255, Client.CurrentView);
@@ -903,8 +914,8 @@ end;
 
 function    DocumentIsPCB : Boolean;
 begin
-    // set AD build flag
-    if not Assigned(IsAtLeastAD19) then if (GetBuildNumberPart(Client.GetProductVersion, 0) >= 19) then IsAtLeastAD19 := True else IsAtLeastAD19 := False;
+    // set AD build flag (applies if not launched from GUI)
+    if not Assigned(IsAtLeastAD19) then if (GetBuildNumberPart(Client.GetProductVersion, 0) >= cVersionMajorAD19) then IsAtLeastAD19 := True else IsAtLeastAD19 := False;
     if not Assigned(iDebugLevel) then iDebugLevel := cDEBUGLEVEL;
     if not Assigned(bProcessing) then bProcessing := False;
 
@@ -976,7 +987,7 @@ begin
 
     Iter := Board.BoardIterator_Create;
     Iter.AddFilter_ObjectSet(MkSet(eComponentObject));
-    Iter.AddFilter_LayerSet(MkSet(ALayer));
+    Iter.AddFilter_IPCB_LayerSet(LayerSet.Factory(ALayer));  //  AddFilter_I LayerSet(MkSet(ALayer));
     Iter.AddFilter_Method(eProcessAll);
 
     Comp := Iter.FirstPCBObject;
@@ -1269,7 +1280,7 @@ begin
     while (Text <> nil) do
     begin
         // Check if the Text is .Designator special string
-        if Text.UnderlyingString = '.Designator' then
+        if SameText(Text.UnderlyingString, '.Designator') then
         begin
             Result := Text;
             Break;
@@ -1281,11 +1292,25 @@ begin
 end;
 
 
+function GetMechLayerObject(MLS: IPCB_MasterLayerStack, i : integer, var MLID : TLayer) : IPCB_MechanicalLayer;
+begin
+    if IsAtLeastAD19 then
+    begin
+        Result := MLS.GetMechanicalLayer(i);
+        MLID   := Result.V7_LayerID.ID;
+    end else
+    begin
+        MLID   := LayerUtils.MechanicalLayer(i);
+        Result := MLS.LayerObject_V7(MLID);
+    end;
+end;
+
+
 function    GetObjPoly(Obj: IPCB_ObjectClass, Expansion: TCoord = 0) : IPCB_GeometricPolygon;
 var
-    Poly: IPCB_GeometricPolygon;
-    OldRect: TCoordRect;
-    NewContour: IPCB_Contour;
+    Poly       : IPCB_GeometricPolygon;
+    OldRect    : TCoordRect;
+    NewContour : IPCB_Contour;
 begin
     if Obj.ObjectId = eBoardObject then
     begin
@@ -1357,7 +1382,7 @@ begin
     for i := 0 to Board.SelectecObjectCount - 1 do
     begin
         if Board.SelectecObject[i].ObjectId = eTextObject then
-            if (Board.SelectecObject[i].InComponent) and (Board.SelectecObject[i].UnderlyingString = '.Designator') then Inc(Result);
+            if (Board.SelectecObject[i].InComponent) and SameText(Board.SelectecObject[i].UnderlyingString, '.Designator') then Inc(Result);
     end;
 end;
 
@@ -1431,6 +1456,9 @@ var
     LayerNameBot    : String;
     TempLayerTop    : TV7_Layer;
     TempLayerBot    : TV7_Layer;
+    MLID            : TLayer;
+    MaxMechLayers   : integer;
+    MechLayer       : IPCB_MechanicalLayer;
 begin
     status := 0; // clear result status
 
@@ -1443,6 +1471,8 @@ begin
     iDebugLevel := cDEBUGLEVEL;
 
     IsSelectableCheck(IsCompSelectable, IsTextSelectable);
+
+    MaxMechLayers := CheckMechLayerStack('');
 
     MLS := Board.MasterLayerStack;
     MLP := Board.MechanicalPairs; // only needed if we can't derive assy layers from existing components
@@ -1465,12 +1495,15 @@ begin
     end
     else if (ASSY_LAYER_TOP = eNoLayer) then
     begin
-        for i := 1 to cMaxMechLayers do
+        for i := 1 to MaxMechLayers do
         begin
-            // use MLS.GetMechanicalLayer(i) : IPCB_MechanicalLayer
-            if MLP.PairDefined(ASSY_LAYER_BOT, MLS.GetMechanicalLayer(i).LayerID) then
+
+            MechLayer := GetMechLayerObject(MLS, i, MLID);
+
+            if MLP.PairDefined(ASSY_LAYER_BOT, MLID) then
             begin
-                ASSY_LAYER_TOP := MLS.GetMechanicalLayer(i).LayerID;
+                ASSY_LAYER_TOP := MLID;
+                LayerNameTop := MechLayer.GetState_LayerDisplayName(eLayerNameDisplay_Long);
                 break;
             end;
         end;
@@ -1483,11 +1516,14 @@ begin
     end
     else if (ASSY_LAYER_BOT = eNoLayer) then
     begin
-        for i := 1 to cMaxMechLayers do
+        for i := 1 to MaxMechLayers do
         begin
-            if MLP.PairDefined(ASSY_LAYER_TOP, MLS.GetMechanicalLayer(i).LayerID) then
+            MechLayer := GetMechLayerObject(MLS, i, MLID);
+
+            if MLP.PairDefined(ASSY_LAYER_TOP, MLID) then
             begin
-                ASSY_LAYER_BOT := MLS.GetMechanicalLayer(i).LayerID;
+                ASSY_LAYER_BOT := MLID;
+                LayerNameBot := MechLayer.GetState_LayerDisplayName(eLayerNameDisplay_Long);
                 break;
             end;
         end;
@@ -1499,11 +1535,12 @@ begin
         end;
     end;
 
-    if ASSY_LAYER_TOP = eNoLayer then LayerNameTop := 'N/A' else LayerNameTop := MLS.LayerObject(ASSY_LAYER_TOP).Name;
-    if ASSY_LAYER_BOT = eNoLayer then LayerNameBot := 'N/A' else LayerNameBot := MLS.LayerObject(ASSY_LAYER_BOT).Name;
-
     //LayerObj := MLS.LayerObject(ASSY_LAYER_TOP).Name;
-    ASSY_LAYERS_STR := Format('%s [%s] <----> %s [%s]', [LayerNameTop, cLayerStrings[ASSY_LAYER_TOP], LayerNameBot, cLayerStrings[ASSY_LAYER_BOT]]);
+    if ASSY_LAYER_TOP = eNoLayer then LayerNameTop := 'N/A' else LayerNameTop := MLS.LayerObject_V7(ASSY_LAYER_TOP).Name;
+    if ASSY_LAYER_BOT = eNoLayer then LayerNameBot := 'N/A' else LayerNameBot := MLS.LayerObject_V7(ASSY_LAYER_BOT).Name;
+
+//  ASSY_LAYERS_STR := Format('%s [%s] <----> %s [%s]', [LayerNameTop, cLayerStringsASSY_LAYER_TOP], LayerNameBot, cLayerStrings[ASSY_LAYER_BOT]]);
+    ASSY_LAYERS_STR := Format('%s <----> %s', [LayerNameTop, LayerNameBot]);
 
     LabelAssyLayerPair.Caption := ASSY_LAYERS_STR;
     LabelAssyLayerPair.Hint := LabelAssyLayerPair.Caption;
@@ -1542,7 +1579,7 @@ begin
     begin
         Prim1 := Board.SelectecObject[i];
         if (Prim1.ObjectId = eComponentObject) then ComponentCount := ComponentCount + 1;
-        if ((Prim1.ObjectId = eTextObject) and (Prim1.UnderlyingString = '.Designator')) then DesignatorCount := DesignatorCount + 1;
+        if ((Prim1.ObjectId = eTextObject) and SameText(Prim1.UnderlyingString, '.Designator')) then DesignatorCount := DesignatorCount + 1;
     end;
 
     if ((ComponentCount < 1) and (DesignatorCount < 1)) then
@@ -1569,7 +1606,7 @@ begin
         while i < Board.SelectecObjectCount do
         begin
             Prim1 := Board.SelectecObject[i];
-            if not ((Prim1.ObjectId = eComponentObject) or ((Prim1.ObjectId = eTextObject) and (Prim1.UnderlyingString = '.Designator'))) then Prim1.SetState_Selected(False)
+            if not ((Prim1.ObjectId = eComponentObject) or ((Prim1.ObjectId = eTextObject) and SameText(Prim1.UnderlyingString, '.Designator'))) then Prim1.SetState_Selected(False)
             else i := i + 1; // advance iterator if current object remains selected
         end;
     end;
@@ -1605,7 +1642,7 @@ begin
     for i := 0 to Board.SelectecObjectCount - 1 do
     begin
         Prim1 := Board.SelectecObject[i];
-        if ((Prim1.ObjectId = eTextObject) and (Prim1.UnderlyingString = '.Designator')) then DesignatorCount := DesignatorCount + 1;
+        if ((Prim1.ObjectId = eTextObject) and SameText(Prim1.UnderlyingString, '.Designator')) then DesignatorCount := DesignatorCount + 1;
     end;
 
     if (DesignatorCount < 1) then
@@ -1631,7 +1668,8 @@ begin
         while i < Board.SelectecObjectCount do
         begin
             Prim1 := Board.SelectecObject[i];
-            if ((Prim1.ObjectId <> eTextObject) or (Prim1.UnderlyingString <> '.Designator')) then Prim1.SetState_Selected(False)
+            //if ((Prim1.ObjectId <> eTextObject) or ((Prim1.UnderlyingString <> '.Designator') and (Prim1.UnderlyingString <> '.designator'))) then Prim1.SetState_Selected(False)
+            if not ((Prim1.ObjectId = eTextObject) and SameText(Prim1.UnderlyingString, '.Designator')) then Prim1.SetState_Selected(False)
             else i := i + 1; // advance iterator if current object remains selected
         end;
     end;
@@ -2487,7 +2525,7 @@ begin
     iDebugLevel := cDEBUGLEVEL;
 
     // set AD build flag
-    if (GetBuildNumberPart(Client.GetProductVersion, 0) >= 19) then IsAtLeastAD19 := True else IsAtLeastAD19 := False;
+    if (GetBuildNumberPart(Client.GetProductVersion, 0) >= cVersionMajorAD19) then IsAtLeastAD19 := True else IsAtLeastAD19 := False;
 
     //ConfigFile_Read(ConfigFile_GetPath);
 end;
@@ -2941,27 +2979,28 @@ end;
 
 procedure   MyStatusBar_SetState(Index : Integer; const S : WideString);
 begin
-    Client.GUIManager.StatusBarManager.SetState(Index, S);
+    if IsAtLeastAD19 then Client.GUIManager.StatusBarManager.SetState(Index, S);
 end;
 
 function    MyStatusBar_GetState(Index : Integer) : Widestring;
 begin
-    Result := Client.GUIManager.StatusBarManager.GetState(Index);
+    Result := 'Unsupported pre-AD19';
+    if IsAtLeastAD19 then Result := Client.GUIManager.StatusBarManager.GetState(Index);
 end;
 
 procedure   MyStatusBar_SetStateDefault(dummy : Boolean = False);
 begin
-    Client.GUIManager.StatusBarManager.SetState(cStatusBar_SetDefault,'');
+    if IsAtLeastAD19 then Client.GUIManager.StatusBarManager.SetState(cStatusBar_SetDefault,'');
 end;
 
 procedure   MyStatusBar_PushStatus(dummy : Boolean = False);
 begin
-    Client.GUIManager.StatusBarManager.SetState(cStatusBar_Push,'');
+    if IsAtLeastAD19 then Client.GUIManager.StatusBarManager.SetState(cStatusBar_Push,'');
 end;
 
 procedure   MyStatusBar_PopStatus(dummy : Boolean = False);
 begin
-    Client.GUIManager.StatusBarManager.SetState(cStatusBar_Pop,'');
+    if IsAtLeastAD19 then Client.GUIManager.StatusBarManager.SetState(cStatusBar_Pop,'');
 end;
 
 function    MyPercentActive(dummy : Boolean = False) : Boolean;
