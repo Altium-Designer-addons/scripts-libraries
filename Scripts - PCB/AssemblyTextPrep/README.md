@@ -57,22 +57,23 @@ There might be some value in adding a function to check that all components *hav
 * **Tip:** Select components then run _SelectDesignators_ followed by _SelectComponents_ to reduce your selection to only components with the special string.
 
 ## Change log
-- 2023-05-17 by Ryan Rutledge : SelectAssyDesignators v0.1 - Initial version of script. Provides basic selection manipulation for PCB components and associated .Designator special strings
-- 2023-05-18 by Ryan Rutledge : SelectAssyDesignators v0.2 - added _About_ command
-- 2023-05-18 by Ryan Rutledge : SelectAssyDesignators v0.3 - fix to refresh properties panel after command is executed
-- 2023-05-18 by Ryan Rutledge : SelectAssyDesignators v1.0 - added commands to reset .Designator special strings to center on component and match alignment (with or without rotation normalization)
-- 2023-05-22 by Ryan Rutledge : SelectAssyDesignators v1.1 - added commands for orthogonal rotation and resizing .Designator special strings to fit component pads' bounding box
-- 2023-05-23 by Ryan Rutledge : SelectAssyDesignators v1.2 - added IPCB_Text inspection function for debugging
-- 2023-05-24 by Ryan Rutledge : SelectAssyDesignators v1.3 - fixed bug with debugging flag set to false caused by Delphi short-circuit logic
-- 2023-06-07 by Ryan Rutledge : SelectAssyDesignators v1.4 - fixed bug with justification not being applied to text that hadn't had it manually changed before (thanks, Brett Miller!); updated message box styles
-- 2023-06-07 by Ryan Rutledge : SelectAssyDesignators v1.5 - streamlined script to use SnapPointX, SnapPointY properties directly to position text, rather than calculating offsets and using MoveByXY
-- 2023-06-09 by Ryan Rutledge : SelectAssyDesignators v1.6 - added error message if the _SelectBoth_ procedure is attempted without both Components and Texts enabled in the selection filter
-- 2023-06-21 by Ryan Rutledge : SelectAssyDesignators v1.7 - refactored rotation into its own function to make the code more modular and to steal the function for other scripts
-- 2023-07-05 by Ryan Rutledge : SelectAssyDesignators v1.8 - added command to normalize any selected text while preserving justification
-- 2023-07-24 by Ryan Rutledge : AssemblyTextPrep v0.80 - initial pre-release to hopefully get some feedback before v1.00
-- 2023-07-26 by Ryan Rutledge : AssemblyTextPrep v0.81 - bug fixes and refinement
-- 2023-07-26 by Ryan Rutledge : AssemblyTextPrep v0.82 - more bug fixes, better metric rounding, progress bar
-- 2023-07-28 by Ryan Rutledge : AssemblyTextPrep v0.83 - added option to protect locked .Designator strings; bug fixes
-- 2023-08-02 by Ryan Rutledge : AssemblyTextPrep v0.84 - fixed AdvanceSnapping missing from string normalization function; fixed undo on normalize any text button; fixed normalize assy text button
-- 2023-08-24 by Ryan Rutledge : AssemblyTextPrep v0.85 - fixed missing debug function throwing error
+- 2025-08-26 by Brett Miller & Ryan Rutledge : AssemblyTextPrep v0.87 - fixed layer name reading for mech layers > 16; improved support for AD versions < 19; case-insensitive checks for `.Designator` string
 - 2023-09-11 by Ryan Rutledge : AssemblyTextPrep v0.86 - fixed possible bug with `AddAssyTextToCompFromStyle` when style template has `.AdvanceSnapping = False`
+- 2023-08-24 by Ryan Rutledge : AssemblyTextPrep v0.85 - fixed missing debug function throwing error
+- 2023-08-02 by Ryan Rutledge : AssemblyTextPrep v0.84 - fixed AdvanceSnapping missing from string normalization function; fixed undo on normalize any text button; fixed normalize assy text button
+- 2023-07-28 by Ryan Rutledge : AssemblyTextPrep v0.83 - added option to protect locked .Designator strings; bug fixes
+- 2023-07-26 by Ryan Rutledge : AssemblyTextPrep v0.82 - more bug fixes, better metric rounding, progress bar
+- 2023-07-26 by Ryan Rutledge : AssemblyTextPrep v0.81 - bug fixes and refinement
+- 2023-07-24 by Ryan Rutledge : AssemblyTextPrep v0.80 - initial pre-release to hopefully get some feedback before v1.00
+- 2023-07-05 by Ryan Rutledge : SelectAssyDesignators v1.8 - added command to normalize any selected text while preserving justification
+- 2023-06-21 by Ryan Rutledge : SelectAssyDesignators v1.7 - refactored rotation into its own function to make the code more modular and to steal the function for other scripts
+- 2023-06-09 by Ryan Rutledge : SelectAssyDesignators v1.6 - added error message if the _SelectBoth_ procedure is attempted without both Components and Texts enabled in the selection filter
+- 2023-06-07 by Ryan Rutledge : SelectAssyDesignators v1.5 - streamlined script to use SnapPointX, SnapPointY properties directly to position text, rather than calculating offsets and using MoveByXY
+- 2023-06-07 by Ryan Rutledge : SelectAssyDesignators v1.4 - fixed bug with justification not being applied to text that hadn't had it manually changed before (thanks, Brett Miller!); updated message box styles
+- 2023-05-24 by Ryan Rutledge : SelectAssyDesignators v1.3 - fixed bug with debugging flag set to false caused by Delphi short-circuit logic
+- 2023-05-23 by Ryan Rutledge : SelectAssyDesignators v1.2 - added IPCB_Text inspection function for debugging
+- 2023-05-22 by Ryan Rutledge : SelectAssyDesignators v1.1 - added commands for orthogonal rotation and resizing .Designator special strings to fit component pads' bounding box
+- 2023-05-18 by Ryan Rutledge : SelectAssyDesignators v1.0 - added commands to reset .Designator special strings to center on component and match alignment (with or without rotation normalization)
+- 2023-05-18 by Ryan Rutledge : SelectAssyDesignators v0.3 - fix to refresh properties panel after command is executed
+- 2023-05-18 by Ryan Rutledge : SelectAssyDesignators v0.2 - added _About_ command
+- 2023-05-17 by Ryan Rutledge : SelectAssyDesignators v0.1 - Initial version of script. Provides basic selection manipulation for PCB components and associated .Designator special strings
